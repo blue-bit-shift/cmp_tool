@@ -1,6 +1,7 @@
 # PLATO Compression/Decompression Tool
 
-If you find a bug or have a feature request please file an [issue][1] or send me an [email][2].
+If you find a bug or have a feature request please file an [issue][1] or send me an [email][2]   
+Compiled executable can be found [here](https://gitlab.phaidra.org/loidoltd15/cmp_tool/-/tags).
 
 ## Usage
 **usage:** `./cmp_tool [options] [<argument>]`  
