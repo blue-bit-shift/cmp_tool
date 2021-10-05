@@ -173,6 +173,7 @@ unsigned int cal_up_model(unsigned int data, unsigned int model, unsigned int
 			  model_value);
 
 uint32_t get_max_spill(unsigned int golomb_par, unsigned int cmp_mode);
+uint32_t cmp_get_good_spill(unsigned int golomb_par, unsigned int cmp_mode);
 
 size_t size_of_a_sample(unsigned int cmp_mode);
 unsigned int size_of_bitstream(unsigned int cmp_size);
