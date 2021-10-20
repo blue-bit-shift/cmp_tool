@@ -228,6 +228,7 @@ static int read_rdcu_pkt_mode_cfg(uint8_t *icu_addr, uint8_t *rdcu_addr,
 			*p = '\0';
 		} else {
 			fprintf(stderr, "Error read in line to long.\n");
+			fclose(fp);
 			return -1;
 		}
 
@@ -241,6 +242,7 @@ static int read_rdcu_pkt_mode_cfg(uint8_t *icu_addr, uint8_t *rdcu_addr,
 			    i > 0xFF) {
 				fprintf(stderr, "Error reading ICU_ADDR.\n");
 				errno = 0;
+				fclose(fp);
 				return -1;
 			}
 			*icu_addr = (uint8_t)i;
@@ -255,6 +257,7 @@ static int read_rdcu_pkt_mode_cfg(uint8_t *icu_addr, uint8_t *rdcu_addr,
 			    || i > 0xFF) {
 				fprintf(stderr, "Error reading RDCU_ADDR.\n");
 				errno = 0;
+				fclose(fp);
 				return -1;
 			}
 			*rdcu_addr = (uint8_t)i;
@@ -269,6 +272,7 @@ static int read_rdcu_pkt_mode_cfg(uint8_t *icu_addr, uint8_t *rdcu_addr,
 			    i > INT_MAX) {
 				fprintf(stderr, "Error reading MTU.\n");
 				errno = 0;
+				fclose(fp);
 				return -1;
 			}
 			*mtu = (int)i;

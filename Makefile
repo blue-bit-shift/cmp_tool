@@ -18,7 +18,7 @@ SOURCES         := cmp_tool.c \
 		    $(SOURCEDIR)/cmp_icu.c \
 		    $(SOURCEDIR)/decmp.c \
 		    $(SOURCEDIR)/rdcu_pkt_to_file.c \
-		    $(SOURCEDIR)/tool_lib.c
+		    $(SOURCEDIR)/cmp_tool_lib.c
 TARGET          := cmp_tool
 
 DEBUG?=1

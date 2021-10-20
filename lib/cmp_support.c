@@ -409,14 +409,15 @@ uint32_t get_max_spill(unsigned int golomb_par, unsigned int cmp_mode)
 	} else {
 		if (golomb_par > MAX_ICU_GOLOMB_PAR)
 			return 0;
-
-		/* the ICU compressor can generate code words with a length of
-		 * maximal 32 bits.  */
-		unsigned int max_cw_bits = 32;
-		unsigned int cutoff = (1UL << (ilog_2(golomb_par)+1)) - golomb_par;
-		unsigned int max_n_sym_offset = max_cw_bits/2 - 1;
-		return (max_cw_bits-1-ilog_2(golomb_par))*golomb_par + cutoff -
-			max_n_sym_offset - 1;
+		else {
+			/* the ICU compressor can generate code words with a length of
+			 * maximal 32 bits.  */
+			unsigned int max_cw_bits = 32;
+			unsigned int cutoff = (1UL << (ilog_2(golomb_par)+1)) - golomb_par;
+			unsigned int max_n_sym_offset = max_cw_bits/2 - 1;
+			return (max_cw_bits-1-ilog_2(golomb_par))*golomb_par + cutoff -
+				max_n_sym_offset - 1;
+		}
 	}
 }
 
@@ -540,7 +541,7 @@ size_t size_of_a_sample(unsigned int cmp_mode)
  *
  * @param cmp_size compressed data size, measured in bits
  *
- * @returns the size in bytes to sore the hole bitstream
+ * @returns the size in bytes to store the hole bitstream
  */
 
 unsigned int size_of_bitstream(unsigned int cmp_size)
@@ -554,7 +555,7 @@ unsigned int size_of_bitstream(unsigned int cmp_size)
  *
  * @param cmp_size compressed data size, measured in bits
  *
- * @returns the size in bytes to sore the hole bitstream
+ * @returns the size in bytes to store the hole bitstream
  */
 
 unsigned int size_of_model(unsigned int samples, unsigned int cmp_mode)

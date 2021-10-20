@@ -1,5 +1,5 @@
 /**
- * @file   tool_lib.c
+ * @file   cmp_tool_lib.c
  * @author Johannes Seelig (johannes.seelig@univie.ac.at)
  * @author Dominik Loidolt (dominik.loidolt@univie.ac.at),
  * @date   2020
@@ -22,7 +22,7 @@
 #include <ctype.h>
 #include <sys/stat.h>
 
-#include "../include/tool_lib.h"
+#include "../include/cmp_tool_lib.h"
 #include "../include/cmp_support.h"
 #include "../include/rdcu_cmd.h"
 #include "../include/byteorder.h"
@@ -538,6 +538,7 @@ static int parse_cfg(FILE *fp, struct cmp_cfg *cfg)
 
 int read_cmp_cfg(const char *file_name, struct cmp_cfg *cfg, int verbose_en)
 {
+	int err;
 	FILE *fp;
 
 	if (!file_name)
@@ -559,10 +560,11 @@ int read_cmp_cfg(const char *file_name, struct cmp_cfg *cfg, int verbose_en)
 		return -1;
 	}
 
-	if (parse_cfg(fp, cfg))
-		return -1;
-
+	err = parse_cfg(fp, cfg);
 	fclose(fp);
+	if (err) {
+		return err;
+	}
 
 	if (verbose_en) {
 		printf("\n\n");
@@ -813,176 +815,217 @@ int read_cmp_info(const char *file_name, struct cmp_info *info, int verbose_en)
 
 
 /**
- * @brief reads a hex encoded uint8_t data (or model) file, returns a buffer
- *	containing the read in data
+ * @brief reads n_word words of a hex-encoded data (or model) file to
+ *	a uint8_t buffer
  *
- * @note data must be encode has 4 hex digits separated by a white space or new
- *	line character e.g. "ABCD 1234 AB12\n"
+ * @note data must be encoded as 2 hex digits separated by a white space or new
+ *	line character e.g. "AB CD 12\n34 AB 12\n"
  *
- * @param file_name	data file name
- * @param samples	amount of uint16_t data samples to read in
+ * @param file_name	data/model file name
+ * @param buf		buffer to write the file content (can be NULL)
+ * @param n_word	number of uint8_t data words to read in
  * @param verbose_en	print verbose output if not zero
  *
- * @returns address to the buffer containing the read in data, NULL on error
+ * @returns read data words; if buf == NULL the size in bytes to store the file
+ *	content; negative on error
  */
 
-uint8_t *read_file8(const char *file_name, uint32_t samples, int verbose_en)
+ssize_t read_file8(const char *file_name, uint8_t *buf, uint32_t n_word, int verbose_en)
 {
-	uint32_t i;
+	/* This is a rather slow implementation. Performance can be improved by
+	 * reading larger chunks */
+	size_t n;
 	FILE *fp;
-	uint8_t *buffer;
-	char tmp_str[4]; /* 6 = 2 hex digit's + 1 white space + 1 \0 */
+	char tmp_str[4]; /* 4 = 2 hex digit's + 1 white space + 1 \0 */
 
 	if (!file_name)
-		abort();
-
-	if (!samples)
-		return NULL;
+		return -1;
 
 	fp = fopen(file_name, "r");
 	if (fp == NULL) {
 		fprintf(stderr, "%s: %s: %s\n", PROGRAM_NAME, file_name,
 			strerror(errno));
-		return NULL;
+		return -1;
 	}
 
-	buffer = (uint8_t *)malloc(samples * SAM2BYT);
-	if (buffer == NULL) {
-		fprintf(stderr, "%s: Error allocating memory.\n", PROGRAM_NAME);
-		fclose(fp);
-		return NULL;
-	}
+	/* if buf is NULL we count the words in the file */
+	if (!buf)
+		n_word = ~0;
 
-	for (i = 0; i < samples; i++) {
+	for (n = 0; n < n_word; ) {
 		int j;
 		unsigned long read_val;
 		char *end;
 
+		/* read 3 characters */
 		if (!fgets(tmp_str, sizeof(tmp_str), fp)) {
-			fprintf(stderr, "%s: %s: Error: The files does not contain enough data as given by the samples parameter.\n",
+			if (ferror(fp)) {
+				fprintf(stderr, "%s: %s: Error: File error indicator set.\n",
+					PROGRAM_NAME, file_name);
+				goto error;
+			}
+
+			if (!buf)  /* finished counting the sample */
+				break;
+
+			fprintf(stderr, "%s: %s: Error: The files does not contain enough data as given by the n_word parameter.\n",
 				PROGRAM_NAME, file_name);
 			goto error;
 		}
 
-		if (tmp_str[0] == '#' || tmp_str[0] == '\n') {
-			i--; /* a comment or empty line does not count as sample */
+		/* skip empty lines */
+		if (tmp_str[0] == '\n')
+			continue;
+
+		/* skip comment lines */
+		if (tmp_str[0] == '#') {
+			int c;
+			do {
+				c = fgetc(fp);
+			} while (c != '\n' && c != EOF);
 			continue;
 		}
 
+		/* check the string formation */
 		for (j = 0; j < 2; j++) {
 			if (!isxdigit(tmp_str[j])) {
-				fprintf(stderr, "%s: %s: Error: The data are not correct formatted. Expected format is like: 12 AB 23 CD .. ..\n", PROGRAM_NAME,
-					file_name);
+				fprintf(stderr, "%s: %s: Error: The data are not correct formatted. Expected format is like: 12 AB 23 CD .. ..\n",
+					PROGRAM_NAME, file_name);
 				goto error;
 			}
 		}
-
-		if (!(isspace(tmp_str[2]) || tmp_str[2] == '\n')) {
-			fprintf(stderr, "%s: %s: Error: The data are not correct formatted. Expected format is: 12 AB 23 CD .. ..\n", PROGRAM_NAME, file_name);
-			goto error;
-		}
-
-		read_val = strtoul(tmp_str, &end, 16);
-
-		if (tmp_str == end || errno == ERANGE || read_val > UINT8_MAX) {
-			fprintf(stderr, "%s: %s: Error: The data can not be converted to integer.\n",
+		if (!isspace(tmp_str[2])) {
+			fprintf(stderr, "%s: %s: Error: The data are not correct formatted. Expected format is like: 12 AB 23 CD .. ..\n",
 				PROGRAM_NAME, file_name);
 			goto error;
 		}
 
-		buffer[i] = (uint16_t)read_val;
+		/* convert data to integer and write it into the buffer */
+		if (buf) {
+			read_val = strtoul(tmp_str, &end, 16);
+			if (tmp_str == end || read_val > UINT8_MAX) {
+				fprintf(stderr, "%s: %s: Error: The data can not be converted to integer.\n",
+					PROGRAM_NAME, file_name);
+				goto error;
+			}
+			buf[n] = (uint8_t)read_val;
 
-		if (verbose_en) {
-			if (i == 0)
-				printf("\n\n");
-
-			printf("%02X", buffer[i]);
-			if (i && !((i + 1) % 28))
-				printf("\n");
-			else
-				printf(" ");
+			/* print data read in */;
+			if (verbose_en) {
+				if (n ==0)
+					printf("\n\n");
+				printf("%02X", buf[n]);
+				if (n && !((n + 1) % 32))
+					printf("\n");
+				else
+					printf(" ");
+			}
 		}
+
+		n++;
 	}
-	if (verbose_en)
-		printf("\n\n");
 
-	fgets(tmp_str, sizeof(tmp_str), fp);
-	if (!feof(fp) && tmp_str[0] == '\n') /* read last line break */
+	if (buf) {
 		fgets(tmp_str, sizeof(tmp_str), fp);
+		/* have all data read from file */
+		if (!feof(fp) && tmp_str[0] == '\n')
+			fgets(tmp_str, sizeof(tmp_str), fp); /* read last line break */
 
-	if (!feof(fp)) {
-		fprintf(stderr, "%s: %s: Warning: The file may contain more data than specified by the samples parameter.\n",
-			PROGRAM_NAME, file_name);
+		if (!feof(fp)) {
+			fprintf(stderr, "%s: %s: Warning: The file may contain more data than specified by the samples parameter.\n",
+				PROGRAM_NAME, file_name);
+		}
 	}
 
 	fclose(fp);
 
-	return buffer;
+	if (verbose_en && buf)
+		printf("\n\n");
 
-	error:
-		free(buffer);
-		fclose(fp);
-		return NULL;
+	return n;
+
+error:
+	fclose(fp);
+	return -1;
 }
 
 
 /**
- * @brief reads a hex encoded uint16_t data (or model) file, returns a buffer
- *	containing the read in data
+ * @brief reads the number of uint16_t samples of a hex-encoded data (or model)
+ *	file into a buffer
  *
- * @note data must be encode has 4 hex digits separated by a white space or new
- *	line character e.g. "ABCD 1234 AB12\n"
+ * @note data must be encode has 2 hex digits separated by a white space or new
+ *	line character e.g. "AB CD 12 34 AB 12\n"
  *
- * @param file_name	data file name
+ * @param file_name	data/model file name
+ * @param buf		buffer to write the file content (can be NULL)
  * @param samples	amount of uint16_t data samples to read in
  * @param verbose_en	print verbose output if not zero
  *
- * @returns address to the buffer containing the read in data, NULL on error
+ * @returns the size in bytes to store the file content; negative on error
  */
 
-uint16_t *read_file16(const char *file_name, uint32_t samples, int verbose_en)
+ssize_t read_file16(const char *file_name, uint16_t *buf, uint32_t samples,
+		    int verbose_en)
 {
-	size_t i;
-	uint16_t *buf = (uint16_t *)read_file8(file_name, samples*2, verbose_en);
+	ssize_t size = read_file8(file_name, (uint8_t *)buf, samples*2, verbose_en);
 
-	if (!buf)
-		return NULL;
+	if (size < 0)
+		return size;
 
-	for (i=0; i < samples; i++)
-		be16_to_cpus(&buf[i]);
+	if (size & 0x1) {
+		fprintf(stderr, "%s: %s: Error: The data are not correct formatted. Expected multiple of 2 hex words.\n",
+				PROGRAM_NAME, file_name);
+		return -1;
+	}
 
-	return buf;
+	if (buf) {
+		size_t i;
+		for (i=0; i < samples; i++)
+			be16_to_cpus(&buf[i]);
+	}
+
+
+	return size;
 }
 
 
 /**
- * @brief reads a hex encoded uint32_t data file, returns a buffer containing
- *	the read in data
+ * @brief reads the number of uint32_t samples of a hex-encoded data (or model)
+ *	file into a buffer
  *
  * @note data must be encode has 2 hex digits separated by a white space or new
- *	line character e.g. AB CD 12 34
+ *	line character e.g. "AB CD 12 34 AB 12\n"
  *
- * @param file_name	data file name
- * @param buf_len	amount of uint32_t data samples to read in
+ * @param file_name	data/model file name
+ * @param buf		buffer to write the file content (can be NULL)
+ * @param samples	amount of uint32_t data samples to read in
  * @param verbose_en	print verbose output if not zero
  *
- * @returns address to the buffer containing the read in data, NULL on error
+ * @returns the size in bytes to store the file content; negative on error
  */
 
-uint32_t *read_file32(const char *file_name, uint32_t buf_len, int verbose_en)
+ssize_t read_file32(const char *file_name, uint32_t *buf, uint32_t buf_len,
+		    int verbose_en)
 {
-	size_t i;
+	ssize_t size = read_file8(file_name, (uint8_t *)buf, buf_len*4, verbose_en);
 
-	uint32_t *buf = (uint32_t *)read_file8(file_name, buf_len*sizeof(uint32_t),
-					       verbose_en);
+	if (size < 0)
+		return -1;
 
-	if (!buf)
-		return NULL;
+	if (size & 0x3) {
+		fprintf(stderr, "%s: %s: Error: The data are not correct formatted. Expected multiple of 4 hex words.\n",
+				PROGRAM_NAME, file_name);
+		return -1;
+	}
 
-	for (i=0; i < buf_len; i++)
-		be32_to_cpus(&buf[i]);
+	if (buf) {
+		size_t i;
+		for (i=0; i < buf_len; i++)
+			be32_to_cpus(&buf[i]);
+	}
 
-	return buf;
+	return size;
 }
 
 

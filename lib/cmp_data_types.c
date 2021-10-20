@@ -88,7 +88,7 @@ int de_lossy_rounding_16(uint16_t *data_buf, uint32_t samples_used, uint32_t
 
 	for (i = 0; i < samples_used; i++) {
 		/* check if data are not to big for a overflow */
-		uint16_t mask = (uint16_t)(~0 << (16-round_used));
+		uint16_t mask = (uint16_t)(~0U << (16-round_used));
 		if (data_buf[i] & mask) {
 			debug_print("de_lossy_rounding_16 failed!\n");
 			return -1;
@@ -152,7 +152,7 @@ int de_lossy_rounding_32(uint32_t *data_buf, uint32_t samples_used, uint32_t
 
 	for (i = 0; i < samples_used; i++) {
 		/* check if data are not to big for a overflow */
-		uint32_t mask = (uint32_t)(~0 << (32-round_used));
+		uint32_t mask = (uint32_t)(~0U << (32-round_used));
 		if (data_buf[i] & mask) {
 			debug_print("de_lossy_rounding_32 failed!\n");
 			return -1;
