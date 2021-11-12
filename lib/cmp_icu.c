@@ -30,7 +30,6 @@
 #include "../include/cmp_debug.h"
 
 
-
 /**
  * @brief check if the compressor configuration is valid for a SW compression,
  *	see the user manual for more information (PLATO-UVIE-PL-UM-0001).
@@ -62,9 +61,8 @@ int icu_cmp_cfg_valid(const struct cmp_cfg *cfg, struct cmp_info *info)
 		cfg_invalid++;
 	}
 
-	if (cfg->samples == 0) {
+	if (cfg->samples == 0)
 		debug_print("Warning: The samples parameter is 0. No data are compressed. This behavior may not be intended.\n");
-	}
 
 	/* icu_output_buf can be NULL if rdcu compression is used */
 	if (cfg->icu_output_buf == NULL) {
@@ -226,7 +224,7 @@ static int set_info(struct cmp_cfg *cfg, struct cmp_info *info)
 	if (cfg->model_value > UINT8_MAX)
 		return -1;
 
-	if(info) {
+	if (info) {
 		info->cmp_err = 0;
 		info->cmp_mode_used = (uint8_t)cfg->cmp_mode;
 		info->model_value_used = (uint8_t)cfg->model_value;
@@ -310,7 +308,7 @@ static int diff_32(uint32_t *data_buf, unsigned int samples, unsigned int round)
  * @note change the data_buf in-place
  * @note output is I_0 = I_0, I_i = I_i - I_i-1, where i is the array index
  *
- * @param data_buf	pointer to a S_FX data buffer
+ * @param data		pointer to a S_FX data buffer
  * @param samples	amount of data samples in the data buffer
  * @param round		number of bits to round; if zero no rounding takes place
  *
@@ -344,7 +342,7 @@ static int diff_S_FX(struct S_FX *data, unsigned int samples, unsigned int
  * @note change the data_buf in-place
  * @note output is I_0 = I_0, I_i = I_i - I_i-1, where i is the array index
  *
- * @param data_buf	pointer to a S_FX_EFX data buffer
+ * @param data		pointer to a S_FX_EFX data buffer
  * @param samples	amount of data samples in the data buffer
  * @param round		number of bits to round; if zero no rounding takes place
  *
@@ -378,7 +376,7 @@ static int diff_S_FX_EFX(struct S_FX_EFX *data, unsigned int samples, unsigned
  * @note change the data_buf in-place
  * @note output is I_0 = I_0, I_i = I_i - I_i-1, where i is the array index
  *
- * @param data_buf	pointer to a S_FX_NCOB data buffer
+ * @param data		pointer to a S_FX_NCOB data buffer
  * @param samples	amount of data samples in the data buffer
  * @param round		number of bits to round; if zero no rounding takes place
  *
@@ -412,7 +410,7 @@ static int diff_S_FX_NCOB(struct S_FX_NCOB *data, unsigned int samples, unsigned
  * @note change the data_buf in-place
  * @note output is I_0 = I_0, I_i = I_i - I_i-1, where i is the array index
  *
- * @param data_buf	pointer to a S_FX_EFX_NCOB_ECOB data buffer
+ * @param data		pointer to a S_FX_EFX_NCOB_ECOB data buffer
  * @param samples	amount of data samples in the data buffer
  * @param round		number of bits to round; if zero no rounding takes place
  *
@@ -540,7 +538,6 @@ static int model_32(uint32_t *data_buf, uint32_t *model_buf, unsigned int sample
  * @note update the model_buf in-place if up_model_buf = NULL
  *
  * @param data_buf	pointer to the S_FX data buffer to process
- * @param model_buf	pointer to the model buffer of the data to process
  * @param model_buf	pointer to the updated model buffer (if NULL model_buf
  *	will be overwrite with the updated model)
  * @param samples	amount of data samples in the data_buf and model_buf buffer
@@ -607,7 +604,7 @@ int model_S_FX(struct S_FX *data_buf, struct S_FX *model_buf,
  * @returns 0 on success, error otherwise
  */
 
-int pre_process(struct cmp_cfg *cfg)
+int cmp_pre_process(struct cmp_cfg *cfg)
 {
 	if (!cfg)
 		return -1;
@@ -934,13 +931,12 @@ static int map_to_pos_S_FX_EFX_NCOB_ECOB(struct S_FX_EFX_NCOB_ECOB *data_buf,
  *
  * @note change the data_buf in-place
  *
- * @param data_buf	pointer to the data to process
- * @param buf_len	length of the data to process
+ * @param cfg	configuration contains all parameters required for compression
  *
  * @returns 0 on success, error otherwise
  */
 
-static int map_to_pos(struct cmp_cfg *cfg)
+int cmp_map_to_pos(struct cmp_cfg *cfg)
 {
 	int zero_mode_used;
 
@@ -1114,7 +1110,7 @@ static encoder_ptr select_encoder(unsigned int golomb_par)
  * @param    nBits      number of bits to put in the bitstream
  * @param    destAddr   this is the pointer to the beginning of the bitstream
  * @param    dest_len   length of the bitstream buffer (starting at destAddr)
- * @returns  number of bits written, 0 if the number was too big, -1 if the
+ * @returns  TODO number of bits written, 0 if the number was too big, -2 if the
  *	     destAddr buffer is to small to store the bitstream
  * @note     works in SRAM2
  */
@@ -1126,6 +1122,9 @@ static unsigned int put_n_bits32(unsigned int value, unsigned int bitOffset,
 	unsigned int *localAddr;
 	unsigned int bitsLeft, shiftRight, shiftLeft, localEndPos;
 	unsigned int mask;
+
+	if (!destAddr)
+		return nBits;
 
 	/* check if destination buffer is large enough */
 	/* TODO: adapt that to the other science products */
@@ -1336,9 +1335,8 @@ static int encode_outlier_zero(uint32_t value_to_encode, int max_bits,
 	/* put the data unencoded in the bitstream */
 	err = put_n_bits32(value_to_encode, enc->cmp_size, max_bits,
 			   cfg->icu_output_buf, cfg->buffer_length);
-	if (err <= 0) {
+	if (err <= 0)
 		return err;
-	}
 
 	enc->cmp_size += max_bits;
 
@@ -1449,23 +1447,18 @@ int encode_value(uint32_t value_to_encode, int bit_len, struct cmp_cfg *cfg,
 }
 
 
-static int encode_16(uint16_t *data_to_encode, struct cmp_cfg *cfg,
-		     struct encoder_struct *enc)
+static int encode_16(struct cmp_cfg *cfg, struct encoder_struct *enc)
 {
 	size_t i;
+	uint16_t *data_to_encode;
 
 	if (!cfg)
-		return -1;
-
-	if (!cfg->samples)
-		return 0;
-
-	if (!data_to_encode)
 		return -1;
 
 	if (!enc)
 		return -1;
 
+	data_to_encode = cfg->input_buf;
 
 	for (i = 0; i < cfg->samples; i++) {
 		int err = encode_value(data_to_encode[i], 16, cfg, enc);
@@ -1614,7 +1607,7 @@ static int encode_S_FX_EFX_NCOB_ECOB(struct cmp_cfg *cfg, struct encoder_struct
 }
 
 /* pad the bitstream with zeros */
-int pad_bitstream(struct cmp_cfg *cfg, uint32_t cmp_size, struct cmp_info *info)
+int pad_bitstream(struct cmp_cfg *cfg, uint32_t cmp_size)
 {
 	int n_bits = 0;
 
@@ -1628,21 +1621,15 @@ int pad_bitstream(struct cmp_cfg *cfg, uint32_t cmp_size, struct cmp_info *info)
 			 n_bits = put_n_bits32(0, cmp_size, n_pad_bits,
 					       cfg->icu_output_buf,
 					       cfg->buffer_length);
-			if (n_bits <= 0) {
-				/* the icu_output_buf is to small to store the whole bitstream */
-				if (info) {
-					info->cmp_err |= 1UL << SMALL_BUFFER_ERR_BIT; /* set small buffer error */
-					info->cmp_size = 0;
-				}
+			if (n_bits <= 0)
 				return -2;
-			}
 		}
 	}
 	return n_bits;
 }
 
 
-static int encode_data(struct cmp_cfg *cfg, struct cmp_info *info)
+uint32_t cmp_encode_data(struct cmp_cfg *cfg)
 {
 	struct encoder_struct enc;
 	int err, n_bits;
@@ -1659,7 +1646,7 @@ static int encode_data(struct cmp_cfg *cfg, struct cmp_info *info)
 	case MODE_MODEL_MULTI:
 	case MODE_DIFF_ZERO:
 	case MODE_DIFF_MULTI:
-		err = encode_16((uint16_t *)cfg->input_buf, cfg, &enc);
+		err = encode_16(cfg, &enc);
 		break;
 	case MODE_RAW_S_FX:
 		err = encode_raw_S_FX(cfg, &enc);
@@ -1704,28 +1691,24 @@ static int encode_data(struct cmp_cfg *cfg, struct cmp_info *info)
 		break;
 	}
 
-	if (err == -2) {
-		/* the icu_output_buf is to small to store the whole bitstream */
-		info->cmp_err |= 1UL << SMALL_BUFFER_ERR_BIT; /* set small buffer error */
-		return err;
-	}
-	if (info)
-		info->cmp_size = enc.cmp_size;
-
-	n_bits = pad_bitstream(cfg, enc.cmp_size, info);
+	n_bits = pad_bitstream(cfg, enc.cmp_size);
 	if (n_bits < 0)
 		return n_bits;
 
 #if (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
-		{
-			size_t i;
-			uint32_t *p = (uint32_t *)cfg->icu_output_buf;
+	{
+		size_t i;
+		uint32_t *p = (uint32_t *)cfg->icu_output_buf;
+		if (p)
 			for (i = 0; i < (enc.cmp_size + n_bits)/32; i++)
 				cpu_to_be32s(&p[i]);
-		}
+	}
 #endif /*__BYTE_ORDER__ */
 
-	return 0;
+	if (err)
+		return err;
+	else
+		return enc.cmp_size;
 }
 
 
@@ -1756,6 +1739,7 @@ static int encode_data(struct cmp_cfg *cfg, struct cmp_info *info)
 int icu_compress_data(struct cmp_cfg *cfg, struct cmp_info *info)
 {
 	int err;
+	int cmp_size = 0;
 
 	err = set_info(cfg, info);
 	if (err)
@@ -1765,17 +1749,22 @@ int icu_compress_data(struct cmp_cfg *cfg, struct cmp_info *info)
 	if (err)
 		return err;
 
-	err = pre_process(cfg);
+	err = cmp_pre_process(cfg);
 	if (err)
 		return err;
 
-	err = map_to_pos(cfg);
+	err = cmp_map_to_pos(cfg);
 	if (err)
 		return err;
 
-	err = encode_data(cfg, info);
-	if (err)
-		return err;
+	cmp_size = cmp_encode_data(cfg);
+	if (cmp_size == -2 && info)
+		/* the icu_output_buf is to small to store the whole bitstream */
+		info->cmp_err |= 1UL << SMALL_BUFFER_ERR_BIT; /* set small buffer error */
+	if (cmp_size < 0)
+		return cmp_size;
+	if (info)
+		info->cmp_size = cmp_size;
 
 	return 0;
 }

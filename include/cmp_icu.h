@@ -25,4 +25,9 @@
 
 int icu_compress_data(struct cmp_cfg *cfg, struct cmp_info *info);
 
+
+int cmp_pre_process(struct cmp_cfg *cfg);
+int cmp_map_to_pos(struct cmp_cfg *cfg);
+uint32_t cmp_encode_data(struct cmp_cfg *cfg);
+
 #endif /* _CMP_ICU_H_ */

@@ -2,8 +2,13 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+## [0.06] - 12-11-2021
 - if samples = 0 the cmp_tool counts the samples in the data file and uses them
 - if buffer_length = 0 the 2*samples parameter is used as buffer_length
+- added feature to guess the compression configuration
+- some code restructuring
+- added more detailed error messages
+- small bug fixes
 ## [0.05] - 23-04-2021
 ### Removed
 - discard old file format. Now the only input format is like: 12 AB 23 CD .. ..

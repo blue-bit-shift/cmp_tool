@@ -62,6 +62,8 @@
 #define SAM2BYT                                                                \
 	2 /* sample to byte conversion factor; one samples has 16 bits (2 bytes) */
 
+#define CMP_GOOD_SPILL_DIFF_MULTI 2 /* good guess for the spill parameter using the MODE_DIFF_MULTI */
+
 /**
  * @brief The cmp_cfg structure can contain the complete configuration of the HW as
  *      well as the SW compressor.
@@ -163,6 +165,7 @@ int model_mode_is_used(unsigned int cmp_mode);
 int diff_mode_is_used(unsigned int cmp_mode);
 int raw_mode_is_used(unsigned int cmp_mode);
 int rdcu_supported_mode_is_used(unsigned int cmp_mode);
+int cmp_mode_available(unsigned int cmp_mode);
 
 int zero_escape_mech_is_used(unsigned int cmp_mode);
 int multi_escape_mech_is_used(unsigned int cmp_mode);

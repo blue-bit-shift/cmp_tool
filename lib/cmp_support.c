@@ -17,7 +17,6 @@
  * @see Data Compression User Manual PLATO-UVIE-PL-UM-0001
  */
 
-#include <stdio.h>
 
 #include "../include/cmp_support.h"
 #include "../include/cmp_data_types.h"
@@ -247,6 +246,26 @@ int rdcu_supported_mode_is_used(unsigned int cmp_mode)
 
 
 /**
+ * @brief check if the mode is available
+ *
+ * @param cmp_mode compression mode
+ *
+ * @returns 1 when mode is available, otherwise 0
+ */
+
+int cmp_mode_available(unsigned int cmp_mode)
+{
+	if (diff_mode_is_used(cmp_mode) ||
+	    model_mode_is_used(cmp_mode) ||
+	    raw_mode_is_used(cmp_mode))
+		return 1;
+	else
+		return 0;
+
+}
+
+
+/**
  * @brief check if zero escape symbol mechanism mode is used
  *
  * @param cmp_mode compression mode
@@ -442,7 +461,7 @@ uint32_t cmp_get_good_spill(unsigned int golomb_par, unsigned int cmp_mode)
 		317, 324, 330, 336, 344, 351, 358, 363, 370, 377, 383, 391, 397,
 		405, 411, 418, 424, 431, 452 };
 
-	if (zero_escape_mech_is_used(cmp_mode) || cmp_mode == MODE_DIFF_MULTI)
+	if (zero_escape_mech_is_used(cmp_mode))
 		return get_max_spill(golomb_par, cmp_mode);
 
 	if (cmp_mode == MODE_MODEL_MULTI) {
@@ -451,6 +470,9 @@ uint32_t cmp_get_good_spill(unsigned int golomb_par, unsigned int cmp_mode)
 		else
 			return LUT_RDCU_MULIT[golomb_par];
 	}
+
+	if (cmp_mode == MODE_DIFF_MULTI)
+		return CMP_GOOD_SPILL_DIFF_MULTI;
 
 	return 0;
 }
@@ -553,7 +575,8 @@ unsigned int size_of_bitstream(unsigned int cmp_size)
 /**
  * @brief calculate the need bytes for the model
  *
- * @param cmp_size compressed data size, measured in bits
+ * @param samples amount of model samples
+ * @param cmp_mode compression mode
  *
  * @returns the size in bytes to store the hole bitstream
  */
@@ -588,18 +611,16 @@ void print_cmp_cfg(const struct cmp_cfg *cfg)
 	printf("input_buf: %p\n", (void *)cfg->input_buf);
 	if (cfg->input_buf != NULL) {
 		printf("input data:");
-		for (i = 0; i < cfg->samples; i++) {
+		for (i = 0; i < cfg->samples; i++)
 			printf(" %04X", ((uint16_t *)cfg->input_buf)[i]);
-		}
 		printf("\n");
 	}
 	printf("rdcu_data_adr: 0x%06X\n", cfg->rdcu_data_adr);
 	printf("model_buf: %p\n", (void *)cfg->model_buf);
 	if (cfg->model_buf != NULL) {
 		printf("model data:");
-		for (i = 0; i < cfg->samples; i++) {
+		for (i = 0; i < cfg->samples; i++)
 			printf(" %04X", ((uint16_t *)cfg->model_buf)[i]);
-		}
 		printf("\n");
 	}
 	printf("rdcu_model_adr: 0x%06X\n", cfg->rdcu_model_adr);
