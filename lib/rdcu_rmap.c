@@ -261,7 +261,7 @@ static int rdcu_process_rx(void)
 
 		cnt++;
 
-		if (0)
+		if ((0))
 			rmap_parse_pkt(spw_pckt);
 
 		/* convert format */
@@ -353,7 +353,7 @@ int rdcu_submit_tx(const uint8_t *cmd,  int cmd_size,
 	if (!rmap_tx)
 		return -1;
 
-	if (0)
+	if ((0))
 		printf("Transmitting RMAP command\n");
 
 	if (rmap_tx(cmd, cmd_size, dpath_len, data, data_size)) {
@@ -530,8 +530,8 @@ int rdcu_sync_data(int (*fn)(uint16_t trans_id, uint8_t *cmd,
 
 	slot = trans_log_grab_slot(data);
 	if (slot < 0) {
-		if (0)
-		printf("Error: all slots busy!\n");
+		if ((0))
+			printf("Error: all slots busy!\n");
 		return 1;
 	}
 
@@ -792,10 +792,10 @@ void rdcu_rmap_reset_log(void)
  *
  * @param mtu the maximum data transfer size per unit
  *
- * @param rmap_tx a function pointer to transmit an rmap command
- * @param rmap_rx function pointer to receive an rmap command
+ * @param tx a function pointer to transmit an rmap command
+ * @param rx function pointer to receive an rmap command
  *
- * @note rmap_tx is expected to return 0 on success
+ * @note tx is expected to return 0 on success
  *	 rmap_rx is expected to return the number of packet bytes
  *
  * @returns 0 on success, otherwise error

@@ -57,7 +57,7 @@ static int de_raw_pre_process(uint8_t cmp_mode_used)
 /**
  * @brief model decompression pre-processing
  *
- * @note
+ * @note change the data_buf in-place
  *
  * @param data_buf	pointer to the data to process
  * @param model_buf	pointer to the model of the data to process
