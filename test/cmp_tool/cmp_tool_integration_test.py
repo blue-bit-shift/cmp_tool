@@ -93,11 +93,15 @@ def test_invalid_option():
         if arg == '-q':
             if sys.platform == 'linux':
                 assert(stderr == "%s: invalid option -- 'q'\n" % (PATH_CMP_TOOL))
+            elif "win" in sys.platform:
+                assert(stderr == "%s: unknown option -- q\n" % (PATH_CMP_TOOL))
             else:
                 assert(stderr == "cmp_tool: invalid option -- q\n")
         else:
             if sys.platform == 'linux':
                 assert(stderr == "%s: unrecognized option '--not_used'\n" % (PATH_CMP_TOOL))
+            elif "win" in sys.platform:
+                assert(stderr == "%s: unknown option -- not_used\n" % (PATH_CMP_TOOL))
             else:
                 assert(stderr == "cmp_tool: unrecognized option `--not_used'\n")
 
@@ -205,11 +209,11 @@ def test_compression_diff():
     cfg_file_name = 'diff.cfg'
     output_prefix = 'diff_cmp'
     try:
-        with open(data_file_name, 'w') as f:
+        with open(data_file_name, 'w', encoding='utf-8') as f:
             f.write(data)
 
         # generate test configuration
-        with open(cfg_file_name, 'w') as f:
+        with open(cfg_file_name, 'w', encoding='utf-8') as f:
             returncode, stdout, stderr = call_cmp_tool("--diff_cfg")
             assert(returncode == EXIT_SUCCESS)
             assert(stderr == "")
@@ -232,10 +236,10 @@ def test_compression_diff():
                "Write compressed data to file %s.cmp ... DONE\n" % (output_prefix) +
                "Write decompression information to file %s.info ... DONE\n" % (output_prefix))
         # check compressed data
-        with open(output_prefix+".cmp") as f:
+        with open(output_prefix+".cmp", encoding='utf-8') as f:
             assert(f.read() == "44 44 40 00 \n")
         # check info file
-        with open(output_prefix+".info") as f:
+        with open(output_prefix+".info", encoding='utf-8') as f:
             info = parse_key_value(f.read())
         assert(info['cmp_mode_used'] == '2')
         # assert(info['model_value_used'] == '8')  # not needed for diff
@@ -258,7 +262,7 @@ def test_compression_diff():
                "Decompress data ... DONE\n" +
                "Write decompressed data to file %s.dat ... DONE\n" % (output_prefix))
         assert(stderr == "")
-        with open(output_prefix+".dat") as f:
+        with open(output_prefix+".dat", encoding='utf-8') as f:
             assert(f.read() == data)  # decompressed data == input data
 
     # clean up
@@ -280,13 +284,13 @@ def test_model_compression():
     output_prefix1 = 'model_cmp'
     output_prefix2 = 'model_decmp'
     try:
-        with open(data_file_name, 'w') as f:
+        with open(data_file_name, 'w', encoding='utf-8') as f:
             f.write(data)
-        with open(model_file_name, 'w') as f:
+        with open(model_file_name, 'w', encoding='utf-8') as f:
             f.write(model)
 
         # generate test configuration
-        with open(cfg_file_name, 'w') as f:
+        with open(cfg_file_name, 'w', encoding='utf-8') as f:
             returncode, stdout, stderr = call_cmp_tool("--model_cfg")
             assert(returncode == EXIT_SUCCESS)
             assert(stderr == "")
@@ -313,10 +317,10 @@ def test_model_compression():
                "Write decompression information to file %s.info ... DONE\n" % (output_prefix1) +
                "Write updated model to file %s_upmodel.dat ... DONE\n" % (output_prefix1))
         # check compressed data
-        with open(output_prefix1+".cmp") as f:
+        with open(output_prefix1+".cmp", encoding='utf-8') as f:
             assert(f.read() == "49 24 00 00 \n")
         # check info file
-        with open(output_prefix1+".info") as f:
+        with open(output_prefix1+".info", encoding='utf-8') as f:
             info = parse_key_value(f.read())
         assert(info['cmp_mode_used'] == '3')
         assert(info['model_value_used'] == cfg['model_value'])
@@ -341,11 +345,11 @@ def test_model_compression():
         assert(stderr == "")
         # check compressed data
 
-        with open(output_prefix2+".dat") as f:
+        with open(output_prefix2+".dat", encoding='utf-8') as f:
             assert(f.read() == data)
 
-        with open(output_prefix1+"_upmodel.dat") as f1:
-            with open(output_prefix2+"_upmodel.dat") as f2:
+        with open(output_prefix1+"_upmodel.dat", encoding='utf-8') as f1:
+            with open(output_prefix2+"_upmodel.dat", encoding='utf-8') as f2:
                 assert(f1.read() == f2.read() ==
                        '00 00 00 01 00 02 00 03 00 04 \n')
     # clean up
@@ -383,9 +387,9 @@ def test_guess_option():
             (data_file_name)],
     ]
     try:
-        with open(data_file_name, 'w') as f:
+        with open(data_file_name, 'w', encoding='utf-8') as f:
             f.write(data)
-        with open(model_file_name, 'w') as f:
+        with open(model_file_name, 'w', encoding='utf-8') as f:
             f.write(model)
 
         for sub_test, arg in args:
@@ -527,4 +531,5 @@ def test_small_buf_err():
     finally:
         del_file(data_file_name)
         del_file(cfg_file_name)
-# random test
+
+# TODO: random test
