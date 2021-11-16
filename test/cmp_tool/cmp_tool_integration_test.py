@@ -91,9 +91,15 @@ def test_invalid_option():
         assert(returncode == EXIT_FAILURE)
         assert(stdout == HELP_STRING)
         if arg == '-q':
-            assert(stderr == "cmp_tool: invalid option -- q\n")
+            if sys.platform == 'linux':
+                assert(stderr == "%s: invalid option -- 'q'\n" % (PATH_CMP_TOOL))
+            else:
+                assert(stderr == "cmp_tool: invalid option -- q\n")
         else:
-            assert(stderr == "cmp_tool: unrecognized option `--not_used'\n")
+            if sys.platform == 'linux':
+                assert(stderr == "%s: unrecognized option '--not_used'\n" % (PATH_CMP_TOOL))
+            else:
+                assert(stderr == "cmp_tool: unrecognized option `--not_used'\n")
 
 # def option requires an argument
 
