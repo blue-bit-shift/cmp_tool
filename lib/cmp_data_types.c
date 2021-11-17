@@ -17,9 +17,6 @@
  */
 
 
-#include <stddef.h>
-#include <stdio.h>
-
 #include "../include/cmp_data_types.h"
 #include "../include/cmp_support.h"
 #include "../include/cmp_debug.h"
@@ -88,7 +85,7 @@ int de_lossy_rounding_16(uint16_t *data_buf, uint32_t samples_used, uint32_t
 
 	for (i = 0; i < samples_used; i++) {
 		/* check if data are not to big for a overflow */
-		uint16_t mask = (uint16_t)(~0 << (16-round_used));
+		uint16_t mask = (uint16_t)(~0U << (16-round_used));
 		if (data_buf[i] & mask) {
 			debug_print("de_lossy_rounding_16 failed!\n");
 			return -1;
@@ -152,7 +149,7 @@ int de_lossy_rounding_32(uint32_t *data_buf, uint32_t samples_used, uint32_t
 
 	for (i = 0; i < samples_used; i++) {
 		/* check if data are not to big for a overflow */
-		uint32_t mask = (uint32_t)(~0 << (32-round_used));
+		uint32_t mask = (uint32_t)(~0U << (32-round_used));
 		if (data_buf[i] & mask) {
 			debug_print("de_lossy_rounding_32 failed!\n");
 			return -1;
@@ -295,7 +292,7 @@ struct S_FX_EFX add_S_FX_EFX(struct S_FX_EFX a, struct S_FX_EFX b)
  * @note change the data buffer in-place
  * @note the exposure_flags are not rounded
  *
- * @param  data_buf	a S_FX_EFX formatted data buffer
+ * @param  data		S_FX_EFX formatted data buffer
  * @param  samples	the size of the data buffer measured in S_FX_EFX samples
  * @param  round	number of bits to round; if zero no rounding takes place
  *
@@ -318,8 +315,7 @@ int lossy_rounding_S_FX_EFX(struct S_FX_EFX *data, unsigned int samples,
 	if (round == 0)
 		return 0;
 
-	for (i = 0; i < samples; i++)
-	{
+	for (i = 0; i < samples; i++) {
 		data[i].FX = round_fwd(data[i].FX, round);
 		data[i].EFX = round_fwd(data[i].EFX, round);
 	}
@@ -431,8 +427,7 @@ int lossy_rounding_S_FX_NCOB(struct S_FX_NCOB *data_buf, unsigned int samples,
 	if (round == 0)
 		return 0;
 
-	for (i = 0; i < samples; i++)
-	{
+	for (i = 0; i < samples; i++) {
 		data_buf[i].FX = round_fwd(data_buf[i].FX, round);
 		data_buf[i].NCOB_X = round_fwd(data_buf[i].NCOB_X, round);
 		data_buf[i].NCOB_Y = round_fwd(data_buf[i].NCOB_Y, round);
@@ -559,8 +554,7 @@ int lossy_rounding_S_FX_EFX_NCOB_ECOB(struct S_FX_EFX_NCOB_ECOB *data_buf,
 	if (round == 0) /* round 0 means loss less compression, no further processing is necessary */
 		return 0;
 
-	for (i = 0; i < samples; i++)
-	{
+	for (i = 0; i < samples; i++) {
 		data_buf[i].FX = round_fwd(data_buf[i].FX, round);
 		data_buf[i].NCOB_X = round_fwd(data_buf[i].NCOB_X, round);
 		data_buf[i].NCOB_Y = round_fwd(data_buf[i].NCOB_Y, round);
@@ -587,8 +581,7 @@ int de_lossy_rounding_S_FX_EFX_NCOB_ECOB(struct S_FX_EFX_NCOB_ECOB *data_buf,
 	if (round_used == 0) /* round 0 means loss less compression, no further processing is necessary */
 		return 0;
 
-	for (i = 0; i < samples_used; i++)
-	{
+	for (i = 0; i < samples_used; i++) {
 		uint32_t mask = (~0U << (32-round_used));
 
 		if (data_buf[i].FX & mask) {

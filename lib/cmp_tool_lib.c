@@ -1,5 +1,5 @@
 /**
- * @file   tool_lib.c
+ * @file   cmp_tool_lib.c
  * @author Johannes Seelig (johannes.seelig@univie.ac.at)
  * @author Dominik Loidolt (dominik.loidolt@univie.ac.at),
  * @date   2020
@@ -22,7 +22,7 @@
 #include <ctype.h>
 #include <sys/stat.h>
 
-#include "../include/tool_lib.h"
+#include "../include/cmp_tool_lib.h"
 #include "../include/cmp_support.h"
 #include "../include/rdcu_cmd.h"
 #include "../include/byteorder.h"
@@ -31,30 +31,35 @@
 /**
  * @brief print help information
  *
- * @param argv	argument vector
+ * @param program_name	name of the program
  */
 
-void Print_Help(const char *argv)
+void print_help(const char *program_name)
 {
-	printf("usage: %s [options] [<argument>]\n", &argv[0]);
+	printf("usage: %s [options] [<argument>]\n", program_name);
 	printf("General Options:\n");
 	printf("  -h, --help               Print this help text and exit\n");
 	printf("  -V, --version            Print program version and exit\n");
 	printf("  -v, --verbose            Print various debugging information\n");
 	printf("  -n, --model_cfg          Print a default model configuration and exit\n");
 	printf("  --diff_cfg               Print a default 1d-differencing configuration and exit\n");
-	printf("  -a, --rdcu_par           Print additional RDCU control parameters\n");
+	printf("  -a, --rdcu_par           Add additional RDCU control parameters\n");
 	printf("  -o <prefix>              Use the <prefix> for output files\n");
 	printf("Compression Options:\n");
 	printf("  -c <file>                File containing the compressing configuration\n");
 	printf("  -d <file>                File containing the data to be compressed\n");
 	printf("  -m <file>                File containing the model of the data to be compressed\n");
-	printf("  --rdcu_pkt               Generate RMAP packets for a RDCU compression\n");
+	printf("  --rdcu_pkt               Generate RMAP packets for an RDCU compression\n");
+	printf("  --last_info <.info file> Generate RMAP packets for an RDCU compression with parallel read of the last results\n");
 	printf("Decompression Options:\n");
 	printf("  -i <file>                File containing the decompression information\n");
 	printf("  -d <file>                File containing the compressed data\n");
 	printf("  -m <file>                File containing the model of the compressed data\n");
-	printf("\n");
+	printf("Guessing Options:\n");
+	printf("  --guess <mode>           Search for a good configuration for compression <mode>\n");
+	printf("  -d <file>                File containing the data to be compressed\n");
+	printf("  -m <file>                File containing the model of the data to be compressed\n");
+	printf("  --guess_level <level>    Set guess level to <level> (optional)\n");
 }
 
 
@@ -72,14 +77,13 @@ void Print_Help(const char *argv)
 
 static FILE *open_file(const char *dirname, const char *filename)
 {
-	FILE *fp;
 	char *pathname;
 	int n;
 
 	if (!dirname)
 		return NULL;
 
-	if(!filename)
+	if (!filename)
 		return NULL;
 
 	errno = 0;
@@ -104,9 +108,7 @@ static FILE *open_file(const char *dirname, const char *filename)
 		abort();
 	}
 
-	fp = fopen(pathname, "w");
-	free(pathname);
-	return fp;
+	return fopen(pathname, "w");
 }
 
 
@@ -144,7 +146,7 @@ int write_to_file16(const uint16_t *buf, uint32_t buf_len, const char
 	}
 
 	for (i = 0; i < buf_len; i++) {
-		fprintf(fp, "%02X %02X",buf[i] >> 8 ,buf[i] & 0xFF);
+		fprintf(fp, "%02X %02X", buf[i] >> 8, buf[i] & 0xFF);
 		if ((i + 1) % 16 == 0)
 			fprintf(fp, "\n");
 		else
@@ -157,7 +159,7 @@ int write_to_file16(const uint16_t *buf, uint32_t buf_len, const char
 	if (verbose) {
 		printf("\n\n");
 			for (i = 0; i < buf_len; i++) {
-				printf("%02X %02X",buf[i] >> 8 ,buf[i] & 0xFF);
+				printf("%02X %02X", buf[i] >> 8, buf[i] & 0xFF);
 			if ((i + 1) % 16 == 0)
 				printf("\n");
 			else
@@ -185,12 +187,12 @@ int write_to_file16(const uint16_t *buf, uint32_t buf_len, const char
  * @returns 0 on success, error otherwise
  */
 
-int write_cmp_data_file(const void *buf, uint32_t buf_size, const char
-		    *output_prefix, const char *name_extension, int verbose)
+int write_cmp_data_file(const void *buf, uint32_t buf_size, const char *output_prefix,
+			const char *name_extension, int verbose)
 {
 	unsigned int i;
 	FILE *fp;
-	uint8_t *p = (uint8_t *)buf;
+	const uint8_t *p = (const uint8_t *)buf;
 
 	if (!buf)
 		abort();
@@ -248,7 +250,7 @@ static void remove_spaces(char *s)
 
 	do {
 		while (*d == ' ' || *d == '\t')
-			++d;
+			d++;
 	} while ((*s++ = *d++) != '\0');
 }
 
@@ -326,7 +328,7 @@ static int sram_addr_to_int(const char *addr)
  * @see https://eternallyconfuzzled.com/atoi-is-evil-c-learn-why-atoi-is-awful
  */
 
-static int atoui32(const char *dep_str , const char *val_str, uint32_t *red_val)
+static int atoui32(const char *dep_str, const char *val_str, uint32_t *red_val)
 {
 	long temp;
 	char *end = NULL;
@@ -340,14 +342,14 @@ static int atoui32(const char *dep_str , const char *val_str, uint32_t *red_val)
 	if (!red_val)
 		return -1;
 
+	errno = 0;
 	temp = strtol(val_str, &end, 10);
-	if (end != val_str && errno != ERANGE && temp >= 0 && temp <=
-	    UINT32_MAX) {
+	if (end != val_str && errno != ERANGE && temp >= 0 &&
+	    temp <= UINT32_MAX) {
 		*red_val = (uint32_t)temp;
 		return 0;
 	} else {
-		fprintf(stderr, "%s: Error read in %s.\n", PROGRAM_NAME,
-			dep_str);
+		fprintf(stderr, "%s: Error read in %s.\n", PROGRAM_NAME, dep_str);
 		*red_val = 0;
 		return -1;
 	}
@@ -355,14 +357,64 @@ static int atoui32(const char *dep_str , const char *val_str, uint32_t *red_val)
 
 
 /**
-* @brief  parse a file containing a compressing configuration
-*
-* @param fp	FILE pointer
-* @param cfg	compression configuration structure holding the read in
-*		configuration
-*
-* @returns 0 on success, error otherwise
-*/
+ * @brief parse a compression mode vale string to a integer
+ * @note string can be either a number or the name of the compression mode
+ *
+ * @param cmp_mode_str	string containing the compression mode value to parse
+ * @param cmp_mode	address where the parsed result is written
+ *
+ * @returns 0 on success, error otherwise
+ */
+
+uint32_t cmp_mode_parse(const char *cmp_mode_str, uint32_t *cmp_mode)
+{
+	size_t j;
+	static const struct {
+		uint32_t  cmp_mode;
+		const char *str;
+	} conversion[] = {
+		{MODE_RAW, "MODE_RAW"},
+		{MODE_MODEL_ZERO, "MODE_MODEL_ZERO"},
+		{MODE_DIFF_ZERO, "MODE_DIFF_ZERO"},
+		{MODE_MODEL_MULTI, "MODE_MODEL_MULTI"},
+		{MODE_DIFF_MULTI, "MODE_DIFF_MULTI"},
+	};
+
+	if (!cmp_mode_str)
+		return -1;
+	if (!cmp_mode)
+		return -1;
+
+	if (isalpha(cmp_mode_str[0])) {  /* check if mode is given as text */
+		for (j = 0;  j < sizeof(conversion) / sizeof(conversion[0]);  ++j) {
+			if (!strcmp(cmp_mode_str, conversion[j].str)) {
+				*cmp_mode = conversion[j].cmp_mode;
+				return 0;
+			}
+		}
+		return -1;
+	} else {
+		if (atoui32(cmp_mode_str, cmp_mode_str, cmp_mode))
+			return -1;
+	}
+
+	if (!cmp_mode_available(*cmp_mode))
+		return -1;
+
+	return 0;
+}
+
+
+/**
+ * @brief parse a file containing a compressing configuration
+ * @note internal use only!
+ *
+ * @param fp	FILE pointer
+ * @param cfg	compression configuration structure holding the read in
+ *		configuration
+ *
+ * @returns 0 on success, error otherwise
+ */
 
 static int parse_cfg(FILE *fp, struct cmp_cfg *cfg)
 {
@@ -379,7 +431,7 @@ static int parse_cfg(FILE *fp, struct cmp_cfg *cfg)
 		if (line[0] == '#' || line[0] == '\n')
 			continue; /* skip #'ed or empty lines */
 
-		if (!strchr(line, '\n')){ /* detect a to long line */
+		if (!strchr(line, '\n')) { /* detect a to long line */
 			fprintf(stderr, "%s: Error read in line to long. Maximal line length is %d characters.\n",
 				PROGRAM_NAME, MAX_CONFIG_LINE-1);
 			return -1;
@@ -538,6 +590,7 @@ static int parse_cfg(FILE *fp, struct cmp_cfg *cfg)
 
 int read_cmp_cfg(const char *file_name, struct cmp_cfg *cfg, int verbose_en)
 {
+	int err;
 	FILE *fp;
 
 	if (!file_name)
@@ -547,8 +600,8 @@ int read_cmp_cfg(const char *file_name, struct cmp_cfg *cfg, int verbose_en)
 		abort();
 
 	if (strstr(file_name, ".info")) {
-	    fprintf(stderr, "%s: %s: .info file extension found on configuration file. You may have selected the wrong file.\n",
-		    PROGRAM_NAME, file_name);
+		fprintf(stderr, "%s: %s: .info file extension found on configuration file. You may have selected the wrong file.\n",
+			PROGRAM_NAME, file_name);
 	}
 
 	fp = fopen(file_name, "r");
@@ -559,10 +612,10 @@ int read_cmp_cfg(const char *file_name, struct cmp_cfg *cfg, int verbose_en)
 		return -1;
 	}
 
-	if (parse_cfg(fp, cfg))
-		return -1;
-
+	err = parse_cfg(fp, cfg);
 	fclose(fp);
+	if (err)
+		return err;
 
 	if (verbose_en) {
 		printf("\n\n");
@@ -582,6 +635,7 @@ int read_cmp_cfg(const char *file_name, struct cmp_cfg *cfg, int verbose_en)
 
 /**
  * @brief  parse a file containing a decompression information
+ * @note internal use only!
  *
  * @param fp	FILE pointer
  * @param info	decompression information structure holding the read in
@@ -605,7 +659,7 @@ static int parse_info(FILE *fp, struct cmp_info *info)
 		if (line[0] == '#' || line[0] == '\n')
 			continue; /* skip #'ed or empty lines */
 
-		if (!strchr(line, '\n')){ /* detect a to long line */
+		if (!strchr(line, '\n')) { /* detect a to long line */
 			fprintf(stderr, "%s: Error read in line to long. Maximal line length is %d characters.\n",
 				PROGRAM_NAME, MAX_CONFIG_LINE-1);
 			return -1;
@@ -738,8 +792,7 @@ static int parse_info(FILE *fp, struct cmp_info *info)
 			int i = sram_addr_to_int(token2);
 
 			if (i < 0) {
-				fprintf(stderr,"%s: Error read in "
-				       "rdcu_cmp_adr_used\n",
+				fprintf(stderr, "%s: Error read in rdcu_cmp_adr_used\n",
 				       PROGRAM_NAME);
 				return -1;
 			}
@@ -786,10 +839,9 @@ int read_cmp_info(const char *file_name, struct cmp_info *info, int verbose_en)
 	if (!info)
 		abort();
 
-	if (strstr(file_name, ".cfg")) {
-	    fprintf(stderr, "%s: %s: .cfg file extension found on decompression information file. You may have selected the wrong file.\n",
-		    PROGRAM_NAME, file_name);
-	}
+	if (strstr(file_name, ".cfg"))
+		fprintf(stderr, "%s: %s: .cfg file extension found on decompression information file. You may have selected the wrong file.\n",
+			PROGRAM_NAME, file_name);
 
 	fp = fopen(file_name, "r");
 	if (fp == NULL) {
@@ -813,178 +865,325 @@ int read_cmp_info(const char *file_name, struct cmp_info *info, int verbose_en)
 
 
 /**
- * @brief reads a hex encoded uint8_t data (or model) file, returns a buffer
- *	containing the read in data
+ * @brief reads n_word words of a hex-encoded data (or model) file to
+ *	a uint8_t buffer
  *
- * @note data must be encode has 4 hex digits separated by a white space or new
- *	line character e.g. "ABCD 1234 AB12\n"
+ * @note data must be encoded as 2 hex digits separated by a white space or new
+ *	line character e.g. "AB CD 12\n34 AB 12\n"
  *
- * @param file_name	data file name
- * @param samples	amount of uint16_t data samples to read in
+ * @param file_name	data/model file name
+ * @param buf		buffer to write the file content (can be NULL)
+ * @param n_word	number of uint8_t data words to read in
  * @param verbose_en	print verbose output if not zero
  *
- * @returns address to the buffer containing the read in data, NULL on error
+ * @returns read data words; if buf == NULL the size in bytes to store the file
+ *	content; negative on error
  */
 
-uint8_t *read_file8(const char *file_name, uint32_t samples, int verbose_en)
+ssize_t read_file8(const char *file_name, uint8_t *buf, uint32_t n_word, int verbose_en)
 {
-	uint32_t i;
+	/* This is a rather slow implementation. Performance can be improved by
+	 * reading larger chunks */
+	ssize_t n;
 	FILE *fp;
-	uint8_t *buffer;
-	char tmp_str[4]; /* 6 = 2 hex digit's + 1 white space + 1 \0 */
+	char tmp_str[4]; /* 4 = 2 hex digit's + 1 white space + 1 \0 */
 
 	if (!file_name)
-		abort();
-
-	if (!samples)
-		return NULL;
+		return -1;
 
 	fp = fopen(file_name, "r");
 	if (fp == NULL) {
 		fprintf(stderr, "%s: %s: %s\n", PROGRAM_NAME, file_name,
 			strerror(errno));
-		return NULL;
+		return -1;
 	}
 
-	buffer = (uint8_t *)malloc(samples * SAM2BYT);
-	if (buffer == NULL) {
-		fprintf(stderr, "%s: Error allocating memory.\n", PROGRAM_NAME);
-		fclose(fp);
-		return NULL;
-	}
+	/* if buf is NULL we count the words in the file */
+	if (!buf)
+		n_word = ~0U;
 
-	for (i = 0; i < samples; i++) {
+	for (n = 0; n < n_word; ) {
 		int j;
 		unsigned long read_val;
 		char *end;
 
+		/* read 3 characters */
 		if (!fgets(tmp_str, sizeof(tmp_str), fp)) {
-			fprintf(stderr, "%s: %s: Error: The files does not contain enough data as given by the samples parameter.\n",
+			if (ferror(fp)) {
+				fprintf(stderr, "%s: %s: Error: File error indicator set.\n",
+					PROGRAM_NAME, file_name);
+				goto error;
+			}
+
+			if (!buf)  /* finished counting the sample */
+				break;
+
+			fprintf(stderr, "%s: %s: Error: The files does not contain enough data as given by the n_word parameter.\n",
 				PROGRAM_NAME, file_name);
 			goto error;
 		}
 
-		if (tmp_str[0] == '#' || tmp_str[0] == '\n') {
-			i--; /* a comment or empty line does not count as sample */
+		/* skip empty lines */
+		if (tmp_str[0] == '\n')
+			continue;
+
+		/* skip comment lines */
+		if (tmp_str[0] == '#') {
+			int c;
+			do {
+				c = fgetc(fp);
+			} while (c != '\n' && c != EOF);
 			continue;
 		}
 
+		/* check the string formation */
 		for (j = 0; j < 2; j++) {
 			if (!isxdigit(tmp_str[j])) {
-				fprintf(stderr, "%s: %s: Error: The data are not correct formatted. Expected format is like: 12 AB 23 CD .. ..\n", PROGRAM_NAME,
-					file_name);
+				fprintf(stderr, "%s: %s: Error: The data are not correct formatted. Expected format is like: 12 AB 23 CD .. ..\n",
+					PROGRAM_NAME, file_name);
 				goto error;
 			}
 		}
-
-		if (!(isspace(tmp_str[2]) || tmp_str[2] == '\n')) {
-			fprintf(stderr, "%s: %s: Error: The data are not correct formatted. Expected format is: 12 AB 23 CD .. ..\n", PROGRAM_NAME, file_name);
-			goto error;
-		}
-
-		read_val = strtoul(tmp_str, &end, 16);
-
-		if (tmp_str == end || errno == ERANGE || read_val > UINT8_MAX) {
-			fprintf(stderr, "%s: %s: Error: The data can not be converted to integer.\n",
+		if (!isspace(tmp_str[2])) {
+			fprintf(stderr, "%s: %s: Error: The data are not correct formatted. Expected format is like: 12 AB 23 CD .. ..\n",
 				PROGRAM_NAME, file_name);
 			goto error;
 		}
 
-		buffer[i] = (uint16_t)read_val;
+		/* convert data to integer and write it into the buffer */
+		if (buf) {
+			read_val = strtoul(tmp_str, &end, 16);
+			if (tmp_str == end || read_val > UINT8_MAX) {
+				fprintf(stderr, "%s: %s: Error: The data can not be converted to integer.\n",
+					PROGRAM_NAME, file_name);
+				goto error;
+			}
+			buf[n] = (uint8_t)read_val;
 
-		if (verbose_en) {
-			if (i == 0)
-				printf("\n\n");
-
-			printf("%02X", buffer[i]);
-			if (i && !((i + 1) % 28))
-				printf("\n");
-			else
-				printf(" ");
+			/* print data read in */;
+			if (verbose_en) {
+				if (n == 0)
+					printf("\n\n");
+				printf("%02X", buf[n]);
+				if (n && !((n + 1) % 32))
+					printf("\n");
+				else
+					printf(" ");
+			}
 		}
+
+		n++;
 	}
-	if (verbose_en)
-		printf("\n\n");
 
-	fgets(tmp_str, sizeof(tmp_str), fp);
-	if (!feof(fp) && tmp_str[0] == '\n') /* read last line break */
-		fgets(tmp_str, sizeof(tmp_str), fp);
-
-	if (!feof(fp)) {
-		fprintf(stderr, "%s: %s: Warning: The file may contain more data than specified by the samples parameter.\n",
-			PROGRAM_NAME, file_name);
+	if (buf) {
+		/* check if there is some additional stuff at the end of the file */
+		int c = getc(fp);
+		if (c != EOF)
+			if (c != '\n' && getc(fp) != EOF)
+				fprintf(stderr, "%s: %s: Warning: The file may contain more data than specified by the samples or cmp_size parameter.\n",
+					PROGRAM_NAME, file_name);
 	}
 
 	fclose(fp);
 
-	return buffer;
+	if (verbose_en && buf)
+		printf("\n\n");
 
-	error:
-		free(buffer);
-		fclose(fp);
-		return NULL;
+	return n;
+
+error:
+	fclose(fp);
+	return -1;
 }
 
 
 /**
- * @brief reads a hex encoded uint16_t data (or model) file, returns a buffer
- *	containing the read in data
+ * @brief reads the number of uint16_t samples of a hex-encoded data (or model)
+ *	file into a buffer
  *
- * @note data must be encode has 4 hex digits separated by a white space or new
- *	line character e.g. "ABCD 1234 AB12\n"
+ * @note data must be encode has 2 hex digits separated by a white space or new
+ *	line character e.g. "AB CD 12 34 AB 12\n"
  *
- * @param file_name	data file name
+ * @param file_name	data/model file name
+ * @param buf		buffer to write the file content (can be NULL)
  * @param samples	amount of uint16_t data samples to read in
  * @param verbose_en	print verbose output if not zero
  *
- * @returns address to the buffer containing the read in data, NULL on error
+ * @returns the size in bytes to store the file content; negative on error
  */
 
-uint16_t *read_file16(const char *file_name, uint32_t samples, int verbose_en)
+ssize_t read_file16(const char *file_name, uint16_t *buf, uint32_t samples,
+		    int verbose_en)
 {
-	size_t i;
-	uint16_t *buf = (uint16_t *)read_file8(file_name, samples*2, verbose_en);
+	ssize_t size = read_file8(file_name, (uint8_t *)buf,
+				  samples*sizeof(uint16_t), verbose_en);
 
-	if (!buf)
-		return NULL;
+	if (size < 0)
+		return size;
 
-	for (i=0; i < samples; i++)
-		be16_to_cpus(&buf[i]);
+	if (size & 0x1) {
+		fprintf(stderr, "%s: %s: Error: The data are not correct formatted. Expected multiple of 2 hex words.\n",
+				PROGRAM_NAME, file_name);
+		return -1;
+	}
 
-	return buf;
+	if (buf) {
+		size_t i;
+		for (i = 0; i < samples; i++)
+			be16_to_cpus(&buf[i]);
+	}
+
+
+	return size;
 }
 
 
 /**
- * @brief reads a hex encoded uint32_t data file, returns a buffer containing
- *	the read in data
+ * @brief reads the number of uint32_t samples of a hex-encoded data (or model)
+ *	file into a buffer
  *
  * @note data must be encode has 2 hex digits separated by a white space or new
- *	line character e.g. AB CD 12 34
+ *	line character e.g. "AB CD 12 34 AB 12\n"
  *
- * @param file_name	data file name
- * @param buf_len	amount of uint32_t data samples to read in
+ * @param file_name	data/model file name
+ * @param buf		buffer to write the file content (can be NULL)
+ * @param samples	amount of uint32_t data samples to read in
  * @param verbose_en	print verbose output if not zero
  *
- * @returns address to the buffer containing the read in data, NULL on error
+ * @returns the size in bytes to store the file content; negative on error
  */
 
-uint32_t *read_file32(const char *file_name, uint32_t buf_len, int verbose_en)
+ssize_t read_file32(const char *file_name, uint32_t *buf, uint32_t samples,
+		    int verbose_en)
 {
-	size_t i;
+	ssize_t size = read_file8(file_name, (uint8_t *)buf,
+				  samples*sizeof(uint32_t), verbose_en);
 
-	uint32_t *buf = (uint32_t *)read_file8(file_name, buf_len*sizeof(uint32_t),
-					       verbose_en);
+	if (size < 0)
+		return -1;
 
-	if (!buf)
-		return NULL;
+	if (size & 0x3) {
+		fprintf(stderr, "%s: %s: Error: The data are not correct formatted. Expected multiple of 4 hex words.\n",
+				PROGRAM_NAME, file_name);
+		return -1;
+	}
 
-	for (i=0; i < buf_len; i++)
-		be32_to_cpus(&buf[i]);
+	if (buf) {
+		size_t i;
+		for (i = 0; i < samples; i++)
+			be32_to_cpus(&buf[i]);
+	}
 
-	return buf;
+	return size;
 }
 
+
+/**
+ * @brief write compression configuration to a stream
+ * @note internal use only!
+ *
+ * @param fp		FILE pointer
+ * @param cfg		configuration to print
+ * @param rdcu_cfg	if set additional RDCU parameter are printed as well
+ */
+
+static void write_cfg_internal(FILE *fp, const struct cmp_cfg *cfg, int rdcu_cfg)
+{
+	fprintf(fp, "#-------------------------------------------------------------------------------\n");
+	fprintf(fp, "# Default Configuration File\n");
+	fprintf(fp, "#-------------------------------------------------------------------------------\n");
+	fprintf(fp, "# Selected compression mode\n");
+	fprintf(fp, "# 0: raw mode\n");
+	fprintf(fp, "# 1: model mode with zero escape symbol mechanism\n");
+	fprintf(fp, "# 2: 1d differencing mode without input model with zero escape symbol mechanism\n");
+	fprintf(fp, "# 3: model mode with multi escape symbol mechanism\n");
+	fprintf(fp, "# 4: 1d differencing mode without input model multi escape symbol mechanism\n");
+	fprintf(fp, "\n");
+	fprintf(fp, "cmp_mode = %u\n", cfg->cmp_mode);
+	fprintf(fp, "\n");
+	fprintf(fp, "#-------------------------------------------------------------------------------\n");
+	fprintf(fp, "# Number of samples (16 bit value) to compress, length of the data and model buffer\n");
+	fprintf(fp, "\n");
+	fprintf(fp, "samples = %u\n", cfg->samples);
+	fprintf(fp, "\n");
+	fprintf(fp, "#-------------------------------------------------------------------------------\n");
+	fprintf(fp, "# Length of the compressed data buffer in number of samples (16 bit values)\n");
+	fprintf(fp, "\n");
+	fprintf(fp, "buffer_length = %u\n", cfg->buffer_length);
+	fprintf(fp, "\n");
+	fprintf(fp, "#-------------------------------------------------------------------------------\n");
+	fprintf(fp, "# Golomb parameter for dictionary selection\n");
+	fprintf(fp, "\n");
+	fprintf(fp, "golomb_par = %u\n", cfg->golomb_par);
+	fprintf(fp, "\n");
+	fprintf(fp, "#-------------------------------------------------------------------------------\n");
+	fprintf(fp, "# Spillover threshold for encoding outliers\n");
+	fprintf(fp, "\n");
+	fprintf(fp, "spill = %u\n", cfg->spill);
+	fprintf(fp, "\n");
+	fprintf(fp, "#-------------------------------------------------------------------------------\n");
+	fprintf(fp, "# Model weighting parameter\n");
+	fprintf(fp, "\n");
+	fprintf(fp, "model_value = %u\n", cfg->model_value);
+	fprintf(fp, "\n");
+	fprintf(fp, "#-------------------------------------------------------------------------------\n");
+	fprintf(fp, "# Number of noise bits to be rounded\n");
+	fprintf(fp, "\n");
+	fprintf(fp, "round = %u\n", cfg->round);
+	fprintf(fp, "\n");
+	fprintf(fp, "#-------------------------------------------------------------------------------\n");
+
+	if (rdcu_cfg) {
+		fprintf(fp, "#-------------------------------------------------------------------------------\n");
+		fprintf(fp, "# Hardware Compressor Settings (not need for SW compression)\n");
+		fprintf(fp, "#-------------------------------------------------------------------------------\n");
+		fprintf(fp, "#-------------------------------------------------------------------------------\n");
+		fprintf(fp, "\n");
+		fprintf(fp, "# Adaptive 1 Golomb parameter; HW only\n");
+		fprintf(fp, "\n");
+		fprintf(fp, "ap1_golomb_par = %u\n", cfg->ap1_golomb_par);
+		fprintf(fp, "\n");
+		fprintf(fp, "#-------------------------------------------------------------------------------\n");
+		fprintf(fp, "# Adaptive 1 spillover threshold; HW only\n");
+		fprintf(fp, "\n");
+		fprintf(fp, "ap1_spill = %u\n", cfg->ap1_spill);
+		fprintf(fp, "\n");
+		fprintf(fp, "#-------------------------------------------------------------------------------\n");
+		fprintf(fp, "# Adaptive 2 Golomb parameter; HW only\n");
+		fprintf(fp, "\n");
+		fprintf(fp, "ap2_golomb_par = %u\n", cfg->ap2_golomb_par);
+		fprintf(fp, "\n");
+		fprintf(fp, "#-------------------------------------------------------------------------------\n");
+		fprintf(fp, "# Adaptive 2 spillover threshold; HW only\n");
+		fprintf(fp, "\n");
+		fprintf(fp, "ap2_spill = %u\n", cfg->ap2_spill);
+		fprintf(fp, "\n");
+		fprintf(fp, "#-------------------------------------------------------------------------------\n");
+		fprintf(fp, "# RDCU data to compress start address, the first data address in the RDCU SRAM; HW only\n");
+		fprintf(fp, "\n");
+		fprintf(fp, "rdcu_data_adr = 0x%06X\n",
+		       cfg->rdcu_data_adr);
+		fprintf(fp, "\n");
+		fprintf(fp, "#-------------------------------------------------------------------------------\n");
+		fprintf(fp, "# RDCU model start address, the first model address in the RDCU SRAM\n");
+		fprintf(fp, "\n");
+		fprintf(fp, "rdcu_model_adr = 0x%06X\n",
+		       cfg->rdcu_model_adr);
+		fprintf(fp, "\n");
+		fprintf(fp, "#-------------------------------------------------------------------------------\n");
+		fprintf(fp, "# RDCU updated model start address, the address in the RDCU SRAM where the updated model is stored\n");
+		fprintf(fp, "\n");
+		fprintf(fp, "rdcu_new_model_adr = 0x%06X\n",
+		       cfg->rdcu_new_model_adr);
+		fprintf(fp, "\n");
+		fprintf(fp, "#-------------------------------------------------------------------------------\n");
+		fprintf(fp, "# RDCU compressed data start address, the first output data address in the RDCU SRAM\n");
+		fprintf(fp, "\n");
+		fprintf(fp, "rdcu_buffer_adr = 0x%06X\n", cfg->rdcu_buffer_adr);
+		fprintf(fp, "\n");
+		fprintf(fp, "#-------------------------------------------------------------------------------\n");
+	}
+}
 
 /**
  * @brief prints config struct
@@ -995,101 +1194,40 @@ uint32_t *read_file32(const char *file_name, uint32_t buf_len, int verbose_en)
 
 void print_cfg(const struct cmp_cfg *cfg, int rdcu_cfg)
 {
-	printf("#-------------------------------------------------------------------------------\n");
-	printf("# Default Configuration File\n");
-	printf("#-------------------------------------------------------------------------------\n");
-	printf("# Selected compression mode\n");
-	printf("# 0: raw mode\n");
-	printf("# 1: model mode with zero escape symbol mechanism\n");
-	printf("# 2: 1d differencing mode without input model with zero escape symbol mechanism\n");
-	printf("# 3: model mode with multi escape symbol mechanism\n");
-	printf("# 4: 1d differencing mode without input model multi escape symbol mechanism\n");
-	printf("\n");
-	printf("cmp_mode = %u\n", cfg->cmp_mode);
-	printf("\n");
-	printf("#-------------------------------------------------------------------------------\n");
-	printf("# Number of samples (16 bit value) to compress, length of the data and model buffer\n");
-	printf("\n");
-	printf("samples = %u\n", cfg->samples);
-	printf("\n");
-	printf("#-------------------------------------------------------------------------------\n");
-	printf("# Length of the compressed data buffer in number of samples (16 bit values)\n");
-	printf("\n");
-	printf("buffer_length = %u\n", cfg->buffer_length);
-	printf("\n");
-	printf("#-------------------------------------------------------------------------------\n");
-	printf("# Golomb parameter for dictionary selection\n");
-	printf("\n");
-	printf("golomb_par = %u\n", cfg->golomb_par);
-	printf("\n");
-	printf("#-------------------------------------------------------------------------------\n");
-	printf("# Spillover threshold for encoding outliers\n");
-	printf("\n");
-	printf("spill = %u\n", cfg->spill);
-	printf("\n");
-	printf("#-------------------------------------------------------------------------------\n");
-	printf("# Model weighting parameter\n");
-	printf("\n");
-	printf("model_value = %u\n", cfg->model_value);
-	printf("\n");
-	printf("#-------------------------------------------------------------------------------\n");
-	printf("# Number of noise bits to be rounded\n");
-	printf("\n");
-	printf("round = %u\n", cfg->round);
-	printf("\n");
-	printf("#-------------------------------------------------------------------------------\n");
-
-	if (rdcu_cfg) {
-		printf("#-------------------------------------------------------------------------------\n");
-		printf("# Hardware Compressor Settings (not need for SW compression)\n");
-		printf("#-------------------------------------------------------------------------------\n");
-		printf("#-------------------------------------------------------------------------------\n");
-		printf("\n");
-		printf("# Adaptive 1 Golomb parameter; HW only\n");
-		printf("\n");
-		printf("ap1_golomb_par = %u\n", cfg->ap1_golomb_par);
-		printf("\n");
-		printf("#-------------------------------------------------------------------------------\n");
-		printf("# Adaptive 1 spillover threshold; HW only\n");
-		printf("\n");
-		printf("ap1_spill = %u\n", cfg->ap1_spill);
-		printf("\n");
-		printf("#-------------------------------------------------------------------------------\n");
-		printf("# Adaptive 2 Golomb parameter; HW only\n");
-		printf("\n");
-		printf("ap2_golomb_par = %u\n", cfg->ap2_golomb_par);
-		printf("\n");
-		printf("#-------------------------------------------------------------------------------\n");
-		printf("# Adaptive 2 spillover threshold; HW only\n");
-		printf("\n");
-		printf("ap2_spill = %u\n", cfg->ap2_spill);
-		printf("\n");
-		printf("#-------------------------------------------------------------------------------\n");
-		printf("# RDCU data to compress start address, the first data address in the RDCU SRAM; HW only\n");
-		printf("\n");
-		printf("rdcu_data_adr = 0x%06X\n",
-		       cfg->rdcu_data_adr);
-		printf("\n");
-		printf("#-------------------------------------------------------------------------------\n");
-		printf("# RDCU model start address, the first model address in the RDCU SRAM\n");
-		printf("\n");
-		printf("rdcu_model_adr = 0x%06X\n",
-		       cfg->rdcu_model_adr);
-		printf("\n");
-		printf("#-------------------------------------------------------------------------------\n");
-		printf("# RDCU updated model start address, the address in the RDCU SRAM where the updated model is stored\n");
-		printf("\n");
-		printf("rdcu_new_model_adr = 0x%06X\n",
-		       cfg->rdcu_new_model_adr);
-		printf("\n");
-		printf("#-------------------------------------------------------------------------------\n");
-		printf("# RDCU compressed data start address, the first output data address in the RDCU SRAM\n");
-		printf("\n");
-		printf("rdcu_buffer_adr = 0x%06X\n", cfg->rdcu_buffer_adr);
-		printf("\n");
-		printf("#-------------------------------------------------------------------------------\n");
-	}
+	write_cfg_internal(stdout, cfg, rdcu_cfg);
 }
+
+/**
+ * @brief write compression configuration to a file
+ *
+ * @param cfg		configuration to print
+ * @param output_prefix prefix of the written file (.cfg is added to the prefix)
+ * @param rdcu_cfg	if non-zero additional RDCU parameter are printed as well
+ * @param verbose	print verbose output if not zero
+ *
+ * @returns 0 on success, error otherwise
+ */
+
+int write_cfg(const struct cmp_cfg *cfg, const char *output_prefix, int rdcu_cfg,
+	      int verbose)
+{
+	FILE *fp = open_file(output_prefix, ".cfg");
+
+	if (fp == NULL) {
+		fprintf(stderr, "%s: %s%s: %s\n", PROGRAM_NAME, output_prefix,
+			".cfg", strerror(errno));
+		return -1;
+	}
+
+	write_cfg_internal(fp, cfg, rdcu_cfg);
+
+	fclose(fp);
+
+	if (verbose)
+		print_cfg(cfg, rdcu_cfg);
+	return 0;
+}
+
 
 /**
  * @brief write a decompression information structure to a file
@@ -1097,13 +1235,13 @@ void print_cfg(const struct cmp_cfg *cfg, int rdcu_cfg)
  * @param info	 compressor information contains information of an executed
  *		 compression
  * @param output_prefix prefix of the written file (.info is added to the prefix)
- * @param machine_cfg - if set write additional RDCU parameter in the file
+ * @param rdcu_cfg - if non-zero write additional RDCU parameter in the file
  *
  * @returns 0 on success, error otherwise
  */
 
 int write_info(const struct cmp_info *info, const char *output_prefix,
-	       int machine_cfg)
+	       int rdcu_cfg)
 {
 	FILE *fp = open_file(output_prefix, ".info");
 
@@ -1157,7 +1295,7 @@ int write_info(const struct cmp_info *info, const char *output_prefix,
 	fprintf(fp, "\n");
 	fprintf(fp, "#-------------------------------------------------------------------------------\n");
 
-	if (machine_cfg) {
+	if (rdcu_cfg) {
 		fprintf(fp, "#-------------------------------------------------------------------------------\n");
 		fprintf(fp, "# Hardware Compressor Settings (not need for SW compression)\n");
 		fprintf(fp, "#-------------------------------------------------------------------------------\n");

@@ -17,7 +17,6 @@
  * @see Data Compression User Manual PLATO-UVIE-PL-UM-0001
  */
 
-#include <stdio.h>
 
 #include "../include/cmp_support.h"
 #include "../include/cmp_data_types.h"
@@ -247,6 +246,26 @@ int rdcu_supported_mode_is_used(unsigned int cmp_mode)
 
 
 /**
+ * @brief check if the mode is available
+ *
+ * @param cmp_mode compression mode
+ *
+ * @returns 1 when mode is available, otherwise 0
+ */
+
+int cmp_mode_available(unsigned int cmp_mode)
+{
+	if (diff_mode_is_used(cmp_mode) ||
+	    model_mode_is_used(cmp_mode) ||
+	    raw_mode_is_used(cmp_mode))
+		return 1;
+	else
+		return 0;
+
+}
+
+
+/**
  * @brief check if zero escape symbol mechanism mode is used
  *
  * @param cmp_mode compression mode
@@ -391,28 +410,71 @@ unsigned int cal_up_model(unsigned int data, unsigned int model, unsigned int
 
 uint32_t get_max_spill(unsigned int golomb_par, unsigned int cmp_mode)
 {
-	unsigned int cutoff;
-	unsigned int max_n_sym_offset;
-	unsigned int max_cw_bits;
+	const uint32_t LUT_MAX_RDCU[MAX_RDCU_GOLOMB_PAR+1] = { 0, 8, 22, 35, 48,
+		60, 72, 84, 96, 107, 118, 129, 140, 151, 162, 173, 184, 194,
+		204, 214, 224, 234, 244, 254, 264, 274, 284, 294, 304, 314, 324,
+		334, 344, 353, 362, 371, 380, 389, 398, 407, 416, 425, 434, 443,
+		452, 461, 470, 479, 488, 497, 506, 515, 524, 533, 542, 551, 560,
+		569, 578, 587, 596, 605, 614, 623 };
 
 	if (golomb_par == 0)
 		return 0;
 
 	if (rdcu_supported_mode_is_used(cmp_mode)) {
-		max_cw_bits = 16; /* the RDCU compressor can only generate code
-				   * words with a length of maximal 16 bits.
-				   */
+		if (golomb_par > MAX_RDCU_GOLOMB_PAR)
+			return 0;
+
+		return LUT_MAX_RDCU[golomb_par];
 	} else {
-		max_cw_bits = 32; /* the ICU compressor can generate code
-				   * words with a length of maximal 32 bits.
-				   */
+		if (golomb_par > MAX_ICU_GOLOMB_PAR) {
+			return 0;
+		} else {
+			/* the ICU compressor can generate code words with a length of
+			 * maximal 32 bits.  */
+			unsigned int max_cw_bits = 32;
+			unsigned int cutoff = (1UL << (ilog_2(golomb_par)+1)) - golomb_par;
+			unsigned int max_n_sym_offset = max_cw_bits/2 - 1;
+			return (max_cw_bits-1-ilog_2(golomb_par))*golomb_par + cutoff -
+				max_n_sym_offset - 1;
+		}
+	}
+}
+
+
+/**
+ * @brief get a good spill threshold parameter for the selected Golomb parameter
+ *	and compression mode
+ *
+ * @param golomb_par Golomb parameter
+ * @param cmp_mode compression mode
+ *
+ * @returns a good spill parameter (optimal for zero escape mechanism)
+ * @warning icu compression not support yet!
+ */
+
+uint32_t cmp_get_good_spill(unsigned int golomb_par, unsigned int cmp_mode)
+{
+	const uint32_t LUT_RDCU_MULIT[MAX_RDCU_GOLOMB_PAR+1] = {0, 8, 16, 23,
+		30, 36, 44, 51, 58, 64, 71, 77, 84, 90, 97, 108, 115, 121, 128,
+		135, 141, 148, 155, 161, 168, 175, 181, 188, 194, 201, 207, 214,
+		229, 236, 242, 250, 256, 263, 269, 276, 283, 290, 296, 303, 310,
+		317, 324, 330, 336, 344, 351, 358, 363, 370, 377, 383, 391, 397,
+		405, 411, 418, 424, 431, 452 };
+
+	if (zero_escape_mech_is_used(cmp_mode))
+		return get_max_spill(golomb_par, cmp_mode);
+
+	if (cmp_mode == MODE_MODEL_MULTI) {
+		if (golomb_par > MAX_RDCU_GOLOMB_PAR)
+			return 0;
+		else
+			return LUT_RDCU_MULIT[golomb_par];
 	}
 
-	cutoff = (1UL << (ilog_2(golomb_par)+1)) - golomb_par;
-	max_n_sym_offset = max_cw_bits/2 - 1;
+	if (cmp_mode == MODE_DIFF_MULTI)
+		return CMP_GOOD_SPILL_DIFF_MULTI;
 
-	return (max_cw_bits-1-ilog_2(golomb_par))*golomb_par + cutoff -
-		max_n_sym_offset - 1;
+	return 0;
 }
 
 
@@ -501,7 +563,7 @@ size_t size_of_a_sample(unsigned int cmp_mode)
  *
  * @param cmp_size compressed data size, measured in bits
  *
- * @returns the size in bytes to sore the hole bitstream
+ * @returns the size in bytes to store the hole bitstream
  */
 
 unsigned int size_of_bitstream(unsigned int cmp_size)
@@ -513,9 +575,10 @@ unsigned int size_of_bitstream(unsigned int cmp_size)
 /**
  * @brief calculate the need bytes for the model
  *
- * @param cmp_size compressed data size, measured in bits
+ * @param samples amount of model samples
+ * @param cmp_mode compression mode
  *
- * @returns the size in bytes to sore the hole bitstream
+ * @returns the size in bytes to store the hole bitstream
  */
 
 unsigned int size_of_model(unsigned int samples, unsigned int cmp_mode)
@@ -548,18 +611,16 @@ void print_cmp_cfg(const struct cmp_cfg *cfg)
 	printf("input_buf: %p\n", (void *)cfg->input_buf);
 	if (cfg->input_buf != NULL) {
 		printf("input data:");
-		for (i = 0; i < cfg->samples; i++) {
+		for (i = 0; i < cfg->samples; i++)
 			printf(" %04X", ((uint16_t *)cfg->input_buf)[i]);
-		}
 		printf("\n");
 	}
 	printf("rdcu_data_adr: 0x%06X\n", cfg->rdcu_data_adr);
 	printf("model_buf: %p\n", (void *)cfg->model_buf);
 	if (cfg->model_buf != NULL) {
 		printf("model data:");
-		for (i = 0; i < cfg->samples; i++) {
+		for (i = 0; i < cfg->samples; i++)
 			printf(" %04X", ((uint16_t *)cfg->model_buf)[i]);
-		}
 		printf("\n");
 	}
 	printf("rdcu_model_adr: 0x%06X\n", cfg->rdcu_model_adr);

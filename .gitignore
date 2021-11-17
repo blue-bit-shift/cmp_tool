@@ -1,6 +1,7 @@
 ### C ###
 # Executables
 cmp_tool
+!test/cmp_tool
 
 # Prerequisites
 *.d

@@ -1,5 +1,5 @@
 /**
- * @file   tool_lib.h
+ * @file   cmp_tool_lib.h
  * @author Johannes Seelig (johannes.seelig@univie.ac.at)
  * @author Dominik Loidolt (dominik.loidolt@univie.ac.at),
  * @date   2020
@@ -15,32 +15,37 @@
  * more details.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "cmp_support.h"
-#include "rdcu_pkt_to_file.h"
 
 #define PROGRAM_NAME "cmp_tool"
 #define MAX_CONFIG_LINE 256
 
 #define DEFAULT_OUTPUT_PREFIX "OUTPUT"
 
-void Print_Help(const char *argv);
+#define BUFFER_LENGTH_DEF_FAKTOR 2
+
+void print_help(const char *program_name);
 
 int read_cmp_cfg(const char *file_name, struct cmp_cfg *cfg, int verbose_en);
 int read_cmp_info(const char *file_name, struct cmp_info *info, int verbose_en);
 
-uint16_t * read_file16(const char *file_name, uint32_t samples, int verbose_en);
-uint32_t * read_file32(const char *file_name, uint32_t buf_len, int verbose_en);
+ssize_t read_file8(const char *file_name, uint8_t *buf, uint32_t n_word,
+		   int verbose_en);
+ssize_t read_file16(const char *file_name, uint16_t *buf, uint32_t samples,
+		    int verbose_en);
+ssize_t read_file32(const char *file_name, uint32_t *buf, uint32_t samples,
+		    int verbose_en);
 
 int write_cmp_data_file(const void *buf, uint32_t buf_size, const char
 			*output_prefix, const char *name_extension, int verbose);
 int write_to_file16(const uint16_t *buf, uint32_t buf_len, const char
 		    *output_prefix, const char *name_extension, int verbose);
-
+int write_info(const struct cmp_info *info, const char *output_prefix,
+	       int rdcu_cfg);
+int write_cfg(const struct cmp_cfg *cfg, const char *output_prefix, int rdcu_cfg,
+	      int verbose);
 void print_cfg(const struct cmp_cfg *cfg, int rdcu_cfg);
 
-int write_info(const struct cmp_info *info, const char *output_prefix,
-	       int machine_cfg);
+uint32_t cmp_mode_parse(const char *cmp_mode_str, uint32_t *cmp_mode);
