@@ -426,9 +426,9 @@ uint32_t get_max_spill(unsigned int golomb_par, unsigned int cmp_mode)
 
 		return LUT_MAX_RDCU[golomb_par];
 	} else {
-		if (golomb_par > MAX_ICU_GOLOMB_PAR)
+		if (golomb_par > MAX_ICU_GOLOMB_PAR) {
 			return 0;
-		else {
+		} else {
 			/* the ICU compressor can generate code words with a length of
 			 * maximal 32 bits.  */
 			unsigned int max_cw_bits = 32;

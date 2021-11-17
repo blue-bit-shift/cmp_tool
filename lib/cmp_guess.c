@@ -62,8 +62,8 @@ uint16_t cmp_guess_model_value(int n_model_updates)
 		return 11;
 	if (n_model_updates <= 21)
 		return 12;
-	else
-		return 13;
+
+	return 13;
 }
 
 
@@ -84,7 +84,7 @@ static uint32_t pre_cal_method(struct cmp_cfg *cfg)
 	uint32_t golomb_par_best = 0;
 	uint32_t spill_best = 0;
 
-	for (g = MIN_RDCU_GOLOMB_PAR; g < MAX_RDCU_GOLOMB_PAR; ++g) {
+	for (g = MIN_RDCU_GOLOMB_PAR; g < MAX_RDCU_GOLOMB_PAR; g++) {
 		uint32_t s = cmp_get_good_spill(g, cfg->cmp_mode);
 
 		cfg->golomb_par = g;
@@ -133,8 +133,8 @@ static uint32_t brute_force(struct cmp_cfg *cfg)
 	printf("0%%... ");
 	fflush(stdout);
 
-	for (g = MIN_RDCU_GOLOMB_PAR; g < MAX_RDCU_GOLOMB_PAR; ++g) {
-		for (s = MIN_RDCU_SPILL; s < get_max_spill(g, cfg->cmp_mode); ++s) {
+	for (g = MIN_RDCU_GOLOMB_PAR; g < MAX_RDCU_GOLOMB_PAR; g++) {
+		for (s = MIN_RDCU_SPILL; s < get_max_spill(g, cfg->cmp_mode); s++) {
 			cfg->golomb_par = g;
 			cfg->spill = s;
 

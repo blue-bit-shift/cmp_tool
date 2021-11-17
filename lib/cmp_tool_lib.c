@@ -250,7 +250,7 @@ static void remove_spaces(char *s)
 
 	do {
 		while (*d == ' ' || *d == '\t')
-			++d;
+			d++;
 	} while ((*s++ = *d++) != '\0');
 }
 
