@@ -13,17 +13,18 @@ Compiled executables can be found [here][3].
 | Options           | Description                                                                   |
 |:------------------|:------------------------------------------------------------------------------|
 | `-h, --help`      | Print some help text and exit                                                 |
+| `-o <prefix>`     | Use the `<prefix>` for output files<sup>[1](#fnote1)</sup>                    |
+| `-n, --model_cfg` | Print a default model configuration and exit<sup>[2](#fnote2)</sup>           |
+| `--diff_cfg`      | Print a default 1d-differencing configuration and exit<sup>[2](#fnote2)</sup> |
+| `--no_header`     | Do not add a compression entity header in front of the compressed data        |
+| `-a, --rdcu_par`  | Add additional RDCU control parameters                                        |
 | `-V, --version`   | Print program version and exit                                                |
 | `-v, --verbose`   | Print various debugging information                                           |
-| `-n, --model_cfg` | Print a default model configuration and exit<sup>[1](#fnote1)</sup>           |
-| `--diff_cfg`      | Print a default 1d-differencing configuration and exit<sup>[1](#fnote1)</sup> |
-| `-a, --rdcu_par`  | Add additional RDCU control parameters                                        |
-| `-o <prefix>`     | Use the `<prefix>` for output files<sup>[2](#fnote2)</sup>                    |
 
-<a name="fnote1">1</a>) **NOTE:** In the default configurations the **samples**
-and **buffer_length** parameter is set to **0**!  
-<a name="fnote2">2</a>) **NOTE:** If the -o option is not used the `<prefix>`
-will be set to "OUTPUT".
+<a name="fnote2">1</a>) **NOTE:** If the -o option is not used the `<prefix>`
+will be set to "OUTPUT".  
+<a name="fnote2">2</a>) **NOTE:** In the default configurations the **samples**
+and **buffer_length** parameter is set to **0**!
 
 ### Compression Options
 
@@ -41,11 +42,11 @@ The generated packets can be found in the `TC_FILES` directory.
 
 ### Decompression Options
 
-| Options     | Description                                      |
-|:----------- |:-------------------------------------------------|
-| `-i <file>` | File containing the decompression information    |
-| `-d <file>` | File containing the compressed data              |
-| `-m <file>` | File containing the model of the compressed data |
+| Options     | Description                                                                     |
+|:----------- |:--------------------------------------------------------------------------------|
+| `-d <file>` | File containing the compressed data                                             |
+| `-m <file>` | File containing the model of the compressed data                                |
+| `-i <file>` | File containing the decompression information (required if --no_header was used)|
 
 ### Guessing Options
 
@@ -81,6 +82,7 @@ For example: `12 AB 34 CD`.
 ## How to use the tool
 
 A simple example to show how the compression tool works.
+Instructions on how to perform compression without headers can be found [here](how_to_no_header.md).
 
 0. Download the [tool][3] or run `make` to build the tool
 
@@ -91,39 +93,33 @@ A simple example to show how the compression tool works.
     `./cmp_tool --diff_cfg > cfg/default_config_1d.cfg`
 * To create a default model mode configuration:  
     `./cmp_tool --model_cfg > cfg/default_config_model.cfg`
-* Change the the **`samples`** and **`buffer_length`** parameters from `0` to `50`
-in the `default_config_1d.cfg` and `default_config_model.cfg` files
 
 2. Compress data with the default configurations:
 * Create a directory for the compressed data  
     `mkdir compressed`
 * 1d-differencing mode compression  
    `./cmp_tool -c cfg/default_config_1d.cfg -d test_data/test_data1.dat -o compressed/data1`  
-    This creates these two files in the compressed directory:  
+    This creates a files in the compressed directory:  
     `data1.cmp`        -> compressed `test_data1.dat` file  
-    `data1.info`       -> decompression information for `data1.cmp`
 * Model mode compression  
    `./cmp_tool -c cfg/default_config_model.cfg -d test_data/test_data2.dat -m test_data/test_data1.dat -o compressed/data2`  
-    We use `test_data1.dat` as the first model for `test_data2.dat`.
-
-    Creates these three files in the compressed directory:  
+    We use `test_data1.dat` as the first model for `test_data2.dat`.  
+    Creates these two files in the compressed directory:  
     `data2.cmp `        -> compressed `test_data3.dat` file  
-    `data2.info`        -> decompression information for `data2.cmp`  
     `data2_upmodel.dat` -> updated model used to **compress** the next data in model mode
 
 3.  Decompress the data  
 * Create a directory for the decompressed data  
     `mkdir decompressed` 
 * Decompress `data1.cmp`  
-    `./cmp_tool -i compressed/data1.info -d compressed/data1.cmp -o decompressed/test_data1`  
-    Creates this file in the decompressed directory:  
-    `test_data1.dat `  -> decompressed `data1.cmp` file
+    `./cmp_tool -d compressed/data1.cmp -o decompressed/test_data1`  
+    This creates a file in the decompressed directory:  
+    `test_data1.dat`  -> decompressed `data1.cmp` file
 * Decompress `data2.cmp`  
-    `./cmp_tool -i compressed/data2.info -d compressed/data2.cmp -m decompressed/test_data1.dat -o decompressed/test_data2`  
+    `./cmp_tool -d compressed/data2.cmp -m decompressed/test_data1.dat -o decompressed/test_data2`  
     As for the compression we use `test_data1.dat` as our model for decompression.  
-
     Creates these two files in the decompressed directory:  
-    `test_data2.dat `   -> decompressed `data2.cmp` file  
+    `test_data2.dat`   -> decompressed `data2.cmp` file  
     `data2_upmodel.dat` -> updated model used to **decompress** the next data in model mode
 
 4. Bonus: Check if the decompressed data are equal to the original data  

@@ -2,6 +2,10 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+## [0.07] - 13-12-2021
+- **NOTE:**  The behaviour of the cmp_tool has changed. From now on, the compressed data will be preceded by a header by default. The old behaviour can be achieved with the --no_header option the behaviour of the cmp_tool has changed. From now on, the compressed data will be preceded by a header by default. The old behaviour can be achieved with the --no_header option.
+- Implement the compression entity header as defined in PLATO-UVIE-PL-UM-0001 for compression and decompression
+- small bug fixes
 ## [0.06] - 12-11-2021
 - if samples = 0 the cmp_tool counts the samples in the data file and uses them
 - if buffer_length = 0 the 2*samples parameter is used as buffer_length

@@ -21,7 +21,7 @@
 
 #include <stdio.h>
 
-#if defined(DEBUG) || DDEBUGLEVEL > 0
+#if defined(DEBUG) || DEBUGLEVEL > 0
 	__extension__
 	#define debug_print(...) \
 		do { fprintf(stderr, __VA_ARGS__); } while (0)

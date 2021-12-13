@@ -561,27 +561,28 @@ size_t size_of_a_sample(unsigned int cmp_mode)
 /**
  * @brief calculate the need bytes to hold a bitstream
  *
- * @param cmp_size compressed data size, measured in bits
+ * @param cmp_size_bit compressed data size, measured in bits
  *
  * @returns the size in bytes to store the hole bitstream
+ * @note we round up the result to multiples of 4 bytes
  */
 
-unsigned int size_of_bitstream(unsigned int cmp_size)
+unsigned int cmp_bit_to_4byte(unsigned int cmp_size_bit)
 {
-	return (((cmp_size >> 3) + 3) & ~0x3U);
+	return (((cmp_size_bit + 7) / 8) + 3) & ~0x3UL;
 }
 
 
 /**
- * @brief calculate the need bytes for the model
+ * @brief calculate the need bytes for the data
  *
- * @param samples amount of model samples
- * @param cmp_mode compression mode
+ * @param samples number of data samples
+ * @param cmp_mode used compression mode
  *
- * @returns the size in bytes to store the hole bitstream
+ * @returns the size in bytes to store the data sample
  */
 
-unsigned int size_of_model(unsigned int samples, unsigned int cmp_mode)
+unsigned int cmp_cal_size_of_data(unsigned int samples, unsigned int cmp_mode)
 {
 	return samples * size_of_a_sample(cmp_mode);
 }

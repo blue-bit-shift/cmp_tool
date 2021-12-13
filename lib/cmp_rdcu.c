@@ -665,7 +665,7 @@ int rdcu_read_cmp_bitstream(const struct cmp_info *info, void *output_buf)
 		return -1;
 
 	/* calculate the need bytes for the bitstream */
-	s = size_of_bitstream(info->cmp_size);
+	s = cmp_bit_to_4byte(info->cmp_size);
 
 	if (output_buf == NULL)
 		return (int)s;
@@ -700,7 +700,7 @@ int rdcu_read_model(const struct cmp_info *info, void *model_buf)
 		return -1;
 
 	/* calculate the need bytes for the model */
-	s = size_of_model(info->samples_used, info->cmp_mode_used);
+	s = cmp_cal_size_of_data(info->samples_used, info->cmp_mode_used);
 
 	if (model_buf == NULL)
 		return (int)s;
