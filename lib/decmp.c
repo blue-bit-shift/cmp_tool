@@ -765,8 +765,9 @@ static int de_map_to_pos(void *decompressed_data, const struct cmp_info *info)
 }
 
 
-static unsigned int GetNBits32 (uint32_t *p_value, unsigned int bitOffset,
-				unsigned int nBits, const unsigned int *srcAddr)
+static unsigned int get_n_bits32(uint32_t *p_value, unsigned int bitOffset,
+				unsigned int nBits, const unsigned int *srcAddr,
+				size_t src_len_bit)
 {
 	const unsigned int *localAddr;
 	unsigned int bitsLeft, bitsRight, localEndPos;
@@ -780,9 +781,14 @@ static unsigned int GetNBits32 (uint32_t *p_value, unsigned int bitOffset,
 		return 0;
 	if (!p_value)
 		return 0;
+	if ((bitOffset + nBits) > src_len_bit) {
+		debug_print("Error: Buffer overflow detected.\n");
+		return 0;
+	}
 	/* separate the bitOffset into word offset (set localAddr pointer) and
 	 * local bit offset (bitsLeft)
 	 */
+
 	localAddr = srcAddr + (bitOffset >> 5);
 	bitsLeft = bitOffset & 0x1f;
 
@@ -948,18 +954,29 @@ static int decode_raw(const void *compressed_data, const struct cmp_info
 static int decode_raw_16(const void *compressed_data, const struct cmp_info
 			*info, uint16_t *const decompressed_data)
 {
-	int err = decode_raw(compressed_data, info, decompressed_data);
-	if (err)
-		return err;
+	size_t i;
+	uint16_t *p = decompressed_data;
+	uint32_t read_pos = 0;
+	unsigned int read_bits;
+	uint32_t read_val;
 
-#if defined(__LITTLE_ENDIAN)
-	{
-		size_t i;
-		for (i = 0; i < info->samples_used; i++) {
-			decompressed_data[i] = cpu_to_be16(decompressed_data[i]);
-		}
+	if (!info)
+		return -1;
+	if (info->samples_used == 0)
+		return 0;
+	if (!compressed_data)
+		return -1;
+	if (!decompressed_data)
+		return -1;
+
+	for (i = 0; i < info->samples_used; ++i) {
+		read_bits = get_n_bits32(&read_val, read_pos, 16,
+					 compressed_data, info->cmp_size);
+		if (!read_bits)
+			return -1;
+		read_pos += 16;
+		p[i] =read_val;
 	}
-#endif
 	return 0;
 }
 
@@ -1022,8 +1039,8 @@ static unsigned int decode_normal(const void *compressed_data,
 	else
 		n_read_bits = max_cw_len;
 
-	read_bits = GetNBits32(&read_val, read_pos, n_read_bits,
-			       compressed_data);
+	read_bits = get_n_bits32(&read_val, read_pos, n_read_bits,
+				 compressed_data, info->cmp_size);
 	if (!read_bits)
 		return -1U;
 
@@ -1073,10 +1090,8 @@ static unsigned int decode_zero(const void *compressed_data,
 		unsigned int n_bits;
 		uint32_t unencoded_val;
 
-		if (read_pos + max_cw_len > info->cmp_size) /* check buffer overflow */
-			return -1U;
-		n_bits = GetNBits32(&unencoded_val, read_pos, max_cw_len,
-				    compressed_data);
+		n_bits = get_n_bits32(&unencoded_val, read_pos, max_cw_len,
+				      compressed_data, info->cmp_size);
 		if (!n_bits)
 			return -1U;
 		if (unencoded_val < info->spill_used && unencoded_val != 0) /* consistency check */
@@ -1135,8 +1150,8 @@ static unsigned int decode_multi(const void *compressed_data,
 			/*TODO: debug message */
 			return -1U;
 		}
-		n_bits = GetNBits32(&unencoded_val, read_pos, unencoded_len,
-				    compressed_data);
+		n_bits = get_n_bits32(&unencoded_val, read_pos, unencoded_len,
+				      compressed_data, info->cmp_size);
 		if (!n_bits)
 			return -1U;
 
@@ -1194,7 +1209,8 @@ static int decode_16(const void *compressed_data, const struct cmp_info *info,
 		decoded_data[i] = (uint16_t)decoded_val;
 	}
 
-	if (read_pos != info->cmp_size) {
+	if (read_pos != info->cmp_size &&
+	    cmp_bit_to_4byte(read_pos) != cmp_bit_to_4byte(info->cmp_size)) {
 		debug_print("Warning: The size of the decompressed bitstream does not match the size of the compressed bitstream. Check if the parameters used for decompression are the same as those used for compression.\n");
 		return 1;
 	}
@@ -1207,7 +1223,7 @@ static int decode_S_FX(const void *compressed_data, const struct cmp_info *info,
 {
 	size_t i;
 	unsigned int read_pos = 0;
-	struct cmp_info info_exp_flag = *info;
+	struct cmp_info info_exp_flag;
 
 	info_exp_flag.golomb_par_used = GOLOMB_PAR_EXPOSURE_FLAGS;
 
@@ -1219,6 +1235,8 @@ static int decode_S_FX(const void *compressed_data, const struct cmp_info *info,
 
 	if (!decoded_data)
 		return -1;
+
+	info_exp_flag = *info;
 
 	for (i = 0; i < info->samples_used; i++) {
 		uint32_t decoded_val;

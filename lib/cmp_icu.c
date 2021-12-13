@@ -1128,8 +1128,8 @@ static unsigned int put_n_bits32(unsigned int value, unsigned int bitOffset,
 
 	/* check if destination buffer is large enough */
 	/* TODO: adapt that to the other science products */
-	if ((bitOffset + nBits) > (((dest_len+1)/2)*2 * 16)) {
-		debug_print("Error: The icu_output_buf buffer is not small to hold the compressed data.\n");
+	if ((bitOffset + nBits) > ((dest_len&~0x1U)*16)) {
+		debug_print("Error: The buffer for the compressed data is too small to hold the compressed data. Try a larger buffer_length parameter.\n");
 		return -2U;
 	}
 
@@ -1257,21 +1257,19 @@ static int encode_raw(struct cmp_cfg *cfg, struct encoder_struct *enc)
 static int encode_raw_16(struct cmp_cfg *cfg, struct encoder_struct *enc)
 {
 	int err;
+	size_t i;
 
-	err = encode_raw(cfg, enc);
-	if (err)
-		return err;
+	enc->cmp_size = 0;
 
-#if (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
-	{
-		size_t i;
-		uint16_t *p = cfg->icu_output_buf;
-
-		for (i = 0; i < cfg->samples; i++)
-			cpu_to_be16s(&p[i]);
-
+	for (i = 0; i < cfg->samples; i++) {
+		uint16_t *p = cfg->input_buf;
+		err = put_n_bits32(p[i], enc->cmp_size, 16, cfg->icu_output_buf,
+				   cfg->buffer_length);
+		if (err <= 0)
+			return err;
+		enc->cmp_size += 16;
 	}
-#endif /* __BYTE_ORDER__ */
+
 	return 0;
 }
 
@@ -1330,7 +1328,9 @@ static int encode_outlier_zero(uint32_t value_to_encode, int max_bits,
 		return -1;
 
 	/* use zero as escape symbol */
-	encode_normal(0, cfg, enc);
+	err = encode_normal(0, cfg, enc);
+	if (err)
+		return err;
 
 	/* put the data unencoded in the bitstream */
 	err = put_n_bits32(value_to_encode, enc->cmp_size, max_bits,
@@ -1407,7 +1407,9 @@ static int encode_outlier_multi(uint32_t value_to_encode, struct cmp_cfg *cfg,
 	unencoded_data_len = (escape_sym_offset + 1) * 2;
 
 	/* put the escape symbol in the bitstream */
-	encode_normal(escape_sym, cfg, enc);
+	err = encode_normal(escape_sym, cfg, enc);
+	if (err)
+		return err;
 
 	/* put the unencoded data in the bitstream */
 	err = put_n_bits32(unencoded_data, enc->cmp_size, unencoded_data_len,
@@ -1606,6 +1608,7 @@ static int encode_S_FX_EFX_NCOB_ECOB(struct cmp_cfg *cfg, struct encoder_struct
 	return 0;
 }
 
+
 /* pad the bitstream with zeros */
 int pad_bitstream(struct cmp_cfg *cfg, uint32_t cmp_size)
 {
@@ -1615,7 +1618,7 @@ int pad_bitstream(struct cmp_cfg *cfg, uint32_t cmp_size)
 		return -1;
 
 	/* is padding needed */
-	if (!raw_mode_is_used(cfg->cmp_mode) && cmp_size) {
+	if (cmp_size) {
 		int n_pad_bits = 32U - (cmp_size & 0x1f);
 		if (n_pad_bits < 32) {
 			 n_bits = put_n_bits32(0, cmp_size, n_pad_bits,
@@ -1699,9 +1702,11 @@ uint32_t cmp_encode_data(struct cmp_cfg *cfg)
 	{
 		size_t i;
 		uint32_t *p = (uint32_t *)cfg->icu_output_buf;
-		if (p)
-			for (i = 0; i < (enc.cmp_size + n_bits)/32; i++)
+
+		if (p) {
+			for (i = 0; i < cmp_bit_to_4byte(enc.cmp_size)/sizeof(uint32_t); i++)
 				cpu_to_be32s(&p[i]);
+		}
 	}
 #endif /*__BYTE_ORDER__ */
 

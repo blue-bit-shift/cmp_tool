@@ -2,10 +2,10 @@ CC               = gcc
 SOURCEDIR	       = lib
 INCLUDEDIR       = include
 BUILDDIR         = ./
-CFLAGS          := -Wall -Wextra -std=gnu99 -pedantic -Wshadow \
+CFLAGS          := -Wall -Wextra -std=gnu99 -mno-ms-bitfields -pedantic -Wshadow \
 		    -Wunreachable-code #-Wdocumentation #-Wsign-conversion
 RELCFLAGS       := -O2 # Release flags
-DBCFLAGS        := -O0 -g3 #debug flags
+DBCFLAGS        := -O0 -g3 -fsanitize=address -fsanitize=undefined #debug flags
 COVFLAGS        := -fprofile-arcs -ftest-coverage #coverage flags
 CPPFLAGS        := -I $(INCLUDEDIR)
 LDFLAGS         := -lm
@@ -21,7 +21,8 @@ SOURCES         := cmp_tool.c \
 		    $(SOURCEDIR)/decmp.c \
 		    $(SOURCEDIR)/rdcu_pkt_to_file.c \
 		    $(SOURCEDIR)/cmp_guess.c \
-		    $(SOURCEDIR)/cmp_tool_lib.c
+		    $(SOURCEDIR)/cmp_tool_lib.c \
+		    $(SOURCEDIR)/cmp_entity.c
 TARGET          := cmp_tool
 
 DEBUG?=1

@@ -39,12 +39,13 @@ void print_help(const char *program_name)
 	printf("usage: %s [options] [<argument>]\n", program_name);
 	printf("General Options:\n");
 	printf("  -h, --help               Print this help text and exit\n");
-	printf("  -V, --version            Print program version and exit\n");
-	printf("  -v, --verbose            Print various debugging information\n");
+	printf("  -o <prefix>              Use the <prefix> for output files\n");
 	printf("  -n, --model_cfg          Print a default model configuration and exit\n");
 	printf("  --diff_cfg               Print a default 1d-differencing configuration and exit\n");
+	printf("  --no_header              Do not add a compression entity header in front of the compressed data\n");
 	printf("  -a, --rdcu_par           Add additional RDCU control parameters\n");
-	printf("  -o <prefix>              Use the <prefix> for output files\n");
+	printf("  -V, --version            Print program version and exit\n");
+	printf("  -v, --verbose            Print various debugging information\n");
 	printf("Compression Options:\n");
 	printf("  -c <file>                File containing the compressing configuration\n");
 	printf("  -d <file>                File containing the data to be compressed\n");
@@ -52,9 +53,9 @@ void print_help(const char *program_name)
 	printf("  --rdcu_pkt               Generate RMAP packets for an RDCU compression\n");
 	printf("  --last_info <.info file> Generate RMAP packets for an RDCU compression with parallel read of the last results\n");
 	printf("Decompression Options:\n");
-	printf("  -i <file>                File containing the decompression information\n");
 	printf("  -d <file>                File containing the compressed data\n");
 	printf("  -m <file>                File containing the model of the compressed data\n");
+	printf("  -i <file>                File containing the decompression information (required if --no_header was used)\n");
 	printf("Guessing Options:\n");
 	printf("  --guess <mode>           Search for a good configuration for compression <mode>\n");
 	printf("  -d <file>                File containing the data to be compressed\n");
@@ -67,8 +68,8 @@ void print_help(const char *program_name)
  * @brief opens a file with a name that is a concatenation of directory and file
  *	name.
  *
- * @param dirname	first sting of concatenation
- * @param filename	security sting of concatenation
+ * @param dirname	first string of concatenation
+ * @param filename	security string of concatenation
  *
  * @return a pointer to the opened file
  *
@@ -113,7 +114,7 @@ static FILE *open_file(const char *dirname, const char *filename)
 
 
 /**
- * @brief write a uint16_t buffer to a output file
+ * @brief write a uint16_t buffer to an output file
  *
  * @param buf		the buffer to write a file
  * @param buf_len	length of the buffer
@@ -174,7 +175,7 @@ int write_to_file16(const uint16_t *buf, uint32_t buf_len, const char
 
 
 /**
- * @brief write a buffer to a output file
+ * @brief write a buffer to an output file
  *
  * @param buf		the buffer to write a file
  * @param buf_size	size of the buffer in bytes
@@ -278,7 +279,7 @@ static void remove_comments(char *s)
 
 
 /**
- * @brief convert RDCU SRAM Address sting to integer
+ * @brief convert RDCU SRAM Address string to integer
  *
  * @param addr	string of the address
  *
@@ -319,8 +320,8 @@ static int sram_addr_to_int(const char *addr)
 /**
  * @brief Interprets an uint32_t integer value in a byte string
  *
- * @param dep_str	description sting of the read in value
- * @param val_str	value sting contain the value to convert in uint32_t
+ * @param dep_str	description string of the read in value
+ * @param val_str	value string contain the value to convert in uint32_t
  * @param red_val	address for storing the converted result
  *
  * @returns 0 on success, error otherwise
@@ -328,9 +329,9 @@ static int sram_addr_to_int(const char *addr)
  * @see https://eternallyconfuzzled.com/atoi-is-evil-c-learn-why-atoi-is-awful
  */
 
-static int atoui32(const char *dep_str, const char *val_str, uint32_t *red_val)
+int atoui32(const char *dep_str, const char *val_str, uint32_t *red_val)
 {
-	long temp;
+	unsigned long temp;
 	char *end = NULL;
 
 	if (!dep_str)
@@ -343,21 +344,20 @@ static int atoui32(const char *dep_str, const char *val_str, uint32_t *red_val)
 		return -1;
 
 	errno = 0;
-	temp = strtol(val_str, &end, 10);
-	if (end != val_str && errno != ERANGE && temp >= 0 &&
-	    temp <= UINT32_MAX) {
+	temp = strtoul(val_str, &end, 0);
+	if (end != val_str && errno != ERANGE && temp <= UINT32_MAX) {
 		*red_val = (uint32_t)temp;
-		return 0;
 	} else {
 		fprintf(stderr, "%s: Error read in %s.\n", PROGRAM_NAME, dep_str);
 		*red_val = 0;
 		return -1;
 	}
+	return 0;
 }
 
 
 /**
- * @brief parse a compression mode vale string to a integer
+ * @brief parse a compression mode vale string to an integer
  * @note string can be either a number or the name of the compression mode
  *
  * @param cmp_mode_str	string containing the compression mode value to parse
@@ -366,7 +366,7 @@ static int atoui32(const char *dep_str, const char *val_str, uint32_t *red_val)
  * @returns 0 on success, error otherwise
  */
 
-uint32_t cmp_mode_parse(const char *cmp_mode_str, uint32_t *cmp_mode)
+int cmp_mode_parse(const char *cmp_mode_str, uint32_t *cmp_mode)
 {
 	size_t j;
 	static const struct {
@@ -420,6 +420,8 @@ static int parse_cfg(FILE *fp, struct cmp_cfg *cfg)
 {
 	char *token1, *token2;
 	char line[MAX_CONFIG_LINE];
+	enum {CMP_MODE, GOLOMB_PAR, SPILL, SAMPLES, BUFFER_LENGTH, LAST_ITEM};
+	int j, must_read_items[LAST_ITEM] = {0};
 
 	if (!fp)
 		return -1;
@@ -449,6 +451,7 @@ static int parse_cfg(FILE *fp, struct cmp_cfg *cfg)
 
 
 		if (!strcmp(token1, "cmp_mode")) {
+			must_read_items[CMP_MODE] = 1;
 			if (isalpha(*token2)) { /* check if mode is given as text or val*/
 				if (!strcmp(token2, "MODE_RAW")) {
 					cfg->cmp_mode = 0;
@@ -472,6 +475,7 @@ static int parse_cfg(FILE *fp, struct cmp_cfg *cfg)
 				}
 				fprintf(stderr, "%s: Error read in cmp_mode.\n",
 					PROGRAM_NAME);
+				return -1;
 			} else {
 				if (atoui32(token1, token2, &cfg->cmp_mode))
 					return -1;
@@ -481,11 +485,13 @@ static int parse_cfg(FILE *fp, struct cmp_cfg *cfg)
 		if (!strcmp(token1, "golomb_par")) {
 			if (atoui32(token1, token2, &cfg->golomb_par))
 				return -1;
+			must_read_items[GOLOMB_PAR] = 1;
 			continue;
 		}
 		if (!strcmp(token1, "spill")) {
 			if (atoui32(token1, token2, &cfg->spill))
 				return -1;
+			must_read_items[SPILL] = 1;
 			continue;
 		}
 		if (!strcmp(token1, "model_value")) {
@@ -554,6 +560,7 @@ static int parse_cfg(FILE *fp, struct cmp_cfg *cfg)
 		if (!strcmp(token1, "samples")) {
 			if (atoui32(token1, token2, &cfg->samples))
 				return -1;
+			must_read_items[SAMPLES] = 1;
 			continue;
 		}
 		if (!strcmp(token1, "rdcu_buffer_adr")) {
@@ -570,9 +577,24 @@ static int parse_cfg(FILE *fp, struct cmp_cfg *cfg)
 		if (!strcmp(token1, "buffer_length")) {
 			if (atoui32(token1, token2, &cfg->buffer_length))
 				return -1;
+			must_read_items[BUFFER_LENGTH] = 1;
 			continue;
 		}
 	}
+
+	if (raw_mode_is_used(cfg->cmp_mode))
+		if (must_read_items[CMP_MODE] == 1 &&
+		    must_read_items[BUFFER_LENGTH] == 1)
+			return 0;
+
+	for (j = 0; j < LAST_ITEM; j++) {
+		if (must_read_items[j] < 1) {
+			fprintf(stderr, "%s: Some parameters are missing. Check if the following parameters: cmp_mode, golomb_par, spill, samples and buffer_length are all set in the configuration file.\n",
+				PROGRAM_NAME);
+			return -1;
+		}
+	}
+
 	return 0;
 }
 
@@ -648,6 +670,9 @@ static int parse_info(FILE *fp, struct cmp_info *info)
 {
 	char *token1, *token2;
 	char line[MAX_CONFIG_LINE];
+	enum {CMP_MODE_USED, GOLOMB_PAR_USED, SPILL_USED, SAMPLES_USED,
+		CMP_SIZE, LAST_ITEM};
+	int j, must_read_items[LAST_ITEM] = {0};
 
 	if (!fp)
 		return -1;
@@ -678,6 +703,7 @@ static int parse_info(FILE *fp, struct cmp_info *info)
 
 
 		if (!strcmp(token1, "cmp_mode_used")) {
+			must_read_items[CMP_MODE_USED] = 1;
 			if (isalpha(*token2)) { /* check if mode is given as text or val*/
 				if (!strcmp(token2, "MODE_RAW")) {
 					info->cmp_mode_used = 0;
@@ -701,7 +727,7 @@ static int parse_info(FILE *fp, struct cmp_info *info)
 				}
 				fprintf(stderr, "%s: Error read in cmp_mode_used.\n",
 					PROGRAM_NAME);
-					return -1;
+				return -1;
 			} else {
 				uint32_t tmp;
 
@@ -745,6 +771,7 @@ static int parse_info(FILE *fp, struct cmp_info *info)
 			if (atoui32(token1, token2, &tmp))
 				return -1;
 			info->spill_used = (unsigned char)tmp;
+			must_read_items[SPILL_USED] = 1;
 			continue;
 		}
 		if (!strcmp(token1, "golomb_par_used")) {
@@ -753,16 +780,19 @@ static int parse_info(FILE *fp, struct cmp_info *info)
 			if (atoui32(token1, token2, &tmp))
 				return -1;
 			info->golomb_par_used = tmp;
+			must_read_items[GOLOMB_PAR_USED] = 1;
 			continue;
 		}
 		if (!strcmp(token1, "samples_used")) {
 			if (atoui32(token1, token2, &info->samples_used))
 				return -1;
+			must_read_items[SAMPLES_USED] = 1;
 			continue;
 		}
 		if (!strcmp(token1, "cmp_size")) {
 			if (atoui32(token1, token2, &info->cmp_size))
 				return -1;
+			must_read_items[CMP_SIZE] = 1;
 			continue;
 		}
 
@@ -814,6 +844,21 @@ static int parse_info(FILE *fp, struct cmp_info *info)
 			continue;
 		}
 	}
+
+	if (raw_mode_is_used(info->cmp_mode_used))
+		if (must_read_items[CMP_MODE_USED] == 1 &&
+		    must_read_items[SAMPLES_USED] == 1 &&
+		    must_read_items[CMP_SIZE] == 1)
+			return 0;
+
+	for (j = 0; j < LAST_ITEM; j++) {
+		if (must_read_items[j] < 1) {
+			fprintf(stderr, "%s: Some parameters are missing. Check if the following parameters: cmp_mode_used, golomb_par_used, spill_used and samples_used are all set in the information file.\n",
+				PROGRAM_NAME);
+			return -1;
+		}
+	}
+
 	return 0;
 }
 
@@ -831,6 +876,7 @@ static int parse_info(FILE *fp, struct cmp_info *info)
 
 int read_cmp_info(const char *file_name, struct cmp_info *info, int verbose_en)
 {
+	int err;
 	FILE *fp;
 
 	if (!file_name)
@@ -850,9 +896,11 @@ int read_cmp_info(const char *file_name, struct cmp_info *info, int verbose_en)
 		return -1;
 	}
 
-	parse_info(fp, info);
-
+	err = parse_info(fp, info);
 	fclose(fp);
+	if (err)
+		return -1;
+
 
 	if (verbose_en) {
 		printf("\n\n");
@@ -865,8 +913,8 @@ int read_cmp_info(const char *file_name, struct cmp_info *info, int verbose_en)
 
 
 /**
- * @brief reads n_word words of a hex-encoded data (or model) file to
- *	a uint8_t buffer
+ * @brief reads n_word words of a hex-encoded data (or model) file to a uint8_t
+ *	 buffer
  *
  * @note data must be encoded as 2 hex digits separated by a white space or new
  *	line character e.g. "AB CD 12\n34 AB 12\n"
@@ -918,7 +966,7 @@ ssize_t read_file8(const char *file_name, uint8_t *buf, uint32_t n_word, int ver
 			if (!buf)  /* finished counting the sample */
 				break;
 
-			fprintf(stderr, "%s: %s: Error: The files does not contain enough data as given by the n_word parameter.\n",
+			fprintf(stderr, "%s: %s: Error: The files do not contain enough data as requested.\n",
 				PROGRAM_NAME, file_name);
 			goto error;
 		}
@@ -986,6 +1034,8 @@ ssize_t read_file8(const char *file_name, uint8_t *buf, uint32_t n_word, int ver
 
 	fclose(fp);
 
+	if (n == 0)
+		fprintf(stderr, "%s: %s: Warning: The file is empty.\n", PROGRAM_NAME, file_name);
 	if (verbose_en && buf)
 		printf("\n\n");
 
@@ -1001,7 +1051,7 @@ error:
  * @brief reads the number of uint16_t samples of a hex-encoded data (or model)
  *	file into a buffer
  *
- * @note data must be encode has 2 hex digits separated by a white space or new
+ * @note data must be encoded as 2 hex digits separated by a white space or new
  *	line character e.g. "AB CD 12 34 AB 12\n"
  *
  * @param file_name	data/model file name
@@ -1042,7 +1092,7 @@ ssize_t read_file16(const char *file_name, uint16_t *buf, uint32_t samples,
  * @brief reads the number of uint32_t samples of a hex-encoded data (or model)
  *	file into a buffer
  *
- * @note data must be encode has 2 hex digits separated by a white space or new
+ * @note data must be encoded as 2 hex digits separated by a white space or new
  *	line character e.g. "AB CD 12 34 AB 12\n"
  *
  * @param file_name	data/model file name
@@ -1075,6 +1125,134 @@ ssize_t read_file32(const char *file_name, uint32_t *buf, uint32_t samples,
 	}
 
 	return size;
+}
+
+#if 0
+read_file_data(const char *file_name, cmp_mode, samples, verbose_en)
+
+			cfg.samples = size/size_of_a_sample(cfg.cmp_mode);
+			printf("\nNo samples parameter set. Use samples = %u.\n... ",
+			       cfg.samples);
+		}
+#endif
+
+/**
+ * @brief reads a file containing a compression entity
+ *
+ * @note data must be encoded as 2 hex digits separated by a white space or new
+ *	line character e.g. "AB CD 12 34 AB 12\n"
+ *
+ * @param file_name	file name of the file containing the compression entity
+ * @param ent		pointer to the buffer where the content of the file is written (can be NULL)
+ * @param ent_size	size in bytes of the compression entity to read in
+ * @param verbose_en	print verbose output if not zero
+ *
+ * @returns the size in bytes to store the file content; negative on error
+ */
+
+ssize_t read_file_cmp_entity(const char *file_name, struct cmp_entity *ent,
+			   uint32_t ent_size, int verbose_en)
+{
+	ssize_t size;
+
+	size = read_file8(file_name, (uint8_t *)ent, ent_size, 0);
+	if (size < 0)
+		return size;
+	if (size < GENERIC_HEADER_SIZE) {
+		fprintf(stderr, "%s: %s: Error: The file is too small to contain a compression entity header.\n",
+			PROGRAM_NAME, file_name);
+		return -1;
+	}
+
+	if (ent) {
+		size_t i;
+		uint32_t *cmp_data;
+		uint32_t cmp_data_len_32;
+
+		if (size != cmp_ent_get_size(ent)) {
+			fprintf(stderr, "%s: %s: The size of the compression entity set in the header of the compression entity is not the same size as the read-in file has.\n",
+				PROGRAM_NAME, file_name);
+			return -1;
+		}
+
+		if (verbose_en)
+			cmp_ent_parse(ent);
+
+		if (cmp_ent_get_cmp_data_size(ent) & 0x3) {
+			fprintf(stderr, "%s: %s: Error: The compressed data are not correct formatted. Expected multiple of 4 hex words.\n",
+				PROGRAM_NAME, file_name);
+			return -1;
+
+		}
+
+		cmp_data = (uint32_t *)cmp_ent_get_data_buf(ent);
+		if (!cmp_data) {
+			fprintf(stderr, "%s: %s: Error: Compression data type is not supported.\n",
+				PROGRAM_NAME, file_name);
+			return -1;
+		}
+		cmp_data_len_32 = cmp_ent_get_cmp_data_size(ent)/sizeof(uint32_t);
+		for (i = 0; i < cmp_data_len_32; i++)
+			be32_to_cpus(&cmp_data[i]);
+
+		if (verbose_en) {
+			printf("\ncompressed data:\n");
+			for (i = 0; i < cmp_data_len_32; i++) {
+				printf("%08X ", cmp_data[i]);
+				if (i && !((i+1) % 4))
+					printf("\n");
+			}
+			printf("\n");
+		}
+	}
+	return size;
+}
+
+
+/*
+ * @brief generate from the cmp_tool version string a version_id for the
+ * compression entity header
+ *
+ * @param version number string like: 1.04
+ *
+ * @returns version_id for the compression header; 0 on error
+ */
+
+uint16_t cmp_tool_gen_version_id(const char *version)
+{
+	char *copy, *token;
+	unsigned int n;
+	uint16_t version_id;
+
+	/*
+	 * version_id bits: msb |xxxx xxxx | xxxx xxxx| lsb
+	 *                        ^^^ ^^^^ | ^^^^ ^^^^
+	 *                        mayor num| minor version number
+	 *                       ^
+	 *                       CMP_TOOL_VERSION_ID_BIT
+	 */
+	copy = strdup(version);
+	token = strtok(copy, ".");
+	n = atoi(token);
+	if (n > UINT8_MAX) {
+		free(copy);
+		return 0;
+	}
+	version_id = ((uint16_t)n) << 8U;
+	if (version_id & CMP_TOOL_VERSION_ID_BIT) {
+		free(copy);
+		return 0;
+	}
+
+	token = strtok(NULL, ".");
+	n = atoi(token);
+	free(copy);
+	if (n > UINT8_MAX)
+		return 0;
+
+	version_id |= n;
+
+	return version_id |= CMP_TOOL_VERSION_ID_BIT;
 }
 
 

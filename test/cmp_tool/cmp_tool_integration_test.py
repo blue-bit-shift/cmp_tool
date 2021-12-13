@@ -2,9 +2,13 @@ import subprocess
 import shlex
 import sys
 import os
+import math
+
+from datetime import datetime
+from datetime import timedelta
 
 PATH_CMP_TOOL = "./cmp_tool"
-VERSION = "0.06"
+VERSION = "0.07"
 
 EXIT_FAILURE = 1
 EXIT_SUCCESS = 0
@@ -41,16 +45,114 @@ def del_file(filePath):
         print("The file %s could not be deleted because it does not exist!" % (filePath))
 
 
+def cuc_timestamp(now):
+    epoch = datetime(2020, 1, 1)
+    timestamp = (now - epoch).total_seconds()
+
+    cuc_coarse = int( math.floor(timestamp) * 256 * 256)
+    cuc_fine = int(math.floor((timestamp - math.floor(timestamp))*256*256))
+
+    cuc = int(cuc_coarse)+int(cuc_fine)
+
+    return cuc
+
+
+def read_in_cmp_header(compressed_string):
+    GENERIC_HEADER_SIZE = 30
+
+    header = { 'asw_version_id'     : { 'value': -1, 'bits': 16 },
+               'cmp_ent_size'       : { 'value': -1, 'bits': 24 },
+               'original_size'      : { 'value': -1, 'bits': 24 },
+               'start_time'         : { 'value': -1, 'bits': 48 },
+               'end_timestamp'      : { 'value': -1, 'bits': 48 },
+               'data_type'          : { 'value': -1, 'bits': 16 },
+               'cmp_mode_used'      : { 'value': -1, 'bits': 8 },
+               'model_value_used'   : { 'value': -1, 'bits': 8 },
+               'model_id'           : { 'value': -1, 'bits': 16 },
+               'model_counter'      : { 'value': -1, 'bits': 8 },
+               'spare'              : { 'value': 0, 'bits': 8 },
+               'lossy_cmp_par_used' : { 'value': -1, 'bits': 16 },
+               'spill_used'         : { 'value': -1, 'bits': 16 },
+               'golomb_par_used'    : { 'value': -1, 'bits': 8 },
+               'ap1_spill_used'     : { 'value': -1, 'bits': 16 },
+               'ap1_golomb_par'     : { 'value': -1, 'bits': 8 },
+               'ap2_spill_used'     : { 'value': -1, 'bits': 16 },
+               'ap2_golomb_par'     : { 'value': -1, 'bits': 8 },
+               'spill_1_used'       : { 'value': -1, 'bits': 24 },
+               'cmp_par_1_used'     : { 'value': -1, 'bits': 16 },
+               'spill_2_used'       : { 'value': -1, 'bits': 24 },
+               'cmp_par_2_used'     : { 'value': -1, 'bits': 16 },
+               'spill_3_used'       : { 'value': -1, 'bits': 24 },
+               'cmp_par_3_used'     : { 'value': -1, 'bits': 16 },
+               'spill_4_used'       : { 'value': -1, 'bits': 24 },
+               'cmp_par_4_used'     : { 'value': -1, 'bits': 16 },
+               'spill_5_used'       : { 'value': -1, 'bits': 24 },
+               'cmp_par_5_used'     : { 'value': -1, 'bits': 16 },
+               'spill_6_used'       : { 'value': -1, 'bits': 24 },
+               'cmp_par_6_used'     : { 'value': -1, 'bits': 16 },
+               'compressed_data'    : { 'value': -1, 'bits': -1 }}
+
+    l = 0
+    compressed_string = compressed_string.replace(" ", "").replace("\n", "")  # remove white spaces
+
+    # Generic Header
+    for i, data_field in enumerate(header):
+        if header[data_field]['bits'] % 4 != 0:
+            raise Exception("only work with 4 bit aligned data fields")
+        byte_len = header[data_field]['bits']//4
+        header[data_field]['value'] = int(compressed_string[l:l+byte_len], 16)
+        l += byte_len
+        # end of the GENERIC_HEADER
+        if l >= GENERIC_HEADER_SIZE*2:
+            break
+
+    data_type = header['data_type']['value'] & 0x7FFF
+    # Imagette Headers
+    if data_type == 1 or data_type == 2:
+        for data_field in list(header)[12:18]:
+            if header[data_field]['bits'] % 4 != 0:
+                raise Exception("only work with 4 bit aligned data fields")
+            byte_len = header[data_field]['bits']//4
+            header[data_field]['value'] = int(compressed_string[l:l+byte_len], 16)
+            l += byte_len
+            # skip adaptive stuff if non adaptive header
+            if data_field == 'golomb_par_used' and  data_type == 1:
+                l +=4
+                break
+        l += 2  # spare bits
+
+    # Non-Imagette Headers
+    elif data_type < 24:
+        for data_field in list(header)[18:30]:
+            if header[data_field]['bits'] % 4 != 0:
+                raise Exception("only work with 4 bit aligned data fields")
+            byte_len = header[data_field]['bits']//4
+            header[data_field]['value'] = int(compressed_string[l:l+byte_len], 16)
+            l += byte_len
+    else:
+        raise Exception("data_type unknown")
+
+    header['compressed_data']['value'] = compressed_string[l::]
+
+    # version conversion fuu
+    version_id = header['asw_version_id']['value']
+    if version_id & 0x8000:
+        header['asw_version_id']['value'] = "%.2f" % (int(version_id & 0x7F00)/256. + int(version_id&0xFF)*0.01)
+
+    return header
+
+
 HELP_STRING = \
 """usage: %s [options] [<argument>]
 General Options:
   -h, --help               Print this help text and exit
-  -V, --version            Print program version and exit
-  -v, --verbose            Print various debugging information
+  -o <prefix>              Use the <prefix> for output files
   -n, --model_cfg          Print a default model configuration and exit
   --diff_cfg               Print a default 1d-differencing configuration and exit
+  --no_header              Do not add a compression entity header in front of the compressed data
   -a, --rdcu_par           Add additional RDCU control parameters
-  -o <prefix>              Use the <prefix> for output files
+  -V, --version            Print program version and exit
+  -v, --verbose            Print various debugging information
 Compression Options:
   -c <file>                File containing the compressing configuration
   -d <file>                File containing the data to be compressed
@@ -58,9 +160,9 @@ Compression Options:
   --rdcu_pkt               Generate RMAP packets for an RDCU compression
   --last_info <.info file> Generate RMAP packets for an RDCU compression with parallel read of the last results
 Decompression Options:
-  -i <file>                File containing the decompression information
   -d <file>                File containing the compressed data
   -m <file>                File containing the model of the compressed data
+  -i <file>                File containing the decompression information (required if --no_header was used)
 Guessing Options:
   --guess <mode>           Search for a good configuration for compression <mode>
   -d <file>                File containing the data to be compressed
@@ -73,8 +175,14 @@ CMP_START_STR = \
 """#########################################################
 ### PLATO Compression/Decompression Tool Version %s ###
 #########################################################
+Info: Note that the behaviour of the cmp_tool has changed. From now on, the compressed data will be preceded by a header by default. The old behaviour can be achieved with the --no_header option.
 
 """ % (VERSION)
+print(CMP_START_STR)
+
+CMP_START_STR_CMP = CMP_START_STR + "## Starting the compression ##\n"
+CMP_START_STR_DECMP = CMP_START_STR + "## Starting the decompression ##\n"
+CMP_START_STR_GUESS = CMP_START_STR + "## Search for a good set of compression parameters ##\n"
 
 
 def test_no_option():
@@ -93,14 +201,14 @@ def test_invalid_option():
         if arg == '-q':
             if sys.platform == 'linux':
                 assert(stderr == "%s: invalid option -- 'q'\n" % (PATH_CMP_TOOL))
-            elif "win" in sys.platform:
+            elif sys.platform == 'win32' or sys.platform == 'cygwin':
                 assert(stderr == "%s: unknown option -- q\n" % (PATH_CMP_TOOL))
             else:
                 assert(stderr == "cmp_tool: invalid option -- q\n")
         else:
             if sys.platform == 'linux':
                 assert(stderr == "%s: unrecognized option '--not_used'\n" % (PATH_CMP_TOOL))
-            elif "win" in sys.platform:
+            elif sys.platform == 'win32' or sys.platform == 'cygwin':
                 assert(stderr == "%s: unknown option -- not_used\n" % (PATH_CMP_TOOL))
             else:
                 assert(stderr == "cmp_tool: unrecognized option `--not_used'\n")
@@ -181,7 +289,7 @@ def test_print_model_cfg():
 
 
 def test_no_data_file_name():
-    returncode, stdout, stderr = call_cmp_tool("-d no_data.data")
+    returncode, stdout, stderr = call_cmp_tool("-d no_data.data --no_header")
     assert(returncode == EXIT_FAILURE)
     assert(stdout == CMP_START_STR)
     assert(stderr == "cmp_tool: No configuration file (-c option) or decompression information file (-i option) specified.\n")
@@ -197,9 +305,16 @@ def test_no_c_or_i_file():
 def test_no_cfg_exist_test():
     returncode, stdout, stderr = call_cmp_tool("-d no_data.dat -c no_cfg.cfg")
     assert(returncode == EXIT_FAILURE)
-    assert(stdout == CMP_START_STR +
+    assert(stdout == CMP_START_STR_CMP +
            "Importing configuration file no_cfg.cfg ... FAILED\n")
     assert(stderr == "cmp_tool: no_cfg.cfg: No such file or directory\n")
+
+
+def test_too_many_arg():
+    returncode, stdout, stderr = call_cmp_tool("argument")
+    assert(returncode == EXIT_FAILURE)
+    assert(stdout == "cmp_tool: To many arguments.\n"+HELP_STRING)
+    assert(stderr == "")
 
 
 def test_compression_diff():
@@ -219,51 +334,83 @@ def test_compression_diff():
             assert(stderr == "")
             f.write(stdout)
 
-        # compression
-        returncode, stdout, stderr = call_cmp_tool(
-            " -c "+cfg_file_name+" -d "+data_file_name + " -o "+output_prefix)
+        add_args = [" --no_header", ""]
+        for add_arg in add_args:
+            # compression
+            returncode, stdout, stderr = call_cmp_tool(
+                " -c "+cfg_file_name+" -d "+data_file_name + " -o "+output_prefix+add_arg)
 
-        # check compression results
-        assert(returncode == EXIT_SUCCESS)
-        assert(stderr == "")
-        assert(stdout == CMP_START_STR +
-               "Importing configuration file %s ... DONE\n" % (cfg_file_name) +
-               "Importing data file %s ... \n" % (data_file_name) +
-               "No samples parameter set. Use samples = 5.\n" +
-               "... DONE\n" +
-               "No buffer_length parameter set. Use buffer_length = 12 as compression buffer size.\n" +
-               "Compress data ... DONE\n" +
-               "Write compressed data to file %s.cmp ... DONE\n" % (output_prefix) +
-               "Write decompression information to file %s.info ... DONE\n" % (output_prefix))
-        # check compressed data
-        with open(output_prefix+".cmp", encoding='utf-8') as f:
-            assert(f.read() == "44 44 40 00 \n")
-        # check info file
-        with open(output_prefix+".info", encoding='utf-8') as f:
-            info = parse_key_value(f.read())
-        assert(info['cmp_mode_used'] == '2')
-        # assert(info['model_value_used'] == '8')  # not needed for diff
-        assert(info['round_used'] == '0')
-        assert(info['spill_used'] == '60')
-        assert(info['golomb_par_used'] == '7')
-        assert(info['samples_used'] == '5')
-        assert(info['cmp_size'] == '20')
-        assert(info['cmp_err'] == '0')
+            # check compression results
+            assert(returncode == EXIT_SUCCESS)
+            assert(stderr == "")
+            assert(stdout == CMP_START_STR_CMP +
+                   "Importing configuration file %s ... DONE\n" % (cfg_file_name) +
+                   "Importing data file %s ... \n" % (data_file_name) +
+                   "No samples parameter set. Use samples = 5.\n" +
+                   "... DONE\n" +
+                   "No buffer_length parameter set. Use buffer_length = 12 as compression buffer size.\n" +
+                   "Compress data ... DONE\n" +
+                   "Write compressed data to file %s.cmp ... DONE\n" % (output_prefix) +
+                   "%s" % ((lambda arg : "Write decompression information to file %s.info ... DONE\n" % (output_prefix)
+                            if arg == " --no_header" else "")(add_arg))
+                   )
+             # check compressed data
+            cmp_data = "44 44 40 00 \n"
+            with open(output_prefix+".cmp", encoding='utf-8') as f:
+                if add_arg == " --no_header":
+                    # check compressed data file
+                    assert(f.read() == "44 44 40 00 \n")
+                    # check info file
+                    with open(output_prefix+".info", encoding='utf-8') as f:
+                        info = parse_key_value(f.read())
+                    assert(info['cmp_mode_used'] == '2')
+                    # assert(info['model_value_used'] == '8')  # not needed for diff
+                    assert(info['round_used'] == '0')
+                    assert(info['spill_used'] == '60')
+                    assert(info['golomb_par_used'] == '7')
+                    assert(info['samples_used'] == '5')
+                    assert(info['cmp_size'] == '20')
+                    assert(info['cmp_err'] == '0')
+                else:
+                    header = read_in_cmp_header(f.read())
+                    assert(header['asw_version_id']['value'] == VERSION)
+                    assert(header['cmp_ent_size']['value'] == 36+4)
+                    assert(header['original_size']['value'] == 10)
+                    # todo
+                    assert(header['start_time']['value'] < cuc_timestamp(datetime.utcnow()))
+                    #todo
+                    assert(header['end_timestamp']['value'] < cuc_timestamp(datetime.utcnow()))
+                    assert(header['data_type']['value'] == 1)
+                    assert(header['cmp_mode_used']['value'] == 2)
+                    # assert(header['model_value_used']['value'] == 8)
+                    assert(header['model_id']['value'] == 53264)
+                    assert(header['model_counter']['value'] == 0)
+                    assert(header['lossy_cmp_par_used']['value'] == 0)
+                    assert(header['spill_used']['value'] == 60)
+                    assert(header['golomb_par_used']['value'] == 7)
+                    assert(header['compressed_data']['value'] == "44444000")
 
-        # decompression
-        returncode, stdout, stderr = call_cmp_tool(
-            " -i "+output_prefix+".info -d "+output_prefix+".cmp -o "+output_prefix)
+                # decompression
+            if add_arg == " --no_header":
+                returncode, stdout, stderr = call_cmp_tool(
+                    " -i "+output_prefix+".info -d "+output_prefix+".cmp -o "+output_prefix)
+            else:
+                returncode, stdout, stderr = call_cmp_tool("-d "+output_prefix+".cmp -o "+output_prefix)
 
-        # check decompression
-        assert(returncode == EXIT_SUCCESS)
-        assert(stdout == CMP_START_STR +
-               "Importing decompression information file %s.info ... DONE\n" % (output_prefix) +
-               "Importing compressed data file %s.cmp ... DONE\n" % (output_prefix) +
-               "Decompress data ... DONE\n" +
-               "Write decompressed data to file %s.dat ... DONE\n" % (output_prefix))
-        assert(stderr == "")
-        with open(output_prefix+".dat", encoding='utf-8') as f:
-            assert(f.read() == data)  # decompressed data == input data
+            # check decompression
+            assert(stderr == "")
+            assert(stdout == CMP_START_STR_DECMP +
+                   "%s" % ((lambda arg : "Importing decompression information file %s.info ... DONE\n" % (output_prefix)
+                            if "--no_header" in arg else "")(add_arg)) +
+                   "Importing compressed data file %s.cmp ... DONE\n" % (output_prefix) +
+                   "%s" % ((lambda arg : "Parse the compression entity header ... DONE\n"
+                            if not "--no_header" in arg else "")(add_arg)) +
+                   "Decompress data ... DONE\n" +
+                   "Write decompressed data to file %s.dat ... DONE\n" % (output_prefix))
+
+            assert(returncode == EXIT_SUCCESS)
+            with open(output_prefix+".dat", encoding='utf-8') as f:
+                assert(f.read() == data)  # decompressed data == input data
 
     # clean up
     finally:
@@ -274,7 +421,7 @@ def test_compression_diff():
         del_file(output_prefix+'.dat')
 
 
-def test_model_compression():
+def test_model_compression_no_header():
     # generate test data
     data = '00 01 00 02 00 03 00 04 00 05 \n'
     model = '00 00 00 01 00 02 00 03 00 04 \n'
@@ -303,12 +450,12 @@ def test_model_compression():
 
         # compression
         returncode, stdout, stderr = call_cmp_tool(
-            " -c "+cfg_file_name+" -d "+data_file_name + " -m "+model_file_name+" -o "+output_prefix1)
+            " -c "+cfg_file_name+" -d "+data_file_name + " -m "+model_file_name+" -o "+output_prefix1+" --no_header")
 
         # check compression results
         assert(returncode == EXIT_SUCCESS)
         assert(stderr == "")
-        assert(stdout == CMP_START_STR +
+        assert(stdout == CMP_START_STR_CMP +
                "Importing configuration file %s ... DONE\n" % (cfg_file_name) +
                "Importing data file %s ... DONE\n" % (data_file_name) +
                "Importing model file %s ... DONE\n" % (model_file_name) +
@@ -335,7 +482,7 @@ def test_model_compression():
         returncode, stdout, stderr = call_cmp_tool(
             " -i "+output_prefix1+".info -d "+output_prefix1+".cmp -m "+model_file_name+" -o "+output_prefix2)
         assert(returncode == EXIT_SUCCESS)
-        assert(stdout == CMP_START_STR +
+        assert(stdout == CMP_START_STR_DECMP +
                "Importing decompression information file %s.info ... DONE\n" % (output_prefix1) +
                "Importing compressed data file %s.cmp ... DONE\n" % (output_prefix1) +
                "Importing model file %s ... DONE\n" % (model_file_name) +
@@ -364,6 +511,99 @@ def test_model_compression():
         del_file(output_prefix2+'_upmodel.dat')
 
 
+def test_raw_mode_compression():
+    data = '00 01 00 02 00 03 00 04 00 05 \n'
+    cfg = "cmp_mode = 0\n" + "samples = 5\n" + "buffer_length = 6\n"
+
+    cfg_file_name = 'raw.cfg'
+    data_file_name = 'raw.data'
+    output_prefix = 'raw_compression'
+    args = ["-c %s -d %s -o %s --no_header" %(cfg_file_name, data_file_name, output_prefix),
+            "-c %s -d %s -o %s " %(cfg_file_name, data_file_name, output_prefix)]
+
+    try:
+        with open(cfg_file_name, 'w') as f:
+            f.write(cfg)
+        with open(data_file_name, 'w') as f:
+            f.write(data)
+
+        for arg in args:
+            returncode, stdout, stderr = call_cmp_tool(arg)
+            assert(stderr == "")
+            assert(returncode == EXIT_SUCCESS)
+            assert(stdout == CMP_START_STR_CMP +
+                   "Importing configuration file %s ... DONE\n" % (cfg_file_name) +
+                   "Importing data file %s ... DONE\n" % (data_file_name) +
+                   "Compress data ... DONE\n" +
+                   "Write compressed data to file %s.cmp ... DONE\n" % (output_prefix) +
+                   "%s" % ((lambda arg : "Write decompression information to file %s.info ... DONE\n" % (output_prefix)
+                            if "--no_header" in arg  else "")(arg))
+                   )
+
+             # check compressed data
+            with open(output_prefix+".cmp", encoding='utf-8') as f:
+                if "--no_header" in arg:
+                    # check compressed data file
+                    assert(f.read() == data[:-1]+"00 00 \n")
+                    # check info file
+                    with open(output_prefix+".info", encoding='utf-8') as f:
+                        info = parse_key_value(f.read())
+                    assert(info['cmp_mode_used'] == '0')
+                    # assert(info['model_value_used'] == '8')  # not needed for diff
+                    assert(info['round_used'] == '0')
+                    # assert(info['spill_used'] == '60')
+                    # assert(info['golomb_par_used'] == '7')
+                    assert(info['samples_used'] == '5')
+                    assert(info['cmp_size'] == '80')
+                    assert(info['cmp_err'] == '0')
+                else:
+                    header = read_in_cmp_header(f.read())
+                    assert(header['asw_version_id']['value'] == VERSION)
+                    assert(header['cmp_ent_size']['value'] == 36+12)
+                    assert(header['original_size']['value'] == 10)
+                    # todo
+                    assert(header['start_time']['value'] < cuc_timestamp(datetime.utcnow()))
+                    #todo
+                    assert(header['end_timestamp']['value'] < cuc_timestamp(datetime.utcnow()))
+                    assert(header['data_type']['value'] == 1+0x8000)
+                    # assert(header['cmp_mode_used']['value'] == 2)
+                    # assert(header['model_value_used']['value'] == 8)
+                    assert(header['model_id']['value'] == 53264)
+                    assert(header['model_counter']['value'] == 0)
+                    assert(header['lossy_cmp_par_used']['value'] == 0)
+                    # assert(header['spill_used']['value'] == 60)
+                    # assert(header['golomb_par_used']['value'] == 7)
+                    assert(header['compressed_data']['value'] == data[:-1].replace(" ","")+"0000")
+
+            # decompression
+            if "--no_header" in arg:
+                returncode, stdout, stderr = call_cmp_tool(
+                    " -i "+output_prefix+".info -d "+output_prefix+".cmp -o "+output_prefix)
+            else:
+                returncode, stdout, stderr = call_cmp_tool("-d "+output_prefix+".cmp -o "+output_prefix)
+
+
+            # check decompression
+            assert(stderr == "")
+            assert(stdout == CMP_START_STR_DECMP +
+                   "%s" % ((lambda arg : "Importing decompression information file %s.info ... DONE\n" % (output_prefix)
+                            if "--no_header" in arg else "")(arg)) +
+                   "Importing compressed data file %s.cmp ... DONE\n" % (output_prefix) +
+                   "%s" % ((lambda arg : "Parse the compression entity header ... DONE\n"
+                            if not "--no_header" in arg else "")(arg)) +
+                   "Decompress data ... DONE\n" +
+                   "Write decompressed data to file %s.dat ... DONE\n" % (output_prefix))
+            assert(returncode == EXIT_SUCCESS)
+            with open(output_prefix+".dat", encoding='utf-8') as f:
+                assert(f.read() == data)  # decompressed data == input data
+    finally:
+        del_file(cfg_file_name)
+        del_file(data_file_name)
+        del_file("%s.cmp" %(output_prefix))
+        del_file("%s.info" %(output_prefix))
+        del_file("%s.dat" %(output_prefix))
+
+
 def test_guess_option():
     # generate test data
     data = '00 01 00 01 00 01 00 01 00 01 \n'
@@ -371,15 +611,14 @@ def test_guess_option():
     data_file_name = 'data.dat'
     model_file_name = 'model.dat'
     args = [
-        ['guess_RDCU_diff',  '--guess RDCU -d %s -o guess --rdcu_par' %
+        ['guess_RDCU_diff',  '--guess RDCU -d %s -o guess --rdcu_par --no_header' %
             (data_file_name)],
         ['guess_RDCU_model', '--guess RDCU -d %s -m %s -o guess --rdcu_par' %
             (data_file_name, model_file_name)],
         ['guess_level_3',    '--guess MODE_DIFF_MULTI --guess_level 3 -d %s -o guess' %
             (data_file_name)],
-        ['cfg_folder_not_exist', '--guess RDCU -d ' +
-            data_file_name+' -o not_exist/guess'],
-        ['guess_level_10',    '--guess MODE_DIFF_MULTI --guess_level 10 -d %s -o guess' %
+        ['cfg_folder_not_exist', '--guess RDCU -d ' + data_file_name+' -o not_exist/guess'],
+        ['guess_level_not_supported',    '--guess MODE_DIFF_MULTI --guess_level 10 -d %s -o guess' %
             (data_file_name)],
         ['guess_unknown_mode', '--guess MODE_UNKNOWN -d %s -o guess' %
             (data_file_name)],
@@ -402,14 +641,16 @@ def test_guess_option():
                     exp_out = ('', '2', '', '7.27')
                 elif sub_test == 'guess_RDCU_model':
                     exp_out = (
-                        'Importing model file model.dat ... DONE\n', '2', '', '5.33')
+                        'Importing model file model.dat ... DONE\n', '2', '', '0.23')
+                        #cmp_size:15bit-> 4byte cmp_data + 40byte header -> 16bit*5/(44Byte*8) '5.33'
                 elif sub_test == 'guess_level_3':
                     exp_out = (
-                        '', '3', ' 0%... 6%... 13%... 19%... 25%... 32%... 38%... 44%... 50%... 57%... 64%... 72%... 80%... 88%... 94%... 100%', '11.43')
+                        '', '3', ' 0%... 6%... 13%... 19%... 25%... 32%... 38%... 44%... 50%... 57%... 64%... 72%... 80%... 88%... 94%... 100%', '0.25') #11.43
+                    # cmp_size:7 bit -> 4byte cmp_data + 36 byte header -> 16bit*5/(40Byte*8)
                 else:
                     exp_out = ('', '', '')
 
-                assert(stdout == CMP_START_STR +
+                assert(stdout == CMP_START_STR_GUESS +
                        "Importing data file %s ... \n" % (data_file_name) +
                        "No samples parameter set. Use samples = 5.\n"
                        "... DONE\n"
@@ -458,16 +699,16 @@ def test_guess_option():
                 assert(
                     stderr == "cmp_tool: not_exist/guess.cfg: No such file or directory\n")
                 assert(returncode == EXIT_FAILURE)
-                assert(stdout == CMP_START_STR +
+                assert(stdout == CMP_START_STR_GUESS +
                        "Importing data file %s ... \n" % (data_file_name) +
                        "No samples parameter set. Use samples = 5.\n" +
                        "... DONE\n"
                        "Search for a good set of compression parameters (level: 2) ... DONE\n" +
                        "Write the guessed compression configuration to file not_exist/guess.cfg ... FAILED\n")
-            elif sub_test == 'guess_level_10':
+            elif sub_test == 'guess_level_not_supported':
                 assert(stderr == "cmp_tool: guess level not supported!\n")
                 assert(returncode == EXIT_FAILURE)
-                assert(stdout == CMP_START_STR +
+                assert(stdout == CMP_START_STR_GUESS +
                        "Importing data file %s ... \n" % (data_file_name) +
                        "No samples parameter set. Use samples = 5.\n" +
                        "... DONE\n"
@@ -476,7 +717,7 @@ def test_guess_option():
                 assert(
                     stderr == "cmp_tool: Error: unknown compression mode: MODE_UNKNOWN\n")
                 assert(returncode == EXIT_FAILURE)
-                assert(stdout == CMP_START_STR +
+                assert(stdout == CMP_START_STR_GUESS +
                        "Importing data file %s ... \n" % (data_file_name) +
                        "No samples parameter set. Use samples = 5.\n" +
                        "... DONE\n"
@@ -485,7 +726,7 @@ def test_guess_option():
                 assert(
                     stderr == "cmp_tool: Error: model mode needs model data (-m option)\n")
                 assert(returncode == EXIT_FAILURE)
-                assert(stdout == CMP_START_STR +
+                assert(stdout == CMP_START_STR_GUESS +
                        "Importing data file %s ... \n" % (data_file_name) +
                        "No samples parameter set. Use samples = 5.\n" +
                        "... DONE\n"
@@ -519,17 +760,298 @@ def test_small_buf_err():
                 f.write(key + ' = ' + str(value) + '\n')
 
         returncode, stdout, stderr = call_cmp_tool(arg)
-        assert(stdout == CMP_START_STR +
+        assert(stdout == CMP_START_STR_CMP +
                "Importing configuration file %s ... DONE\n" % (cfg_file_name) +
                "Importing data file %s ... DONE\n" % (data_file_name) +
                "Compress data ... \n"
                "Compression error 0x01\n"
                "... FAILED\n")
-        assert(stderr == "cmp_tool: the buffer for the compressed data is too small. Try a larger buffer_length parameter.\n")
+        # assert(stderr == "cmp_tool: the buffer for the compressed data is too small. Try a larger buffer_length parameter.\n")
+        assert(stderr == "Error: The buffer for the compressed data is too small to hold the compressed data. Try a larger buffer_length parameter.\n")
         assert(returncode == EXIT_FAILURE)
 
     finally:
         del_file(data_file_name)
         del_file(cfg_file_name)
 
+
+def test_empty_file():
+    data = ''
+    data_file_name = 'empty.dat'
+    cfg_file_name = 'my.cfg'
+    arg = '-c %s -d %s' % (cfg_file_name, data_file_name)
+
+    try:
+        with open(data_file_name, 'w') as f:
+            f.write(data)
+
+        # create a compression file
+        with open(cfg_file_name, 'w') as f:
+            returncode, stdout, stderr = call_cmp_tool("--diff_cfg")
+            assert(returncode == EXIT_SUCCESS)
+            assert(stderr == "")
+            f.write(stdout)
+
+        returncode, stdout, stderr = call_cmp_tool(arg)
+        assert(stdout == CMP_START_STR_CMP +
+               "Importing configuration file %s ... DONE\n" % (cfg_file_name) +
+               "Importing data file %s ... FAILED\n" % (data_file_name))
+        assert(stderr == "cmp_tool: %s: Warning: The file is empty.\n" % (data_file_name))
+        assert(returncode == EXIT_FAILURE)
+
+    finally:
+        del_file(data_file_name)
+        del_file(cfg_file_name)
+
+
+def test_empty_cfg_and_info():
+    data = '00 01 0F 02 00 0C 00 42 00 23 \n'
+    empty_file_name = 'empty'
+    args = ['-c %s -d %s' % (empty_file_name, empty_file_name),
+            '-i %s -d %s' % (empty_file_name, empty_file_name)]
+
+    try:
+        with open(empty_file_name, 'w') as f:
+            f.write(data)
+
+        for i, arg in enumerate(args):
+            returncode, stdout, stderr = call_cmp_tool(arg)
+            if i == 0:
+                assert(stdout == CMP_START_STR_CMP +
+                       "Importing configuration file %s ... FAILED\n" % (empty_file_name))
+                assert(stderr == "cmp_tool: Some parameters are missing. Check "
+                       "if the following parameters: cmp_mode, golomb_par, "
+                       "spill, samples and buffer_length are all set in the "
+                       "configuration file.\n")
+            else:
+                assert(stdout == CMP_START_STR_DECMP +
+                       "Importing decompression information file %s ... FAILED\n" % (empty_file_name))
+                assert(stderr == "cmp_tool: Some parameters are missing. Check "
+                       "if the following parameters: cmp_mode_used, "
+                       "golomb_par_used, spill_used and samples_used "
+                       "are all set in the information file.\n")
+            assert(returncode == EXIT_FAILURE)
+
+    finally:
+        del_file(empty_file_name)
+
+
+def test_wrong_formart_data_fiel():
+    data = '42 Wrong format!'
+    cfg = ("golomb_par = 1\n" + "spill = 4\n" + "cmp_mode = 2\n" +
+           "samples = 5\n" + "buffer_length = 5\n")
+    data_file_name = 'wrong.data'
+    cfg_file_name = 'wrong.cfg'
+
+    try:
+        with open(data_file_name, 'w') as f:
+            f.write(data)
+        with open(cfg_file_name, 'w') as f:
+            f.write(cfg)
+
+        returncode, stdout, stderr = call_cmp_tool('-c %s -d %s' % (cfg_file_name, data_file_name))
+        assert(stdout == CMP_START_STR_CMP +
+               "Importing configuration file %s ... DONE\n" % (cfg_file_name) +
+               "Importing data file %s ... FAILED\n" % (data_file_name))
+        assert(stderr == "cmp_tool: wrong.data: Error: The data are not correct formatted. Expected format is like: 12 AB 23 CD .. ..\n")
+        assert(returncode == EXIT_FAILURE)
+    finally:
+        del_file(data_file_name)
+        del_file(cfg_file_name)
+
+
+def test_wrong_formart_cmp_fiel():
+    cmp_data = 'Wrong format!'
+    info = ("cmp_size = 32\n" + "golomb_par_used = 1\n" + "spill_used = 4\n"
+            + "cmp_mode_used = 1\n" +"samples_used=5\n")
+    cmp_file_name = 'wrong.cmp'
+    info_file_name = 'wrong.info'
+
+    try:
+        with open(cmp_file_name, 'w') as f:
+            f.write(cmp_data)
+        with open(info_file_name, 'w') as f:
+            f.write(info)
+
+        returncode, stdout, stderr = call_cmp_tool('-i %s -d %s' % (info_file_name, cmp_file_name))
+        assert(stdout == CMP_START_STR_DECMP +
+               "Importing decompression information file %s ... DONE\n" % (info_file_name) +
+               "Importing compressed data file %s ... FAILED\n" % (cmp_file_name))
+        assert(stderr == "cmp_tool: wrong.cmp: Error: The data are not correct formatted. Expected format is like: 12 AB 23 CD .. ..\n")
+        assert(returncode == EXIT_FAILURE)
+    finally:
+        del_file(cmp_file_name)
+        del_file(info_file_name)
+
+
+def test_sample_used_is_to_big():
+    cmp_data_header = '80 07 00 00 28 00 00 0E 03 9E 1D 5A 67 76 03 9E 1D 5A 67 9F 00 01 02 08 42 23 13 00 00 00 00 3C 07 00 00 00 44 44 44 00 \n'
+    #                                        ^ wrong samples_used
+    cmp_data_no_header = '44 44 44 00 \n'
+    info = ("cmp_size = 20\n" + "golomb_par_used = 1\n" + "spill_used = 4\n"
+            + "cmp_mode_used = 2\n" +"samples_used=5\n")
+    cmp_file_name = 'big_cmp_size.cmp'
+    info_file_name = 'big_cmp_size.info'
+    pars = ['-i %s -d %s --no_header' % (info_file_name, cmp_file_name),
+        '-d %s' % (cmp_file_name)]
+
+    try:
+        with open(info_file_name, 'w') as f:
+            f.write(info)
+
+        for par in pars:
+            with open(cmp_file_name, 'w') as f:
+                if '--no_header' in par:
+                    f.write(cmp_data_no_header)
+                else:
+                    f.write(cmp_data_header)
+
+            returncode, stdout, stderr = call_cmp_tool(par)
+
+            if '--no_header' in par:
+                assert(stdout == CMP_START_STR_DECMP +
+                       "Importing decompression information file %s ... DONE\n" % (info_file_name) +
+                       "Importing compressed data file %s ... DONE\n" % (cmp_file_name) +
+                       "Decompress data ... FAILED\n")
+            else:
+                assert(stdout == CMP_START_STR_DECMP +
+                       "Importing compressed data file %s ... DONE\n" % (cmp_file_name) +
+                       "Parse the compression entity header ... DONE\n" +
+                       "Decompress data ... FAILED\n")
+
+            assert(stderr == "Error: Buffer overflow detected.\n" +
+                   "Error: Compressed values could not be decoded.\n")
+
+            assert(returncode == EXIT_FAILURE)
+    finally:
+        del_file(cmp_file_name)
+        del_file(info_file_name)
+
+
+def test_read_in_header():
+    cmp_file_name = 'read_in_header.cmp'
+
+    # packet wrong formatted
+    header = '80 07 00 00 Wr on g! \n'
+    try:
+        with open(cmp_file_name, 'w') as f:
+            f.write(header)
+        returncode, stdout, stderr = call_cmp_tool('-d %s' % (cmp_file_name))
+        assert(returncode == EXIT_FAILURE)
+        assert(stdout == CMP_START_STR_DECMP +
+               "Importing compressed data file %s ... FAILED\n" % (cmp_file_name))
+        assert(stderr == "cmp_tool: %s: Error: The data are not correct formatted. Expected format is like: 12 AB 23 CD .. ..\n" % (cmp_file_name))
+
+        # packet to small
+        header = '80 07 00 00 28 00 00 0C 03 9E 1D 5A 67 76 03 9E 1D 5A 67 9F 00 01 02 08 42 23 13 00 00 00 00 3C 07 00 00 00 44 \n'
+        #                                                                                                      packet cut-off    ^^ ^^
+        with open(cmp_file_name, 'w') as f:
+            f.write(header)
+        returncode, stdout, stderr = call_cmp_tool('-d %s' % (cmp_file_name))
+        assert(returncode == EXIT_FAILURE)
+        assert(stdout == CMP_START_STR_DECMP +
+               "Importing compressed data file %s ... FAILED\n" % (cmp_file_name))
+        assert(stderr == "cmp_tool: %s: The size of the compression entity set in the header of the compression entity is not the same size as the read-in file has.\n" %(cmp_file_name))
+
+        # packet false data type
+        header = '80 07 00 00 28 00 00 0C 03 9E 1D 5A 67 76 03 9E 1D 5A 67 9F FF FF 02 08 42 23 13 00 00 00 00 3C 07 00 00 00 44 44 44 00 \n'
+        #                                                                     ^^ ^^ false data type
+        with open(cmp_file_name, 'w') as f:
+            f.write(header)
+        returncode, stdout, stderr = call_cmp_tool('-d %s' % (cmp_file_name))
+        assert(returncode == EXIT_FAILURE)
+        assert(stdout == CMP_START_STR_DECMP +
+               "Importing compressed data file %s ... FAILED\n" % (cmp_file_name))
+        assert(stderr == "cmp_tool: %s: Error: Compression data type is not supported.\n" % (cmp_file_name))
+
+        # packet false data type
+        header = '80 07 00 00 28 00 00 0C 03 9E 1D 5A 67 76 03 9E 1D 5A 67 9F 00 01 FF 08 42 23 13 00 00 00 00 3C 07 00 00 00 44 44 44 00 \n'
+        #                                                                           ^^ false cmp_mode_used
+        with open(cmp_file_name, 'w') as f:
+            f.write(header)
+        returncode, stdout, stderr = call_cmp_tool('-d %s' % (cmp_file_name))
+        assert(returncode == EXIT_FAILURE)
+        assert(stdout == CMP_START_STR_DECMP +
+               "Importing compressed data file %s ... DONE\n" % (cmp_file_name) +
+               "Parse the compression entity header ... FAILED\n" )
+        assert(stderr == "Error: Compression mode not supported.\n")
+
+    finally:
+        del_file(cmp_file_name)
+
+
+
+def test_model_fiel_erros():
+    # generate test data
+    data = '00 01 00 02 00 03 00 04 00 05 \n'
+    model = '00 00 00 01 00 02 00 03 \n'
+    cfg = ("golomb_par = 1\n" + "spill = 4\n" + "cmp_mode = 1\n" +
+           "samples = 5\n" + "buffer_length = 5\n")
+    data_file_name = 'data_model_err.dat'
+    cfg_file_name = 'model_err.cfg'
+    output_prefix = 'model_err_test'
+    model_file_name = 'model.dat'
+
+    try:
+        with open(data_file_name, 'w', encoding='utf-8') as f:
+            f.write(data)
+        with open(cfg_file_name, 'w', encoding='utf-8') as f:
+            f.write(cfg)
+
+        # no -m option in model mode
+        returncode, stdout, stderr = call_cmp_tool(
+            " -c "+cfg_file_name+" -d "+data_file_name + " -o "+output_prefix+" --no_header")
+        assert(returncode == EXIT_FAILURE)
+        assert(stdout == CMP_START_STR_CMP +
+               "Importing configuration file %s ... DONE\n" % (cfg_file_name) +
+               "Importing data file %s ... DONE\n" % (data_file_name) +
+               "Importing model file  ... FAILED\n" )
+        assert(stderr == "cmp_tool: No model file (-m option) specified.\n")
+
+        # model file to small
+        with open(model_file_name, 'w', encoding='utf-8') as f:
+            f.write(model)
+        returncode, stdout, stderr = call_cmp_tool(
+            " -c "+cfg_file_name+" -d "+data_file_name + " -m "+model_file_name+" -o "+output_prefix)
+        assert(returncode == EXIT_FAILURE)
+        assert(stdout == CMP_START_STR_CMP +
+               "Importing configuration file %s ... DONE\n" % (cfg_file_name) +
+               "Importing data file %s ... DONE\n" % (data_file_name) +
+               "Importing model file %s ... FAILED\n" % (model_file_name) )
+        assert(stderr == "cmp_tool: %s: Error: The files do not contain enough data as requested.\n" % (model_file_name))
+
+        # updated model can not write
+        with open(model_file_name, 'w', encoding='utf-8') as f:
+            f.write(data)
+
+        output_prefix = ("longlonglonglonglonglonglonglonglonglonglonglonglong"
+                         "longlonglonglonglonglonglonglonglonglonglonglonglong"
+                         "longlonglonglonglonglonglonglonglonglonglonglonglong"
+                         "longlonglonglonglonglonglonglonglonglonglonglonglong"
+                         "longlonglonglonglonglonglonglonglonglong")
+        returncode, stdout, stderr = call_cmp_tool(
+            " -c "+cfg_file_name+" -d "+data_file_name + " -m "+model_file_name+" -o "+output_prefix)
+        assert(returncode == EXIT_FAILURE)
+        print(stdout)
+        assert(stdout == CMP_START_STR_CMP +
+               "Importing configuration file %s ... DONE\n" % (cfg_file_name) +
+               "Importing data file %s ... DONE\n" % (data_file_name) +
+               "Importing model file %s ... DONE\n" % (model_file_name) +
+               "Compress data ... DONE\n" +
+               "Write compressed data to file %s.cmp ... DONE\n" %(output_prefix) +
+               "Write updated model to file %s_upmodel.dat ... FAILED\n" %(output_prefix))
+        assert(stderr == "cmp_tool: %s_upmodel.dat: File name too long\n" % (output_prefix))
+        #
+
+    finally:
+        del_file(data_file_name)
+        del_file(cfg_file_name)
+        del_file(model_file_name)
+        del_file(output_prefix+".cmp")
+        del_file(output_prefix+"_upmodel.dat")
+
+
 # TODO: random test
+# TODO: random test
+# TODO: random test
+

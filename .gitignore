@@ -1,8 +1,16 @@
-### C ###
+### cmp_tool ###
 # Executables
 cmp_tool
 !test/cmp_tool
 
+#cmp_tool files
+*.cfg
+*.info
+*.dat
+*.cmp
+
+
+### C ###
 # Prerequisites
 *.d
 
@@ -49,4 +57,20 @@ cmp_tool
 
 # C/C++/ObjC language server
 .ccls-cache
+
+
+### Gcov ###
+# gcc coverage testing tool files
+*.gcno
+*.gcda
+*.gcov
+out
+
+
+### Python ###
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
 
