@@ -33,12 +33,12 @@
 #include "include/rdcu_pkt_to_file.h"
 
 
-#define VERSION "0.07"
+#define VERSION "0.08"
 
 #define BUFFER_LENGTH_DEF_FAKTOR 2
 
 
-#define DEFAULT_MODEL_ID 53264  /* random id  used as default */
+#define DEFAULT_MODEL_ID 53264  /* random default id */
 #define DEFAULT_MODEL_COUNTER 0
 
 
@@ -488,7 +488,7 @@ static int guess_cmp_pars(struct cmp_cfg *cfg, const char *guess_cmp_mode,
 			  int guess_level)
 {
 	int error;
-	uint32_t cmp_size;
+	uint32_t cmp_size_bit;
 	float cr;
 
 	printf("Search for a good set of compression parameters (level: %d) ... ", guess_level);
@@ -509,12 +509,12 @@ static int guess_cmp_pars(struct cmp_cfg *cfg, const char *guess_cmp_mode,
 		return -1;
 	}
 
-	cmp_size = cmp_guess(cfg, guess_level);
-	if (!cmp_size)
+	cmp_size_bit = cmp_guess(cfg, guess_level);
+	if (!cmp_size_bit)
 		return -1;
 
 	if (include_cmp_header)
-		cmp_size = CHAR_BIT * (cmp_bit_to_4byte(cmp_size) +
+		cmp_size_bit = CHAR_BIT * (cmp_bit_to_4byte(cmp_size_bit) +
 			cmp_ent_cal_hdr_size(cmp_ent_map_cmp_mode_data_type(cfg->cmp_mode)));
 
 	printf("DONE\n");
@@ -525,7 +525,7 @@ static int guess_cmp_pars(struct cmp_cfg *cfg, const char *guess_cmp_mode,
 		return -1;
 	printf("DONE\n");
 
-	cr = (8.0 * cfg->samples * size_of_a_sample(cfg->cmp_mode))/cmp_size;
+	cr = (8.0 * cfg->samples * size_of_a_sample(cfg->cmp_mode))/cmp_size_bit;
 	printf("Guessed parameters can compress the data with a CR of %.2f.\n", cr);
 
 	return 0;
@@ -569,17 +569,57 @@ static int gen_rdcu_write_pkts(struct cmp_cfg *cfg)
 }
 
 
+/* add a compression entity header in front of the data */
+static int add_cmp_ent_hdr(struct cmp_cfg *cfg, struct cmp_info *info,
+			   uint64_t start_time)
+{
+	int error;
+	uint32_t red_val;
+	uint8_t model_counter = DEFAULT_MODEL_COUNTER;
+	uint16_t model_id = DEFAULT_MODEL_ID;
+	size_t s, cmp_hdr_size;
+	enum cmp_ent_data_type data_type = cmp_ent_map_cmp_mode_data_type(cfg->cmp_mode);
+
+	if (model_id_str) {
+		error = atoui32("model_id", model_id_str, &red_val);
+		if (error || red_val > UINT16_MAX)
+			return -1;
+		model_id = red_val;
+	}
+	if (model_counter_str) {
+		error = atoui32("model_counter", model_counter_str, &red_val);
+		if (error || red_val > UINT8_MAX)
+			return -1;
+		model_counter = red_val;
+	} else {
+		if (model_mode_is_used(cfg->cmp_mode))
+			model_counter = DEFAULT_MODEL_COUNTER + 1;
+	}
+
+	cmp_hdr_size = cmp_ent_cal_hdr_size(data_type);
+	if (!cmp_hdr_size)
+		return -1;
+	memmove((uint8_t *)cfg->icu_output_buf+cmp_hdr_size, cfg->icu_output_buf,
+		cmp_bit_to_4byte(info->cmp_size));
+
+	struct cmp_entity *ent = (struct cmp_entity *)cfg->icu_output_buf;
+	s = cmp_ent_build(ent, data_type, cmp_tool_gen_version_id(VERSION),
+			  start_time, cmp_ent_create_timestamp(NULL), model_id,
+			  model_counter, info, cfg);
+	if (!s) {
+		fprintf(stderr, "%s: error occurred while creating the compression entity header.\n", PROGRAM_NAME);
+		return -1;
+	}
+	return 0;
+}
+
 /* compress the data and write the results to files */
 static int compression(struct cmp_cfg *cfg, struct cmp_info *info)
 {
 	int error;
 	uint32_t cmp_size_byte;
 	uint8_t *out_buf = NULL;
-	uint32_t out_buf_size;
-	uint8_t model_counter = DEFAULT_MODEL_COUNTER;
-	uint16_t model_id = DEFAULT_MODEL_ID;
-	size_t cmp_hdr_size = 0;
-	enum cmp_ent_data_type data_type = DATA_TYPE_UNKOWN;
+	size_t out_buf_size;
 	uint64_t start_time = cmp_ent_create_timestamp(NULL);
 
 	if (cfg->buffer_length == 0) {
@@ -597,39 +637,15 @@ static int compression(struct cmp_cfg *cfg, struct cmp_info *info)
 	}
 
 	printf("Compress data ... ");
+	/* round up to a multiple of 4 */
 	out_buf_size = (cmp_cal_size_of_data(cfg->buffer_length, cfg->cmp_mode) + 3) & ~0x3U;
-	if (include_cmp_header) {
-		uint32_t red_val;
 
-		data_type = cmp_ent_map_cmp_mode_data_type(cfg->cmp_mode);
-		cmp_hdr_size = cmp_ent_cal_hdr_size(data_type);
-		if (!cmp_hdr_size)
-			goto error_cleanup;
-
-		if (model_id_str) {
-			error = atoui32("model_id", model_id_str, &red_val);
-			if (error || red_val > UINT16_MAX)
-				goto error_cleanup;
-			model_id = red_val;
-		}
-		if (model_counter_str) {
-			error = atoui32("model_counter", model_counter_str, &red_val);
-			if (error || red_val > UINT8_MAX)
-				goto error_cleanup;
-			model_counter = red_val;
-		} else {
-			if (model_mode_is_used(cfg->cmp_mode))
-				model_counter = DEFAULT_MODEL_COUNTER + 1;
-		}
-	}
-
-
-	out_buf = malloc(out_buf_size + cmp_hdr_size + 3);
+	out_buf = malloc(out_buf_size + sizeof(struct cmp_entity));
 	if (out_buf == NULL) {
 		fprintf(stderr, "%s: Error allocating memory for output buffer.\n", PROGRAM_NAME);
 		goto error_cleanup;
 	}
-	cfg->icu_output_buf = out_buf + cmp_hdr_size;
+	cfg->icu_output_buf = out_buf;
 
 	error = icu_compress_data(cfg, info);
 	if (error || info->cmp_err != 0) {
@@ -639,16 +655,16 @@ static int compression(struct cmp_cfg *cfg, struct cmp_info *info)
 		/*	fprintf(stderr, "%s: the buffer for the compressed data is too small. Try a larger buffer_length parameter.\n", PROGRAM_NAME); */
 		goto error_cleanup;
 	}
+
 	if (include_cmp_header) {
-		struct cmp_entity *ent = (struct cmp_entity *)out_buf;
-		size_t s = cmp_ent_build(ent, data_type, cmp_tool_gen_version_id(VERSION),
-					 start_time, cmp_ent_create_timestamp(NULL),
-					 model_id, model_counter, info, cfg);
-		if (!s) {
-			fprintf(stderr, "%s: error occurred while creating the compression entity header.\n", PROGRAM_NAME);
+		error = add_cmp_ent_hdr(cfg, info, start_time);
+		if (error)
 			goto error_cleanup;
-		}
+		cmp_size_byte = cmp_ent_get_size((struct cmp_entity *)out_buf);
+	} else {
+		cmp_size_byte = cmp_bit_to_4byte(info->cmp_size);
 	}
+
 	printf("DONE\n");
 
 	if (rdcu_pkt_mode) {
@@ -660,11 +676,6 @@ static int compression(struct cmp_cfg *cfg, struct cmp_info *info)
 	}
 
 	printf("Write compressed data to file %s.cmp ... ", output_prefix);
-	if (include_cmp_header)
-		cmp_size_byte = cmp_ent_get_size((struct cmp_entity *)out_buf);
-	else
-		cmp_size_byte = cmp_bit_to_4byte(info->cmp_size);
-
 	error = write_cmp_data_file(out_buf, cmp_size_byte, output_prefix,
 				    ".cmp", verbose_en);
 	if (error)
@@ -687,12 +698,13 @@ static int compression(struct cmp_cfg *cfg, struct cmp_info *info)
 	}
 
 	free(out_buf);
-	out_buf = NULL;
+	cfg->icu_output_buf = NULL;
 
 	return 0;
 
 error_cleanup:
 	free(out_buf);
+	cfg->icu_output_buf = NULL;
 	return -1;
 }
 
