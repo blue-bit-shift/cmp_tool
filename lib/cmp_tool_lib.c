@@ -913,136 +913,292 @@ int read_cmp_info(const char *file_name, struct cmp_info *info, int verbose_en)
 
 
 /**
- * @brief reads n_word words of a hex-encoded data (or model) file to a uint8_t
- *	 buffer
+ * @brief skip a sequence of spaces (as identified by calling isspace)
  *
- * @note data must be encoded as 2 hex digits separated by a white space or new
- *	line character e.g. "AB CD 12\n34 AB 12\n"
+ * @param str pointer to the null-terminated byte string to be interpreted
  *
- * @param file_name	data/model file name
- * @param buf		buffer to write the file content (can be NULL)
- * @param n_word	number of uint8_t data words to read in
- * @param verbose_en	print verbose output if not zero
- *
- * @returns read data words; if buf == NULL the size in bytes to store the file
- *	content; negative on error
+ * @returns a pointer to the character after the spaces
  */
 
-ssize_t read_file8(const char *file_name, uint8_t *buf, uint32_t n_word, int verbose_en)
+static const char *skip_space(const char *str)
 {
-	/* This is a rather slow implementation. Performance can be improved by
-	 * reading larger chunks */
-	ssize_t n;
-	FILE *fp;
-	char tmp_str[4]; /* 4 = 2 hex digit's + 1 white space + 1 \0 */
+	while (isspace(*str))
+		str++;
+	return str;
+}
 
-	if (!file_name)
-		return -1;
 
-	fp = fopen(file_name, "r");
-	if (fp == NULL) {
-		fprintf(stderr, "%s: %s: %s\n", PROGRAM_NAME, file_name,
-			strerror(errno));
-		return -1;
+/**
+ * @brief skip a comment starting with '#' symbol ending with '\n' or '\0'
+ *
+ * @param str pointer to the null-terminated byte string to be interpreted
+ *
+ * @returns a pointer to the character after the comment
+ */
+
+static const char *skip_comment(const char *str)
+{
+	char c = *str;
+	if (c == '#') {
+		do {
+			str++;
+			c = *str;
+		} while (c != '\0' && c != '\n');
+		if (c != '\0')
+			str++;
+	}
+	return str;
+}
+
+
+/**
+ * @brief Interprets an hex-encoded 8 bit integer value in a byte string pointed
+ *	to by str.
+ * @details Discards any whitespace characters (as identified by calling isspace)
+ *	until the first non-whitespace character is found, then takes maximum 2
+ *	characters (with base 16) unsigned integer number representation and
+ *	converts them to an uint8_t value. The function set the pointer
+ *	pointed to by str_end to point to the character past the last character
+ *	interpreted. If str_end is a null pointer, it is ignored.
+ *
+ * @param str     pointer to the null-terminated byte string to be interpreted
+ * @param str_end pointer to a pointer to character (can be NULL)
+ *
+ * @returns Integer value corresponding to the contents of str on success. If no
+ *	conversion can be performed, 0 is returned (errno is set to EINVAL)).
+ */
+
+static uint8_t str_to_uint8(const char *str, char **str_end)
+{
+	const int BASE = 16;
+	int i;
+	uint8_t res = 0;
+	const char *orig;
+
+	str = skip_space(str);
+
+	orig = str;
+
+	for (i = 0; i < 2; i++) {
+		unsigned char c = *str;
+
+		if (c >= 'a')
+			c = c - 'a' + 10;
+		else if (c >= 'A')
+			c = c - 'A' + 10;
+		else if (c <= '9')
+			c = c - '0';
+		else
+			c = 0xff;
+
+		if (c >= BASE)
+			break;
+
+		res = res * BASE + c;
+
+		str++;
 	}
 
-	/* if buf is NULL we count the words in the file */
-	if (!buf)
-		n_word = ~0U;
+	if (str_end)
+		*str_end = (char *)str;
 
-	for (n = 0; n < n_word; ) {
-		int j;
-		unsigned long read_val;
-		char *end;
+	if (str == orig) { /* no value read in */
+		errno = EINVAL;
+		res = 0;
+	}
 
-		/* read 3 characters */
-		if (!fgets(tmp_str, sizeof(tmp_str), fp)) {
-			if (ferror(fp)) {
-				fprintf(stderr, "%s: %s: Error: File error indicator set.\n",
-					PROGRAM_NAME, file_name);
-				goto error;
-			}
+	return res;
+}
 
-			if (!buf)  /* finished counting the sample */
+
+/**
+ * @brief reads n_word words of a hex-encoded string to a uint8_t buffer
+ *
+ * @note A whitespace (space (0x20), form feed (0x0c), line feed (0x0a), carriage
+ *	return (0x0d), horizontal tab (0x09), or vertical tab (0x0b) or several in a
+ *	sequence are used as separators. If a string contains more than three hexadecimal
+ *	numeric characters (0123456789abcdefABCDEF) in a row without separators, a
+ *	separator is added after every second hexadecimal numeric character.
+ *	Comments after a '#' symbol until the end of the line are ignored.
+ *	E.g. "# comment\n ABCD 1    2\n34B 12\n" are interpreted as {0xAB, 0xCD,
+ *	0x01, 0x02, 0x34, 0x0B, 0x12}.
+ *
+ * @param str		pointer to the null-terminated byte string to be interpreted
+ * @param data		buffer to write the interpreted content (can be NULL)
+ * @param n_word	number of uint8_t data words to read in
+ * @param file_name	file name for better error output (can be NULL)
+ * @param verbose_en	print verbose output if not zero
+ *
+ * @returns the size in bytes to store the string content; negative on error
+ */
+
+static ssize_t str2uint8_arr(const char *str, uint8_t *data, uint32_t n_word,
+			     const char *file_name, int verbose_en)
+{
+	const char *nptr = str;
+	char *eptr = NULL;
+	size_t i = 0;
+
+	errno = 0;
+
+	if (!data)
+		n_word =~0;
+
+	if (!file_name)
+		file_name = "unknown file name";
+
+	for (i=0; i < n_word; ) {
+		uint8_t read_val;
+		unsigned char c = *nptr;
+		if (c == '\0') {
+			if (!data)  /* finished counting the sample */
 				break;
 
 			fprintf(stderr, "%s: %s: Error: The files do not contain enough data as requested.\n",
 				PROGRAM_NAME, file_name);
-			goto error;
+			return -1;
 		}
 
-		/* skip empty lines */
-		if (tmp_str[0] == '\n')
+		if (isspace(c)) {
+			nptr = skip_space(nptr);
 			continue;
-
-		/* skip comment lines */
-		if (tmp_str[0] == '#') {
-			int c;
-			do {
-				c = fgetc(fp);
-			} while (c != '\n' && c != EOF);
+		}
+		if (c == '#') {
+			nptr = skip_comment(nptr);
 			continue;
 		}
 
-		/* check the string formation */
-		for (j = 0; j < 2; j++) {
-			if (!isxdigit(tmp_str[j])) {
-				fprintf(stderr, "%s: %s: Error: The data are not correct formatted. Expected format is like: 12 AB 23 CD .. ..\n",
-					PROGRAM_NAME, file_name);
-				goto error;
-			}
+		read_val = str_to_uint8(nptr, &eptr);
+		if (eptr < nptr) /* end pointer must be bigger or equal than the start pointer */
+			abort();
+		c = *eptr;
+		if (c != '\0' && !isxdigit(c) && !isspace(c) && c != '#') {
+			fprintf(stderr, "%s: %s: Error read in '%.*s'. The data are not correct formatted.\n",
+				PROGRAM_NAME, file_name, (int)(eptr-nptr+1), nptr);
+			return -1;
 		}
-		if (!isspace(tmp_str[2])) {
-			fprintf(stderr, "%s: %s: Error: The data are not correct formatted. Expected format is like: 12 AB 23 CD .. ..\n",
+		if (errno == EINVAL) {
+			fprintf(stderr, "%s: %s: Error converting the data to integers.\n",
 				PROGRAM_NAME, file_name);
-			goto error;
+			return -1;
 		}
-
-		/* convert data to integer and write it into the buffer */
-		if (buf) {
-			read_val = strtoul(tmp_str, &end, 16);
-			if (tmp_str == end || read_val > UINT8_MAX) {
-				fprintf(stderr, "%s: %s: Error: The data can not be converted to integer.\n",
-					PROGRAM_NAME, file_name);
-				goto error;
-			}
-			buf[n] = (uint8_t)read_val;
-
-			/* print data read in */;
-			if (verbose_en) {
-				if (n == 0)
+		if (data) {
+			data[i] = read_val;
+			if (verbose_en) { /* print data read in */
+				if (i == 0)
 					printf("\n\n");
-				printf("%02X", buf[n]);
-				if (n && !((n + 1) % 32))
+				printf("%02X", data[i]);
+				if (i && !((i + 1) % 32))
 					printf("\n");
 				else
 					printf(" ");
 			}
 		}
 
-		n++;
+		i++;
+		nptr = eptr;
 	}
 
-	if (buf) {
-		/* check if there is some additional stuff at the end of the file */
-		int c = getc(fp);
-		if (c != EOF)
-			if (c != '\n' && getc(fp) != EOF)
-				fprintf(stderr, "%s: %s: Warning: The file may contain more data than specified by the samples or cmp_size parameter.\n",
-					PROGRAM_NAME, file_name);
+	/* did we read all data in the string? */
+	while (isspace(*nptr) || *nptr == '#') {
+		if (*nptr == '#')
+			nptr = skip_comment(nptr);
+		else
+			nptr = skip_space(nptr);
+	}
+	if (*nptr != '\0') {
+		fprintf(stderr, "%s: %s: Warning: The file may contain more data than specified by the samples or cmp_size parameter.\n",
+			PROGRAM_NAME, file_name);
 	}
 
-	fclose(fp);
+	return i;
+}
 
-	if (n == 0)
+
+/**
+ * @brief reads n_word words of a hex-encoded uint8_t data form a file to a
+ *	buffer
+ *
+ * @note A whitespace (space (0x20), form feed (0x0c), line feed (0x0a), carriage
+ *	return (0x0d), horizontal tab (0x09), or vertical tab (0x0b) or several in a
+ *	sequence are used as separators. If a string contains more than three hexadecimal
+ *	numeric characters (0123456789abcdefABCDEF) in a row without separators, a
+ *	separator is added after every second hexadecimal numeric character.
+ *	Comments after a '#' symbol until the end of the line are ignored.
+ *	E.g. "# comment\n ABCD 1    2\n34B 12\n" are interpreted as {0xAB, 0xCD,
+ *	0x01, 0x02, 0x34, 0x0B, 0x12}.
+ *
+ * @param file_name	data/model file name
+ * @param buf		buffer to write the file content (can be NULL)
+ * @param n_word	number of uint8_t data words to read in
+ * @param verbose_en	print verbose output if not zero
+ *
+ * @returns the size in bytes to store the file content; negative on error
+ */
+
+ssize_t read_file8(const char *file_name, uint8_t *buf, uint32_t n_word, int verbose_en)
+{
+	FILE *fp;
+	char *file_cpy = NULL;
+	long file_size;
+	ssize_t size;
+
+	if (!file_name)
+		abort();
+
+	errno = 0;
+	fp = fopen(file_name, "r");
+	if (fp == NULL) {
+		goto fail;
+	}
+
+	/* Get the number of bytes */
+	if (fseek(fp, 0L, SEEK_END) != 0)
+		goto fail;
+	file_size = ftell(fp);
+	if (file_size < 0)
+		goto fail;
+	if (file_size == 0) {
 		fprintf(stderr, "%s: %s: Warning: The file is empty.\n", PROGRAM_NAME, file_name);
-	if (verbose_en && buf)
-		printf("\n\n");
+		fclose(fp);
+		return 0;
+	}
+	/* reset the file position indicator to the beginning of the file */
+	if (fseek(fp, 0L, SEEK_SET) != 0)
+		goto fail;
 
-	return n;
+	file_cpy = (char *)calloc(file_size+1, sizeof(char));
+	if (file_cpy == NULL) {
+		fprintf(stderr, "%s: %s: Error: allocating memory!\n", PROGRAM_NAME, file_name);
+		goto fail;
+	}
 
-error:
+	/* copy all the text into the file_cpy buffer */
+	size_t ret_code = fread(file_cpy, sizeof(char), file_size, fp);
+	if(ret_code != (size_t)file_size) {
+		if (feof(fp))
+			printf("%s: %s: Error: unexpected end of file.\n", PROGRAM_NAME, file_name);
+		goto fail;
+	}
+	/* just to be save we have a zero terminated string */
+	file_cpy[file_size] = '\0';
+
 	fclose(fp);
+	fp = NULL;
+
+	size = str2uint8_arr(file_cpy, buf, n_word, file_name, verbose_en);
+
+	free(file_cpy);
+	file_cpy = NULL;
+
+	return size;
+fail:
+	if (errno)
+		fprintf(stderr, "%s: %s: %s\n", PROGRAM_NAME, file_name,
+			strerror(errno));
+	if (fp)
+		fclose(fp);
+	free(file_cpy);
 	return -1;
 }
 
@@ -1050,9 +1206,6 @@ error:
 /**
  * @brief reads the number of uint16_t samples of a hex-encoded data (or model)
  *	file into a buffer
- *
- * @note data must be encoded as 2 hex digits separated by a white space or new
- *	line character e.g. "AB CD 12 34 AB 12\n"
  *
  * @param file_name	data/model file name
  * @param buf		buffer to write the file content (can be NULL)
@@ -1091,9 +1244,6 @@ ssize_t read_file16(const char *file_name, uint16_t *buf, uint32_t samples,
 /**
  * @brief reads the number of uint32_t samples of a hex-encoded data (or model)
  *	file into a buffer
- *
- * @note data must be encoded as 2 hex digits separated by a white space or new
- *	line character e.g. "AB CD 12 34 AB 12\n"
  *
  * @param file_name	data/model file name
  * @param buf		buffer to write the file content (can be NULL)
