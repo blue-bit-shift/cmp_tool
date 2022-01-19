@@ -1,5 +1,5 @@
 /**
- * @file   cmp_tool_lib.h
+ * @file   cmp_io.h
  * @author Johannes Seelig (johannes.seelig@univie.ac.at)
  * @author Dominik Loidolt (dominik.loidolt@univie.ac.at),
  * @date   2020

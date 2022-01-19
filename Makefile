@@ -21,7 +21,7 @@ SOURCES         := cmp_tool.c \
 		    $(SOURCEDIR)/decmp.c \
 		    $(SOURCEDIR)/rdcu_pkt_to_file.c \
 		    $(SOURCEDIR)/cmp_guess.c \
-		    $(SOURCEDIR)/cmp_tool_lib.c \
+		    $(SOURCEDIR)/cmp_io.c \
 		    $(SOURCEDIR)/cmp_entity.c
 TARGET          := cmp_tool
 

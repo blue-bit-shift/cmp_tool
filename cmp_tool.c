@@ -25,7 +25,7 @@
 #include <getopt.h>
 #include <time.h>
 
-#include "include/cmp_tool_lib.h"
+#include "include/cmp_io.h"
 #include "include/cmp_icu.h"
 #include "include/decmp.h"
 #include "include/cmp_guess.h"
