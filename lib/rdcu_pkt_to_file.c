@@ -144,6 +144,8 @@ static int32_t rmap_tx_to_file(const void *hdr, uint32_t hdr_size,
 	}
 
 	n = rdcu_package(NULL, hdr, hdr_size, non_crc_bytes, data, data_size);
+	if (n <= 0)
+		return -1;
 	blob = malloc(n);
 	if (!blob) {
 		printf("malloc for tx_pkt faild\n");
@@ -151,6 +153,10 @@ static int32_t rmap_tx_to_file(const void *hdr, uint32_t hdr_size,
 	}
 
 	n = rdcu_package(blob, hdr, hdr_size, non_crc_bytes, data, data_size);
+	if (n <= 0) {
+		free(blob);
+		return -1;
+	}
 
 	fp = open_file(tc_folder_dir, n_pkt);
 

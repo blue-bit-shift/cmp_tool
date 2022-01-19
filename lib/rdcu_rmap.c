@@ -595,7 +595,10 @@ int rdcu_package(uint8_t *blob,
 
 
 	if (data_size & 0x3)	/* must be multiple of 4 */
-		return -1;
+		return 0;
+
+	if (!data_size)
+		data = NULL;
 
 	if (!cmd_size) {
 		blob = NULL;
@@ -609,7 +612,7 @@ int rdcu_package(uint8_t *blob,
 	ri = (struct rmap_instruction *) &cmd[non_crc_bytes + RMAP_INSTRUCTION];
 
 	/* see if the type of command needs a data crc field at the end */
-		switch (ri->cmd) {
+	switch (ri->cmd) {
 	case RMAP_READ_MODIFY_WRITE_ADDR_INC:
 	case RMAP_WRITE_ADDR_SINGLE:
 	case RMAP_WRITE_ADDR_INC:
@@ -618,20 +621,18 @@ int rdcu_package(uint8_t *blob,
 	case RMAP_WRITE_ADDR_SINGLE_VERIFY_REPLY:
 	case RMAP_WRITE_ADDR_INC_VERIFY_REPLY:
 	case RMAP_WRITE_ADDR_INC_REPLY:
-			has_data_crc = 1;
-			n += 1;
-			break;
-		default:
-			break;
-		}
-
+		has_data_crc = 1;
+		n += 1;
+		break;
+	default:
+		break;
+	}
 
 	if (data)
 		n += data_size;
 
 	if (!blob)
 		return n;
-
 
 	memcpy(&blob[0], cmd, cmd_size);
 
@@ -646,7 +647,6 @@ int rdcu_package(uint8_t *blob,
 		if (has_data_crc)
 			blob[cmd_size + 1] = 0x0;
 	}
-
 
 	return n;
 }

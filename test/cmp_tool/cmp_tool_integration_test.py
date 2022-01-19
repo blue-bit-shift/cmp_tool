@@ -8,7 +8,6 @@ from datetime import datetime
 from datetime import timedelta
 
 PATH_CMP_TOOL = "./cmp_tool"
-VERSION = "0.07"
 
 EXIT_FAILURE = 1
 EXIT_SUCCESS = 0
@@ -140,6 +139,13 @@ def read_in_cmp_header(compressed_string):
         header['asw_version_id']['value'] = "%.2f" % (int(version_id & 0x7F00)/256. + int(version_id&0xFF)*0.01)
 
     return header
+
+
+#get version
+returncode, stdout, stderr = call_cmp_tool("--version")
+assert(returncode == EXIT_SUCCESS)
+assert(stderr == "")
+VERSION = stdout.split()[2]
 
 
 HELP_STRING = \
@@ -853,7 +859,7 @@ def test_wrong_formart_data_fiel():
         assert(stdout == CMP_START_STR_CMP +
                "Importing configuration file %s ... DONE\n" % (cfg_file_name) +
                "Importing data file %s ... FAILED\n" % (data_file_name))
-        assert(stderr == "cmp_tool: wrong.data: Error: The data are not correct formatted. Expected format is like: 12 AB 23 CD .. ..\n")
+        assert(stderr == "cmp_tool: wrong.data: Error read in 'W'. The data are not correct formatted.\n")
         assert(returncode == EXIT_FAILURE)
     finally:
         del_file(data_file_name)
@@ -861,7 +867,7 @@ def test_wrong_formart_data_fiel():
 
 
 def test_wrong_formart_cmp_fiel():
-    cmp_data = 'Wrong format!'
+    cmp_data = 'wrong format! #comment'
     info = ("cmp_size = 32\n" + "golomb_par_used = 1\n" + "spill_used = 4\n"
             + "cmp_mode_used = 1\n" +"samples_used=5\n")
     cmp_file_name = 'wrong.cmp'
@@ -877,7 +883,7 @@ def test_wrong_formart_cmp_fiel():
         assert(stdout == CMP_START_STR_DECMP +
                "Importing decompression information file %s ... DONE\n" % (info_file_name) +
                "Importing compressed data file %s ... FAILED\n" % (cmp_file_name))
-        assert(stderr == "cmp_tool: wrong.cmp: Error: The data are not correct formatted. Expected format is like: 12 AB 23 CD .. ..\n")
+        assert(stderr == "cmp_tool: wrong.cmp: Error read in 'w'. The data are not correct formatted.\n")
         assert(returncode == EXIT_FAILURE)
     finally:
         del_file(cmp_file_name)
@@ -932,7 +938,7 @@ def test_read_in_header():
     cmp_file_name = 'read_in_header.cmp'
 
     # packet wrong formatted
-    header = '80 07 00 00 Wr on g! \n'
+    header = '80 07 00 00 !'
     try:
         with open(cmp_file_name, 'w') as f:
             f.write(header)
@@ -940,7 +946,7 @@ def test_read_in_header():
         assert(returncode == EXIT_FAILURE)
         assert(stdout == CMP_START_STR_DECMP +
                "Importing compressed data file %s ... FAILED\n" % (cmp_file_name))
-        assert(stderr == "cmp_tool: %s: Error: The data are not correct formatted. Expected format is like: 12 AB 23 CD .. ..\n" % (cmp_file_name))
+        assert(stderr == "cmp_tool: %s: Error read in '!'. The data are not correct formatted.\n" % (cmp_file_name))
 
         # packet to small
         header = '80 07 00 00 28 00 00 0C 03 9E 1D 5A 67 76 03 9E 1D 5A 67 9F 00 01 02 08 42 23 13 00 00 00 00 3C 07 00 00 00 44 \n'
