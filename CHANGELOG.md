@@ -3,6 +3,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 ## [0.08] - 19-01-2021
+### Added
+- Relax the requirements on the input format
+A whitespace (space (0x20), form feed (0x0c), line feed (0x0a), carriage return
+(0x0d), horizontal tab (0x09), or vertical tab (0x0b) or several in a sequence
+are used as separators. If a string contains more than three hexadecimal
+numeric characters (0123456789abcdefABCDEF) in a row without separators, a
+separator is added after every second hexadecimal numeric character. Comments
+after a '#' symbol until the end of the line are ignored.
+E.g. "# comment\n ABCD 1    2\n34B 12\n" are interpreted as {0xAB, 0xCD,
+0x01, 0x02, 0x34, 0x0B, 0x12}.
 ### Fixed
 - Fix a bug in the definition in imagette header
 
