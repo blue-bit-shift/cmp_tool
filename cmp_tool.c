@@ -358,7 +358,7 @@ int main(int argc, char **argv)
 
 			printf("Importing compressed data file %s ... ", data_file_name);
 			buf_size = size = read_file_cmp_entity(data_file_name,
-							     NULL, 0, 0);
+							       NULL, 0, 0);
 			if (size < 0)
 				goto fail;
 			/* to be save allocate at least the size of the cmp_entity struct */
@@ -384,7 +384,7 @@ int main(int argc, char **argv)
 				print_cmp_info(&info);
 
 			/* we reuse the entity buffer for the compressed data */
-			cmp_data_adr = (uint32_t *)ent;
+			cmp_data_adr = (uint32_t *)decomp_input_buf;
 			size = cmp_ent_get_cmp_data(ent, cmp_data_adr, buf_size);
 			ent = NULL;
 			if (size < 0)

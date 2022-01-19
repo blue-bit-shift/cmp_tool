@@ -96,11 +96,7 @@ static FILE *open_file(const char *dirname, const char *filename)
 	}
 
 	errno = 0;
-	pathname = (char *) malloc((size_t)n + 1);
-	if (!pathname) {
-		perror("malloc failed");
-		abort();
-	}
+	pathname = (char *) alloca((size_t)n + 1);
 
 	errno = 0;
 	n = snprintf(pathname, (size_t)n + 1, "%s%s", dirname, filename);
