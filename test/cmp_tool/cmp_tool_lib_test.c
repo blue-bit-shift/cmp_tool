@@ -199,7 +199,7 @@ void test_read_file8(void)
 	n_word = 34;
 	size = read_file8(file_name, buf, n_word, 0);
 	CU_ASSERT_EQUAL(size, -1);
-	CU_ASSERT_STRING_EQUAL(s=read_std_err_log(), "cmp_tool: test_read_file8_2.txt: Error: The files does not contain enough data as given by the n_word parameter.\n");
+	CU_ASSERT_STRING_EQUAL(s=read_std_err_log(), "cmp_tool: test_read_file8_2.txt: Error: The files do not contain enough data as requested.\n");
 	free(s);
 	memset(array, 0xFF, sizeof(array));
 

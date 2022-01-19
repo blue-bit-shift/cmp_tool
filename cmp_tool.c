@@ -380,9 +380,26 @@ int main(int argc, char **argv)
 			error = cmp_ent_read_imagette_header(ent, &info);
 			if (error)
 				goto fail;
-			cmp_data_adr = cmp_ent_get_data_buf(ent);
 			if (verbose_en)
 				print_cmp_info(&info);
+
+			/* we reuse the entity buffer for the compressed data */
+			cmp_data_adr = (uint32_t *)ent;
+			size = cmp_ent_get_cmp_data(ent, cmp_data_adr, buf_size);
+			ent = NULL;
+			if (size < 0)
+				goto fail;
+
+			if (verbose_en) {
+				size_t i;
+				printf("\ncompressed data:\n");
+				for (i = 0; i < size/sizeof(uint32_t); i++) {
+					printf("%08X ", cmp_data_adr[i]);
+					if (i && !((i+1) % 4))
+						printf("\n");
+				}
+				printf("\n");
+			}
 		}
 		printf("DONE\n");
 	}
@@ -578,6 +595,7 @@ static int add_cmp_ent_hdr(struct cmp_cfg *cfg, struct cmp_info *info,
 	uint8_t model_counter = DEFAULT_MODEL_COUNTER;
 	uint16_t model_id = DEFAULT_MODEL_ID;
 	size_t s, cmp_hdr_size;
+	struct cmp_entity *ent;
 	enum cmp_ent_data_type data_type = cmp_ent_map_cmp_mode_data_type(cfg->cmp_mode);
 
 	if (model_id_str) {
@@ -602,7 +620,7 @@ static int add_cmp_ent_hdr(struct cmp_cfg *cfg, struct cmp_info *info,
 	memmove((uint8_t *)cfg->icu_output_buf+cmp_hdr_size, cfg->icu_output_buf,
 		cmp_bit_to_4byte(info->cmp_size));
 
-	struct cmp_entity *ent = (struct cmp_entity *)cfg->icu_output_buf;
+	ent = (struct cmp_entity *)cfg->icu_output_buf;
 	s = cmp_ent_build(ent, data_type, cmp_tool_gen_version_id(VERSION),
 			  start_time, cmp_ent_create_timestamp(NULL), model_id,
 			  model_counter, info, cfg);
@@ -613,14 +631,16 @@ static int add_cmp_ent_hdr(struct cmp_cfg *cfg, struct cmp_info *info,
 	return 0;
 }
 
+
 /* compress the data and write the results to files */
 static int compression(struct cmp_cfg *cfg, struct cmp_info *info)
 {
 	int error;
 	uint32_t cmp_size_byte;
-	uint8_t *out_buf = NULL;
 	size_t out_buf_size;
 	uint64_t start_time = cmp_ent_create_timestamp(NULL);
+
+	cfg->icu_output_buf = NULL;
 
 	if (cfg->buffer_length == 0) {
 		cfg->buffer_length = (cfg->samples+1) * BUFFER_LENGTH_DEF_FAKTOR; /* +1 to prevent malloc(0)*/
@@ -640,12 +660,11 @@ static int compression(struct cmp_cfg *cfg, struct cmp_info *info)
 	/* round up to a multiple of 4 */
 	out_buf_size = (cmp_cal_size_of_data(cfg->buffer_length, cfg->cmp_mode) + 3) & ~0x3U;
 
-	out_buf = malloc(out_buf_size + sizeof(struct cmp_entity));
-	if (out_buf == NULL) {
+	cfg->icu_output_buf = malloc(out_buf_size + sizeof(struct cmp_entity));
+	if (cfg->icu_output_buf == NULL) {
 		fprintf(stderr, "%s: Error allocating memory for output buffer.\n", PROGRAM_NAME);
 		goto error_cleanup;
 	}
-	cfg->icu_output_buf = out_buf;
 
 	error = icu_compress_data(cfg, info);
 	if (error || info->cmp_err != 0) {
@@ -660,7 +679,7 @@ static int compression(struct cmp_cfg *cfg, struct cmp_info *info)
 		error = add_cmp_ent_hdr(cfg, info, start_time);
 		if (error)
 			goto error_cleanup;
-		cmp_size_byte = cmp_ent_get_size((struct cmp_entity *)out_buf);
+		cmp_size_byte = cmp_ent_get_size((struct cmp_entity *)cfg->icu_output_buf);
 	} else {
 		cmp_size_byte = cmp_bit_to_4byte(info->cmp_size);
 	}
@@ -676,8 +695,8 @@ static int compression(struct cmp_cfg *cfg, struct cmp_info *info)
 	}
 
 	printf("Write compressed data to file %s.cmp ... ", output_prefix);
-	error = write_cmp_data_file(out_buf, cmp_size_byte, output_prefix,
-				    ".cmp", verbose_en);
+	error = write_cmp_data_file(cfg->icu_output_buf, cmp_size_byte,
+				    output_prefix, ".cmp", verbose_en);
 	if (error)
 		goto error_cleanup;
 	printf("DONE\n");
@@ -697,13 +716,13 @@ static int compression(struct cmp_cfg *cfg, struct cmp_info *info)
 		printf("\n");
 	}
 
-	free(out_buf);
+	free(cfg->icu_output_buf);
 	cfg->icu_output_buf = NULL;
 
 	return 0;
 
 error_cleanup:
-	free(out_buf);
+	free(cfg->icu_output_buf);
 	cfg->icu_output_buf = NULL;
 	return -1;
 }

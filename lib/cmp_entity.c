@@ -89,6 +89,23 @@ uint32_t cmp_ent_cal_hdr_size(enum cmp_ent_data_type data_type)
 
 
 /**
+ * @brief check if the compression entity data product type is supported
+ *
+ * @param data_type	compression entity data product type to check
+ *
+ * @returns zero if data_type is invalid; non-zero if data_type is valid
+ */
+
+int cmp_ent_data_type_valid(enum cmp_ent_data_type data_type)
+{
+	if (cmp_ent_cal_hdr_size(data_type))
+		return 1;
+	else
+		return 0;
+}
+
+
+/**
  * @brief set ICU ASW Version ID in the compression entity header
  *
  * @param ent			pointer to a compression entity
@@ -1124,7 +1141,12 @@ enum cmp_ent_data_type cmp_ent_get_data_type(struct cmp_entity *ent)
 	if (!ent)
 		return DATA_TYPE_UNKOWN;
 
-	return be16_to_cpu(ent->data_type) & 0X7FFF;
+	enum cmp_ent_data_type data_type = be16_to_cpu(ent->data_type) & 0X7FFF;
+
+	if (cmp_ent_data_type_valid(data_type))
+		return data_type;
+	else
+		return DATA_TYPE_UNKOWN;
 }
 
 
@@ -1632,6 +1654,62 @@ void *cmp_ent_get_data_buf(struct cmp_entity *ent)
 	}
 
 	return NULL;
+}
+
+
+/**
+ * @brief copy the data form a compression entity to a buffer
+ *
+ * @param ent		pointer to the compression entity containing the compressed data
+ * @param data_buf	pointer where the destination data buffer where the
+ *	compressed data is copied to (can be NULL)
+ * @param data_buf_size	size of the destination data buffer
+ * @param verbose_en	print verbose output if not zero
+ *
+ * @returns the size in bytes to store the compressed data; negative on error
+ *
+ * @note the destination and source buffer can overlap
+ * @note converts the data to the correct endianness
+ */
+
+ssize_t cmp_ent_get_cmp_data(struct cmp_entity *ent, uint32_t *data_buf,
+			     size_t data_buf_size)
+{
+	uint32_t *cmp_ent_data_adr;
+	size_t cmp_size_byte;
+
+	if (!ent)
+		return -1;
+
+	cmp_ent_data_adr = cmp_ent_get_data_buf(ent);
+	if (!cmp_ent_data_adr) {
+		fprintf(stderr, "Error: Compression data type is not supported.\n");
+		return -1;
+	}
+
+	cmp_size_byte = cmp_ent_get_cmp_data_size(ent);
+	if (cmp_size_byte & 0x3) {
+		fprintf(stderr, "Error: The compressed data are not correct formatted. Expected multiple of 4 hex words.\n");
+		return -1;
+	}
+
+	if (data_buf) {
+		size_t i;
+		uint32_t cmp_data_len_32;
+
+		if (cmp_size_byte > data_buf_size) {
+			fprintf(stderr, "Error: data_buf size to small to hold the data.\n");
+			return -1;
+		}
+
+		memmove(data_buf, cmp_ent_data_adr, cmp_size_byte);
+
+		cmp_data_len_32 = cmp_size_byte/sizeof(uint32_t);
+		for (i = 0; i < cmp_data_len_32; i++)
+			be32_to_cpus(&data_buf[i]);
+	}
+
+	return cmp_size_byte;
 }
 
 
@@ -2188,7 +2266,7 @@ static void cmp_ent_parse_generic_header(struct cmp_entity *ent)
 		printf("Data Product Type: unknown!");
 
 	raw_bit = cmp_ent_get_data_type_raw_bit(ent);
-	printf("RAW bit in the Data Product Type is%s set", raw_bit ? "" : "not");
+	printf("RAW bit in the Data Product Type is%s set\n", raw_bit ? "" : " not");
 
 	cmp_mode_used = cmp_ent_get_cmp_mode(ent);
 	printf("Used Compression Mode: %u\n", cmp_mode_used);

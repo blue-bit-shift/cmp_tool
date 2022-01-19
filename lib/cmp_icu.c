@@ -1286,7 +1286,7 @@ static int encode_raw_S_FX(struct cmp_cfg *cfg, struct encoder_struct *enc)
 	{
 		size_t i;
 		for (i = 0; i < cfg->samples; i++) {
-			struct S_FX *output_buf = cfg->icu_output_buf;
+			struct S_FX *output_buf = (void *)cfg->icu_output_buf;
 			output_buf[i].FX = cpu_to_be32(output_buf[i].FX);
 		}
 	}
