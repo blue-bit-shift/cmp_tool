@@ -99,7 +99,7 @@ struct cmp_cfg {
 	void *icu_new_model_buf;    /* Pointer to the updated model buffer */
 	uint32_t rdcu_new_model_adr;/* RDCU updated model start address, the address in the RDCU SRAM where the updated model is stored*/
 	uint32_t samples;           /* Number of samples (16 bit value) to compress, length of the data and model buffer */
-	void *icu_output_buf;       /* Pointer to the compressed data buffer (not used for RDCU compression) */
+	uint32_t *icu_output_buf;   /* Pointer to the compressed data buffer (not used for RDCU compression) */
 	uint32_t rdcu_buffer_adr;   /* RDCU compressed data start address, the first output data address in the RDCU SRAM */
 	uint32_t buffer_length;     /* Length of the compressed data buffer in number of samples (16 bit values)*/
 };

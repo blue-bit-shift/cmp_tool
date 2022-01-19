@@ -62,7 +62,7 @@ enum cmp_ent_data_type {
 };
 
 #define GENERIC_HEADER_SIZE 30
-#define SPECIFIC_IMAGETTE_HEADER_SIZE		6
+#define SPECIFIC_IMAGETTE_HEADER_SIZE		4
 #define SPECIFIC_IMAGETTE_ADAPTIVE_HEADER_SIZE	10
 #define SPECIFIC_NON_IMAGETTE_HEADER_SIZE	30  /* TBC */
 
@@ -92,7 +92,6 @@ struct imagette_header {
 	union{
 		struct {
 			uint8_t spare1;
-			uint16_t spare2;
 			uint8_t ima_cmp_dat[];		/* compressed data for imagette specific header */
 		} __attribute__((packed));
 		struct {
@@ -100,7 +99,7 @@ struct imagette_header {
 			uint8_t  ap1_golomb_par_used;	/* Adaptive Golomb parameter used 1 */
 			uint16_t ap2_spill_used;	/* Adaptive Spillover threshold used 2 */
 			uint8_t  ap2_golomb_par_used;	/* Adaptive Golomb parameter used 2 */
-			uint8_t  spare3;
+			uint8_t  spare2;
 			uint8_t  ap_ima_cmp_data[];	/* compressed data for adaptive imagette specific header */
 		} __attribute__((packed));
 	};
@@ -296,6 +295,8 @@ uint16_t cmp_ent_get_non_ima_cmp_par6(struct cmp_entity *ent);
 /* get function for the compressed data buffer in the entity */
 void *cmp_ent_get_data_buf(struct cmp_entity *ent);
 uint32_t cmp_ent_get_cmp_data_size(struct cmp_entity *ent);
+ssize_t cmp_ent_get_cmp_data(struct cmp_entity *ent, uint32_t *data_buf,
+			     size_t data_buf_size);
 
 /* calculate the size of the compression entity header */
 uint32_t cmp_ent_cal_hdr_size(enum cmp_ent_data_type data_type);

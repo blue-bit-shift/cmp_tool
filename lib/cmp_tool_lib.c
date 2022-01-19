@@ -96,11 +96,7 @@ static FILE *open_file(const char *dirname, const char *filename)
 	}
 
 	errno = 0;
-	pathname = (char *) malloc((size_t)n + 1);
-	if (!pathname) {
-		perror("malloc failed");
-		abort();
-	}
+	pathname = (char *) alloca((size_t)n + 1);
 
 	errno = 0;
 	n = snprintf(pathname, (size_t)n + 1, "%s%s", dirname, filename);
@@ -1277,20 +1273,9 @@ ssize_t read_file32(const char *file_name, uint32_t *buf, uint32_t samples,
 	return size;
 }
 
-#if 0
-read_file_data(const char *file_name, cmp_mode, samples, verbose_en)
-
-			cfg.samples = size/size_of_a_sample(cfg.cmp_mode);
-			printf("\nNo samples parameter set. Use samples = %u.\n... ",
-			       cfg.samples);
-		}
-#endif
 
 /**
  * @brief reads a file containing a compression entity
- *
- * @note data must be encoded as 2 hex digits separated by a white space or new
- *	line character e.g. "AB CD 12 34 AB 12\n"
  *
  * @param file_name	file name of the file containing the compression entity
  * @param ent		pointer to the buffer where the content of the file is written (can be NULL)
@@ -1308,6 +1293,7 @@ ssize_t read_file_cmp_entity(const char *file_name, struct cmp_entity *ent,
 	size = read_file8(file_name, (uint8_t *)ent, ent_size, 0);
 	if (size < 0)
 		return size;
+
 	if (size < GENERIC_HEADER_SIZE) {
 		fprintf(stderr, "%s: %s: Error: The file is too small to contain a compression entity header.\n",
 			PROGRAM_NAME, file_name);
@@ -1315,10 +1301,12 @@ ssize_t read_file_cmp_entity(const char *file_name, struct cmp_entity *ent,
 	}
 
 	if (ent) {
-		size_t i;
-		uint32_t *cmp_data;
-		uint32_t cmp_data_len_32;
-
+		enum cmp_ent_data_type data_type = cmp_ent_get_data_type(ent);
+		if (data_type == DATA_TYPE_UNKOWN) {
+			fprintf(stderr, "%s: %s: Error: Compression data type is not supported.\n",
+				PROGRAM_NAME, file_name);
+			return -1;
+		}
 		if (size != cmp_ent_get_size(ent)) {
 			fprintf(stderr, "%s: %s: The size of the compression entity set in the header of the compression entity is not the same size as the read-in file has.\n",
 				PROGRAM_NAME, file_name);
@@ -1327,34 +1315,8 @@ ssize_t read_file_cmp_entity(const char *file_name, struct cmp_entity *ent,
 
 		if (verbose_en)
 			cmp_ent_parse(ent);
-
-		if (cmp_ent_get_cmp_data_size(ent) & 0x3) {
-			fprintf(stderr, "%s: %s: Error: The compressed data are not correct formatted. Expected multiple of 4 hex words.\n",
-				PROGRAM_NAME, file_name);
-			return -1;
-
-		}
-
-		cmp_data = (uint32_t *)cmp_ent_get_data_buf(ent);
-		if (!cmp_data) {
-			fprintf(stderr, "%s: %s: Error: Compression data type is not supported.\n",
-				PROGRAM_NAME, file_name);
-			return -1;
-		}
-		cmp_data_len_32 = cmp_ent_get_cmp_data_size(ent)/sizeof(uint32_t);
-		for (i = 0; i < cmp_data_len_32; i++)
-			be32_to_cpus(&cmp_data[i]);
-
-		if (verbose_en) {
-			printf("\ncompressed data:\n");
-			for (i = 0; i < cmp_data_len_32; i++) {
-				printf("%08X ", cmp_data[i]);
-				if (i && !((i+1) % 4))
-					printf("\n");
-			}
-			printf("\n");
-		}
 	}
+
 	return size;
 }
 
@@ -1513,6 +1475,7 @@ static void write_cfg_internal(FILE *fp, const struct cmp_cfg *cfg, int rdcu_cfg
 	}
 }
 
+
 /**
  * @brief prints config struct
  *
@@ -1524,6 +1487,7 @@ void print_cfg(const struct cmp_cfg *cfg, int rdcu_cfg)
 {
 	write_cfg_internal(stdout, cfg, rdcu_cfg);
 }
+
 
 /**
  * @brief write compression configuration to a file

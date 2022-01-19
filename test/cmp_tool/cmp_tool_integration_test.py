@@ -116,7 +116,7 @@ def read_in_cmp_header(compressed_string):
             l += byte_len
             # skip adaptive stuff if non adaptive header
             if data_field == 'golomb_par_used' and  data_type == 1:
-                l +=4
+                # l +=2
                 break
         l += 2  # spare bits
 
@@ -380,7 +380,7 @@ def test_compression_diff():
                 else:
                     header = read_in_cmp_header(f.read())
                     assert(header['asw_version_id']['value'] == VERSION)
-                    assert(header['cmp_ent_size']['value'] == 36+4)
+                    assert(header['cmp_ent_size']['value'] == 34+4)
                     assert(header['original_size']['value'] == 10)
                     # todo
                     assert(header['start_time']['value'] < cuc_timestamp(datetime.utcnow()))
@@ -565,7 +565,7 @@ def test_raw_mode_compression():
                 else:
                     header = read_in_cmp_header(f.read())
                     assert(header['asw_version_id']['value'] == VERSION)
-                    assert(header['cmp_ent_size']['value'] == 36+12)
+                    assert(header['cmp_ent_size']['value'] == 34+12)
                     assert(header['original_size']['value'] == 10)
                     # todo
                     assert(header['start_time']['value'] < cuc_timestamp(datetime.utcnow()))
@@ -651,8 +651,8 @@ def test_guess_option():
                         #cmp_size:15bit-> 4byte cmp_data + 40byte header -> 16bit*5/(44Byte*8) '5.33'
                 elif sub_test == 'guess_level_3':
                     exp_out = (
-                        '', '3', ' 0%... 6%... 13%... 19%... 25%... 32%... 38%... 44%... 50%... 57%... 64%... 72%... 80%... 88%... 94%... 100%', '0.25') #11.43
-                    # cmp_size:7 bit -> 4byte cmp_data + 36 byte header -> 16bit*5/(40Byte*8)
+                        '', '3', ' 0%... 6%... 13%... 19%... 25%... 32%... 38%... 44%... 50%... 57%... 64%... 72%... 80%... 88%... 94%... 100%', '0.26') #11.43
+                    # cmp_size:7 bit -> 4byte cmp_data + 34 byte header -> 16bit*5/(40Byte*8)
                 else:
                     exp_out = ('', '', '')
 
@@ -891,7 +891,7 @@ def test_wrong_formart_cmp_fiel():
 
 
 def test_sample_used_is_to_big():
-    cmp_data_header = '80 07 00 00 28 00 00 0E 03 9E 1D 5A 67 76 03 9E 1D 5A 67 9F 00 01 02 08 42 23 13 00 00 00 00 3C 07 00 00 00 44 44 44 00 \n'
+    cmp_data_header = '80 07 00 00 26 00 00 0E 03 9E 1D 5A 67 76 03 9E 1D 5A 67 9F 00 01 02 08 42 23 13 00 00 00 00 3C 07 00 44 44 44 00 \n'
     #                                        ^ wrong samples_used
     cmp_data_no_header = '44 44 44 00 \n'
     info = ("cmp_size = 20\n" + "golomb_par_used = 1\n" + "spill_used = 4\n"
@@ -949,8 +949,8 @@ def test_read_in_header():
         assert(stderr == "cmp_tool: %s: Error read in '!'. The data are not correct formatted.\n" % (cmp_file_name))
 
         # packet to small
-        header = '80 07 00 00 28 00 00 0C 03 9E 1D 5A 67 76 03 9E 1D 5A 67 9F 00 01 02 08 42 23 13 00 00 00 00 3C 07 00 00 00 44 \n'
-        #                                                                                                      packet cut-off    ^^ ^^
+        header = '80 07 00 00 26 00 00 0C 03 9E 1D 5A 67 76 03 9E 1D 5A 67 9F 00 01 02 08 42 23 13 00 00 00 00 3C 07 00 44 \n'
+        #                                                                                                packet cut-off    ^^ ^^
         with open(cmp_file_name, 'w') as f:
             f.write(header)
         returncode, stdout, stderr = call_cmp_tool('-d %s' % (cmp_file_name))
@@ -960,7 +960,7 @@ def test_read_in_header():
         assert(stderr == "cmp_tool: %s: The size of the compression entity set in the header of the compression entity is not the same size as the read-in file has.\n" %(cmp_file_name))
 
         # packet false data type
-        header = '80 07 00 00 28 00 00 0C 03 9E 1D 5A 67 76 03 9E 1D 5A 67 9F FF FF 02 08 42 23 13 00 00 00 00 3C 07 00 00 00 44 44 44 00 \n'
+        header = '80 07 00 00 26 00 00 0C 03 9E 1D 5A 67 76 03 9E 1D 5A 67 9F 7F FE 02 08 42 23 13 00 00 00 00 3C 07 00 44 44 44 00 \n'
         #                                                                     ^^ ^^ false data type
         with open(cmp_file_name, 'w') as f:
             f.write(header)
@@ -971,7 +971,7 @@ def test_read_in_header():
         assert(stderr == "cmp_tool: %s: Error: Compression data type is not supported.\n" % (cmp_file_name))
 
         # packet false data type
-        header = '80 07 00 00 28 00 00 0C 03 9E 1D 5A 67 76 03 9E 1D 5A 67 9F 00 01 FF 08 42 23 13 00 00 00 00 3C 07 00 00 00 44 44 44 00 \n'
+        header = '80 07 00 00 26 00 00 0C 03 9E 1D 5A 67 76 03 9E 1D 5A 67 9F 00 01 FF 08 42 23 13 00 00 00 00 3C 07 00 44 44 44 00 \n'
         #                                                                           ^^ false cmp_mode_used
         with open(cmp_file_name, 'w') as f:
             f.write(header)
@@ -984,7 +984,6 @@ def test_read_in_header():
 
     finally:
         del_file(cmp_file_name)
-
 
 
 def test_model_fiel_erros():
