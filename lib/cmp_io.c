@@ -1,5 +1,5 @@
 /**
- * @file   cmp_tool_lib.c
+ * @file   cmp_io.c
  * @author Johannes Seelig (johannes.seelig@univie.ac.at)
  * @author Dominik Loidolt (dominik.loidolt@univie.ac.at),
  * @date   2020
@@ -13,6 +13,8 @@
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
  * more details.
+ *
+ * @brief compression tool Input/Output library
  */
 
 #include <stdio.h>
@@ -22,7 +24,7 @@
 #include <ctype.h>
 #include <sys/stat.h>
 
-#include "../include/cmp_tool_lib.h"
+#include "../include/cmp_io.h"
 #include "../include/cmp_support.h"
 #include "../include/rdcu_cmd.h"
 #include "../include/byteorder.h"
