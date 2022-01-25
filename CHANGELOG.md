@@ -13,8 +13,9 @@ separator is added after every second hexadecimal numeric character. Comments
 after a '#' symbol until the end of the line are ignored.
 E.g. "# comment\n ABCD 1    2\n34B 12\n" are interpreted as {0xAB, 0xCD,
 0x01, 0x02, 0x34, 0x0B, 0x12}.
-### Fixed
-- Fix a bug in the definition in imagette header
+### Changed
+- update the header definition according to PLATO-UVIE-PL-UM-0001 Draft 6
+    - changed version_id from 16 to 32 bit in the generic header. Add spare bits to the adaptive imagette header and the non-imagette header, so that the compressed data start address is 4 byte-aligned.
 
 ## [0.07] - 13-12-2021
 - **NOTE:**  The behaviour of the cmp_tool has changed. From now on, the compressed data will be preceded by a header by default. The old behaviour can be achieved with the `--no_header` option.

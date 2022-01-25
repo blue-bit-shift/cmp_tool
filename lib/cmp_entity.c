@@ -84,6 +84,9 @@ uint32_t cmp_ent_cal_hdr_size(enum cmp_ent_data_type data_type)
 		return 0;
 	}
 
+	if ((data_type >> RAW_BIT_IN_DATA_TYPE) & 1U)
+		return GENERIC_HEADER_SIZE;
+
 	return 0;
 }
 
@@ -119,10 +122,7 @@ int cmp_ent_set_asw_version_id(struct cmp_entity *ent, uint32_t asw_version_id)
 	if (!ent)
 		return -1;
 
-	if (asw_version_id > UINT16_MAX)
-		return -1;
-
-	ent->asw_version_id = cpu_to_be16(asw_version_id);
+	ent->asw_version_id = cpu_to_be32(asw_version_id);
 
 	return 0;
 }
@@ -326,7 +326,8 @@ int cmp_ent_set_fine_end_time(struct cmp_entity *ent, uint16_t fine_time)
 /**
  * @brief set the data product type in the compression entity header
  *
- * @param ent		pointer to a compression entity
+ * @param ent		pointer to a compression entity (including the
+ *	uncompressed data bit)
  * @param data_type	compression entity data product type
  *
  * @returns 0 on success, otherwise error
@@ -338,39 +339,10 @@ int cmp_ent_set_data_type(struct cmp_entity *ent,
 	if (!ent)
 		return -1;
 
-	if ((unsigned int)data_type > 0x7FFF)
+	if (data_type > UINT16_MAX)
 		return -1;
-
-	data_type |= cmp_ent_get_data_type_raw_bit(ent) << RAW_BIT_IN_DATA_TYPE;
 
 	ent->data_type = cpu_to_be16(data_type);
-
-	return 0;
-}
-
-
-/**
- * @brief set the raw bit in the data product field of the compression entity header
- *
- * @param ent		pointer to a compression entity
- * @param raw_bit	raw bit is set if raw_bit is non zero
- *
- * @returns 0 on success, otherwise error
- */
-
-int cmp_ent_set_data_type_raw_bit(struct cmp_entity *ent, int raw_bit)
-{
-	uint16_t data_type;
-
-	if (!ent)
-		return -1;
-
-	if (raw_bit)
-		data_type = cpu_to_be16(ent->data_type) | 1UL << RAW_BIT_IN_DATA_TYPE;
-	else
-		data_type = cpu_to_be16(ent->data_type) & ~(1UL << RAW_BIT_IN_DATA_TYPE);
-
-	ent->data_type =  cpu_to_be16(data_type);
 
 	return 0;
 }
@@ -967,12 +939,12 @@ int cmp_ent_set_non_ima_cmp_par6(struct cmp_entity *ent, uint32_t cmp_par_6_used
  * @returns the ASW version identifier on success, 0 on error
  */
 
-uint16_t cmp_ent_get_asw_version_id(struct cmp_entity *ent)
+uint32_t cmp_ent_get_asw_version_id(struct cmp_entity *ent)
 {
 	if (!ent)
 		return 0;
 
-	return be16_to_cpu(ent->asw_version_id);
+	return be32_to_cpu(ent->asw_version_id);
 }
 
 
@@ -1133,7 +1105,8 @@ uint16_t cmp_ent_get_fine_end_time(struct cmp_entity *ent)
  *
  * @param ent	pointer to a compression entity
  *
- * @returns the data_type on success, DATA_TYPE_UNKOWN on error
+ * @returns the data_type (including the uncompressed data bit) on success,
+ *	DATA_TYPE_UNKOWN on error
  */
 
 enum cmp_ent_data_type cmp_ent_get_data_type(struct cmp_entity *ent)
@@ -1141,7 +1114,7 @@ enum cmp_ent_data_type cmp_ent_get_data_type(struct cmp_entity *ent)
 	if (!ent)
 		return DATA_TYPE_UNKOWN;
 
-	enum cmp_ent_data_type data_type = be16_to_cpu(ent->data_type) & 0X7FFF;
+	enum cmp_ent_data_type data_type = be16_to_cpu(ent->data_type);
 
 	if (cmp_ent_data_type_valid(data_type))
 		return data_type;
@@ -1620,6 +1593,9 @@ void *cmp_ent_get_data_buf(struct cmp_entity *ent)
 	if (!ent)
 		return NULL;
 
+	if (cmp_ent_get_data_type_raw_bit(ent))
+		return (uint8_t *)ent + GENERIC_HEADER_SIZE;
+
 	data_type = cmp_ent_get_data_type(ent);
 
 	switch (data_type) {
@@ -1839,12 +1815,14 @@ static int cmp_ent_write_cmp_pars(struct cmp_entity *ent, struct cmp_info *info,
 		return -1;
 	if (cmp_ent_set_cmp_mode(ent, info->cmp_mode_used))
 		return -1;
-	if (cmp_ent_set_data_type_raw_bit(ent, raw_mode_is_used(info->cmp_mode_used)))
-		return -1;
 	if (cmp_ent_set_model_value(ent, info->model_value_used))
 		return -1;
 	if (cmp_ent_set_lossy_cmp_par(ent, info->round_used))
 		return -1;
+
+	if (cmp_ent_get_data_type_raw_bit(ent))
+		/* no specific header is used for raw data we are done */
+		return 0;
 
 	switch (cmp_ent_get_data_type(ent)) {
 	case DATA_TYPE_IMAGETTE_ADAPTIVE:
@@ -1969,7 +1947,7 @@ size_t cmp_ent_create(struct cmp_entity *ent, enum cmp_ent_data_type data_type,
  */
 
 size_t cmp_ent_build(struct cmp_entity *ent, enum cmp_ent_data_type data_type,
-		     uint16_t asw_version_id, uint64_t start_time,
+		     uint32_t asw_version_id, uint64_t start_time,
 		     uint64_t end_time, uint16_t model_id, uint8_t model_counter,
 		     struct cmp_info *info, struct cmp_cfg *cfg)
 {
@@ -2225,8 +2203,8 @@ static void cmp_ent_parse_generic_header(struct cmp_entity *ent)
 
 	asw_version_id = cmp_ent_get_asw_version_id(ent);
 	if (asw_version_id & CMP_TOOL_VERSION_ID_BIT) {
-		uint16_t major = (asw_version_id & 0x7F00U) >> 8U;
-		uint16_t minor = asw_version_id & 0x00FFU;
+		uint16_t major = (asw_version_id & 0x7FFF0000U) >> 16U;
+		uint16_t minor = asw_version_id & 0xFFFFU;
 		printf("Compressed with cmp_tool version: %u.%02u\n", major,minor);
 	} else
 		printf("ICU ASW Version ID: %u\n", asw_version_id);

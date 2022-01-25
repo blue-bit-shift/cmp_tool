@@ -58,13 +58,13 @@ enum cmp_ent_data_type {
 	DATA_TYPE_F_CAM_IMAGETTE_ADAPTIVE,
 	DATA_TYPE_F_CAM_OFFSET,
 	DATA_TYPE_F_CAM_BACKGROUND,
-	DATA_TYPE_UNKOWN = -1
+	DATA_TYPE_UNKOWN = 0x7FFF,
 };
 
-#define GENERIC_HEADER_SIZE 30
+#define GENERIC_HEADER_SIZE 32
 #define SPECIFIC_IMAGETTE_HEADER_SIZE		4
-#define SPECIFIC_IMAGETTE_ADAPTIVE_HEADER_SIZE	10
-#define SPECIFIC_NON_IMAGETTE_HEADER_SIZE	30  /* TBC */
+#define SPECIFIC_IMAGETTE_ADAPTIVE_HEADER_SIZE	12
+#define SPECIFIC_NON_IMAGETTE_HEADER_SIZE	32
 
 #define IMAGETTE_HEADER_SIZE						\
 	(GENERIC_HEADER_SIZE + SPECIFIC_IMAGETTE_HEADER_SIZE)
@@ -77,7 +77,7 @@ enum cmp_ent_data_type {
 
 #define RAW_BIT_IN_DATA_TYPE 15U
 
-#define CMP_TOOL_VERSION_ID_BIT 0x8000U /* TBC */
+#define CMP_TOOL_VERSION_ID_BIT 0x80000000U
 
 __extension__
 struct timestamp_cmp_ent {
@@ -100,6 +100,7 @@ struct imagette_header {
 			uint16_t ap2_spill_used;	/* Adaptive Spillover threshold used 2 */
 			uint8_t  ap2_golomb_par_used;	/* Adaptive Golomb parameter used 2 */
 			uint8_t  spare2;
+			uint16_t spare3;
 			uint8_t  ap_ima_cmp_data[];	/* compressed data for adaptive imagette specific header */
 		} __attribute__((packed));
 	};
@@ -120,13 +121,14 @@ struct non_imagette_header {
 	uint16_t cmp_par_5_used;	/* compression parameter 5 used */
 	uint32_t spill_6_used:24;	/* spillover threshold 6 used */
 	uint16_t cmp_par_6_used;	/* compression parameter 6 used */
+	uint16_t spare;
 	uint8_t  cmp_data[];
 } __attribute__((packed));
 compile_time_assert(sizeof(struct non_imagette_header) == SPECIFIC_NON_IMAGETTE_HEADER_SIZE, NON_IMAGETTE_HEADER_T_SIZE_IS_NOT_CORRECT);
 
 __extension__
 struct cmp_entity {
-	uint16_t asw_version_id;		/* ICU ASW Version ID */
+	uint32_t asw_version_id;		/* ICU ASW Version ID */
 	uint32_t cmp_ent_size:24;		/* Compression Entity Size */
 	uint32_t original_size:24;		/* Original Data Size */
 	union {
@@ -161,7 +163,7 @@ size_t cmp_ent_create(struct cmp_entity *ent, enum cmp_ent_data_type data_type,
 
 /* create a compression entity and set the header fields */
 size_t cmp_ent_build(struct cmp_entity *ent, enum cmp_ent_data_type data_type,
-		     uint16_t asw_version_id, uint64_t start_time,
+		     uint32_t asw_version_id, uint64_t start_time,
 		     uint64_t end_time, uint16_t model_id, uint8_t model_counter,
 		     struct cmp_info *info, struct cmp_cfg *cfg);
 
@@ -186,7 +188,7 @@ int cmp_ent_set_fine_end_time(struct cmp_entity *ent, uint16_t fine_time);
 
 int cmp_ent_set_data_type(struct cmp_entity *ent,
 			  enum cmp_ent_data_type data_type);
-int cmp_ent_set_data_type_raw_bit(struct cmp_entity *ent, int raw_bit);
+int cmp_ent_data_type_valid(enum cmp_ent_data_type data_type);
 int cmp_ent_set_cmp_mode(struct cmp_entity *ent, uint32_t cmp_mode_used);
 int cmp_ent_set_model_value(struct cmp_entity *ent, uint32_t model_value_used);
 int cmp_ent_set_model_id(struct cmp_entity *ent, uint32_t model_id);
@@ -233,7 +235,7 @@ int cmp_ent_set_non_ima_cmp_par6(struct cmp_entity *ent, uint32_t cmp_par6_used)
 
 
 /* get functions for generic compression entity header */
-uint16_t cmp_ent_get_asw_version_id(struct cmp_entity *ent);
+uint32_t cmp_ent_get_asw_version_id(struct cmp_entity *ent);
 uint32_t cmp_ent_get_size(struct cmp_entity *ent);
 uint32_t cmp_ent_get_original_size(struct cmp_entity *ent);
 

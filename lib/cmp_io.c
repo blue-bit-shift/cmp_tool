@@ -1304,7 +1304,7 @@ ssize_t read_file_cmp_entity(const char *file_name, struct cmp_entity *ent,
 
 	if (ent) {
 		enum cmp_ent_data_type data_type = cmp_ent_get_data_type(ent);
-		if (data_type == DATA_TYPE_UNKOWN) {
+		if (!cmp_ent_data_type_valid(data_type)) {
 			fprintf(stderr, "%s: %s: Error: Compression data type is not supported.\n",
 				PROGRAM_NAME, file_name);
 			return -1;
@@ -1332,11 +1332,11 @@ ssize_t read_file_cmp_entity(const char *file_name, struct cmp_entity *ent,
  * @returns version_id for the compression header; 0 on error
  */
 
-uint16_t cmp_tool_gen_version_id(const char *version)
+uint32_t cmp_tool_gen_version_id(const char *version)
 {
 	char *copy, *token;
 	unsigned int n;
-	uint16_t version_id;
+	uint32_t version_id;
 
 	/*
 	 * version_id bits: msb |xxxx xxxx | xxxx xxxx| lsb
@@ -1348,11 +1348,11 @@ uint16_t cmp_tool_gen_version_id(const char *version)
 	copy = strdup(version);
 	token = strtok(copy, ".");
 	n = atoi(token);
-	if (n > UINT8_MAX) {
+	if (n > UINT16_MAX) {
 		free(copy);
 		return 0;
 	}
-	version_id = ((uint16_t)n) << 8U;
+	version_id = n << 16U;
 	if (version_id & CMP_TOOL_VERSION_ID_BIT) {
 		free(copy);
 		return 0;
@@ -1361,7 +1361,7 @@ uint16_t cmp_tool_gen_version_id(const char *version)
 	token = strtok(NULL, ".");
 	n = atoi(token);
 	free(copy);
-	if (n > UINT8_MAX)
+	if (n > UINT16_MAX)
 		return 0;
 
 	version_id |= n;
