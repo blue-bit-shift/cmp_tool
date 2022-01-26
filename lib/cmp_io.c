@@ -937,6 +937,7 @@ static const char *skip_space(const char *str)
 static const char *skip_comment(const char *str)
 {
 	char c = *str;
+
 	if (c == '#') {
 		do {
 			str++;
@@ -1040,14 +1041,15 @@ static ssize_t str2uint8_arr(const char *str, uint8_t *data, uint32_t n_word,
 	errno = 0;
 
 	if (!data)
-		n_word =~0;
+		n_word = ~0;
 
 	if (!file_name)
 		file_name = "unknown file name";
 
-	for (i=0; i < n_word; ) {
+	for (i = 0; i < n_word; ) {
 		uint8_t read_val;
 		unsigned char c = *nptr;
+
 		if (c == '\0') {
 			if (!data)  /* finished counting the sample */
 				break;
@@ -1140,15 +1142,15 @@ ssize_t read_file8(const char *file_name, uint8_t *buf, uint32_t n_word, int ver
 	char *file_cpy = NULL;
 	long file_size;
 	ssize_t size;
+	size_t ret_code;
 
 	if (!file_name)
 		abort();
 
 	errno = 0;
-	fp = fopen(file_name, "r");
-	if (fp == NULL) {
+	fp = fopen(file_name, "rb");
+	if (fp == NULL)
 		goto fail;
-	}
 
 	/* Get the number of bytes */
 	if (fseek(fp, 0L, SEEK_END) != 0)
@@ -1172,8 +1174,8 @@ ssize_t read_file8(const char *file_name, uint8_t *buf, uint32_t n_word, int ver
 	}
 
 	/* copy all the text into the file_cpy buffer */
-	size_t ret_code = fread(file_cpy, sizeof(char), file_size, fp);
-	if(ret_code != (size_t)file_size) {
+	ret_code = fread(file_cpy, sizeof(char), file_size, fp);
+	if (ret_code != (size_t)file_size) {
 		if (feof(fp))
 			printf("%s: %s: Error: unexpected end of file.\n", PROGRAM_NAME, file_name);
 		goto fail;
@@ -1304,7 +1306,8 @@ ssize_t read_file_cmp_entity(const char *file_name, struct cmp_entity *ent,
 
 	if (ent) {
 		enum cmp_ent_data_type data_type = cmp_ent_get_data_type(ent);
-		if (data_type == DATA_TYPE_UNKOWN) {
+
+		if (!cmp_ent_data_type_valid(data_type)) {
 			fprintf(stderr, "%s: %s: Error: Compression data type is not supported.\n",
 				PROGRAM_NAME, file_name);
 			return -1;
@@ -1332,11 +1335,11 @@ ssize_t read_file_cmp_entity(const char *file_name, struct cmp_entity *ent,
  * @returns version_id for the compression header; 0 on error
  */
 
-uint16_t cmp_tool_gen_version_id(const char *version)
+uint32_t cmp_tool_gen_version_id(const char *version)
 {
 	char *copy, *token;
 	unsigned int n;
-	uint16_t version_id;
+	uint32_t version_id;
 
 	/*
 	 * version_id bits: msb |xxxx xxxx | xxxx xxxx| lsb
@@ -1348,11 +1351,11 @@ uint16_t cmp_tool_gen_version_id(const char *version)
 	copy = strdup(version);
 	token = strtok(copy, ".");
 	n = atoi(token);
-	if (n > UINT8_MAX) {
+	if (n > UINT16_MAX) {
 		free(copy);
 		return 0;
 	}
-	version_id = ((uint16_t)n) << 8U;
+	version_id = n << 16U;
 	if (version_id & CMP_TOOL_VERSION_ID_BIT) {
 		free(copy);
 		return 0;
@@ -1361,7 +1364,7 @@ uint16_t cmp_tool_gen_version_id(const char *version)
 	token = strtok(NULL, ".");
 	n = atoi(token);
 	free(copy);
-	if (n > UINT8_MAX)
+	if (n > UINT16_MAX)
 		return 0;
 
 	version_id |= n;

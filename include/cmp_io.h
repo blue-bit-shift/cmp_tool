@@ -41,7 +41,7 @@ ssize_t read_file32(const char *file_name, uint32_t *buf, uint32_t samples,
 ssize_t read_file_cmp_entity(const char *file_name, struct cmp_entity *ent,
 			   uint32_t ent_size, int verbose_en);
 
-uint16_t cmp_tool_gen_version_id(const char *version);
+uint32_t cmp_tool_gen_version_id(const char *version);
 
 int write_cmp_data_file(const void *buf, uint32_t buf_size, const char
 			*output_prefix, const char *name_extension, int verbose);

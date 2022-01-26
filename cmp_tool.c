@@ -482,21 +482,29 @@ fail:
 
 static enum cmp_ent_data_type cmp_ent_map_cmp_mode_data_type(uint32_t cmp_mode)
 {
+	enum cmp_ent_data_type data_type;
+
 	switch (cmp_mode) {
 	case MODE_RAW:
-		return DATA_TYPE_IMAGETTE;
 	case MODE_MODEL_ZERO:
 	case MODE_DIFF_ZERO:
 	case MODE_MODEL_MULTI:
 	case MODE_DIFF_MULTI:
 		if (print_rdcu_cfg)
-			return DATA_TYPE_IMAGETTE_ADAPTIVE;
+			data_type = DATA_TYPE_IMAGETTE_ADAPTIVE;
 		else
-			return DATA_TYPE_IMAGETTE;
+			data_type = DATA_TYPE_IMAGETTE;
+		break;
 	default:
 		printf("No mapping between compression mode and header data type\n!");
 		return DATA_TYPE_UNKOWN;
 	}
+
+	/* set raw bit if needed */
+	if (raw_mode_is_used(cmp_mode))
+		data_type |= 1UL << RAW_BIT_DATA_TYPE_POS;
+
+	return data_type;
 }
 
 

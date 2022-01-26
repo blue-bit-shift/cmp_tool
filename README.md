@@ -75,9 +75,11 @@ RDCU-compatible compression mode depending on if the Model (-m) option is set.
 This command creates the file `myguess.cfg` with the guessed compression parameters.
 
 ### Data Format
+The input data is formatted as hexadecimal numbers.
+For example: `12 AB 34 CD` or `12AB34CD`.
 
-The input data must be formatted as two hex numbers separated by a space.
-For example: `12 AB 34 CD`.
+### User Manual
+You can find the user manual [here](doc).
 
 ## How to use the tool
 

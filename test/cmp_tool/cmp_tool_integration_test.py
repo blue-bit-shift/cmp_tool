@@ -13,6 +13,11 @@ EXIT_FAILURE = 1
 EXIT_SUCCESS = 0
 
 
+GENERIC_HEADER_SIZE = 32
+IMAGETTE_HEADER_SIZE = GENERIC_HEADER_SIZE+4
+IMAGETTE_ADAPTIVE_HEADER_SIZE = GENERIC_HEADER_SIZE+12
+NON_IMAGETTE_HEADER_SIZE = GENERIC_HEADER_SIZE+32
+
 def call_cmp_tool(args):
     args = shlex.split(PATH_CMP_TOOL + " " + args)
 
@@ -57,9 +62,8 @@ def cuc_timestamp(now):
 
 
 def read_in_cmp_header(compressed_string):
-    GENERIC_HEADER_SIZE = 30
 
-    header = { 'asw_version_id'     : { 'value': -1, 'bits': 16 },
+    header = { 'asw_version_id'     : { 'value': -1, 'bits': 32 },
                'cmp_ent_size'       : { 'value': -1, 'bits': 24 },
                'original_size'      : { 'value': -1, 'bits': 24 },
                'start_time'         : { 'value': -1, 'bits': 48 },
@@ -69,7 +73,7 @@ def read_in_cmp_header(compressed_string):
                'model_value_used'   : { 'value': -1, 'bits': 8 },
                'model_id'           : { 'value': -1, 'bits': 16 },
                'model_counter'      : { 'value': -1, 'bits': 8 },
-               'spare'              : { 'value': 0, 'bits': 8 },
+               'spare'              : { 'value': -1, 'bits': 8 },
                'lossy_cmp_par_used' : { 'value': -1, 'bits': 16 },
                'spill_used'         : { 'value': -1, 'bits': 16 },
                'golomb_par_used'    : { 'value': -1, 'bits': 8 },
@@ -77,6 +81,7 @@ def read_in_cmp_header(compressed_string):
                'ap1_golomb_par'     : { 'value': -1, 'bits': 8 },
                'ap2_spill_used'     : { 'value': -1, 'bits': 16 },
                'ap2_golomb_par'     : { 'value': -1, 'bits': 8 },
+               'spare_ap_ima'       : { 'value': -1, 'bits': 8 },
                'spill_1_used'       : { 'value': -1, 'bits': 24 },
                'cmp_par_1_used'     : { 'value': -1, 'bits': 16 },
                'spill_2_used'       : { 'value': -1, 'bits': 24 },
@@ -89,6 +94,7 @@ def read_in_cmp_header(compressed_string):
                'cmp_par_5_used'     : { 'value': -1, 'bits': 16 },
                'spill_6_used'       : { 'value': -1, 'bits': 24 },
                'cmp_par_6_used'     : { 'value': -1, 'bits': 16 },
+               'spare_non_ima'      : { 'value': -1, 'bits': 16 },
                'compressed_data'    : { 'value': -1, 'bits': -1 }}
 
     l = 0
@@ -102,13 +108,13 @@ def read_in_cmp_header(compressed_string):
         header[data_field]['value'] = int(compressed_string[l:l+byte_len], 16)
         l += byte_len
         # end of the GENERIC_HEADER
-        if l >= GENERIC_HEADER_SIZE*2:
+        if l/2 >= GENERIC_HEADER_SIZE:
             break
 
-    data_type = header['data_type']['value'] & 0x7FFF
+    data_type = int(header['data_type']['value'])
     # Imagette Headers
     if data_type == 1 or data_type == 2:
-        for data_field in list(header)[12:18]:
+        for data_field in list(header)[12:19]:
             if header[data_field]['bits'] % 4 != 0:
                 raise Exception("only work with 4 bit aligned data fields")
             byte_len = header[data_field]['bits']//4
@@ -116,29 +122,55 @@ def read_in_cmp_header(compressed_string):
             l += byte_len
             # skip adaptive stuff if non adaptive header
             if data_field == 'golomb_par_used' and  data_type == 1:
-                # l +=2
+                l += 2  # spare bits
+                assert(l/2==IMAGETTE_HEADER_SIZE)
                 break
-        l += 2  # spare bits
+        if data_type == 2:
+            assert(l/2== NON_IMAGETTE_HEADER_SIZE)
 
     # Non-Imagette Headers
     elif data_type < 24:
-        for data_field in list(header)[18:30]:
+        for data_field in list(header)[19:31]:
             if header[data_field]['bits'] % 4 != 0:
                 raise Exception("only work with 4 bit aligned data fields")
             byte_len = header[data_field]['bits']//4
             header[data_field]['value'] = int(compressed_string[l:l+byte_len], 16)
             l += byte_len
+        assert(l/2 == NON_IMAGETTE_HEADER_SIZE)
     else:
-        raise Exception("data_type unknown")
+        if (data_type >> 15) == 0: # check if raw mode is set
+            raise Exception("data_type unknown")
 
     header['compressed_data']['value'] = compressed_string[l::]
 
     # version conversion fuu
     version_id = header['asw_version_id']['value']
-    if version_id & 0x8000:
-        header['asw_version_id']['value'] = "%.2f" % (int(version_id & 0x7F00)/256. + int(version_id&0xFF)*0.01)
+    if version_id & 0x80000000:
+        header['asw_version_id']['value'] = "%.2f" % (int(version_id & 0x7FFF0000)//0x8000 + int(version_id&0xFFFF)*0.01)
 
     return header
+
+
+def build_generic_header(asw_version_id, cmp_ent_size, original_size,
+                         start_time, end_time, data_type, cmp_mode_used,
+                         model_value_used, model_id, model_counter,
+                         lossy_cmp_par_used):
+
+    generic_header = ("%08X " % asw_version_id + "%06X " % cmp_ent_size +
+        "%06X " % original_size + "%012X " % start_time +
+        "%012X " % end_time + "%04X " % data_type +
+        "%02X " % cmp_mode_used + "%02X " % model_value_used +
+        "%04X " % model_id + "%02X " % model_counter+ "00 " +
+        "%04X " % lossy_cmp_par_used)
+
+    assert(len(generic_header.replace(" ", ""))/2 == GENERIC_HEADER_SIZE)
+    return generic_header
+
+
+def build_imagette_header(spill_used, golomb_par_used):
+   ima_header = "%04X %02X 00 " % (spill_used, golomb_par_used)
+   assert(len(ima_header.replace(" ", ""))/2 == IMAGETTE_HEADER_SIZE - GENERIC_HEADER_SIZE)
+   return ima_header
 
 
 #get version
@@ -378,9 +410,10 @@ def test_compression_diff():
                     assert(info['cmp_size'] == '20')
                     assert(info['cmp_err'] == '0')
                 else:
+                    # import pdb; pdb.set_trace()
                     header = read_in_cmp_header(f.read())
                     assert(header['asw_version_id']['value'] == VERSION)
-                    assert(header['cmp_ent_size']['value'] == 34+4)
+                    assert(header['cmp_ent_size']['value'] == IMAGETTE_HEADER_SIZE+4)
                     assert(header['original_size']['value'] == 10)
                     # todo
                     assert(header['start_time']['value'] < cuc_timestamp(datetime.utcnow()))
@@ -565,7 +598,7 @@ def test_raw_mode_compression():
                 else:
                     header = read_in_cmp_header(f.read())
                     assert(header['asw_version_id']['value'] == VERSION)
-                    assert(header['cmp_ent_size']['value'] == 34+12)
+                    assert(header['cmp_ent_size']['value'] == GENERIC_HEADER_SIZE+12)
                     assert(header['original_size']['value'] == 10)
                     # todo
                     assert(header['start_time']['value'] < cuc_timestamp(datetime.utcnow()))
@@ -647,11 +680,12 @@ def test_guess_option():
                     exp_out = ('', '2', '', '7.27')
                 elif sub_test == 'guess_RDCU_model':
                     exp_out = (
-                        'Importing model file model.dat ... DONE\n', '2', '', '0.23')
+                        'Importing model file model.dat ... DONE\n', '2', '', str(round((5*2)/(IMAGETTE_ADAPTIVE_HEADER_SIZE + 4), 2)))
                         #cmp_size:15bit-> 4byte cmp_data + 40byte header -> 16bit*5/(44Byte*8) '5.33'
                 elif sub_test == 'guess_level_3':
                     exp_out = (
-                        '', '3', ' 0%... 6%... 13%... 19%... 25%... 32%... 38%... 44%... 50%... 57%... 64%... 72%... 80%... 88%... 94%... 100%', '0.26') #11.43
+                        '', '3', ' 0%... 6%... 13%... 19%... 25%... 32%... 38%... 44%... 50%... 57%... 64%... 72%... 80%... 88%... 94%... 100%',
+                        str(round((5*2)/(IMAGETTE_HEADER_SIZE + 4), 2))) #11.43
                     # cmp_size:7 bit -> 4byte cmp_data + 34 byte header -> 16bit*5/(40Byte*8)
                 else:
                     exp_out = ('', '', '')
@@ -891,11 +925,35 @@ def test_wrong_formart_cmp_fiel():
 
 
 def test_sample_used_is_to_big():
-    cmp_data_header = '80 07 00 00 26 00 00 0E 03 9E 1D 5A 67 76 03 9E 1D 5A 67 9F 00 01 02 08 42 23 13 00 00 00 00 3C 07 00 44 44 44 00 \n'
-    #                                        ^ wrong samples_used
-    cmp_data_no_header = '44 44 44 00 \n'
+    cmp_data = '44444400'
+
+    version_id = 0x8001_0042
+    cmp_ent_size = IMAGETTE_HEADER_SIZE + len(cmp_data)//2
+    original_size = 0xE # wrong original_size correct is 0xA
+
+    start_time = cuc_timestamp(datetime.utcnow())
+    end_time = cuc_timestamp(datetime.utcnow())
+
+    data_type = 1
+    cmp_mode_used = 2
+    model_value_used = 8
+    model_id = 0xBEEF
+    model_counter = 0
+    lossy_cmp_par_used = 0
+
+    generic_header = build_generic_header(version_id, cmp_ent_size,
+                        original_size, start_time, end_time, data_type,
+                        cmp_mode_used, model_value_used, model_id,
+                        model_counter, lossy_cmp_par_used)
+    spill_used = 60
+    golomb_par_used = 7
+
+    ima_header = build_imagette_header(spill_used, golomb_par_used)
+    cmp_data_header = generic_header + ima_header + cmp_data
+
     info = ("cmp_size = 20\n" + "golomb_par_used = 1\n" + "spill_used = 4\n"
             + "cmp_mode_used = 2\n" +"samples_used=5\n")
+    #                                              ^ wrong samples_used
     cmp_file_name = 'big_cmp_size.cmp'
     info_file_name = 'big_cmp_size.info'
     pars = ['-i %s -d %s --no_header' % (info_file_name, cmp_file_name),
@@ -908,7 +966,7 @@ def test_sample_used_is_to_big():
         for par in pars:
             with open(cmp_file_name, 'w') as f:
                 if '--no_header' in par:
-                    f.write(cmp_data_no_header)
+                    f.write(cmp_data)
                 else:
                     f.write(cmp_data_header)
 
@@ -934,8 +992,9 @@ def test_sample_used_is_to_big():
         del_file(info_file_name)
 
 
-def test_read_in_header():
-    cmp_file_name = 'read_in_header.cmp'
+
+def test_header_wrong_formatted():
+    cmp_file_name = 'read_wrong_format_header.cmp'
 
     # packet wrong formatted
     header = '80 07 00 00 !'
@@ -948,33 +1007,77 @@ def test_read_in_header():
                "Importing compressed data file %s ... FAILED\n" % (cmp_file_name))
         assert(stderr == "cmp_tool: %s: Error read in '!'. The data are not correct formatted.\n" % (cmp_file_name))
 
-        # packet to small
-        header = '80 07 00 00 26 00 00 0C 03 9E 1D 5A 67 76 03 9E 1D 5A 67 9F 00 01 02 08 42 23 13 00 00 00 00 3C 07 00 44 \n'
-        #                                                                                                packet cut-off    ^^ ^^
+    finally:
+        del_file(cmp_file_name)
+
+def test_header_read_in():
+    cmp_file_name = 'test_header_read_in.cmp'
+
+    cmp_data = '44444400'
+
+    version_id = 0x8001_0042
+    cmp_ent_size = IMAGETTE_HEADER_SIZE + len(cmp_data)//2
+    original_size = 0xA
+
+    start_time = cuc_timestamp(datetime.utcnow())
+    end_time = cuc_timestamp(datetime.utcnow())
+
+    data_type = 1
+    cmp_mode_used = 2
+    model_value_used = 8
+    model_id = 0xBEEF
+    model_counter = 0
+    lossy_cmp_par_used = 0
+
+    generic_header = build_generic_header(version_id, cmp_ent_size,
+                        original_size, start_time, end_time, data_type,
+                        cmp_mode_used, model_value_used, model_id,
+                        model_counter, lossy_cmp_par_used)
+    spill_used = 60
+    golomb_par_used = 7
+
+    ima_header = build_imagette_header(spill_used, golomb_par_used)
+    cmp_ent = generic_header + ima_header + cmp_data
+    # packet to small
+    cmp_ent = cmp_ent[:-4]
+    try:
         with open(cmp_file_name, 'w') as f:
-            f.write(header)
+            f.write(cmp_ent)
         returncode, stdout, stderr = call_cmp_tool('-d %s' % (cmp_file_name))
         assert(returncode == EXIT_FAILURE)
         assert(stdout == CMP_START_STR_DECMP +
                "Importing compressed data file %s ... FAILED\n" % (cmp_file_name))
         assert(stderr == "cmp_tool: %s: The size of the compression entity set in the header of the compression entity is not the same size as the read-in file has.\n" %(cmp_file_name))
 
-        # packet false data type
-        header = '80 07 00 00 26 00 00 0C 03 9E 1D 5A 67 76 03 9E 1D 5A 67 9F 7F FE 02 08 42 23 13 00 00 00 00 3C 07 00 44 44 44 00 \n'
-        #                                                                     ^^ ^^ false data type
+        # false data type
+        data_type = 0x7FFE
+        generic_header = build_generic_header(version_id, cmp_ent_size,
+                        original_size, start_time, end_time, data_type,
+                        cmp_mode_used, model_value_used, model_id,
+                        model_counter, lossy_cmp_par_used)
+        ima_header = build_imagette_header(spill_used, golomb_par_used)
+        cmp_ent = generic_header + ima_header + cmp_data
+        data_type = 1
+
         with open(cmp_file_name, 'w') as f:
-            f.write(header)
+            f.write(cmp_ent)
         returncode, stdout, stderr = call_cmp_tool('-d %s' % (cmp_file_name))
         assert(returncode == EXIT_FAILURE)
         assert(stdout == CMP_START_STR_DECMP +
                "Importing compressed data file %s ... FAILED\n" % (cmp_file_name))
         assert(stderr == "cmp_tool: %s: Error: Compression data type is not supported.\n" % (cmp_file_name))
 
-        # packet false data type
-        header = '80 07 00 00 26 00 00 0C 03 9E 1D 5A 67 76 03 9E 1D 5A 67 9F 00 01 FF 08 42 23 13 00 00 00 00 3C 07 00 44 44 44 00 \n'
-        #                                                                           ^^ false cmp_mode_used
+        # false cmp_mode_used
+        cmp_mode_used = 0xFF
+        generic_header = build_generic_header(version_id, cmp_ent_size,
+                        original_size, start_time, end_time, data_type,
+                        cmp_mode_used, model_value_used, model_id,
+                        model_counter, lossy_cmp_par_used)
+        ima_header = build_imagette_header(spill_used, golomb_par_used)
+        cmp_ent = generic_header + ima_header + cmp_data
+        cmp_mode_used = 2
         with open(cmp_file_name, 'w') as f:
-            f.write(header)
+            f.write(cmp_ent)
         returncode, stdout, stderr = call_cmp_tool('-d %s' % (cmp_file_name))
         assert(returncode == EXIT_FAILURE)
         assert(stdout == CMP_START_STR_DECMP +
