@@ -1148,7 +1148,7 @@ ssize_t read_file8(const char *file_name, uint8_t *buf, uint32_t n_word, int ver
 		abort();
 
 	errno = 0;
-	fp = fopen(file_name, "r");
+	fp = fopen(file_name, "rb");
 	if (fp == NULL)
 		goto fail;
 
