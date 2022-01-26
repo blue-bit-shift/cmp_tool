@@ -502,7 +502,7 @@ static enum cmp_ent_data_type cmp_ent_map_cmp_mode_data_type(uint32_t cmp_mode)
 
 	/* set raw bit if needed */
 	if (raw_mode_is_used(cmp_mode))
-		data_type |= 1UL << RAW_BIT_IN_DATA_TYPE;
+		data_type |= 1UL << RAW_BIT_DATA_TYPE_POS;
 
 	return data_type;
 }

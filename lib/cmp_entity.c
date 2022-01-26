@@ -84,7 +84,7 @@ uint32_t cmp_ent_cal_hdr_size(enum cmp_ent_data_type data_type)
 		return 0;
 	}
 
-	if ((data_type >> RAW_BIT_IN_DATA_TYPE) & 1U)
+	if ((data_type >> RAW_BIT_DATA_TYPE_POS) & 1U)
 		return GENERIC_HEADER_SIZE;
 
 	return 0;
@@ -112,17 +112,17 @@ int cmp_ent_data_type_valid(enum cmp_ent_data_type data_type)
  * @brief set ICU ASW Version ID in the compression entity header
  *
  * @param ent			pointer to a compression entity
- * @param asw_version_id	the applications software version identifier
+ * @param version_id	the applications software version identifier
  *
  * @returns 0 on success, otherwise error
  */
 
-int cmp_ent_set_asw_version_id(struct cmp_entity *ent, uint32_t asw_version_id)
+int cmp_ent_set_version_id(struct cmp_entity *ent, uint32_t version_id)
 {
 	if (!ent)
 		return -1;
 
-	ent->asw_version_id = cpu_to_be32(asw_version_id);
+	ent->version_id = cpu_to_be32(version_id);
 
 	return 0;
 }
@@ -939,12 +939,12 @@ int cmp_ent_set_non_ima_cmp_par6(struct cmp_entity *ent, uint32_t cmp_par_6_used
  * @returns the ASW version identifier on success, 0 on error
  */
 
-uint32_t cmp_ent_get_asw_version_id(struct cmp_entity *ent)
+uint32_t cmp_ent_get_version_id(struct cmp_entity *ent)
 {
 	if (!ent)
 		return 0;
 
-	return be32_to_cpu(ent->asw_version_id);
+	return be32_to_cpu(ent->version_id);
 }
 
 
@@ -1136,7 +1136,7 @@ int cmp_ent_get_data_type_raw_bit(struct cmp_entity *ent)
 	if (!ent)
 		return 0;
 
-	return (be16_to_cpu(ent->data_type) >> RAW_BIT_IN_DATA_TYPE) & 1U;
+	return (be16_to_cpu(ent->data_type) >> RAW_BIT_DATA_TYPE_POS) & 1U;
 }
 
 
@@ -1934,7 +1934,7 @@ size_t cmp_ent_create(struct cmp_entity *ent, enum cmp_ent_data_type data_type,
  * @param ent			pointer to a compression entity; if NULL, the
  *	function returns the needed size
  * @param data_type		compression entity data product type
- * @param asw_version_id	applications software version identifier
+ * @param version_id	applications software version identifier
  * @param start_time		compression start timestamp (coarse and fine)
  * @param end_time		compression end timestamp (coarse and fine)
  * @param model_id		model identifier
@@ -1947,7 +1947,7 @@ size_t cmp_ent_create(struct cmp_entity *ent, enum cmp_ent_data_type data_type,
  */
 
 size_t cmp_ent_build(struct cmp_entity *ent, enum cmp_ent_data_type data_type,
-		     uint32_t asw_version_id, uint64_t start_time,
+		     uint32_t version_id, uint64_t start_time,
 		     uint64_t end_time, uint16_t model_id, uint8_t model_counter,
 		     struct cmp_info *info, struct cmp_cfg *cfg)
 {
@@ -1961,7 +1961,7 @@ size_t cmp_ent_build(struct cmp_entity *ent, enum cmp_ent_data_type data_type,
 		return 0;
 
 	if (ent) {
-		if (cmp_ent_set_asw_version_id(ent, asw_version_id))
+		if (cmp_ent_set_version_id(ent, version_id))
 			return 0;
 		if (cmp_ent_set_start_timestamp(ent, start_time))
 			return 0;
@@ -2194,20 +2194,20 @@ void cmp_ent_print(struct cmp_entity *ent)
 
 static void cmp_ent_parse_generic_header(struct cmp_entity *ent)
 {
-	uint32_t asw_version_id, cmp_ent_size, original_size, cmp_mode_used,
+	uint32_t version_id, cmp_ent_size, original_size, cmp_mode_used,
 		 model_value_used, model_id, model_counter, lossy_cmp_par_used,
 		 start_coarse_time, end_coarse_time;
 	uint16_t start_fine_time, end_fine_time;
 	enum cmp_ent_data_type data_type;
 	int raw_bit;
 
-	asw_version_id = cmp_ent_get_asw_version_id(ent);
-	if (asw_version_id & CMP_TOOL_VERSION_ID_BIT) {
-		uint16_t major = (asw_version_id & 0x7FFF0000U) >> 16U;
-		uint16_t minor = asw_version_id & 0xFFFFU;
-		printf("Compressed with cmp_tool version: %u.%02u\n", major,minor);
+	version_id = cmp_ent_get_version_id(ent);
+	if (version_id & CMP_TOOL_VERSION_ID_BIT) {
+		uint16_t major = (version_id & 0x7FFF0000U) >> 16U;
+		uint16_t minor = version_id & 0xFFFFU;
+		printf("Compressed with cmp_tool version: %u.%02u\n", major, minor);
 	} else
-		printf("ICU ASW Version ID: %u\n", asw_version_id);
+		printf("ICU ASW Version ID: %u\n", version_id);
 
 	cmp_ent_size = cmp_ent_get_size(ent);
 	printf("Compression Entity Size: %u byte\n", cmp_ent_size);

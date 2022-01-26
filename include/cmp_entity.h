@@ -75,7 +75,7 @@ enum cmp_ent_data_type {
 
 #define CMP_ENTITY_MAX_SIZE 0xFFFFFFUL
 
-#define RAW_BIT_IN_DATA_TYPE 15U
+#define RAW_BIT_DATA_TYPE_POS 15U
 
 #define CMP_TOOL_VERSION_ID_BIT 0x80000000U
 
@@ -128,7 +128,7 @@ compile_time_assert(sizeof(struct non_imagette_header) == SPECIFIC_NON_IMAGETTE_
 
 __extension__
 struct cmp_entity {
-	uint32_t asw_version_id;		/* ICU ASW Version ID */
+	uint32_t version_id;			/* ICU ASW/cmp_tool Version ID */
 	uint32_t cmp_ent_size:24;		/* Compression Entity Size */
 	uint32_t original_size:24;		/* Original Data Size */
 	union {
@@ -163,7 +163,7 @@ size_t cmp_ent_create(struct cmp_entity *ent, enum cmp_ent_data_type data_type,
 
 /* create a compression entity and set the header fields */
 size_t cmp_ent_build(struct cmp_entity *ent, enum cmp_ent_data_type data_type,
-		     uint32_t asw_version_id, uint64_t start_time,
+		     uint32_t version_id, uint64_t start_time,
 		     uint64_t end_time, uint16_t model_id, uint8_t model_counter,
 		     struct cmp_info *info, struct cmp_cfg *cfg);
 
@@ -173,7 +173,7 @@ int cmp_ent_read_imagette_header(struct cmp_entity *ent, struct cmp_info *info);
 
 
 /* set functions for generic compression entity header */
-int cmp_ent_set_asw_version_id(struct cmp_entity *ent, uint32_t asw_version_id);
+int cmp_ent_set_version_id(struct cmp_entity *ent, uint32_t version_id);
 int cmp_ent_set_size(struct cmp_entity *ent, uint32_t cmp_ent_size);
 
 int cmp_ent_set_original_size(struct cmp_entity *ent, uint32_t original_size);
@@ -235,7 +235,7 @@ int cmp_ent_set_non_ima_cmp_par6(struct cmp_entity *ent, uint32_t cmp_par6_used)
 
 
 /* get functions for generic compression entity header */
-uint32_t cmp_ent_get_asw_version_id(struct cmp_entity *ent);
+uint32_t cmp_ent_get_version_id(struct cmp_entity *ent);
 uint32_t cmp_ent_get_size(struct cmp_entity *ent);
 uint32_t cmp_ent_get_original_size(struct cmp_entity *ent);
 
