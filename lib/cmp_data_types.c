@@ -20,6 +20,7 @@
 #include "../include/cmp_data_types.h"
 #include "../include/cmp_support.h"
 #include "../include/cmp_debug.h"
+#include "../include/byteorder.h"
 
 
 /**
@@ -93,6 +94,15 @@ int de_lossy_rounding_16(uint16_t *data_buf, uint32_t samples_used, uint32_t
 		data_buf[i] = round_inv(data_buf[i], round_used);
 	}
 	return 0;
+}
+
+
+static void be_to_cpus_16(uint16_t *a, uint32_t samples)
+{
+	size_t i;
+
+	for (i = 0; i < samples; ++i)
+		be16_to_cpus(&a[i]);
 }
 
 
@@ -261,6 +271,15 @@ struct S_FX cal_up_model_S_FX(struct S_FX data_buf, struct S_FX model_buf,
 }
 
 
+void be_to_cpus_S_FX(struct S_FX *a, uint32_t samples)
+{
+	size_t i;
+
+	for (i = 0; i < samples; ++i)
+		a[i].FX = be32_to_cpu(a[i].FX);
+}
+
+
 struct S_FX_EFX sub_S_FX_EFX(struct S_FX_EFX a, struct S_FX_EFX b)
 {
 	struct S_FX_EFX result;
@@ -368,6 +387,17 @@ struct S_FX_EFX cal_up_model_S_FX_EFX(struct S_FX_EFX data_buf, struct S_FX_EFX
 	result.EFX = cal_up_model(data_buf.EFX, model_buf.FX, model_value);
 
 	return result;
+}
+
+
+void be_to_cpus_S_FX_EFX(struct S_FX_EFX *a, uint32_t samples)
+{
+	size_t i;
+
+	for (i = 0; i < samples; ++i) {
+		a[i].FX = be32_to_cpu(a[i].FX);
+		a[i].EFX = be32_to_cpu(a[i].EFX);
+	}
 }
 
 
@@ -487,6 +517,18 @@ struct S_FX_NCOB cal_up_model_S_FX_NCOB(struct S_FX_NCOB data_buf, struct S_FX_N
 	result.NCOB_Y = cal_up_model(data_buf.NCOB_Y, model_buf.NCOB_Y, model_value);
 
 	return result;
+}
+
+
+void be_to_cpus_S_FX_NCOB(struct S_FX_NCOB *a, uint32_t samples)
+{
+	size_t i;
+
+	for (i = 0; i < samples; ++i) {
+		a[i].FX = be32_to_cpu(a[i].FX);
+		a[i].NCOB_X = be32_to_cpu(a[i].NCOB_X);
+		a[i].NCOB_Y = be32_to_cpu(a[i].NCOB_Y);
+	}
 }
 
 
@@ -637,4 +679,108 @@ struct S_FX_EFX_NCOB_ECOB cal_up_model_S_FX_EFX_NCOB_ECOB
 	result.ECOB_Y = cal_up_model(data_buf.ECOB_Y, model_buf.ECOB_Y, model_value);
 
 	return result;
+}
+
+
+void be_to_cpus_S_FX_EFX_NCOB_ECOB(struct S_FX_EFX_NCOB_ECOB *a, uint32_t samples)
+{
+	size_t i;
+
+	for (i = 0; i < samples; ++i) {
+		a[i].FX = be32_to_cpu(a[i].FX);
+		a[i].NCOB_X = be32_to_cpu(a[i].NCOB_X);
+		a[i].NCOB_Y = be32_to_cpu(a[i].NCOB_Y);
+		a[i].EFX = be32_to_cpu(a[i].EFX);
+		a[i].ECOB_X = be32_to_cpu(a[i].ECOB_X);
+		a[i].ECOB_Y = be32_to_cpu(a[i].ECOB_Y);
+	}
+}
+
+
+/**
+ * @brief swap the endianness of science products form big endian to the cpu
+ *	endianness in place
+ *
+ * @param  data		pointer to a data sample
+ * @param  cmp_mode	compression mode
+ */
+
+void cmp_input_big_to_cpu_endiannessy(void *data, u_int32_t data_size_byte,
+				      uint32_t cmp_mode)
+{
+	int samples = cmp_input_size_to_samples(data_size_byte, cmp_mode);
+
+	if (!data)
+		return;
+
+	if (samples < 0) {
+		debug_print("Error: Can not convert data size in samples.\n");
+		return;
+	}
+
+	if (!rdcu_supported_mode_is_used(cmp_mode))
+		data = (uint8_t *)data + N_DPU_ICU_MULTI_ENTRY_HDR_SIZE;
+
+	switch (cmp_mode) {
+	case MODE_RAW:
+	case MODE_MODEL_ZERO:
+	case MODE_MODEL_MULTI:
+	case MODE_DIFF_ZERO:
+	case MODE_DIFF_MULTI:
+		be_to_cpus_16(data, samples);
+		break;
+	case MODE_RAW_S_FX:
+	case MODE_MODEL_ZERO_S_FX:
+	case MODE_MODEL_MULTI_S_FX:
+	case MODE_DIFF_ZERO_S_FX:
+	case MODE_DIFF_MULTI_S_FX:
+		be_to_cpus_S_FX(data, samples);
+		break;
+	case MODE_MODEL_ZERO_S_FX_EFX:
+	case MODE_MODEL_MULTI_S_FX_EFX:
+	case MODE_DIFF_ZERO_S_FX_EFX:
+	case MODE_DIFF_MULTI_S_FX_EFX:
+		be_to_cpus_S_FX_EFX(data, samples);
+		break;
+	case MODE_MODEL_ZERO_S_FX_EFX_NCOB_ECOB:
+	case MODE_MODEL_MULTI_S_FX_EFX_NCOB_ECOB:
+	case MODE_DIFF_ZERO_S_FX_EFX_NCOB_ECOB:
+	case MODE_DIFF_MULTI_S_FX_EFX_NCOB_ECOB:
+		be_to_cpus_S_FX_EFX_NCOB_ECOB(data, samples);
+		break;
+	case MODE_MODEL_ZERO_F_FX:
+	case MODE_MODEL_MULTI_F_FX:
+	case MODE_DIFF_ZERO_F_FX:
+	case MODE_DIFF_MULTI_F_FX:
+		/* be_to_cpus_F_FX(data, samples); */
+		/* break; */
+	case MODE_MODEL_ZERO_F_FX_EFX:
+	case MODE_MODEL_MULTI_F_FX_EFX:
+	case MODE_DIFF_ZERO_F_FX_EFX:
+	case MODE_DIFF_MULTI_F_FX_EFX:
+		/* be_to_cpus_F_FX_EFX(data, samples); */
+		/* break; */
+	case MODE_MODEL_ZERO_F_FX_NCOB:
+	case MODE_MODEL_MULTI_F_FX_NCOB:
+	case MODE_DIFF_ZERO_F_FX_NCOB:
+	case MODE_DIFF_MULTI_F_FX_NCOB:
+		/* be_to_cpus_F_FX_NCOB(data, samples); */
+		/* break; */
+	case MODE_MODEL_ZERO_F_FX_EFX_NCOB_ECOB:
+	case MODE_MODEL_MULTI_F_FX_EFX_NCOB_ECOB:
+	case MODE_DIFF_ZERO_F_FX_EFX_NCOB_ECOB:
+	case MODE_DIFF_MULTI_F_FX_EFX_NCOB_ECOB:
+		/* be_to_cpus_F_FX_EFX_NCOB_ECOB(data, samples); */
+		/* break; */
+	case MODE_RAW_32:
+	case MODE_MODEL_ZERO_32:
+	case MODE_MODEL_MULTI_32:
+	case MODE_DIFF_ZERO_32:
+	case MODE_DIFF_MULTI_32:
+		/* be32_to_cpus(data); */
+		/* break; */
+	default:
+		debug_print("Error: Compression mode not supported.\n");
+		break;
+	}
 }

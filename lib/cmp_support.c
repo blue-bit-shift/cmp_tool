@@ -559,6 +559,36 @@ size_t size_of_a_sample(unsigned int cmp_mode)
 
 
 /**
+ * @brief calculates the number of samples for a given data size for the
+ *	different compression modes
+ *
+ * @param size		size of the data me
+ * @param cmp_mode	compression mode
+ *
+ * @returns the number samples for the given compression mode; negative on error
+ */
+
+int cmp_input_size_to_samples(unsigned int size, unsigned int cmp_mode)
+{
+	unsigned int samples_size = size_of_a_sample(cmp_mode);
+
+	if (!samples_size)
+		return -1;
+
+	if (!rdcu_supported_mode_is_used(cmp_mode)) {
+		if (size < N_DPU_ICU_MULTI_ENTRY_HDR_SIZE)
+			return -1;
+		size -= N_DPU_ICU_MULTI_ENTRY_HDR_SIZE;
+	}
+
+	if (size % samples_size)
+		return -1;
+
+	return size/samples_size;
+}
+
+
+/**
  * @brief calculate the need bytes to hold a bitstream
  *
  * @param cmp_size_bit compressed data size, measured in bits
@@ -579,12 +609,19 @@ unsigned int cmp_bit_to_4byte(unsigned int cmp_size_bit)
  * @param samples number of data samples
  * @param cmp_mode used compression mode
  *
+ * @note for non RDCU modes the N_DPU ICU multi entry header size is added
+ *
  * @returns the size in bytes to store the data sample
  */
 
 unsigned int cmp_cal_size_of_data(unsigned int samples, unsigned int cmp_mode)
 {
-	return samples * size_of_a_sample(cmp_mode);
+	unsigned int s = samples * size_of_a_sample(cmp_mode);
+
+	if (!rdcu_supported_mode_is_used(cmp_mode))
+		s += N_DPU_ICU_MULTI_ENTRY_HDR_SIZE;
+
+	return s;
 }
 
 

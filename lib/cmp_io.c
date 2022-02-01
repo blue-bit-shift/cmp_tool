@@ -29,6 +29,7 @@
 #include "cmp_support.h"
 #include "rdcu_cmd.h"
 #include "byteorder.h"
+#include "cmp_data_types.h"
 
 
 /**

@@ -31,14 +31,12 @@ void print_help(const char *program_name);
 int read_cmp_cfg(const char *file_name, struct cmp_cfg *cfg, int verbose_en);
 int read_cmp_info(const char *file_name, struct cmp_info *info, int verbose_en);
 
-ssize_t read_file8(const char *file_name, uint8_t *buf, uint32_t n_word,
-		   int verbose_en);
-ssize_t read_file16(const char *file_name, uint16_t *buf, uint32_t samples,
-		    int verbose_en);
-ssize_t read_file32(const char *file_name, uint32_t *buf, uint32_t samples,
-		    int verbose_en);
+ssize_t read_file_data(const char *file_name, unsigned int cmp_mode, void *buf,
+		       uint32_t buf_size, int verbose_en);
 ssize_t read_file_cmp_entity(const char *file_name, struct cmp_entity *ent,
-			   uint32_t ent_size, int verbose_en);
+			     uint32_t ent_size, int verbose_en);
+ssize_t read_file32(const char *file_name, uint32_t *buf, uint32_t buf_size,
+		    int verbose_en);
 
 uint32_t cmp_tool_gen_version_id(const char *version);
 
