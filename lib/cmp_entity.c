@@ -1640,7 +1640,6 @@ void *cmp_ent_get_data_buf(struct cmp_entity *ent)
  * @param data_buf	pointer where the destination data buffer where the
  *	compressed data is copied to (can be NULL)
  * @param data_buf_size	size of the destination data buffer
- * @param verbose_en	print verbose output if not zero
  *
  * @returns the size in bytes to store the compressed data; negative on error
  *
