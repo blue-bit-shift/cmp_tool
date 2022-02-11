@@ -1,33 +1,39 @@
 # add checkpatch syntax-check target
 checkpatch = find_program('checkpatch.pl', 'checkpatch', required : false)
-checkpatch_args = [
-  '--no-tree', '-f',
-  '--show-types',
-  '--color=always',
-  '--ignore', 'SPDX_LICENSE_TAG,PREFER_DEFINED_ATTRIBUTE_MACRO,EMBEDDED_FILENAME,BLOCK_COMMENT_STYLE,EMBEDDED_FUNCTION_NAME',
-]
-run_target('syntax-check',
- command : [checkpatch, checkpatch_args, main, cmplib_sources])
+if checkpatch.found()
+  checkpatch_args = [
+    '--no-tree', '-f',
+    '--show-types',
+    '--color=always',
+    '--ignore', 'SPDX_LICENSE_TAG,PREFER_DEFINED_ATTRIBUTE_MACRO,EMBEDDED_FILENAME,BLOCK_COMMENT_STYLE,EMBEDDED_FUNCTION_NAME',
+  ]
+  run_target('syntax-check',
+   command : [checkpatch, checkpatch_args, main, cmplib_sources])
+endif
 
 # add cppcheck inspector target
 cppcheck = find_program('cppcheck', required : false)
-cppcheck_args = [
-  main, cmplib_sources,
-  '--clang',
-  '--cppcheck-build-dir='+meson.current_build_dir(),
-  '-I', 'include',
-  '--std=c89',
-  '--addon=misra.py',
-  '--bug-hunting',
-  '--enable=all',
-  '--inconclusive'
-]
-run_target('inspector',
-  command : [cppcheck, cppcheck_args]
-)
-
-cunit_dep = dependency('cunit')
+if cppcheck.found()
+  cppcheck_args = [
+    main, cmplib_sources,
+    '--clang',
+    '--cppcheck-build-dir='+meson.current_build_dir(),
+    '-I', 'include',
+    '--std=c89',
+    '--addon=misra.py',
+    '--bug-hunting',
+    '--enable=all',
+    '--inconclusive'
+  ]
+  run_target('inspector',
+    command : [cppcheck, cppcheck_args]
+  )
+endif
 
 subdir('cmp_tool')
-subdir('cmp_icu')
+
+cunit_dep = dependency('cunit')
+if cunit_dep.found()
+  subdir('cmp_icu')
+endif
 
