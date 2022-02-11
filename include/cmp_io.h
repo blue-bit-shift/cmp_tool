@@ -20,7 +20,6 @@
 #include "cmp_support.h"
 #include "cmp_entity.h"
 
-#define PROGRAM_NAME "cmp_tool"
 #define MAX_CONFIG_LINE 256
 
 #define DEFAULT_OUTPUT_PREFIX "OUTPUT"

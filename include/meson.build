@@ -1,7 +1,7 @@
 # generate the configuration file
 cdata = configuration_data()
 cdata.set_quoted('PROGRAM_NAME', 'cmp_tool')
-cdata.set_quoted('VERSION_STR', meson.project_version())
+cdata.set_quoted('CMP_TOOL_VERSION', meson.project_version())
 if get_option('argument_input_mode')
   cdata.set('ARGUMENT_INPUT_MODE', '')
 endif

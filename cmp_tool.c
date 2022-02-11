@@ -25,15 +25,14 @@
 #include <getopt.h>
 #include <time.h>
 
-#include "include/cmp_io.h"
-#include "include/cmp_icu.h"
-#include "include/decmp.h"
-#include "include/cmp_guess.h"
-#include "include/cmp_entity.h"
-#include "include/rdcu_pkt_to_file.h"
+#include "cmp_tool-config.h"
+#include "cmp_io.h"
+#include "cmp_icu.h"
+#include "decmp.h"
+#include "cmp_guess.h"
+#include "cmp_entity.h"
+#include "rdcu_pkt_to_file.h"
 
-
-#define VERSION "0.08"
 
 #define BUFFER_LENGTH_DEF_FAKTOR 2
 
@@ -190,7 +189,7 @@ int main(int argc, char **argv)
 			verbose_en = 1;
 			break;
 		case 'V': /* --version */
-			printf("%s version %s\n", PROGRAM_NAME, VERSION);
+			printf("%s version %s\n", PROGRAM_NAME, CMP_TOOL_VERSION);
 			exit(EXIT_SUCCESS);
 			break;
 		case DIFF_CFG_OPTION:
@@ -273,9 +272,9 @@ int main(int argc, char **argv)
 
 	printf("#########################################################\n");
 	printf("### PLATO Compression/Decompression Tool Version %s ###\n",
-	       VERSION);
+	       CMP_TOOL_VERSION);
 	printf("#########################################################\n");
-	if (!strcmp(VERSION, "0.07") || !strcmp(VERSION, "0.08"))
+	if (!strcmp(CMP_TOOL_VERSION, "0.07") || !strcmp(CMP_TOOL_VERSION, "0.08"))
 		printf("Info: Note that the behaviour of the cmp_tool has changed. From now on, the compressed data will be preceded by a header by default. The old behaviour can be achieved with the --no_header option.\n\n");
 
 	if (!data_file_name) {
@@ -629,7 +628,7 @@ static int add_cmp_ent_hdr(struct cmp_cfg *cfg, struct cmp_info *info,
 		cmp_bit_to_4byte(info->cmp_size));
 
 	ent = (struct cmp_entity *)cfg->icu_output_buf;
-	s = cmp_ent_build(ent, data_type, cmp_tool_gen_version_id(VERSION),
+	s = cmp_ent_build(ent, data_type, cmp_tool_gen_version_id(CMP_TOOL_VERSION),
 			  start_time, cmp_ent_create_timestamp(NULL), model_id,
 			  model_counter, info, cfg);
 	if (!s) {

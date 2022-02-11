@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+import pytest
 import subprocess
 import shlex
 import sys
@@ -213,10 +215,7 @@ CMP_START_STR = \
 """#########################################################
 ### PLATO Compression/Decompression Tool Version %s ###
 #########################################################
-Info: Note that the behaviour of the cmp_tool has changed. From now on, the compressed data will be preceded by a header by default. The old behaviour can be achieved with the --no_header option.
-
 """ % (VERSION)
-print(CMP_START_STR)
 
 CMP_START_STR_CMP = CMP_START_STR + "## Starting the compression ##\n"
 CMP_START_STR_DECMP = CMP_START_STR + "## Starting the decompression ##\n"
@@ -277,8 +276,8 @@ def test_print_diff_cfg():
     args = ['--diff_cfg', '--diff_cfg -a', '--diff_cfg --rdcu_par']
     for i, arg in enumerate(args):
         returncode, stdout, stderr = call_cmp_tool(arg)
-        assert(returncode == EXIT_SUCCESS)
         assert(stderr == "")
+        assert(returncode == EXIT_SUCCESS)
 
         cfg = parse_key_value(stdout)
         assert(cfg['cmp_mode'] == '2')
@@ -368,8 +367,8 @@ def test_compression_diff():
         # generate test configuration
         with open(cfg_file_name, 'w', encoding='utf-8') as f:
             returncode, stdout, stderr = call_cmp_tool("--diff_cfg")
-            assert(returncode == EXIT_SUCCESS)
             assert(stderr == "")
+            assert(returncode == EXIT_SUCCESS)
             f.write(stdout)
 
         add_args = [" --no_header", ""]
@@ -379,8 +378,8 @@ def test_compression_diff():
                 " -c "+cfg_file_name+" -d "+data_file_name + " -o "+output_prefix+add_arg)
 
             # check compression results
-            assert(returncode == EXIT_SUCCESS)
             assert(stderr == "")
+            assert(returncode == EXIT_SUCCESS)
             assert(stdout == CMP_START_STR_CMP +
                    "Importing configuration file %s ... DONE\n" % (cfg_file_name) +
                    "Importing data file %s ... \n" % (data_file_name) +

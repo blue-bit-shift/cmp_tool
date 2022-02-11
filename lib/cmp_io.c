@@ -24,10 +24,11 @@
 #include <ctype.h>
 #include <sys/stat.h>
 
-#include "../include/cmp_io.h"
-#include "../include/cmp_support.h"
-#include "../include/rdcu_cmd.h"
-#include "../include/byteorder.h"
+#include "cmp_tool-config.h"
+#include "cmp_io.h"
+#include "cmp_support.h"
+#include "rdcu_cmd.h"
+#include "byteorder.h"
 
 
 /**
