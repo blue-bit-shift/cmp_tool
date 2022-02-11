@@ -1,0 +1,2 @@
+option('argument_input_mode', type : 'boolean', value : false,
+  description : 'If set, the data file is set with the first argument and the model file with the second one')
