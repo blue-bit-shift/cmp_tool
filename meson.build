@@ -18,7 +18,7 @@ subdir('lib')
 
 main = files('cmp_tool.c')
 
-cmp_tool = executable('cmp_tool',
+cmp_tool_exe = executable('cmp_tool',
   sources : main,
   include_directories : incdir,
   link_with : cmp_lib,
