@@ -20,7 +20,7 @@ if cppcheck.found()
     '--cppcheck-build-dir='+meson.current_build_dir(),
     '-I', 'include',
     '--std=c89',
-    '--addon=misra.py',
+    # '--addon=misra.py',
     '--bug-hunting',
     '--enable=all',
     '--inconclusive'
@@ -35,5 +35,7 @@ subdir('cmp_tool')
 cunit_dep = dependency('cunit', required : false)
 if cunit_dep.found()
   subdir('cmp_icu')
+else
+  message('C Unit Testing Framework not found! Skipping unit tests.')
 endif
 
