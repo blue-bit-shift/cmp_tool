@@ -32,7 +32,7 @@ endif
 
 subdir('cmp_tool')
 
-cunit_dep = dependency('cunit')
+cunit_dep = dependency('cunit', required : false)
 if cunit_dep.found()
   subdir('cmp_icu')
 endif

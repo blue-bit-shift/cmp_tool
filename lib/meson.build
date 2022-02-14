@@ -17,5 +17,6 @@ cmplib_sources = files([
 cmp_lib = static_library('cmp_lib',
   sources : cmplib_sources,
   include_directories : incdir,
-  c_args : ['-DDEBUGLEVEL=1']
+  c_args : ['-DDEBUGLEVEL=1'], 
+  install : 'true' # linking under windows mingw only works if this is set
 )

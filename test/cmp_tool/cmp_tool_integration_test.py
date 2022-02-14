@@ -1136,6 +1136,11 @@ def test_model_fiel_erros():
                          "longlonglonglonglonglonglonglonglonglonglonglonglong"
                          "longlonglonglonglonglonglonglonglonglonglonglonglong"
                          "longlonglonglonglonglonglonglonglonglong")
+        if sys.platform == 'win32' or sys.platform == 'cygwin':
+          output_prefix = ("longlonglonglonglonglonglonglonglonglonglonglonglong"
+                           "longlonglonglonglonglonglonglonglonglonglonglonglong"
+                           "longlonglonglonglonglonglonglonglonglonglonglonglong"
+                           "longlonglonglonglonglonglonglonglonglonglong")
         returncode, stdout, stderr = call_cmp_tool(
             " -c "+cfg_file_name+" -d "+data_file_name + " -m "+model_file_name+" -o "+output_prefix)
         assert(returncode == EXIT_FAILURE)
@@ -1147,8 +1152,10 @@ def test_model_fiel_erros():
                "Compress data ... DONE\n" +
                "Write compressed data to file %s.cmp ... DONE\n" %(output_prefix) +
                "Write updated model to file %s_upmodel.dat ... FAILED\n" %(output_prefix))
-        assert(stderr == "cmp_tool: %s_upmodel.dat: File name too long\n" % (output_prefix))
-        #
+        if sys.platform == 'win32' or sys.platform == 'cygwin':
+          assert(stderr == "cmp_tool: %s_upmodel.dat: No such file or directory\n" % (output_prefix))
+        else:
+          assert(stderr == "cmp_tool: %s_upmodel.dat: File name too long\n" % (output_prefix))
 
     finally:
         del_file(data_file_name)
