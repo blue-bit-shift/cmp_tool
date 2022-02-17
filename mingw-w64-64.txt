@@ -1,0 +1,24 @@
+[binaries]
+c = 'x86_64-w64-mingw32-gcc'
+cpp = 'x86_64-w64-mingw32-g++'
+objc = 'x86_64-w64-mingw32-gcc'
+ar = 'x86_64-w64-mingw32-ar'
+strip = 'x86_64-w64-mingw32-strip'
+pkgconfig = 'x86_64-w64-mingw32-pkg-config'
+windres = 'x86_64-w64-mingw32-windres'
+exe_wrapper = 'wine64'
+cmake = 'cmake'
+
+[host_machine]
+system = 'windows'
+cpu_family = 'x86_64'
+cpu = 'x86_64'
+endian = 'little'
+
+[cmake]
+
+CMAKE_BUILD_WITH_INSTALL_RPATH     = 'ON'
+CMAKE_FIND_ROOT_PATH_MODE_PROGRAM  = 'NEVER'
+CMAKE_FIND_ROOT_PATH_MODE_LIBRARY  = 'ONLY'
+CMAKE_FIND_ROOT_PATH_MODE_INCLUDE  = 'ONLY'
+CMAKE_FIND_ROOT_PATH_MODE_PACKAGE  = 'ONLY'
