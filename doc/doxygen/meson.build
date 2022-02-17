@@ -13,6 +13,7 @@ doc_layout_files = files([
 cdata_doc = configuration_data()
 cdata_doc.set('VERSION', meson.project_version())
 cdata_doc.set('SRCDIR', meson.project_source_root())
+cdata_doc.set('DOXYDIR', meson.current_source_dir())
 cdata_doc.set('BUILDDIR', meson.project_build_root())
 if find_program('dot', required : false).found()
   cdata_doc.set('HAVE_DOT', 'YES')
