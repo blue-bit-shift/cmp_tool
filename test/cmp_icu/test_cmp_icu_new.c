@@ -8,8 +8,8 @@
 
 
 /**
-* @test map_to_pos
-*/
+ * @test map_to_pos
+ */
 
 void test_map_to_pos(void)
 {
@@ -780,7 +780,7 @@ void test_encode_value_zero(void)
 	TEST_ASSERT_EQUAL_HEX(0xFFFFFFFF, bitstream[2]);
 
 	/* maximum negative value to encode */
-	data = -32U; model = 0;
+	data = 0; model = 32;
 	stream_len = encode_value_zero(data, model, stream_len, &setup);
 	TEST_ASSERT_EQUAL_INT(53, stream_len);
 	TEST_ASSERT_EQUAL_HEX(0xFFFFFFFE, bitstream[0]);
@@ -795,8 +795,100 @@ void test_encode_value_zero(void)
 	setup.max_bit_len = 32;
 	data = 31; model = 0;
 	stream_len = encode_value_zero(data, model, stream_len, &setup);
-	TEST_ASSERT_EQUAL_INT(-2, stream_len);
+	TEST_ASSERT_EQUAL_INT(CMP_ERROR_SAMLL_BUF, stream_len);
 	TEST_ASSERT_EQUAL_HEX(0, bitstream[0]);
 	TEST_ASSERT_EQUAL_HEX(0, bitstream[1]);
 	TEST_ASSERT_EQUAL_HEX(0, bitstream[2]);
+}
+
+
+/**
+ * @test encode_value_multi
+ */
+
+void test_encode_value_multi(void)
+{
+	uint32_t data, model;
+	int stream_len;
+	struct encoder_setupt setup = {0};
+	uint32_t bitstream[4] = {0};
+
+	/* setup the setup */
+	setup.encoder_par1 = 1;
+	setup.encoder_par2 = (uint32_t)ilog_2(setup.encoder_par1);
+	setup.outlier_par = 16;
+	setup.max_value_bits = 32;
+	setup.generate_cw = Rice_encoder;
+	setup.bitstream_adr = bitstream;
+	setup.max_bit_len = sizeof(bitstream) * CHAR_BIT;
+
+	stream_len = 0;
+
+	data = 0; model = 0;
+	stream_len = encode_value_multi(data, model, stream_len, &setup);
+	TEST_ASSERT_EQUAL_INT(1, stream_len);
+	TEST_ASSERT_EQUAL_HEX(0x00000000, bitstream[0]);
+	TEST_ASSERT_EQUAL_HEX(0x00000000, bitstream[1]);
+	TEST_ASSERT_EQUAL_HEX(0x00000000, bitstream[2]);
+	TEST_ASSERT_EQUAL_HEX(0x00000000, bitstream[3]);
+
+	data = 0; model = 1;
+	stream_len = encode_value_multi(data, model, stream_len, &setup);
+	TEST_ASSERT_EQUAL_INT(3, stream_len);
+	TEST_ASSERT_EQUAL_HEX(0x40000000, bitstream[0]);
+	TEST_ASSERT_EQUAL_HEX(0x00000000, bitstream[1]);
+	TEST_ASSERT_EQUAL_HEX(0x00000000, bitstream[2]);
+	TEST_ASSERT_EQUAL_HEX(0x00000000, bitstream[3]);
+
+	data = 1+23; model = 0+23;
+	stream_len = encode_value_multi(data, model, stream_len, &setup);
+	TEST_ASSERT_EQUAL_INT(6, stream_len);
+	TEST_ASSERT_EQUAL_HEX(0x58000000, bitstream[0]);
+	TEST_ASSERT_EQUAL_HEX(0x00000000, bitstream[1]);
+	TEST_ASSERT_EQUAL_HEX(0x00000000, bitstream[2]);
+	TEST_ASSERT_EQUAL_HEX(0x00000000, bitstream[3]);
+
+	/* highest value without multi outlier encoding */
+	data = 0+42; model = 8+42;
+	stream_len = encode_value_multi(data, model, stream_len, &setup);
+	TEST_ASSERT_EQUAL_INT(22, stream_len);
+	TEST_ASSERT_EQUAL_HEX(0x5BFFF800, bitstream[0]);
+	TEST_ASSERT_EQUAL_HEX(0x00000000, bitstream[1]);
+	TEST_ASSERT_EQUAL_HEX(0x00000000, bitstream[2]);
+	TEST_ASSERT_EQUAL_HEX(0x00000000, bitstream[3]);
+
+	/* lowest value with multi outlier encoding */
+	data = 8+42; model = 0+42;
+	stream_len = encode_value_multi(data, model, stream_len, &setup);
+	TEST_ASSERT_EQUAL_INT(41, stream_len);
+	TEST_ASSERT_EQUAL_HEX(0x5BFFFBFF, bitstream[0]);
+	TEST_ASSERT_EQUAL_HEX(0xFC000000, bitstream[1]);
+	TEST_ASSERT_EQUAL_HEX(0x00000000, bitstream[2]);
+	TEST_ASSERT_EQUAL_HEX(0x00000000, bitstream[3]);
+
+	/* highest value with multi outlier encoding */
+	data = INT32_MIN; model = 0;
+	stream_len = encode_value_multi(data, model, stream_len, &setup);
+	TEST_ASSERT_EQUAL_INT(105, stream_len);
+	TEST_ASSERT_EQUAL_HEX(0x5BFFFBFF, bitstream[0]);
+	TEST_ASSERT_EQUAL_HEX(0xFC7FFFFF, bitstream[1]);
+	TEST_ASSERT_EQUAL_HEX(0xFF7FFFFF, bitstream[2]);
+	TEST_ASSERT_EQUAL_HEX(0xF7800000, bitstream[3]);
+
+	/* small buffer error */
+	data = 0; model = 38;
+	stream_len = encode_value_multi(data, model, stream_len, &setup);
+	TEST_ASSERT_EQUAL_INT(CMP_ERROR_SAMLL_BUF, stream_len);
+
+	/* small buffer error when creating the multi escape symbol*/
+	bitstream[0] = 0;
+	bitstream[1] = 0;
+	setup.max_bit_len = 32;
+
+	stream_len = 32;
+	data = 31; model = 0;
+	stream_len = encode_value_multi(data, model, stream_len, &setup);
+	TEST_ASSERT_EQUAL_INT(CMP_ERROR_SAMLL_BUF, stream_len);
+	TEST_ASSERT_EQUAL_HEX(0, bitstream[0]);
+	TEST_ASSERT_EQUAL_HEX(0, bitstream[1]);
 }

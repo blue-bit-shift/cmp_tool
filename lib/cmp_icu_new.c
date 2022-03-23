@@ -307,8 +307,8 @@ static int encode_normal(uint32_t value, int stream_len,
 
 
 /**
- * @brief subtract the model from the data and encode the result and put it into
- *	bitstream, for outlier use the zero escape symbol mechanism
+ * @brief subtract the model from the data, encode the result and put it into
+ *	bitstream, for encodeing outlier use the zero escape symbol mechanism
  *
  * @param data		data to encode
  * @param model		model of the data (0 if not used)
@@ -316,9 +316,11 @@ static int encode_normal(uint32_t value, int stream_len,
  * @param setup		pointer to the encoder setup
  *
  * @returns the bit length of the bitstream with the added encoded value on
- *	success; negative on error
+ *	success; negative on error, CMP_ERROR_SAMLL_BUF if the bitstream buffer
+ *	is too small to put the value in the bitstream
  *
  * @note no check if data or model are in the allowed range
+ * @note no check if the setup->outlier_par is in the allowed range
  */
 
 static int encode_value_zero(uint32_t data, uint32_t model, int stream_len,
@@ -328,13 +330,13 @@ static int encode_value_zero(uint32_t data, uint32_t model, int stream_len,
 
 	data = map_to_pos(data, setup->max_value_bits);
 
-	/* For performance reasons we check if there is an outlier before adding
-	 * one to the data, than the other way around:
+	/* For performance reasons, we check to see if there is an outlier
+	 * before adding one, rather than the other way around:
 	 * data++;
 	 * if (data < setup->outlier_par && data != 0)
 	 *	return ...
 	 */
-	if (data < (setup->outlier_par - 1)) {
+	if (data < (setup->outlier_par - 1)) { /* detect r */
 		data++; /* add 1 to every value so we can use 0 as escape symbol */
 		return encode_normal(data, stream_len, setup);
 	}
@@ -355,74 +357,57 @@ static int encode_value_zero(uint32_t data, uint32_t model, int stream_len,
 }
 
 
-static int cal_multi_offset(unsigned int unencoded_data)
-{
-	if (unencoded_data <= 0x3)
-		return 0;
-	if (unencoded_data <= 0xF)
-		return 1;
-	if (unencoded_data <= 0x3F)
-		return 2;
-	if (unencoded_data <= 0xFF)
-		return 3;
-	if (unencoded_data <= 0x3FF)
-		return 4;
-	if (unencoded_data <= 0xFFF)
-		return 5;
-	if (unencoded_data <= 0x3FFF)
-		return 6;
-	if (unencoded_data <= 0xFFFF)
-		return 7;
-	if (unencoded_data <= 0x3FFFF)
-		return 8;
-	if (unencoded_data <= 0xFFFFF)
-		return 9;
-	if (unencoded_data <= 0x3FFFFF)
-		return 10;
-	if (unencoded_data <= 0xFFFFFF)
-		return 11;
-	if (unencoded_data <= 0x3FFFFFF)
-		return 12;
-	if (unencoded_data <= 0xFFFFFFF)
-		return 13;
-	if (unencoded_data <= 0x3FFFFFFF)
-		return 14;
-	else
-		return 15;
-}
+/**
+ * @brief subtract the model from the data, encode the result and put it into
+ *	bitstream, for encoding outlier use the multi escape symbol mechanism
+ *
+ * @param data		data to encode
+ * @param model		model of the data (0 if not used)
+ * @param stream_len	length of the bitstream in bits
+ * @param setup		pointer to the encoder setup
+ *
+ * @returns the bit length of the bitstream with the added encoded value on
+ *	success; negative on error, CMP_ERROR_SAMLL_BUF if the bitstream buffer
+ *	is too small to put the value in the bitstream
+ *
+ * @note no check if data or model are in the allowed range
+ * @note no check if the setup->outlier_par is in the allowed ragne
+ */
 
-
-#if 0
 static int encode_value_multi(uint32_t data, uint32_t model, int stream_len,
 			      struct encoder_setupt *setup)
 {
 	uint32_t unencoded_data;
 	unsigned int unencoded_data_len;
-	uint32_t escape_sym;
-	uint32_t escape_sym_offset;
+	uint32_t escape_sym, escape_sym_offset;
 
 	data -= model; /* possible underflow is intended */
 
 	data = map_to_pos(data, setup->max_value_bits);
 
-	if (data < setup->outlier_par)
+	if (data < setup->outlier_par) /* detect non-outlier */
 		return  encode_normal(data, stream_len, setup);
+
 	/*
 	 * In this mode we put the difference between the data and the spillover
 	 * threshold value (unencoded_data) after a encoded escape symbol, which
 	 * indicate that the next codeword is unencoded.
 	 * We use different escape symbol depended on the size the needed bit of
 	 * unencoded data:
-	 * 0, 1, 2 bits needed for unencoded data -> escape symbol is spill + 0
-	 * 3, 4 bits needed for unencoded data -> escape symbol is spill + 1
-	 * ..
+	 * 0, 1, 2 bits needed for unencoded data -> escape symbol is outlier_par + 0
+	 * 3, 4 bits needed for unencoded data -> escape symbol is outlier_par + 1
+	 * 5, 6 bits needed for unencoded data -> escape symbol is outlier_par + 2
+	 * and so on
 	 */
-
 	unencoded_data = data - setup->outlier_par;
 
-	escape_sym_offset = cal_multi_offset(unencoded_data);
-	escape_sym  = setup->outlier_par + escape_sym_offset;
-	unencoded_data_len = (escape_sym_offset + 1) * 2;
+	if (!unencoded_data) /* catch __builtin_clz(0) because the result is undefined.*/
+		escape_sym_offset = 0;
+	else
+		escape_sym_offset = (31U - (uint32_t)__builtin_clz(unencoded_data)) >> 1;
+
+	escape_sym = setup->outlier_par + escape_sym_offset;
+	unencoded_data_len = (escape_sym_offset + 1U) << 1;
 
 	/* put the escape symbol in the bitstream */
 	stream_len = encode_normal(escape_sym, stream_len, setup);
@@ -435,4 +420,3 @@ static int encode_value_multi(uint32_t data, uint32_t model, int stream_len,
 
 	return stream_len;
 }
-#endif
