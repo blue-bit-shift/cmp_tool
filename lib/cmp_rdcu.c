@@ -141,7 +141,7 @@ static int rdcu_cfg_gen_par_is_invalid(const struct cmp_cfg *cfg)
  *	on error the data_type record is set to DATA_TYPE_UNKOWN
  */
 
-struct cmp_cfg rdcu_cfg_create(enum cmp_ent_data_type data_type, enum cmp_mode cmp_mode,
+struct cmp_cfg rdcu_cfg_create(enum cmp_data_type data_type, enum cmp_mode cmp_mode,
 			       uint32_t model_value, uint32_t lossy_par)
 {
 	struct cmp_cfg cfg = {0};
