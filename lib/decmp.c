@@ -4,822 +4,42 @@
 #include <limits.h>
 #include <string.h>
 
-#include "../include/cmp_support.h"
-#include "../include/cmp_icu.h"
-#include "../include/cmp_data_types.h"
-#include "../include/byteorder.h"
-#include "../include/cmp_debug.h"
+#include "byteorder.h"
+#include "cmp_debug.h"
+#include "cmp_support.h"
+#include "cmp_data_types.h"
+#include "cmp_entity.h"
+
+#define CMP_ERROR_SAMLL_BUF -2
 
 
-double get_compression_ratio(const struct cmp_info *info)
+/* structure to hold a setup to encode a value */
+typedef unsigned int (*decoder_ptr)(unsigned int, unsigned int, unsigned int, unsigned int *);
+struct decoder_setup {
+	/* generate_cw_f_pt generate_cw_f; /1* pointer to the code word generation function *1/ */
+	decoder_ptr decode_cw_f;
+	int (*encode_method_f)(uint32_t *decoded_value, int stream_pos,
+			       const struct decoder_setup *setup); /* pointer to the decoding function */
+	uint32_t *bitstream_adr; /* start address of the compressed data bitstream */
+	uint32_t max_stream_len; /* maximum length of the bitstream/icu_output_buf in bits */
+	uint32_t max_cw_len;
+	uint32_t encoder_par1; /* encoding parameter 1 */
+	uint32_t encoder_par2; /* encoding parameter 2 */
+	uint32_t outlier_par; /* outlier parameter */
+	uint32_t lossy_par; /* lossy compression parameter */
+	uint32_t model_value; /* model value parameter */
+	uint32_t max_data_bits; /* how many bits are needed to represent the highest possible value */
+};
+
+
+double get_compression_ratio(uint32_t samples, uint32_t cmp_size_bits,
+			     enum cmp_data_type data_type)
 {
-	unsigned long orign_len_bits = info->samples_used * size_of_a_sample(info->cmp_mode_used) * CHAR_BIT;
+	double orign_len_bits = (double)cmp_cal_size_of_data(samples, data_type) * CHAR_BIT;
 
-	return (double)orign_len_bits/(double)info->cmp_size;
+	return orign_len_bits/(double)cmp_size_bits;
 }
 
-
-void *malloc_decompressed_data(const struct cmp_info *info)
-{
-	size_t sample_len;
-
-	if (!info)
-		return NULL;
-
-	if (info->samples_used == 0)
-		return NULL;
-
-	sample_len = size_of_a_sample(info->cmp_mode_used);
-
-	return malloc(info->samples_used * sample_len);
-}
-
-
-/**
- * @brief decompression data pre-processing in RAW mode
- *
- * @note in RAW mode the data are uncompressed no pre_processing needed
- *
- * @param  cmp_mode_used used compression mode
- *
- * @returns 0 on success, error otherwise
- */
-
-static int de_raw_pre_process(uint8_t cmp_mode_used)
-{
-	if (!raw_mode_is_used(cmp_mode_used))
-		return -1;
-
-	return 0;
-}
-
-
-/**
- * @brief model decompression pre-processing
- *
- * @note change the data_buf in-place
- *
- * @param data_buf	pointer to the data to process
- * @param model_buf	pointer to the model of the data to process
- * @param samples_used	the size of the data and model buffer in 16 bit units
- * @param model_value_used used model weighting parameter
- * @param round_used	used number of bits to round; if zero no rounding takes place
- *
- * @returns 0 on success, error otherwise
- */
-
-static int de_model_16(uint16_t *data_buf, uint16_t *model_buf, uint32_t
-		       samples_used, uint8_t model_value_used, uint8_t
-		       round_used)
-{
-	size_t i;
-	int err;
-
-	if (!samples_used)
-		return 0;
-
-	if (!data_buf)
-		return -1;
-
-	if (!model_buf)
-		return -1;
-
-	if (model_value_used > MAX_MODEL_VALUE)
-		return -1;
-
-	for (i = 0; i < samples_used; i++) {
-		/* overflow is intended */
-		data_buf[i] = (uint16_t)(data_buf[i] + round_fwd(model_buf[i],
-								  round_used));
-	}
-
-	err = de_lossy_rounding_16(data_buf, samples_used, round_used);
-	if (err)
-		return -1;
-
-	for (i = 0; i < samples_used; i++) {
-		model_buf[i] = (uint16_t)cal_up_model(data_buf[i], model_buf[i],
-						      model_value_used);
-	}
-	return 0;
-}
-
-
-static int de_model_S_FX(struct S_FX *data_buf, struct S_FX *model_buf, uint32_t
-		       samples_used, uint8_t model_value_used, uint8_t
-		       round_used)
-{
-	size_t i;
-	int err;
-
-	if (!samples_used)
-		return 0;
-
-	if (!data_buf)
-		return -1;
-
-	if (!model_buf)
-		return -1;
-
-	if (model_value_used > MAX_MODEL_VALUE)
-		return -1;
-
-	for (i = 0; i < samples_used; i++) {
-		/* overflow is intended */
-		struct S_FX round_model = model_buf[i];
-
-		lossy_rounding_S_FX(&round_model, 1, round_used);
-		data_buf[i] = add_S_FX(data_buf[i], model_buf[i]);
-	}
-
-	err = de_lossy_rounding_S_FX(data_buf, samples_used, round_used);
-	if (err)
-		return -1;
-
-	for (i = 0; i < samples_used; i++)
-		model_buf[i] = cal_up_model_S_FX(data_buf[i], model_buf[i],
-						 model_value_used);
-
-	return 0;
-}
-
-
-/**
- * @brief 1d-differencing decompression per-processing
- *
- * @param data_buf	pointer to the data to process
- * @param samples_used	the size of the data and model buffer in 16 bit units
- * @param round_used	used number of bits to round; if zero no rounding takes place
- *
- * @returns 0 on success, error otherwise
- */
-
-static int de_diff_16(uint16_t *data_buf, uint32_t samples_used, uint8_t
-		      round_used)
-{
-	size_t i;
-	int err;
-
-	if (!samples_used)
-		return 0;
-
-	if (!data_buf)
-		return -1;
-
-	for (i = 1; i < samples_used; i++) {
-		/* overflow intended */
-		data_buf[i] = data_buf[i] + data_buf[i-1];
-	}
-
-	err = de_lossy_rounding_16(data_buf, samples_used, round_used);
-	if (err)
-		return -1;
-
-	return 0;
-}
-
-
-static int de_diff_32(uint32_t *data_buf, uint32_t samples_used, uint8_t
-		      round_used)
-{
-	size_t i;
-	int err;
-
-	if (!samples_used)
-		return 0;
-
-	if (!data_buf)
-		return -1;
-
-	for (i = 1; i < samples_used; i++) {
-		/* overflow intended */
-		data_buf[i] = data_buf[i] + data_buf[i-1];
-	}
-
-	err = de_lossy_rounding_32(data_buf, samples_used, round_used);
-	if (err)
-		return -1;
-
-	return 0;
-}
-
-
-static int de_diff_S_FX(struct S_FX *data_buf, uint32_t samples_used, uint8_t
-			round_used)
-{
-	size_t i;
-	int err;
-
-	if (!samples_used)
-		return 0;
-
-	if (!data_buf)
-		return -1;
-
-	for (i = 1; i < samples_used; i++) {
-		/* overflow intended */
-		data_buf[i] = add_S_FX(data_buf[i], data_buf[i-1]);
-	}
-
-	err = de_lossy_rounding_S_FX(data_buf, samples_used, round_used);
-	if (err)
-		return -1;
-
-	return 0;
-}
-
-
-static int de_diff_S_FX_EFX(struct S_FX_EFX *data_buf, uint32_t samples_used,
-			    uint8_t round_used)
-{
-	size_t i;
-	int err;
-
-	if (!samples_used)
-		return 0;
-
-	if (!data_buf)
-		return -1;
-
-	for (i = 1; i < samples_used; i++) {
-		/* overflow intended */
-		data_buf[i] = add_S_FX_EFX(data_buf[i], data_buf[i-1]);
-	}
-
-	err = de_lossy_rounding_S_FX_EFX(data_buf, samples_used, round_used);
-	if (err)
-		return -1;
-
-	return 0;
-}
-
-
-static int de_diff_S_FX_NCOB(struct S_FX_NCOB *data_buf, uint32_t samples_used,
-			     uint8_t round_used)
-{
-	size_t i;
-	int err;
-
-	if (!samples_used)
-		return 0;
-
-	if (!data_buf)
-		return -1;
-
-	for (i = 1; i < samples_used; i++) {
-		/* overflow intended */
-		data_buf[i] = add_S_FX_NCOB(data_buf[i], data_buf[i-1]);
-	}
-
-	err = de_lossy_rounding_S_FX_NCOB(data_buf, samples_used, round_used);
-	if (err)
-		return -1;
-
-	return 0;
-}
-
-
-static int de_diff_S_FX_EFX_NCOB_ECOB(struct S_FX_EFX_NCOB_ECOB *data_buf,
-				      uint32_t samples_used, uint8_t round_used)
-{
-	size_t i;
-	int err;
-
-	if (!samples_used)
-		return 0;
-
-	if (!data_buf)
-		return -1;
-
-	for (i = 1; i < samples_used; i++) {
-		/* overflow intended */
-		data_buf[i] = add_S_FX_EFX_NCOB_ECOB(data_buf[i], data_buf[i-1]);
-	}
-
-	err = de_lossy_rounding_S_FX_EFX_NCOB_ECOB(data_buf, samples_used,
-						   round_used);
-	if (err)
-		return -1;
-
-	return 0;
-}
-
-
-static int de_pre_process(void *decoded_data, void *de_model_buf,
-			  const struct cmp_info *info)
-{
-	if (!decoded_data)
-		return -1;
-
-	if (!info)
-		return -1;
-
-	if (info->samples_used == 0)
-		return 0;
-
-	switch (info->cmp_mode_used) {
-	case MODE_RAW:
-	case MODE_RAW_S_FX:
-		return de_raw_pre_process(info->cmp_mode_used);
-		break;
-	case MODE_MODEL_ZERO:
-	case MODE_MODEL_MULTI:
-		return de_model_16((uint16_t *)decoded_data,
-				   (uint16_t *)de_model_buf, info->samples_used,
-				   info->model_value_used, info->round_used);
-		break;
-	case MODE_DIFF_ZERO:
-	case MODE_DIFF_MULTI:
-		return de_diff_16((uint16_t *)decoded_data, info->samples_used,
-				  info->round_used);
-		break;
-	case MODE_MODEL_ZERO_S_FX:
-	case MODE_MODEL_MULTI_S_FX:
-		return de_model_S_FX((struct S_FX *)decoded_data,
-				   (struct S_FX *)de_model_buf,
-				   info->samples_used, info->model_value_used,
-				   info->round_used);
-		break;
-	case MODE_DIFF_ZERO_S_FX:
-	case MODE_DIFF_MULTI_S_FX:
-		return de_diff_S_FX((struct S_FX *)decoded_data,
-				    info->samples_used, info->round_used);
-		break;
-	case MODE_DIFF_ZERO_S_FX_EFX:
-	case MODE_DIFF_MULTI_S_FX_EFX:
-		return de_diff_S_FX_EFX((struct S_FX_EFX *)decoded_data,
-					info->samples_used, info->round_used);
-		break;
-	case MODE_MODEL_ZERO_S_FX_EFX:
-	case MODE_MODEL_MULTI_S_FX_EFX:
-		return -1;
-		break;
-	case MODE_DIFF_ZERO_S_FX_NCOB:
-	case MODE_DIFF_MULTI_S_FX_NCOB:
-		return de_diff_S_FX_NCOB((struct S_FX_NCOB *)decoded_data,
-					 info->samples_used, info->round_used);
-		break;
-	case MODE_MODEL_ZERO_S_FX_NCOB:
-	case MODE_MODEL_MULTI_S_FX_NCOB:
-		return -1;
-		break;
-	case MODE_DIFF_ZERO_S_FX_EFX_NCOB_ECOB:
-	case MODE_DIFF_MULTI_S_FX_EFX_NCOB_ECOB:
-		return de_diff_S_FX_EFX_NCOB_ECOB((struct S_FX_EFX_NCOB_ECOB *)
-						  decoded_data,
-						  info->samples_used,
-						  info->round_used);
-		break;
-	case MODE_MODEL_ZERO_S_FX_EFX_NCOB_ECOB:
-	case MODE_MODEL_MULTI_S_FX_EFX_NCOB_ECOB:
-		return -1;
-		break;
-	case MODE_DIFF_ZERO_F_FX:
-	case MODE_DIFF_MULTI_F_FX:
-		return de_diff_32((uint32_t *)decoded_data, info->samples_used,
-				  info->round_used);
-		break;
-	case MODE_MODEL_ZERO_F_FX:
-	case MODE_MODEL_MULTI_F_FX:
-		return -1;
-		break;
-	default:
-		debug_print("Error: Compression mode not supported.\n");
-		break;
-	}
-
-	return -1;
-}
-
-
-static uint8_t de_map_to_pos_alg_8(uint8_t value_to_unmap)
-{
-	if (value_to_unmap & 0x1) /* if uneven */
-		return (value_to_unmap + 1) / -2;
-	else
-		return value_to_unmap / 2;
-}
-
-
-static uint16_t de_map_to_pos_alg_16(uint16_t value_to_unmap)
-{
-	if (value_to_unmap & 0x1) /* if uneven */
-		return (value_to_unmap + 1) / -2;
-	else
-		return value_to_unmap / 2;
-}
-
-
-static uint32_t de_map_to_pos_alg_32(uint32_t value_to_unmap)
-{
-
-	if (value_to_unmap & 0x1) /* if uneven */
-		return ((int64_t)value_to_unmap + 1) / -2; /* typecast to prevent overflow */
-	else
-		return value_to_unmap / 2;
-}
-
-
-/**
- * @brief map the unsigned output of the pre-stage to a signed value range for a
- *	16-bit buffer
- *
- * @note change the data_buf in-place
- *
- * @param data_buf	pointer to the uint16_t data buffer to process
- * @param samples_used	amount of data samples in the data_buf
- * @param zero_mode_used needs to be set if the zero escape symbol mechanism is used
- *
- * @returns 0 on success, error otherwise
- */
-
-static int de_map_to_pos_16(uint16_t *data_buf, uint32_t samples_used, int
-			    zero_mode_used)
-{
-	size_t i;
-
-	if (!samples_used)
-		return 0;
-
-	if (!data_buf)
-		return -1;
-
-	for (i = 0; i < samples_used; i++) {
-		if (zero_mode_used)
-			data_buf[i] -= 1;
-
-		data_buf[i] = (uint16_t)de_map_to_pos_alg_16(data_buf[i]);
-	}
-	return 0;
-}
-
-
-/**
- * @brief map the unsigned output of the pre-stage to a signed value range for a
- *	32-bit buffer
- *
- * @note change the data_buf in-place
- *
- * @param data_buf	pointer to the uint16_t data buffer to process
- * @param samples_used	amount of data samples in the data_buf
- * @param zero_mode_used needs to be set if the zero escape symbol mechanism is used
- *
- * @returns 0 on success, error otherwise
- */
-
-static int de_map_to_pos_32(uint32_t *data_buf, uint32_t samples_used, int
-			    zero_mode_used)
-{
-	size_t i;
-
-	if (!samples_used)
-		return 0;
-
-	if (!data_buf)
-		return -1;
-
-	for (i = 0; i < samples_used; i++) {
-		if (zero_mode_used)
-			data_buf[i] -= 1;
-
-		data_buf[i] = (uint32_t)de_map_to_pos_alg_32(data_buf[i]);
-	}
-	return 0;
-}
-
-
-/**
- * @brief map the unsigned output of the pre-stage to a signed value range for a
- *	S_FX buffer
- *
- * @note change the data_buf in-place
- *
- * @param data_buf	pointer to the S_FX data buffer to process
- * @param samples_used	amount of data samples in the data_buf
- * @param zero_mode_used needs to be set if the zero escape symbol mechanism is used
- *
- * @returns 0 on success, error otherwise
- */
-
-static int de_map_to_pos_S_FX(struct S_FX *data_buf, uint32_t samples_used, int
-			      zero_mode_used)
-{
-	size_t i;
-
-	if (!samples_used)
-		return 0;
-
-	if (!data_buf)
-		return -1;
-
-	for (i = 0; i < samples_used; i++) {
-		if (zero_mode_used) {
-			/* data_buf[i].EXPOSURE_FLAGS -= 1; */
-			data_buf[i].FX -= 1;
-		}
-
-		data_buf[i].EXPOSURE_FLAGS =
-			de_map_to_pos_alg_8(data_buf[i].EXPOSURE_FLAGS);
-		data_buf[i].FX = de_map_to_pos_alg_32(data_buf[i].FX);
-	}
-	return 0;
-}
-
-
-/**
- * @brief map the unsigned output of the pre-stage to a signed value range for a
- *	S_FX_EFX buffer
- *
- * @note change the data_buf in-place
- *
- * @param data_buf	pointer to the S_FX_EFX data buffer to process
- * @param samples_used	amount of data samples in the data_buf
- * @param zero_mode_used needs to be set if the zero escape symbol mechanism is used
- *
- * @returns 0 on success, error otherwise
- */
-
-static int de_map_to_pos_S_FX_EFX(struct S_FX_EFX *data_buf, uint32_t
-				  samples_used, int zero_mode_used)
-{
-	size_t i;
-
-	if (!samples_used)
-		return 0;
-
-	if (!data_buf)
-		return -1;
-
-	for (i = 0; i < samples_used; i++) {
-		if (zero_mode_used) {
-			/* data_buf[i].EXPOSURE_FLAGS -= 1; */
-			data_buf[i].FX -= 1;
-			data_buf[i].EFX -= 1;
-		}
-
-		data_buf[i].EXPOSURE_FLAGS =
-			de_map_to_pos_alg_8(data_buf[i].EXPOSURE_FLAGS);
-		data_buf[i].FX = de_map_to_pos_alg_32(data_buf[i].FX);
-		data_buf[i].EFX = de_map_to_pos_alg_32(data_buf[i].EFX);
-	}
-	return 0;
-}
-
-
-/**
- * @brief map the unsigned output of the pre-stage to a signed value range for a
- *	S_FX_NCOB buffer
- *
- * @note change the data_buf in-place
- *
- * @param data_buf	pointer to the S_FX_NCOB data buffer to process
- * @param samples_used	amount of data samples in the data_buf
- * @param zero_mode_used needs to be set if the zero escape symbol mechanism is used
- *
- * @returns 0 on success, error otherwise
- */
-
-static int de_map_to_pos_S_FX_NCOB(struct S_FX_NCOB *data_buf, uint32_t
-				   samples_used, int zero_mode_used)
-{
-	size_t i;
-
-	if (!samples_used)
-		return 0;
-
-	if (!data_buf)
-		return -1;
-
-	for (i = 0; i < samples_used; i++) {
-		if (zero_mode_used) {
-			/* data_buf[i].EXPOSURE_FLAGS -= 1; */
-			data_buf[i].FX -= 1;
-			data_buf[i].NCOB_X -= 1;
-			data_buf[i].NCOB_Y -= 1;
-		}
-
-		data_buf[i].EXPOSURE_FLAGS =
-			de_map_to_pos_alg_8(data_buf[i].EXPOSURE_FLAGS);
-		data_buf[i].FX = de_map_to_pos_alg_32(data_buf[i].FX);
-		data_buf[i].NCOB_X = de_map_to_pos_alg_32(data_buf[i].NCOB_X);
-		data_buf[i].NCOB_Y = de_map_to_pos_alg_32(data_buf[i].NCOB_Y);
-	}
-	return 0;
-}
-
-
-/**
- * @brief map the unsigned output of the pre-stage to a signed value range for a
- *	S_FX_EFX_NCOB_ECOB buffer
- *
- * @note change the data_buf in-place
- *
- * @param data_buf	pointer to the S_FX_EFX_NCOB_ECOB data buffer to process
- * @param samples_used	amount of data samples in the data_buf
- * @param zero_mode_used needs to be set if the zero escape symbol mechanism is used
- *
- * @returns 0 on success, error otherwise
- */
-
-static int de_map_to_pos_S_FX_EFX_NCOB_ECOB(struct S_FX_EFX_NCOB_ECOB *data_buf,
-					    uint32_t samples_used,
-					    int zero_mode_used)
-{
-	size_t i;
-
-	if (!samples_used)
-		return 0;
-
-	if (!data_buf)
-		return -1;
-
-	for (i = 0; i < samples_used; i++) {
-		if (zero_mode_used) {
-			/* data_buf[i].EXPOSURE_FLAGS -= 1; */
-			data_buf[i].FX -= 1;
-			data_buf[i].NCOB_X -= 1;
-			data_buf[i].NCOB_Y -= 1;
-			data_buf[i].EFX -= 1;
-			data_buf[i].ECOB_X -= 1;
-			data_buf[i].ECOB_Y -= 1;
-		}
-
-		data_buf[i].EXPOSURE_FLAGS =
-			de_map_to_pos_alg_8(data_buf[i].EXPOSURE_FLAGS);
-		data_buf[i].FX = de_map_to_pos_alg_32(data_buf[i].FX);
-		data_buf[i].NCOB_X = de_map_to_pos_alg_32(data_buf[i].NCOB_X);
-		data_buf[i].NCOB_Y = de_map_to_pos_alg_32(data_buf[i].NCOB_Y);
-		data_buf[i].EFX = de_map_to_pos_alg_32(data_buf[i].EFX);
-		data_buf[i].ECOB_X = de_map_to_pos_alg_32(data_buf[i].ECOB_X);
-		data_buf[i].ECOB_Y = de_map_to_pos_alg_32(data_buf[i].ECOB_Y);
-	}
-	return 0;
-}
-
-
-/**
- * @brief map the unsigned output of the pre-stage to a signed value range for a
- *	F_FX buffer
- *
- * @note change the data_buf in-place
- *
- * @param data_buf	pointer to the F_FX data buffer to process
- * @param samples_used	amount of data samples in the data_buf
- * @param zero_mode_used needs to be set if the zero escape symbol mechanism is used
- *
- * @returns 0 on success, error otherwise
- */
-
-static int de_map_to_pos_F_FX(uint32_t *data_buf, uint32_t samples_used, int
-			      zero_mode_used)
-{
-	return de_map_to_pos_32(data_buf, samples_used, zero_mode_used);
-}
-
-
-/**
- * @brief map the unsigned output of the pre-stage to a signed value range
- *
- * @note change the data_buf in-place
- *
- * @param decompressed_data	pointer to the data to process
- * @param info			compressor information contains information of
- *				an executed compression
- *
- * @returns 0 on success, error otherwise
- */
-
-static int de_map_to_pos(void *decompressed_data, const struct cmp_info *info)
-{
-	int zero_mode_used;
-
-	if (!info)
-		return -1;
-
-	if (info->samples_used == 0)
-		return 0;
-
-	if (!decompressed_data)
-		return -1;
-
-	zero_mode_used = zero_escape_mech_is_used(info->cmp_mode_used);
-
-	switch (info->cmp_mode_used) {
-	case MODE_RAW:
-	case MODE_RAW_S_FX:
-		return 0; /* in raw mode no mapping is necessary */
-		break;
-	case MODE_MODEL_ZERO:
-	case MODE_MODEL_MULTI:
-	case MODE_DIFF_ZERO:
-	case MODE_DIFF_MULTI:
-		return de_map_to_pos_16((uint16_t *)decompressed_data,
-					info->samples_used, zero_mode_used);
-		break;
-	case MODE_MODEL_ZERO_S_FX:
-	case MODE_MODEL_MULTI_S_FX:
-	case MODE_DIFF_ZERO_S_FX:
-	case MODE_DIFF_MULTI_S_FX:
-		return de_map_to_pos_S_FX((struct S_FX *)decompressed_data,
-					  info->samples_used, zero_mode_used);
-		break;
-	case MODE_MODEL_ZERO_S_FX_EFX:
-	case MODE_MODEL_MULTI_S_FX_EFX:
-	case MODE_DIFF_ZERO_S_FX_EFX:
-	case MODE_DIFF_MULTI_S_FX_EFX:
-		return de_map_to_pos_S_FX_EFX((struct S_FX_EFX *)
-					      decompressed_data,
-					      info->samples_used,
-					      zero_mode_used);
-		break;
-	case MODE_MODEL_ZERO_S_FX_NCOB:
-	case MODE_MODEL_MULTI_S_FX_NCOB:
-	case MODE_DIFF_ZERO_S_FX_NCOB:
-	case MODE_DIFF_MULTI_S_FX_NCOB:
-		return de_map_to_pos_S_FX_NCOB((struct S_FX_NCOB *)
-					       decompressed_data,
-					       info->samples_used,
-					       zero_mode_used);
-		break;
-	case MODE_MODEL_ZERO_S_FX_EFX_NCOB_ECOB:
-	case MODE_MODEL_MULTI_S_FX_EFX_NCOB_ECOB:
-	case MODE_DIFF_ZERO_S_FX_EFX_NCOB_ECOB:
-	case MODE_DIFF_MULTI_S_FX_EFX_NCOB_ECOB:
-		return de_map_to_pos_S_FX_EFX_NCOB_ECOB((struct S_FX_EFX_NCOB_ECOB *)
-							decompressed_data,
-							info->samples_used,
-							zero_mode_used);
-		break;
-	case MODE_MODEL_ZERO_F_FX:
-	case MODE_MODEL_MULTI_F_FX:
-	case MODE_DIFF_ZERO_F_FX:
-	case MODE_DIFF_MULTI_F_FX:
-		return de_map_to_pos_F_FX((uint32_t *)decompressed_data,
-					  info->samples_used, zero_mode_used);
-		break;
-	default:
-		debug_print("Error: Compression mode not supported.\n");
-		break;
-	}
-	return -1;
-}
-
-
-static unsigned int get_n_bits32(uint32_t *p_value, unsigned int bitOffset,
-				unsigned int nBits, const unsigned int *srcAddr,
-				size_t src_len_bit)
-{
-	const unsigned int *localAddr;
-	unsigned int bitsLeft, bitsRight, localEndPos;
-	unsigned int mask;
-	/*leave in case of erroneous input */
-	if (nBits == 0)
-		return 0;
-	if (nBits > 32)
-		return 0;
-	if (!srcAddr)
-		return 0;
-	if (!p_value)
-		return 0;
-	if ((bitOffset + nBits) > src_len_bit) {
-		debug_print("Error: Buffer overflow detected.\n");
-		return 0;
-	}
-	/* separate the bitOffset into word offset (set localAddr pointer) and
-	 * local bit offset (bitsLeft)
-	 */
-
-	localAddr = srcAddr + (bitOffset >> 5);
-	bitsLeft = bitOffset & 0x1f;
-
-	localEndPos = bitsLeft + nBits;
-
-	if (localEndPos <= 32) {
-		unsigned int shiftRight = 32 - nBits;
-
-		bitsRight = shiftRight - bitsLeft;
-
-		*(p_value) = *(localAddr) >> bitsRight;
-
-		mask = (0xffffffff >> shiftRight);
-
-		*(p_value) &= mask;
-	} else {
-		unsigned int n1 = 32 - bitsLeft;
-		unsigned int n2 = nBits - n1;
-		/* part 1 ; */
-		mask = 0xffffffff >> bitsLeft;
-		*(p_value) = (*localAddr) & mask;
-		*(p_value) <<= n2;
-		/*part 2: */
-		/* adjust address*/
-		localAddr += 1;
-
-		bitsRight = 32 - n2;
-		*(p_value) |= *(localAddr) >> bitsRight;
-	}
-	return nBits;
-}
 
 static unsigned int count_leading_ones(unsigned int value)
 {
@@ -831,16 +51,15 @@ static unsigned int count_leading_ones(unsigned int value)
 		leading_bit = value & 0x80000000;
 		if (!leading_bit)
 			break;
-		else {
-			n_ones++;
-			value <<= 1;
-		}
+
+		n_ones++;
+		value <<= 1;
 	}
 	return n_ones;
 }
 
 
-static unsigned int Rice_decoder(uint32_t code_word, unsigned int m,
+static unsigned int rice_decoder(uint32_t code_word, unsigned int m,
 				 unsigned int log2_m, unsigned int *decoded_cw)
 {
 	unsigned int q; /* quotient code */
@@ -863,7 +82,7 @@ static unsigned int Rice_decoder(uint32_t code_word, unsigned int m,
 
 	code_word = code_word << ql;  /* shift quotient code out */
 
-	/* Right shifting an integer by a number of bits equal orgreater than
+	/* Right shifting an integer by a number of bits equal or greater than
 	 * its size is undefined behavior
 	 */
 	if (rl == 0)
@@ -877,7 +96,7 @@ static unsigned int Rice_decoder(uint32_t code_word, unsigned int m,
 }
 
 
-static unsigned int Golomb_decoder(unsigned int code_word, unsigned int m,
+static unsigned int golomb_decoder(unsigned int code_word, unsigned int m,
 				   unsigned int log2_m, unsigned int
 				   *decoded_cw)
 {
@@ -915,608 +134,382 @@ static unsigned int Golomb_decoder(unsigned int code_word, unsigned int m,
 }
 
 
-typedef unsigned int (*decoder_ptr)(unsigned int, unsigned int, unsigned int, unsigned int *);
-
 static decoder_ptr select_decoder(unsigned int golomb_par)
 {
 	if (!golomb_par)
 		return NULL;
 
 	if (is_a_pow_of_2(golomb_par))
-		return &Rice_decoder;
+		return &rice_decoder;
 	else
-		return &Golomb_decoder;
+		return &golomb_decoder;
 }
 
 
-static int decode_raw(const void *compressed_data, const struct cmp_info
-			*info, void *const decompressed_data)
+/**
+ * @brief read a value of up to 32 bits from a bitstream
+ *
+ * @param p_value		pointer to the read value
+ * @param n_bits		number of bits to read from the bitstream
+ * @param bit_offset		bit index where the bits will be read, seen from
+ *				the very beginning of the bitstream
+ * @param bitstream_adr		this is the pointer to the beginning of the
+ *				bitstream (can be NULL)
+ * @param max_stream_len	maximum length of the bitstream in bits; is
+ *				ignored if bitstream_adr is NULL
+ *
+ * @returns length in bits of the generated bitstream on success; returns
+ *          negative in case of erroneous input; returns CMP_ERROR_SAMLL_BUF if
+ *          the bitstream buffer is too small to read the value from the bitstream
+ */
+
+static int get_n_bits32(uint32_t *p_value, unsigned int n_bits, int bit_offset,
+			uint32_t *bitstream_adr, unsigned int max_stream_len)
 {
-	if (!info)
-		return -1;
-	if (info->samples_used == 0)
-		return 0;
-	if (!compressed_data)
-		return -1;
-	if (!decompressed_data)
+	const unsigned int *local_adr;
+	unsigned int bitsLeft, bitsRight, localEndPos;
+	unsigned int mask;
+	int stream_len = (int)(n_bits + (unsigned int)bit_offset); /* overflow results in a negative return value */
+
+	/*leave in case of erroneous input */
+	if (bit_offset < 0)
 		return -1;
 
-	if (info->samples_used*size_of_a_sample(info->cmp_mode_used)*CHAR_BIT
-	    != info->cmp_size) {
-		debug_print("Warning: The size of the decompressed bitstream does not match the size of the compressed bitstream. Check if the parameters used for decompression are the same as those used for compression.\n");
-		return 1;
+	if (n_bits == 0)
+		return stream_len;
+
+	if (n_bits > 32)
+		return -1;
+
+	if (!bitstream_adr)
+		return stream_len;
+
+	if (!p_value)
+		return stream_len;
+
+	/* Check if bitstream buffer is large enough */
+	if ((unsigned int)stream_len > max_stream_len) {
+		debug_print("Error: Buffer overflow detected.\n");
+		return CMP_ERROR_SAMLL_BUF;
+
 	}
-	memcpy(decompressed_data, compressed_data, info->cmp_size/CHAR_BIT);
 
-	return 0;
-}
+	/* separate the bit_offset into word offset (set local_adr pointer) and
+	 * local bit offset (bitsLeft)
+	 */
+	local_adr = bitstream_adr + (bit_offset >> 5);
+	bitsLeft = bit_offset & 0x1f;
 
-static int decode_raw_16(const void *compressed_data, const struct cmp_info
-			*info, uint16_t *const decompressed_data)
-{
-	size_t i;
-	uint16_t *p = decompressed_data;
-	uint32_t read_pos = 0;
-	unsigned int read_bits;
-	uint32_t read_val;
+	localEndPos = bitsLeft + n_bits;
 
-	if (!info)
-		return -1;
-	if (info->samples_used == 0)
-		return 0;
-	if (!compressed_data)
-		return -1;
-	if (!decompressed_data)
-		return -1;
+	if (localEndPos <= 32) {
+		unsigned int shiftRight = 32 - n_bits;
 
-	for (i = 0; i < info->samples_used; ++i) {
-		read_bits = get_n_bits32(&read_val, read_pos, 16,
-					 compressed_data, info->cmp_size);
-		if (!read_bits)
-			return -1;
-		read_pos += 16;
-		p[i] =read_val;
+		bitsRight = shiftRight - bitsLeft;
+
+		*(p_value) = cpu_to_be32(*(local_adr)) >> bitsRight;
+
+		mask = (0xffffffff >> shiftRight);
+
+		*(p_value) &= mask;
+	} else {
+		unsigned int n1 = 32 - bitsLeft;
+		unsigned int n2 = n_bits - n1;
+		/* part 1 ; */
+		mask = 0xffffffff >> bitsLeft;
+		*(p_value) = cpu_to_be32(*(local_adr)) & mask;
+		*(p_value) <<= n2;
+		/*part 2: */
+		/* adjust address*/
+		local_adr += 1;
+
+		bitsRight = 32 - n2;
+		*(p_value) |= cpu_to_be32(*(local_adr)) >> bitsRight;
 	}
-	return 0;
+
+	return stream_len;
 }
 
 
-static int decode_raw_S_FX(const void *compressed_data, const struct cmp_info
-			   *info, struct S_FX *const decompressed_data)
+static int decode_normal(uint32_t *decoded_value, int stream_pos, const struct decoder_setup *setup)
 {
-	int err = decode_raw(compressed_data, info, decompressed_data);
-	if (err)
-		return err;
+	uint32_t read_val = ~0U;
+	int n_read_bits, cw_len, n_bits;
 
-#if defined(LITTLE_ENDIAN)
-	{
-		size_t i;
-		for (i = 0; i < info->samples_used; i++) {
-			decompressed_data[i].FX = cpu_to_be32(decompressed_data[i].FX);
-		}
-	}
-#endif
-	return 0;
-}
-
-static unsigned int decode_normal(const void *compressed_data,
-				  const struct cmp_info *info,
-				  unsigned int read_pos,
-				  unsigned int max_cw_len,
-				  uint32_t *const decoded_val)
-{
-	decoder_ptr decoder;
-	unsigned int n_read_bits;
-	uint32_t read_val;
-	unsigned int n_bits;
-	unsigned int read_bits;
-	unsigned int log2_g;
-
-	if (!compressed_data)
-		return -1U;
-
-	if (!info)
-		return -1U;
-
-	if (!decoded_val)
-		return -1U;
-
-	if (read_pos > info->cmp_size)
-		return -1U;
-
-	if (max_cw_len > 32)
-		return -1U;
-
-	if (max_cw_len == 0)
-		return read_pos;
-
-	decoder = select_decoder(info->golomb_par_used);
-	if (!decoder)
-		return -1U;
-
-	if (read_pos + max_cw_len > info->cmp_size)   /* check buffer overflow */
-		n_read_bits = info->cmp_size - read_pos;
+	if (stream_pos + setup->max_cw_len > setup->max_stream_len)   /* check buffer overflow */
+		n_read_bits = setup->max_stream_len - stream_pos;
 	else
-		n_read_bits = max_cw_len;
+		n_read_bits = setup->max_cw_len;
+	if (n_read_bits >= 32 || n_read_bits == 0)
+		return -1;
 
-	read_bits = get_n_bits32(&read_val, read_pos, n_read_bits,
-				 compressed_data, info->cmp_size);
-	if (!read_bits)
-		return -1U;
+	n_bits = get_n_bits32(&read_val, n_read_bits, stream_pos,
+				  setup->bitstream_adr, setup->max_stream_len);
+	if (n_bits <= 0)
+		return -1;
 
 	read_val = read_val << (32 - n_read_bits);
 
-	log2_g = ilog_2(info->golomb_par_used);
-	n_bits = decoder(read_val, info->golomb_par_used, log2_g, decoded_val);
+	cw_len = setup->decode_cw_f(read_val, setup->encoder_par1, setup->encoder_par2, decoded_value);
+	if (cw_len < 0)
+		return -1;
 
-	return read_pos + n_bits;
+	return stream_pos + cw_len;
 }
 
 
-static unsigned int decode_zero(const void *compressed_data,
-				const struct cmp_info *info,
-				unsigned int read_pos, unsigned int max_cw_len,
-				uint32_t *const decoded_val)
+static int decode_multi(uint32_t *decoded_value, int stream_pos,
+			    const struct decoder_setup *setup)
 {
-	if (!info)
-		return -1U;
+	stream_pos = decode_normal(decoded_value, stream_pos, setup);
+	if (stream_pos < 0)
+		return stream_pos;
 
-	if (info->samples_used == 0)
-		return read_pos;
-
-	if (!compressed_data)
-		return -1U;
-
-	if (!decoded_val)
-		return -1U;
-
-	if (read_pos > info->cmp_size)
-		return -1U;
-
-	if (max_cw_len > 32)
-		return -1U;
-
-	if (max_cw_len == 0)
-		return read_pos;
-
-	read_pos = decode_normal(compressed_data, info, read_pos, max_cw_len,
-				 decoded_val);
-	if (read_pos == -1U)
-		return -1U;
-	if (*decoded_val >= info->spill_used) /* consistency check */
-		return -1U;
-
-	if (*decoded_val == 0) {/* escape symbol mechanism was used; read unencoded value */
-		unsigned int n_bits;
-		uint32_t unencoded_val;
-
-		n_bits = get_n_bits32(&unencoded_val, read_pos, max_cw_len,
-				      compressed_data, info->cmp_size);
-		if (!n_bits)
-			return -1U;
-		if (unencoded_val < info->spill_used && unencoded_val != 0) /* consistency check */
-			return -1U;
-
-		*decoded_val = unencoded_val;
-		read_pos += n_bits;
-	}
-	return read_pos;
-}
-
-
-static unsigned int decode_multi(const void *compressed_data,
-				 const struct cmp_info *info,
-				 unsigned int read_pos, unsigned int max_cw_len,
-				 uint32_t *const decoded_val)
-{
-	if (!info)
-		return -1U;
-
-	if (info->samples_used == 0)
-		return read_pos;
-
-	if (!compressed_data)
-		return -1U;
-
-	if (!decoded_val)
-		return -1U;
-
-	if (read_pos > info->cmp_size)
-		return -1U;
-
-	if (max_cw_len > 32)
-		return -1U;
-
-	if (max_cw_len == 0)
-		return read_pos;
-
-	read_pos = decode_normal(compressed_data, info, read_pos, max_cw_len,
-				 decoded_val);
-	if (read_pos == -1U)
-		return -1U;
-
-	if (*decoded_val >= info->spill_used) {
+	if (*decoded_value >= setup->outlier_par) {
 		/* escape symbol mechanism was used; read unencoded value */
-		unsigned int n_bits;
-		uint32_t unencoded_val;
+		int n_bits;
+		uint32_t unencoded_val = 0;
 		unsigned int unencoded_len;
 
-		unencoded_len = (*decoded_val - info->spill_used + 1) * 2;
-		if (unencoded_len > max_cw_len) /* consistency check */
-			return -1U;
+		unencoded_len = (*decoded_value - setup->outlier_par + 1) * 2;
 
-		/* check buffer overflow */
-		if ((read_pos + unencoded_len) > info->cmp_size) {
-			/*TODO: debug message */
-			return -1U;
-		}
-		n_bits = get_n_bits32(&unencoded_val, read_pos, unencoded_len,
-				      compressed_data, info->cmp_size);
-		if (!n_bits)
-			return -1U;
+		n_bits = get_n_bits32(&unencoded_val, unencoded_len, stream_pos,
+				  setup->bitstream_adr, setup->max_stream_len);
+		if (n_bits <= 0)
+			return -1;
 
-		*decoded_val = unencoded_val + info->spill_used;
-		read_pos += n_bits;
+		*decoded_value = unencoded_val + setup->outlier_par;
+		stream_pos += unencoded_len;
 	}
-	return read_pos;
+	return stream_pos;
 }
 
 
-static unsigned int decode_value(const void *compressed_data,
-				 const struct cmp_info *info,
-				 unsigned int read_pos,
-				 unsigned int max_cw_len, uint32_t *decoded_val)
+static int decode_zero(uint32_t *decoded_value, int stream_pos,
+			   const struct decoder_setup *setup)
 {
-	if (multi_escape_mech_is_used(info->cmp_mode_used))
-		return decode_multi(compressed_data, info, read_pos, max_cw_len,
-				    decoded_val);
+	stream_pos = decode_normal(decoded_value, stream_pos, setup);
 
-	if (zero_escape_mech_is_used(info->cmp_mode_used))
-		return decode_zero(compressed_data, info, read_pos, max_cw_len,
-				   decoded_val);
-	return -1U;
+	if (stream_pos <= 0)
+		return stream_pos;
+
+	if (*decoded_value > setup->outlier_par) /* consistency check */
+		return -1;
+
+	if (*decoded_value == 0) {/* escape symbol mechanism was used; read unencoded value */
+		int n_bits;
+		uint32_t unencoded_val = 0;
+
+		n_bits = get_n_bits32(&unencoded_val, setup->max_data_bits, stream_pos,
+				  setup->bitstream_adr, setup->max_stream_len);
+		if (n_bits <= 0)
+			return -1;
+		if (unencoded_val < setup->outlier_par && unencoded_val != 0) /* consistency check */
+			return -1;
+
+		*decoded_value = unencoded_val;
+		stream_pos += setup->max_data_bits;
+	}
+	(*decoded_value)--;
+	if (*decoded_value == 0xFFFFFFFF) /* catch underflow */
+		(*decoded_value) = (*decoded_value) >> (32-setup->max_data_bits);
+	return stream_pos;
 }
 
 
-static int decode_16(const void *compressed_data, const struct cmp_info *info,
-		     uint16_t *decoded_data)
+/**
+ * @brief remap a unsigned value back to a signed value
+ * @note this is the reverse function of map_to_pos()
+ *
+ * @param value_to_unmap	unsigned value to remap
+ *
+ * @returns the signed remapped value
+ */
+
+static uint32_t re_map_to_pos(uint32_t value_to_unmap)
 {
-	size_t i;
-	unsigned int read_pos = 0;
-
-	if (!info)
-		return -1;
-
-	if (info->samples_used == 0)
-		return 0;
-
-	if (!decoded_data)
-		return -1;
-
-	for (i = 0; i < info->samples_used; i++) {
-		uint32_t decoded_val;
-
-		read_pos = decode_value(compressed_data, info, read_pos, 16,
-					&decoded_val);
-		if (read_pos == -1U) {
-			debug_print("Error: Compressed values could not be decoded.\n");
-			return -1;
-		}
-
-		if (decoded_val > UINT16_MAX)
-			return -1;
-
-		decoded_data[i] = (uint16_t)decoded_val;
-	}
-
-	if (read_pos != info->cmp_size &&
-	    cmp_bit_to_4byte(read_pos) != cmp_bit_to_4byte(info->cmp_size)) {
-		debug_print("Warning: The size of the decompressed bitstream does not match the size of the compressed bitstream. Check if the parameters used for decompression are the same as those used for compression.\n");
-		return 1;
-	}
-	return 0;
+	if (value_to_unmap & 0x1) { /* if uneven */
+		if (value_to_unmap == 0xFFFFFFFF) /* catch overflow */
+			return 0x80000000;
+		return -((value_to_unmap + 1) / 2);
+	} else
+		return value_to_unmap / 2;
 }
 
 
-static int decode_S_FX(const void *compressed_data, const struct cmp_info *info,
-		       struct S_FX *decoded_data)
+static int decode_value(uint32_t *decoded_value, uint32_t model,
+			int stream_pos, const struct decoder_setup *setup)
 {
-	size_t i;
-	unsigned int read_pos = 0;
-	struct cmp_info info_exp_flag;
+	uint32_t mask = (~0U >> (32 - setup->max_data_bits)); /* mask the used bits */
 
-	info_exp_flag.golomb_par_used = GOLOMB_PAR_EXPOSURE_FLAGS;
+	stream_pos = setup->encode_method_f(decoded_value, stream_pos, setup);
+	if (stream_pos <= 0)
+		return stream_pos;
 
-	if (!info)
-		return -1;
+	*decoded_value = re_map_to_pos(*decoded_value); //, setup->max_used_bits);
 
-	if (info->samples_used == 0)
-		return 0;
+	*decoded_value += round_fwd(model, setup->lossy_par);
 
-	if (!decoded_data)
-		return -1;
+	*decoded_value &= mask;
 
-	info_exp_flag = *info;
+	*decoded_value = round_inv(*decoded_value, setup->lossy_par);
 
-	for (i = 0; i < info->samples_used; i++) {
-		uint32_t decoded_val;
-
-		/* read_pos = decode_value(compressed_data, &info_exp_flag, read_pos, 8, */
-		/* 			&decoded_val); */
-		read_pos = decode_normal(compressed_data, &info_exp_flag, read_pos, 8,
-					 &decoded_val);
-		if (read_pos == -1U)
-			return -1;
-		if (decoded_val > UINT8_MAX)
-			return -1;
-		decoded_data[i].EXPOSURE_FLAGS = (uint8_t)decoded_val;
-
-		read_pos = decode_value(compressed_data, info, read_pos, 32,
-					&decoded_val);
-		if (read_pos == -1U)
-			return -1;
-		decoded_data[i].FX = decoded_val;
-	}
-
-	if (read_pos != info->cmp_size) {
-		debug_print("Warning: The size of the decompressed bitstream does not match the size of the compressed bitstream. Check if the parameters used for decompression are the same as those used for compression.");
-		return 1;
-	}
-	return 0;
+	return stream_pos;
 }
 
 
-static int decode_S_FX_EFX(const void *compressed_data, const struct cmp_info
-			   *info, struct S_FX_EFX *decoded_data)
+static int configure_decoder_setup(struct decoder_setup *setup,
+				   uint32_t cmp_par, uint32_t spill,
+				   uint32_t lossy_par, uint32_t max_data_bits,
+				   const struct cmp_cfg *cfg)
 {
-	size_t i;
-	unsigned int read_pos = 0;
-
-	if (!info)
-		return -1;
-
-	if (info->samples_used == 0)
-		return 0;
-
-	if (!decoded_data)
-		return -1;
-
-	for (i = 0; i < info->samples_used; i++) {
-		uint32_t decoded_val;
-
-		read_pos = decode_value(compressed_data, info, read_pos, 8,
-					&decoded_val);
-		if (read_pos == -1U)
-			return -1;
-		if (decoded_val > UINT8_MAX)
-			return -1;
-		decoded_data[i].EXPOSURE_FLAGS = (uint8_t)decoded_val;
-
-		read_pos = decode_value(compressed_data, info, read_pos, 32,
-					&decoded_val);
-		if (read_pos == -1U)
-			return -1;
-		decoded_data[i].FX = decoded_val;
-
-		read_pos = decode_value(compressed_data, info, read_pos, 32,
-					&decoded_val);
-		if (read_pos == -1U)
-			return -1;
-		decoded_data[i].EFX = decoded_val;
-	}
-
-	if (read_pos != info->cmp_size) {
-		debug_print("Warning: The size of the decompressed bitstream does not match the size of the compressed bitstream. Check if the parameters used for decompression are the same as those used for compression.\n");
-		return 1;
-	}
-	return 0;
-}
-
-
-static int decode_S_FX_NCOB(const void *compressed_data, const struct cmp_info
-			    *info, struct S_FX_NCOB *decoded_data)
-{
-	size_t i;
-	unsigned int read_pos = 0;
-
-	if (!info)
-		return -1;
-
-	if (info->samples_used == 0)
-		return 0;
-
-	if (!decoded_data)
-		return -1;
-
-	for (i = 0; i < info->samples_used; i++) {
-		uint32_t decoded_val;
-
-		read_pos = decode_value(compressed_data, info, read_pos, 8,
-					&decoded_val);
-		if (read_pos == -1U)
-			return -1;
-		if (decoded_val > UINT8_MAX)
-			return -1;
-		decoded_data[i].EXPOSURE_FLAGS = (uint8_t)decoded_val;
-
-		read_pos = decode_value(compressed_data, info, read_pos, 32,
-					&decoded_val);
-		if (read_pos == -1U)
-			return -1;
-		decoded_data[i].FX = decoded_val;
-
-		read_pos = decode_value(compressed_data, info, read_pos, 32,
-					&decoded_val);
-		if (read_pos == -1U)
-			return -1;
-		decoded_data[i].NCOB_X = decoded_val;
-
-		read_pos = decode_value(compressed_data, info, read_pos, 32,
-					&decoded_val);
-		if (read_pos == -1U)
-			return -1;
-		decoded_data[i].NCOB_Y = decoded_val;
-	}
-
-	if (read_pos != info->cmp_size) {
-		debug_print("Warning: The size of the decompressed bitstream does not match the size of the compressed bitstream. Check if the parameters used for decompression are the same as those used for compression.\n");
-		return 1;
-	}
-	return 0;
-}
-
-
-static int decode_S_FX_EFX_NCOB_ECOB(const void *compressed_data,
-				     const struct cmp_info *info,
-				     struct S_FX_EFX_NCOB_ECOB *decoded_data)
-{
-	size_t i;
-	unsigned int read_pos = 0;
-
-	if (!info)
-		return -1;
-
-	if (info->samples_used == 0)
-		return 0;
-
-	if (!decoded_data)
-		return -1;
-
-	for (i = 0; i < info->samples_used; i++) {
-		uint32_t decoded_val;
-
-		read_pos = decode_value(compressed_data, info, read_pos, 8,
-					&decoded_val);
-		if (read_pos == -1U)
-			return -1;
-		if (decoded_val > UINT8_MAX)
-			return -1;
-		decoded_data[i].EXPOSURE_FLAGS = (uint8_t)decoded_val;
-
-		read_pos = decode_value(compressed_data, info, read_pos, 32,
-					&decoded_val);
-		if (read_pos == -1U)
-			return -1;
-		decoded_data[i].FX = decoded_val;
-
-		read_pos = decode_value(compressed_data, info, read_pos, 32,
-					&decoded_val);
-		if (read_pos == -1U)
-			return -1;
-		decoded_data[i].NCOB_X = decoded_val;
-
-		read_pos = decode_value(compressed_data, info, read_pos, 32,
-					&decoded_val);
-		if (read_pos == -1U)
-			return -1;
-		decoded_data[i].NCOB_Y = decoded_val;
-
-		read_pos = decode_value(compressed_data, info, read_pos, 32,
-					&decoded_val);
-		if (read_pos == -1U)
-			return -1;
-		decoded_data[i].EFX = decoded_val;
-
-		read_pos = decode_value(compressed_data, info, read_pos, 32,
-					&decoded_val);
-		if (read_pos == -1U)
-			return -1;
-		decoded_data[i].ECOB_X = decoded_val;
-
-		read_pos = decode_value(compressed_data, info, read_pos, 32,
-					&decoded_val);
-		if (read_pos == -1U)
-			return -1;
-		decoded_data[i].ECOB_Y = decoded_val;
-	}
-
-	if (read_pos != info->cmp_size) {
-		debug_print("Warning: The size of the decompressed bitstream does not match the size of the compressed bitstream. Check if the parameters used for decompression are the same as those used for compression.");
-		return 1;
-	}
-	return 0;
-}
-
-
-static int decode_data(const void *compressed_data, const struct cmp_info *info,
-		       void *decompressed_data)
-{
-	if (!info)
-		return -1;
-
-	if (info->samples_used == 0)
-		return 0;
-
-	if (!compressed_data)
-		return -1;
-
-	if (!decompressed_data)
-		return -1;
-
-	switch (info->cmp_mode_used) {
-	case MODE_RAW:
-		return decode_raw_16(compressed_data, info, decompressed_data);
-		break;
-	case MODE_MODEL_ZERO:
-	case MODE_DIFF_ZERO:
-	case MODE_MODEL_MULTI:
-	case MODE_DIFF_MULTI:
-		return decode_16(compressed_data, info,
-				 (uint16_t *)decompressed_data);
-		break;
-	case MODE_RAW_S_FX:
-		return decode_raw_S_FX(compressed_data, info, decompressed_data);
-		break;
-	case MODE_MODEL_ZERO_S_FX:
-	case MODE_MODEL_MULTI_S_FX:
-	case MODE_DIFF_ZERO_S_FX:
-	case MODE_DIFF_MULTI_S_FX:
-		return decode_S_FX(compressed_data, info,
-				   (struct S_FX *)decompressed_data);
-		break;
-	case MODE_MODEL_ZERO_S_FX_EFX:
-	case MODE_MODEL_MULTI_S_FX_EFX:
-	case MODE_DIFF_ZERO_S_FX_EFX:
-	case MODE_DIFF_MULTI_S_FX_EFX:
-		return decode_S_FX_EFX(compressed_data, info,
-				       (struct S_FX_EFX *)decompressed_data);
-		break;
-	case MODE_MODEL_ZERO_S_FX_NCOB:
-	case MODE_MODEL_MULTI_S_FX_NCOB:
-	case MODE_DIFF_ZERO_S_FX_NCOB:
-	case MODE_DIFF_MULTI_S_FX_NCOB:
-		return decode_S_FX_NCOB(compressed_data, info,
-					(struct S_FX_NCOB *)decompressed_data);
-		break;
-	case MODE_MODEL_ZERO_S_FX_EFX_NCOB_ECOB:
-	case MODE_MODEL_MULTI_S_FX_EFX_NCOB_ECOB:
-	case MODE_DIFF_ZERO_S_FX_EFX_NCOB_ECOB:
-	case MODE_DIFF_MULTI_S_FX_EFX_NCOB_ECOB:
-		return decode_S_FX_EFX_NCOB_ECOB(compressed_data, info,
-						 (struct S_FX_EFX_NCOB_ECOB *)
-						 decompressed_data);
-		break;
-#if 0
-	case MODE_MODEL_ZERO_F_FX:
-	case MODE_MODEL_MULTI_F_FX:
-	case MODE_DIFF_ZERO_F_FX:
-	case MODE_DIFF_MULTI_F_FX:
-		break;
-#endif
-	default:
+	if (multi_escape_mech_is_used(cfg->cmp_mode))
+		setup->encode_method_f = &decode_multi;
+	else if (zero_escape_mech_is_used(cfg->cmp_mode))
+		setup->encode_method_f = &decode_zero;
+	else {
 		debug_print("Error: Compression mode not supported.\n");
-		break;
-
+		return -1;
 	}
-	return -1;
+
+	setup->bitstream_adr = cfg->icu_output_buf; /* start address of the compressed data bitstream */
+	if (cfg->buffer_length & 0x3) {
+		debug_print("Error: The length of the compressed data is not a multiple of 4 bytes.");
+		return -1;
+	}
+	setup->max_stream_len = (cfg->buffer_length) * CHAR_BIT;  /* maximum length of the bitstream/icu_output_buf in bits */
+	if (rdcu_supported_data_type_is_used(cfg->data_type))
+		setup->max_cw_len = 16;
+	else
+		setup->max_cw_len = 32;
+	setup->encoder_par1 = cmp_par; /* encoding parameter 1 */
+	setup->encoder_par2 = ilog_2(cmp_par); /* encoding parameter 2 */
+	setup->outlier_par = spill; /* outlier parameter */
+	setup->lossy_par = lossy_par; /* lossy compression parameter */
+	setup->model_value = cfg->model_value; /* model value parameter */
+	setup->max_data_bits = max_data_bits; /* how many bits are needed to represent the highest possible value */
+	setup->decode_cw_f = select_decoder(cmp_par);
+
+	return 0;
 }
 
-/* model buffer is overwritten with updated model*/
 
-int decompress_data(const void *compressed_data, void *de_model_buf, const
-		    struct cmp_info *info, void *decompressed_data)
+static int decompress_imagette(struct cmp_cfg *cfg)
+{
+	size_t i;
+	int stream_pos = 0;
+	struct decoder_setup setup;
+	uint16_t *decompressed_data = cfg->input_buf;
+	uint16_t *model_buf = cfg->model_buf;
+	uint16_t *up_model_buf = cfg->icu_new_model_buf;
+	uint32_t decoded_value = 0;
+	uint16_t model;
+	int err;
+
+	err = configure_decoder_setup(&setup, cfg->golomb_par, cfg->spill,
+				      cfg->round, 16, cfg);
+	if (err)
+		return -1;
+
+
+	for (i = 0; i < cfg->samples; i++) {
+		if (model_mode_is_used(cfg->cmp_mode))
+			model = model_buf[i];
+		else
+			model = decoded_value;
+
+		stream_pos = decode_value(&decoded_value, model, stream_pos, &setup);
+		if (stream_pos <= 0)
+			return stream_pos;
+		decompressed_data[i] = decoded_value;
+
+		if (up_model_buf) {
+			up_model_buf[i] = cmp_up_model(decoded_value, model,
+						       cfg->model_value, setup.lossy_par);
+		}
+	}
+
+	return stream_pos;
+}
+
+static int decompressed_data_internal(struct cmp_cfg *cfg)
+{
+	int data_size, strem_len_bit = -1;
+
+	if (!cfg)
+		return 0; /* or -1? */
+	if (!cfg->icu_output_buf)
+		return -1;
+
+	data_size = cmp_cal_size_of_data(cfg->samples, cfg->data_type);
+	if (!cfg->input_buf || !data_size)
+		return data_size;
+
+	if (model_mode_is_used(cfg->cmp_mode))
+		if (!cfg->model_buf)
+			return -1;
+
+	if (cfg->cmp_mode == CMP_MODE_RAW) {
+
+		if ((unsigned int)data_size < cfg->buffer_length/CHAR_BIT)
+			return -1;
+
+		if (cfg->input_buf) {
+			memcpy(cfg->input_buf, cfg->icu_output_buf, data_size);
+			if (cmp_input_big_to_cpu_endianness(cfg->input_buf, data_size, cfg->data_type))
+				return -1;
+			strem_len_bit = data_size * CHAR_BIT;
+		}
+
+	} else {
+		switch (cfg->data_type) {
+		case DATA_TYPE_IMAGETTE:
+			strem_len_bit = decompress_imagette(cfg);
+			break;
+		default:
+			strem_len_bit = -1;
+			debug_print("Error: Compressed data type not supported.\n");
+			break;
+		}
+
+	}
+	/* TODO: is this usefull? if (strem_len_bit != data_size * CHAR_BIT) { */
+	if (strem_len_bit <= 0)
+		return -1;
+
+
+	return data_size;
+}
+
+
+int decompress_cmp_entiy(struct cmp_entity *ent, void *model_buf,
+			 void *up_model_buf, void *decompressed_data)
 {
 	int err;
+	struct cmp_cfg cfg = {0};
+
+	cfg.model_buf = model_buf;
+	cfg.icu_new_model_buf = up_model_buf;
+	cfg.input_buf = decompressed_data;
+
+	if (!ent)
+		return -1;
+
+	err = cmp_ent_read_header(ent, &cfg);
+	if (err)
+		return -1;
+
+	return decompressed_data_internal(&cfg);
+}
+
+
+/* model buffer is overwritten with updated model */
+
+int decompress_data(uint32_t *compressed_data, void *de_model_buf,
+		    const struct cmp_info *info, void *decompressed_data)
+{
+	int size_decomp_data;
+	struct cmp_cfg cfg = {0};
 
 	if (!compressed_data)
 		return -1;
@@ -1535,18 +528,22 @@ int decompress_data(const void *compressed_data, void *de_model_buf, const
 	if (!decompressed_data)
 		return -1;
 
+	/* cfg.data_type = info->data_type_used; */
+	cfg.cmp_mode = info->cmp_mode_used;
+	cfg.model_value = info->model_value_used;
+	cfg.round = info->round_used;
+	cfg.spill = info->spill_used;
+	cfg.golomb_par = info->golomb_par_used;
+	cfg.samples = info->samples_used;
+	cfg.icu_output_buf = compressed_data;
+	cfg.buffer_length = cmp_bit_to_4byte(info->cmp_size);
+	cfg.input_buf = decompressed_data;
+	cfg.model_buf = de_model_buf;
+	size_decomp_data = decompressed_data_internal(&cfg);
+	if (size_decomp_data <= 0)
+		return -1;
+	else
+		return 0;
 
-	err = decode_data(compressed_data, info, decompressed_data);
-	if (err)
-		return err;
 
-	err = de_map_to_pos(decompressed_data, info);
-	if (err)
-		return err;
-
-	err = de_pre_process(decompressed_data, de_model_buf, info);
-	if (err)
-		return err;
-
-	return 0;
 }

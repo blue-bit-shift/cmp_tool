@@ -17,24 +17,30 @@
  * @see Data Compression User Manual PLATO-UVIE-PL-UM-0001
  */
 
+
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <limits.h>
-#if __has_include(<time.h>)
-	#include <time.h>
-	#include <stdlib.h>
+#if defined __has_include
+#  if __has_include(<time.h>)
+#    include <time.h>
+#    include <stdlib.h>
+#    define HAS_TIME_H 1
+#  endif
 #endif
 
-#include "../include/cmp_entity.h"
-#include "../include/cmp_support.h"
-#include "../include/byteorder.h"
+#include "byteorder.h"
+#include "cmp_debug.h"
+#include "cmp_support.h"
+#include "cmp_data_types.h"
+#include "cmp_entity.h"
 
 
-#if __has_include(<time.h>)
+#ifdef HAS_TIME_H
 /* Used as epoch Wed Jan  1 00:00:00 2020 */
 #  if defined(_WIN32) || defined(_WIN64)
-const struct tm EPOCH_DATE = { 0, 0, 0, 1, 0, 120, 0, 0, 0, };
+const struct tm EPOCH_DATE = { 0, 0, 0, 1, 0, 120, 0, 0, 0 };
 #  else
 const struct tm EPOCH_DATE = { 0, 0, 0, 1, 0, 120, 0, 0, 0, 0, NULL };
 #  endif /* _WIN */
@@ -42,69 +48,61 @@ const struct tm EPOCH_DATE = { 0, 0, 0, 1, 0, 120, 0, 0, 0, 0, NULL };
 
 
 /**
- * @brief calculate the size of the compression entity header based of the data
+ * @brief calculate the size of the compression entity header based on the data
  *	product type
  *
  * @param data_type	compression entity data product type
+ * @param raw_mode_flag	set this flag if the raw compression mode (CMP_MODE_RAW) is used
  *
  * @returns size of the compression entity header in bytes, 0 on unknown data
  *	type
  */
 
-uint32_t cmp_ent_cal_hdr_size(enum cmp_ent_data_type data_type)
+uint32_t cmp_ent_cal_hdr_size(enum cmp_data_type data_type, int raw_mode_flag)
 {
-	switch (data_type) {
-	case DATA_TYPE_IMAGETTE:
-	case DATA_TYPE_F_CAM_IMAGETTE:
-		return IMAGETTE_HEADER_SIZE;
-	case DATA_TYPE_IMAGETTE_ADAPTIVE:
-	case DATA_TYPE_F_CAM_IMAGETTE_ADAPTIVE:
-		return IMAGETTE_ADAPTIVE_HEADER_SIZE;
-	case DATA_TYPE_SAT_IMAGETTE:
-	case DATA_TYPE_SAT_IMAGETTE_ADAPTIVE:
-	case DATA_TYPE_OFFSET:
-	case DATA_TYPE_BACKGROUND:
-	case DATA_TYPE_SMEARING:
-	case DATA_TYPE_S_FX:
-	case DATA_TYPE_S_FX_DFX:
-	case DATA_TYPE_S_FX_NCOB:
-	case DATA_TYPE_S_FX_DFX_NCOB_ECOB:
-	case DATA_TYPE_L_FX:
-	case DATA_TYPE_L_FX_DFX:
-	case DATA_TYPE_L_FX_NCOB:
-	case DATA_TYPE_L_FX_DFX_NCOB_ECOB:
-	case DATA_TYPE_F_FX:
-	case DATA_TYPE_F_FX_DFX:
-	case DATA_TYPE_F_FX_NCOB:
-	case DATA_TYPE_F_FX_DFX_NCOB_ECOB:
-	case DATA_TYPE_F_CAM_OFFSET:
-	case DATA_TYPE_F_CAM_BACKGROUND:
-		return NON_IMAGETTE_HEADER_SIZE;
-	case DATA_TYPE_UNKOWN:
-		return 0;
+	uint32_t size = 0;
+
+	if (raw_mode_flag) {
+		if (cmp_data_type_valid(data_type))
+			/* for raw data we do not need a specific header */
+			size = GENERIC_HEADER_SIZE;
+	} else {
+		switch (data_type) {
+		case DATA_TYPE_IMAGETTE:
+		case DATA_TYPE_SAT_IMAGETTE:
+		case DATA_TYPE_F_CAM_IMAGETTE:
+			size = IMAGETTE_HEADER_SIZE;
+			break;
+		case DATA_TYPE_IMAGETTE_ADAPTIVE:
+		case DATA_TYPE_SAT_IMAGETTE_ADAPTIVE:
+		case DATA_TYPE_F_CAM_IMAGETTE_ADAPTIVE:
+			size = IMAGETTE_ADAPTIVE_HEADER_SIZE;
+			break;
+		case DATA_TYPE_OFFSET:
+		case DATA_TYPE_BACKGROUND:
+		case DATA_TYPE_SMEARING:
+		case DATA_TYPE_S_FX:
+		case DATA_TYPE_S_FX_DFX:
+		case DATA_TYPE_S_FX_NCOB:
+		case DATA_TYPE_S_FX_DFX_NCOB_ECOB:
+		case DATA_TYPE_L_FX:
+		case DATA_TYPE_L_FX_DFX:
+		case DATA_TYPE_L_FX_NCOB:
+		case DATA_TYPE_L_FX_DFX_NCOB_ECOB:
+		case DATA_TYPE_F_FX:
+		case DATA_TYPE_F_FX_DFX:
+		case DATA_TYPE_F_FX_NCOB:
+		case DATA_TYPE_F_FX_DFX_NCOB_ECOB:
+		case DATA_TYPE_F_CAM_OFFSET:
+		case DATA_TYPE_F_CAM_BACKGROUND:
+			size = NON_IMAGETTE_HEADER_SIZE;
+			break;
+		case DATA_TYPE_UNKOWN:
+			size = 0;
+			break;
+		}
 	}
-
-	if ((data_type >> RAW_BIT_DATA_TYPE_POS) & 1U)
-		return GENERIC_HEADER_SIZE;
-
-	return 0;
-}
-
-
-/**
- * @brief check if the compression entity data product type is supported
- *
- * @param data_type	compression entity data product type to check
- *
- * @returns zero if data_type is invalid; non-zero if data_type is valid
- */
-
-int cmp_ent_data_type_valid(enum cmp_ent_data_type data_type)
-{
-	if (cmp_ent_cal_hdr_size(data_type))
-		return 1;
-	else
-		return 0;
+	return size;
 }
 
 
@@ -326,18 +324,22 @@ int cmp_ent_set_fine_end_time(struct cmp_entity *ent, uint16_t fine_time)
 /**
  * @brief set the data product type in the compression entity header
  *
- * @param ent		pointer to a compression entity (including the
- *	uncompressed data bit)
+ * @param ent		pointer to a compression entity
  * @param data_type	compression entity data product type
+ * @param raw_mode_flag	set this flag if the raw compression mode (CMP_MODE_RAW) is used
  *
  * @returns 0 on success, otherwise error
  */
 
 int cmp_ent_set_data_type(struct cmp_entity *ent,
-			  enum cmp_ent_data_type data_type)
+			  enum cmp_data_type data_type,
+			  int raw_mode_flag)
 {
 	if (!ent)
 		return -1;
+
+	if (raw_mode_flag)
+		data_type |= 1U << RAW_BIT_DATA_TYPE_POS;
 
 	if (data_type > UINT16_MAX)
 		return -1;
@@ -932,7 +934,7 @@ int cmp_ent_set_non_ima_cmp_par6(struct cmp_entity *ent, uint32_t cmp_par_6_used
 
 
 /**
- * @brief get the ASW version identifier form the compression entity header
+ * @brief get the ASW version identifier from the compression entity header
  *
  * @param ent	pointer to a compression entity
  *
@@ -949,7 +951,7 @@ uint32_t cmp_ent_get_version_id(struct cmp_entity *ent)
 
 
 /**
- * @brief get the size of the compression entity form the compression entity header
+ * @brief get the size of the compression entity from the compression entity header
  *
  * @param ent	pointer to a compression entity
  *
@@ -970,7 +972,7 @@ uint32_t cmp_ent_get_size(struct cmp_entity *ent)
 
 
 /**
- * @brief get the original data size form the compression entity header
+ * @brief get the original data size from the compression entity header
  *
  * @param ent	pointer to a compression entity
  *
@@ -991,7 +993,7 @@ uint32_t cmp_ent_get_original_size(struct cmp_entity *ent)
 
 
 /**
- * @brief get the compression start timestamp form the compression entity header
+ * @brief get the compression start timestamp from the compression entity header
  *
  * @param ent	pointer to a compression entity
  *
@@ -1012,7 +1014,7 @@ uint64_t cmp_ent_get_start_timestamp(struct cmp_entity *ent)
 
 
 /**
- * @brief get the coarse time form the compression start timestamp in the
+ * @brief get the coarse time from the compression start timestamp in the
  *	compression entity header
  *
  * @returns the coarse part of the compression start timestamp on success, 0 on
@@ -1029,7 +1031,7 @@ uint32_t cmp_ent_get_coarse_start_time(struct cmp_entity *ent)
 
 
 /**
- * @brief get the fine time form the compression start timestamp in the
+ * @brief get the fine time from the compression start timestamp in the
  *	compression entity header
  *
  * @returns the fine part of the compression start timestamp on success, 0 on
@@ -1046,7 +1048,7 @@ uint16_t cmp_ent_get_fine_start_time(struct cmp_entity *ent)
 
 
 /**
- * @brief get the compression end timestamp form the compression entity header
+ * @brief get the compression end timestamp from the compression entity header
  *
  * @param ent	pointer to a compression entity
  *
@@ -1067,7 +1069,7 @@ uint64_t cmp_ent_get_end_timestamp(struct cmp_entity *ent)
 
 
 /**
- * @brief get the coarse time form the compression end timestamp in the
+ * @brief get the coarse time from the compression end timestamp in the
  *	compression entity header
  *
  * @returns the coarse part of the compression end timestamp on success, 0 on
@@ -1084,7 +1086,7 @@ uint32_t cmp_ent_get_coarse_end_time(struct cmp_entity *ent)
 
 
 /**
- * @brief get the fine time form the compression end timestamp in the
+ * @brief get the fine time from the compression end timestamp in the
  *	compression entity header
  *
  * @returns the fine part of the compression end timestamp on success, 0 on
@@ -1101,30 +1103,33 @@ uint16_t cmp_ent_get_fine_end_time(struct cmp_entity *ent)
 
 
 /**
- * @brief get data_type form the compression entity header
+ * @brief get data_type from the compression entity header
  *
  * @param ent	pointer to a compression entity
  *
- * @returns the data_type (including the uncompressed data bit) on success,
+ * @returns the data_type NOT including the uncompressed data bit on success,
  *	DATA_TYPE_UNKOWN on error
  */
 
-enum cmp_ent_data_type cmp_ent_get_data_type(struct cmp_entity *ent)
+enum cmp_data_type cmp_ent_get_data_type(struct cmp_entity *ent)
 {
+	enum cmp_data_type data_type;
+
 	if (!ent)
 		return DATA_TYPE_UNKOWN;
 
-	enum cmp_ent_data_type data_type = be16_to_cpu(ent->data_type);
+	data_type = be16_to_cpu(ent->data_type);
+	data_type &= (1U << RAW_BIT_DATA_TYPE_POS)-1; /* remove uncompressed data flag */
 
-	if (cmp_ent_data_type_valid(data_type))
-		return data_type;
-	else
-		return DATA_TYPE_UNKOWN;
+	if (!cmp_data_type_valid(data_type))
+		data_type = DATA_TYPE_UNKOWN;
+
+	return data_type;
 }
 
 
 /**
- * @brief get raw bit form the data_type field of the compression entity header
+ * @brief get the raw bit from the data_type field of the compression entity header
  *
  * @param ent	pointer to a compression entity
  *
@@ -1176,7 +1181,7 @@ uint8_t cmp_ent_get_model_value_used(struct cmp_entity *ent)
 
 
 /**
- * @brief get model id form the compression entity header
+ * @brief get model id from the compression entity header
  *
  * @param ent	pointer to a compression entity
  *
@@ -1210,7 +1215,7 @@ uint8_t cmp_ent_get_model_counter(struct cmp_entity *ent)
 
 
 /**
- * @brief get the used lossy compression parameter form the compression entity header
+ * @brief get the used lossy compression parameter from the compression entity header
  *
  * @param ent	pointer to a compression entity
  *
@@ -1227,7 +1232,7 @@ uint16_t cmp_ent_get_lossy_cmp_par(struct cmp_entity *ent)
 
 
 /**
- * @brief get the used spillover threshold parameter form the (adaptive)
+ * @brief get the used spillover threshold parameter from the (adaptive)
  *	imagette specific compression entity header
  *
  * @param ent	pointer to a compression entity
@@ -1245,7 +1250,7 @@ uint16_t cmp_ent_get_ima_spill(struct cmp_entity *ent)
 
 
 /**
- * @brief get the used Golomb parameter form the (adaptive) imagette specific
+ * @brief get the used Golomb parameter from the (adaptive) imagette specific
  *	compression entity header
  *
  * @param ent	pointer to a compression entity
@@ -1263,7 +1268,7 @@ uint8_t cmp_ent_get_ima_golomb_par(struct cmp_entity *ent)
 
 
 /**
- * @brief get the used adaptive 1 spillover threshold parameter form the
+ * @brief get the used adaptive 1 spillover threshold parameter from the
  *	adaptive imagette specific compression entity header
  *
  * @param ent	pointer to a compression entity
@@ -1281,7 +1286,7 @@ uint16_t cmp_ent_get_ima_ap1_spill(struct cmp_entity *ent)
 
 
 /**
- * @brief get the used adaptive 1 Golomb parameter form adaptive imagette
+ * @brief get the used adaptive 1 Golomb parameter from adaptive imagette
  *	specific compression entity header
  *
  * @param ent	pointer to a compression entity
@@ -1299,7 +1304,7 @@ uint8_t cmp_ent_get_ima_ap1_golomb_par(struct cmp_entity *ent)
 
 
 /**
- * @brief get the used adaptive 2 spillover threshold parameter form the
+ * @brief get the used adaptive 2 spillover threshold parameter from the
  *	adaptive imagette specific compression entity header
  *
  * @param ent	pointer to a compression entity
@@ -1317,7 +1322,7 @@ uint16_t cmp_ent_get_ima_ap2_spill(struct cmp_entity *ent)
 
 
 /**
- * @brief get the used adaptive 2 spillover threshold parameter form the
+ * @brief get the used adaptive 2 spillover threshold parameter from the
  *	adaptive imagette specific compression entity header
  *
  * @param ent	pointer to a compression entity
@@ -1335,7 +1340,7 @@ uint8_t cmp_ent_get_ima_ap2_golomb_par(struct cmp_entity *ent)
 
 
 /**
- * @brief get the used spillover threshold 1 parameter form the non-imagette
+ * @brief get the used spillover threshold 1 parameter from the non-imagette
  *	specific compression entity header
  *
  * @param ent	pointer to a compression entity
@@ -1357,7 +1362,7 @@ uint32_t cmp_ent_get_non_ima_spill1(struct cmp_entity *ent)
 
 
 /**
- * @brief get the used compression parameter 1 form the non-imagette specific
+ * @brief get the used compression parameter 1 from the non-imagette specific
  *	compression entity header
  *
  * @param ent	pointer to a compression entity
@@ -1375,7 +1380,7 @@ uint16_t cmp_ent_get_non_ima_cmp_par1(struct cmp_entity *ent)
 
 
 /**
- * @brief get the used spillover threshold 2 parameter form the non-imagette
+ * @brief get the used spillover threshold 2 parameter from the non-imagette
  *	specific compression entity header
  *
  * @param ent	pointer to a compression entity
@@ -1397,7 +1402,7 @@ uint32_t cmp_ent_get_non_ima_spill2(struct cmp_entity *ent)
 
 
 /**
- * @brief get the used compression parameter 2 form the non-imagette specific
+ * @brief get the used compression parameter 2 from the non-imagette specific
  *	compression entity header
  *
  * @param ent	pointer to a compression entity
@@ -1415,7 +1420,7 @@ uint16_t cmp_ent_get_non_ima_cmp_par2(struct cmp_entity *ent)
 
 
 /**
- * @brief get the used spillover threshold 3 parameter form the non-imagette
+ * @brief get the used spillover threshold 3 parameter from the non-imagette
  *	specific compression entity header
  *
  * @param ent	pointer to a compression entity
@@ -1437,7 +1442,7 @@ uint32_t cmp_ent_get_non_ima_spill3(struct cmp_entity *ent)
 
 
 /**
- * @brief get the used compression parameter 3 form the non-imagette specific
+ * @brief get the used compression parameter 3 from the non-imagette specific
  *	compression entity header
  *
  * @param ent	pointer to a compression entity
@@ -1455,7 +1460,7 @@ uint16_t cmp_ent_get_non_ima_cmp_par3(struct cmp_entity *ent)
 
 
 /**
- * @brief get the used spillover threshold 4 parameter form the non-imagette
+ * @brief get the used spillover threshold 4 parameter from the non-imagette
  *	specific compression entity header
  *
  * @param ent	pointer to a compression entity
@@ -1477,7 +1482,7 @@ uint32_t cmp_ent_get_non_ima_spill4(struct cmp_entity *ent)
 
 
 /**
- * @brief get the used compression parameter 4 form the non-imagette specific
+ * @brief get the used compression parameter 4 from the non-imagette specific
  *	compression entity header
  *
  * @param ent	pointer to a compression entity
@@ -1495,7 +1500,7 @@ uint16_t cmp_ent_get_non_ima_cmp_par4(struct cmp_entity *ent)
 
 
 /**
- * @brief get the used spillover threshold 5 parameter form the non-imagette
+ * @brief get the used spillover threshold 5 parameter from the non-imagette
  *	specific compression entity header
  *
  * @param ent	pointer to a compression entity
@@ -1517,7 +1522,7 @@ uint32_t cmp_ent_get_non_ima_spill5(struct cmp_entity *ent)
 
 
 /**
- * @brief get the used compression parameter 5 form the non-imagette specific
+ * @brief get the used compression parameter 5 from the non-imagette specific
  *	compression entity header
  *
  * @param ent	pointer to a compression entity
@@ -1535,7 +1540,7 @@ uint16_t cmp_ent_get_non_ima_cmp_par5(struct cmp_entity *ent)
 
 
 /**
- * @brief get the used spillover threshold 6 parameter form the non-imagette
+ * @brief get the used spillover threshold 6 parameter from the non-imagette
  *	specific compression entity header
  *
  * @param ent	pointer to a compression entity
@@ -1557,7 +1562,7 @@ uint32_t cmp_ent_get_non_ima_spill6(struct cmp_entity *ent)
 
 
 /**
- * @brief get the used compression parameter 6 form the non-imagette specific
+ * @brief get the used compression parameter 6 from the non-imagette specific
  *	compression entity header
  *
  * @param ent	pointer to a compression entity
@@ -1588,7 +1593,7 @@ uint16_t cmp_ent_get_non_ima_cmp_par6(struct cmp_entity *ent)
 
 void *cmp_ent_get_data_buf(struct cmp_entity *ent)
 {
-	enum cmp_ent_data_type data_type;
+	enum cmp_data_type data_type;
 
 	if (!ent)
 		return NULL;
@@ -1634,7 +1639,7 @@ void *cmp_ent_get_data_buf(struct cmp_entity *ent)
 
 
 /**
- * @brief copy the data form a compression entity to a buffer
+ * @brief copy the data from a compression entity to a buffer
  *
  * @param ent		pointer to the compression entity containing the compressed data
  * @param data_buf	pointer where the destination data buffer where the
@@ -1699,7 +1704,8 @@ ssize_t cmp_ent_get_cmp_data(struct cmp_entity *ent, uint32_t *data_buf,
 
 static uint32_t cmp_ent_get_hdr_size(struct cmp_entity *ent)
 {
-	return cmp_ent_cal_hdr_size(cmp_ent_get_data_type(ent));
+	return cmp_ent_cal_hdr_size(cmp_ent_get_data_type(ent),
+				    cmp_ent_get_data_type_raw_bit(ent));
 }
 
 
@@ -1727,108 +1733,67 @@ uint32_t cmp_ent_get_cmp_data_size(struct cmp_entity *ent)
 
 
 /**
- * @brief set the parameters in the non-imagette specific compression
- *	entity header
+ * @brief write the compression parameters from a compression configuration
+ *	into the compression entity header
+ * @note no compressed data are put into the entity and no change of the entity
+ *	size
  *
- * @param ent	pointer to a compression entity
- * @param info	decompression information structure
- *
- * @returns 0 on success, otherwise error
- *
- * @warning this functions is not implemented jet
- */
-
-static int cmp_ent_write_non_ima_parameters(struct cmp_entity *ent, struct cmp_info *info)
-{
-	if (!info)
-		return -1;
-	(void)ent;
-
-	printf("not implemented jet!\n");
-	return -1;
-#if 0
-	if (cmp_ent_set_non_ima_spill1(ent, info->))
-		return -1;
-	if (cmp_ent_set_non_ima_cmp_par1(ent, info->))
-		return -1;
-
-	if (cmp_ent_set_non_ima_spill2(ent, info->))
-		return -1;
-	if (cmp_ent_set_non_ima_cmp_par2(ent, info->))
-		return -1;
-
-	if (cmp_ent_set_non_ima_spill3(ent, info->))
-		return -1;
-	if (cmp_ent_set_non_ima_cmp_par3(ent, info->))
-		return -1;
-
-	if (cmp_ent_set_non_ima_spill4(ent, info->))
-		return -1;
-	if (cmp_ent_set_non_ima_cmp_par4(ent, info->))
-		return -1;
-
-	if (cmp_ent_set_non_ima_spill5(ent, info->))
-		return -1;
-	if (cmp_ent_set_non_ima_cmp_par5(ent, info->))
-		return -1;
-
-	if (cmp_ent_set_non_ima_spill6(ent, info->))
-		return -1;
-	if (cmp_ent_set_non_ima_cmp_par6(ent, info->))
-		return -1;
-	return 0;
-#endif
-}
-
-
-/**
- * @brief write the compression parameters in the entity header based on the data
- *	product type set in the entity and the provided decompression information
- *	struct
- *
- * @param ent	pointer to a compression entity
- * @param info	decompression information structure
- * @param cfg	compression configuration structure for adaptive compression
- *	parameters (can be NULL)
+ * @param ent		pointer to a compression entity
+ * @param cfg		pointer to a compression configuration
+ * @param cmp_size_bits	size of the compressed data in bits
  *
  * @returns 0 on success, negative on error
  */
 
-static int cmp_ent_write_cmp_pars(struct cmp_entity *ent, struct cmp_info *info,
-				struct cmp_cfg *cfg)
+int cmp_ent_write_cmp_pars(struct cmp_entity *ent, const struct cmp_cfg *cfg,
+			   int cmp_size_bits)
 {
 	uint32_t ent_cmp_data_size;
 
-	if (!info)
+	if (!cfg)
 		return -1;
+
+	if (cmp_size_bits < 0)
+		return -1;
+
+	if (cfg->data_type != cmp_ent_get_data_type(ent)) {
+		debug_print("Error: The entity data product type dos not match the configuration data product type.\n");
+		return -1;
+	}
 
 	ent_cmp_data_size = cmp_ent_get_cmp_data_size(ent);
 
 	/* check if the entity can hold the compressed data */
-	if (ent_cmp_data_size < cmp_bit_to_4byte(info->cmp_size))
+	if (ent_cmp_data_size < cmp_bit_to_4byte((unsigned int)cmp_size_bits)) {
+		debug_print("Error: The entity size is to small to hold the compressed data.\n");
 		return -2;
+	}
 
 	/* set compression parameter fields in the generic entity header */
-	if (cmp_ent_set_original_size(ent, cmp_cal_size_of_data(info->samples_used,
-								info->cmp_mode_used)))
+	if (cmp_ent_set_original_size(ent, cmp_cal_size_of_data(cfg->samples,
+								cfg->data_type)))
 		return -1;
-	if (cmp_ent_set_cmp_mode(ent, info->cmp_mode_used))
+	if (cmp_ent_set_cmp_mode(ent, cfg->cmp_mode))
 		return -1;
-	if (cmp_ent_set_model_value(ent, info->model_value_used))
+	if (cmp_ent_set_model_value(ent, cfg->model_value))
 		return -1;
-	if (cmp_ent_set_lossy_cmp_par(ent, info->round_used))
+	if (cmp_ent_set_lossy_cmp_par(ent, cfg->round))
 		return -1;
 
-	if (cmp_ent_get_data_type_raw_bit(ent))
+	if (cfg->cmp_mode == CMP_MODE_RAW) {
+		/* check the raw data bit */
+		if (!cmp_ent_get_data_type_raw_bit(ent)) {
+			debug_print("Error: The entity's raw data bit is not set, but the configuration contains raw data.\n");
+			return -1;
+		}
 		/* no specific header is used for raw data we are done */
 		return 0;
+	}
 
 	switch (cmp_ent_get_data_type(ent)) {
 	case DATA_TYPE_IMAGETTE_ADAPTIVE:
 	case DATA_TYPE_SAT_IMAGETTE_ADAPTIVE:
 	case DATA_TYPE_F_CAM_IMAGETTE_ADAPTIVE:
-		if (!cfg)
-			return -1;
 		if (cmp_ent_set_ima_ap1_spill(ent, cfg->ap1_spill))
 			return -1;
 		if (cmp_ent_set_ima_ap1_golomb_par(ent, cfg->ap1_golomb_par))
@@ -1841,14 +1806,44 @@ static int cmp_ent_write_cmp_pars(struct cmp_entity *ent, struct cmp_info *info,
 	case DATA_TYPE_IMAGETTE:
 	case DATA_TYPE_SAT_IMAGETTE:
 	case DATA_TYPE_F_CAM_IMAGETTE:
-		if (cmp_ent_set_ima_spill(ent, info->spill_used))
+		if (cmp_ent_set_ima_spill(ent, cfg->spill))
 			return -1;
-		if (cmp_ent_set_ima_golomb_par(ent, info->golomb_par_used))
+		if (cmp_ent_set_ima_golomb_par(ent, cfg->golomb_par))
 			return -1;
 		break;
 	case DATA_TYPE_OFFSET:
 	case DATA_TYPE_BACKGROUND:
 	case DATA_TYPE_SMEARING:
+		if (cmp_ent_set_non_ima_cmp_par1(ent, cfg->cmp_par_mean))
+			return -1;
+		if (cmp_ent_set_non_ima_spill1(ent, cfg->spill_mean))
+			return -1;
+
+		if (cmp_ent_set_non_ima_spill2(ent, cfg->cmp_par_variance))
+			return -1;
+		if (cmp_ent_set_non_ima_cmp_par2(ent, cfg->spill_variance))
+			return -1;
+
+		if (cmp_ent_set_non_ima_cmp_par3(ent, cfg->cmp_par_pixels_error))
+			return -1;
+		if (cmp_ent_set_non_ima_spill3(ent, cfg->spill_pixels_error))
+			return -1;
+
+		if (cmp_ent_set_non_ima_cmp_par4(ent, 0))
+			return -1;
+		if (cmp_ent_set_non_ima_spill4(ent, 0))
+			return -1;
+
+		if (cmp_ent_set_non_ima_cmp_par5(ent, 0))
+			return -1;
+		if (cmp_ent_set_non_ima_spill5(ent, 0))
+			return -1;
+
+		if (cmp_ent_set_non_ima_cmp_par6(ent, 0))
+			return -1;
+		if (cmp_ent_set_non_ima_spill6(ent, 0))
+			return -1;
+		break;
 	case DATA_TYPE_S_FX:
 	case DATA_TYPE_S_FX_DFX:
 	case DATA_TYPE_S_FX_NCOB:
@@ -1861,12 +1856,43 @@ static int cmp_ent_write_cmp_pars(struct cmp_entity *ent, struct cmp_info *info,
 	case DATA_TYPE_F_FX_DFX:
 	case DATA_TYPE_F_FX_NCOB:
 	case DATA_TYPE_F_FX_DFX_NCOB_ECOB:
+		if (cmp_ent_set_non_ima_cmp_par1(ent, cfg->cmp_par_exp_flags))
+			return -1;
+		if (cmp_ent_set_non_ima_spill1(ent, cfg->spill_exp_flags))
+			return -1;
+
+		if (cmp_ent_set_non_ima_cmp_par2(ent, cfg->cmp_par_fx))
+			return -1;
+		if (cmp_ent_set_non_ima_spill2(ent, cfg->spill_fx))
+			return -1;
+
+		if (cmp_ent_set_non_ima_cmp_par3(ent, cfg->cmp_par_ncob))
+			return -1;
+		if (cmp_ent_set_non_ima_spill3(ent, cfg->spill_ncob))
+			return -1;
+
+		if (cmp_ent_set_non_ima_cmp_par4(ent, cfg->cmp_par_efx))
+			return -1;
+		if (cmp_ent_set_non_ima_spill4(ent, cfg->spill_efx))
+			return -1;
+
+		if (cmp_ent_set_non_ima_cmp_par5(ent, cfg->cmp_par_ecob))
+			return -1;
+		if (cmp_ent_set_non_ima_spill5(ent, cfg->spill_ecob))
+			return -1;
+
+		if (cmp_ent_set_non_ima_cmp_par6(ent, cfg->cmp_par_fx_cob_variance))
+			return -1;
+		if (cmp_ent_set_non_ima_spill6(ent, cfg->spill_fx_cob_variance))
+			return -1;
+
+		break;
 	case DATA_TYPE_F_CAM_OFFSET:
 	case DATA_TYPE_F_CAM_BACKGROUND:
-		if (cmp_ent_write_non_ima_parameters(ent, info))
+		/* TODO: fix this*/
 			return -1;
 		break;
-	case DATA_TYPE_UNKOWN: /* fall through */
+	case DATA_TYPE_UNKOWN:
 	default:
 		return -1;
 	}
@@ -1876,12 +1902,94 @@ static int cmp_ent_write_cmp_pars(struct cmp_entity *ent, struct cmp_info *info,
 
 
 /**
- * @brief create a compression entity by setting the size of the
- * compression entity and the data product type in the entity header
+ * @brief write the parameters from the RDCU decompression information structure
+ *	in the compression entity header
+ * @note no compressed data are put into the entity and no change of the entity
+ *	size
+ *
+ * @param ent	pointer to a compression entity
+ * @param info	pointer to a decompression information structure
+ * @param cfg	pointer to a compression configuration structure for adaptive
+ *	compression parameters (can be NULL if non adaptive data_type is used)
+ *
+ * @returns 0 on success, negative on error
+ */
+
+int cmp_ent_write_rdcu_cmp_pars(struct cmp_entity *ent, const struct cmp_info *info,
+				const struct cmp_cfg *cfg)
+{
+	uint32_t ent_cmp_data_size;
+	enum cmp_data_type data_type = cmp_ent_get_data_type(ent);
+
+	if (!info)
+		return -1;
+
+	ent_cmp_data_size = cmp_ent_get_cmp_data_size(ent);
+
+	/* check if the entity can hold the compressed data */
+	if (ent_cmp_data_size < cmp_bit_to_4byte(info->cmp_size)) {
+		debug_print("Error: The entity size is to small to hold the compressed data.\n");
+		return -2;
+	}
+
+	if (!rdcu_supported_data_type_is_used(data_type)) {
+		debug_print("Error: The compression data type is not one of the types supported by the RDCU.\n");
+		return -1;
+	}
+
+	/* set compression parameter fields in the generic entity header */
+	if (cmp_ent_set_original_size(ent, cmp_cal_size_of_data(info->samples_used, DATA_TYPE_IMAGETTE)))
+		return -1;
+	if (cmp_ent_set_cmp_mode(ent, info->cmp_mode_used))
+		return -1;
+	if (cmp_ent_set_model_value(ent, info->model_value_used))
+		return -1;
+	if (cmp_ent_set_lossy_cmp_par(ent, info->round_used))
+		return -1;
+
+	if (cmp_ent_get_data_type_raw_bit(ent) != raw_mode_is_used(info->cmp_mode_used)) {
+		debug_print("Error: The raw bit is set in data product type filed, but no raw compression mode is used.\n");
+		return -1;
+	}
+	if (raw_mode_is_used(info->cmp_mode_used))
+		/* no specific header is used for raw data we are done */
+		return 0;
+
+	if (cmp_ent_set_ima_spill(ent, info->spill_used))
+		return -1;
+	if (cmp_ent_set_ima_golomb_par(ent, info->golomb_par_used))
+		return -1;
+
+	/* use the adaptive imagette parameter from the compression configuration
+	 * if an adaptive imagette compression data type is ent in the entity
+	 */
+	if (cmp_ap_imagette_data_type_is_used(data_type)) {
+		if (!cfg) {
+			debug_print("Error: Need the compression configuration to get the adaptive parameters.\n");
+			return -1;
+		}
+		if (cmp_ent_set_ima_ap1_spill(ent, cfg->ap1_spill))
+			return -1;
+		if (cmp_ent_set_ima_ap1_golomb_par(ent, cfg->ap1_golomb_par))
+			return -1;
+		if (cmp_ent_set_ima_ap2_spill(ent, cfg->ap2_spill))
+			return -1;
+		if (cmp_ent_set_ima_ap2_golomb_par(ent, cfg->ap2_golomb_par))
+			return -1;
+	}
+
+	return 0;
+}
+
+
+/**
+ * @brief create a compression entity by setting the size of the compression
+ *	entity and the data product type in the entity header
  *
  * @param ent		pointer to a compression entity; if NULL, the function
- *	returns the needed size
+ *			returns the needed size
  * @param data_type	compression entity data product type
+ * @param raw_mode_flag	set this flag if the raw compression mode (CMP_MODE_RAW) is used
  * @param cmp_size_byte	size of the compressed data in bytes
  *
  * @note if the entity size is smaller than the largest header, the function
@@ -1890,18 +1998,21 @@ static int cmp_ent_write_cmp_pars(struct cmp_entity *ent, struct cmp_info *info,
  * @returns the size of the compression entity or 0 on error
  */
 
-size_t cmp_ent_create(struct cmp_entity *ent, enum cmp_ent_data_type data_type,
-		      uint32_t cmp_size_byte)
+uint32_t cmp_ent_create(struct cmp_entity *ent, enum cmp_data_type data_type,
+			int raw_mode_flag, uint32_t cmp_size_byte)
 {
 	int err;
-	uint32_t hdr_size = cmp_ent_cal_hdr_size(data_type);
-	size_t ent_size = hdr_size + cmp_size_byte;
+	uint32_t hdr_size = cmp_ent_cal_hdr_size(data_type, raw_mode_flag);
+	uint32_t ent_size = hdr_size + cmp_size_byte;
 	uint32_t ent_size_cpy = ent_size;
 
 	if (!hdr_size)
 		return 0;
 
 	if (cmp_size_byte > CMP_ENTITY_MAX_SIZE)
+		return 0;
+
+	if (ent_size > CMP_ENTITY_MAX_SIZE)
 		return 0;
 
 	if (ent_size < sizeof(struct cmp_entity))
@@ -1916,7 +2027,7 @@ size_t cmp_ent_create(struct cmp_entity *ent, enum cmp_ent_data_type data_type,
 	if (err)
 		return 0;
 
-	err = cmp_ent_set_data_type(ent, data_type);
+	err = cmp_ent_set_data_type(ent, data_type, raw_mode_flag);
 	if (err)
 		return 0;
 
@@ -1927,35 +2038,37 @@ size_t cmp_ent_create(struct cmp_entity *ent, enum cmp_ent_data_type data_type,
 /**
  * @brief create a compression entity and set the header fields
  *
- * @note this function simplifies the entity setup by creating a entity and
+ * @note this function simplifies the entity set up by creating an entity and
  *	setting the header fields in one function call
+ * @note no compressed data are put into the entity
  *
  * @param ent			pointer to a compression entity; if NULL, the
  *	function returns the needed size
- * @param data_type		compression entity data product type
- * @param version_id	applications software version identifier
+ * @param version_id		applications software version identifier
  * @param start_time		compression start timestamp (coarse and fine)
  * @param end_time		compression end timestamp (coarse and fine)
  * @param model_id		model identifier
  * @param model_counter		model counter
- * @param info			decompression information structure
- * @param cfg			compression configuration structure for adaptive
- *	compression parameters (can be NULL)
+ * @param cfg			pointer to compression configuration (can be NULL)
+ * @param cmp_size_bits		length of the compressed data in bits
  *
  * @returns the size of the compression entity or 0 on error
  */
 
-size_t cmp_ent_build(struct cmp_entity *ent, enum cmp_ent_data_type data_type,
-		     uint32_t version_id, uint64_t start_time,
-		     uint64_t end_time, uint16_t model_id, uint8_t model_counter,
-		     struct cmp_info *info, struct cmp_cfg *cfg)
+size_t cmp_ent_build(struct cmp_entity *ent, uint32_t version_id,
+		     uint64_t start_time, uint64_t end_time, uint16_t model_id,
+		     uint8_t model_counter, struct cmp_cfg *cfg, int cmp_size_bits)
 {
 	uint32_t ent_size;
 
-	if (!info)
+	if (!cfg)
 		return 0;
 
-	ent_size = cmp_ent_create(ent, data_type, cmp_bit_to_4byte(info->cmp_size));
+	if (cmp_size_bits < 0)
+		return 0;
+
+	ent_size = cmp_ent_create(ent, cfg->data_type, cfg->cmp_mode == CMP_MODE_RAW,
+				  cmp_bit_to_4byte((unsigned int)cmp_size_bits));
 	if (!ent_size)
 		return 0;
 
@@ -1970,7 +2083,7 @@ size_t cmp_ent_build(struct cmp_entity *ent, enum cmp_ent_data_type data_type,
 			return 0;
 		if (cmp_ent_set_model_counter(ent, model_counter))
 			return 0;
-		if (cmp_ent_write_cmp_pars(ent, info, cfg))
+		if (cmp_ent_write_cmp_pars(ent, cfg, cmp_size_bits))
 			return 0;
 	}
 
@@ -1979,82 +2092,116 @@ size_t cmp_ent_build(struct cmp_entity *ent, enum cmp_ent_data_type data_type,
 
 
 /**
- * @brief read in read in a imagette compression entity header to a info struct
+ * @brief read in an imagette compression entity header to a
+ *	compression configuration
  *
- * @param ent			pointer to a compression entity
- * @param info			pointer to decompression information structure
- *	to store the read values
+ * @param ent	pointer to a compression entity
+ * @param cfg	pointer to a compression configuration
  *
  * @returns 0 on success; otherwise error
  */
 
-int cmp_ent_read_imagette_header(struct cmp_entity *ent, struct cmp_info *info)
+int cmp_ent_read_header(struct cmp_entity *ent, struct cmp_cfg *cfg)
 {
-	uint32_t original_size;
-	uint32_t sample_size;
+	int samples;
 
-	if (!ent)
-		return -1;
-
-	if (!info)
-		return -1;
-
-	info->cmp_mode_used = cmp_ent_get_cmp_mode(ent);
-	info->model_value_used = cmp_ent_get_model_value_used(ent);
-	info->round_used = cmp_ent_get_lossy_cmp_par(ent);
-	info->spill_used = cmp_ent_get_ima_spill(ent);
-	info->golomb_par_used = cmp_ent_get_ima_golomb_par(ent);
-	info->cmp_size = cmp_ent_get_cmp_data_size(ent)*CHAR_BIT;
-
-	sample_size = size_of_a_sample(info->cmp_mode_used);
-	if (!sample_size) {
-		info->samples_used = 0;
+	cfg->data_type = cmp_ent_get_data_type(ent);
+	if (!cmp_data_type_valid(cfg->data_type)) {
+		debug_print("Error: Compression data type not supported.\n");
 		return -1;
 	}
 
-	original_size = cmp_ent_get_original_size(ent);
-	if (original_size % sample_size != 0) {
-		fprintf(stderr, "Error: original_size and cmp_mode compression header field are not compatible.\n");
-		info->samples_used = 0;
+	cfg->cmp_mode = cmp_ent_get_cmp_mode(ent);
+	cfg->model_value = cmp_ent_get_model_value_used(ent);
+	cfg->round = cmp_ent_get_lossy_cmp_par(ent);
+	cfg->buffer_length = cmp_ent_get_cmp_data_size(ent);
+
+	samples = cmp_input_size_to_samples(cmp_ent_get_original_size(ent), cfg->data_type);
+	if (samples < 0) {
+		debug_print("Error: original_size and data product type in the compression header field are not compatible.\n");
+		cfg->samples = 0;
 		return -1;
 	}
 
-	info->samples_used = original_size / sample_size;
+	cfg->samples = samples;
 
-	if (cmp_ent_get_data_type_raw_bit(ent) != raw_mode_is_used(info->cmp_mode_used)) {
-		fprintf(stderr, "Error: The raw bit is set in Data Product Type Filed, but no raw compression mode is used.\n");
+	if (cmp_ent_get_data_type_raw_bit(ent) != raw_mode_is_used(cfg->cmp_mode)) {
+		debug_print("Error: The raw bit is set in data product type filed, but no raw compression mode is used.\n");
 		return -1;
 	}
+
+	cfg->icu_output_buf = cmp_ent_get_data_buf(ent);
+
+	switch (cfg->data_type) {
+	case DATA_TYPE_IMAGETTE_ADAPTIVE:
+	case DATA_TYPE_SAT_IMAGETTE_ADAPTIVE:
+	case DATA_TYPE_F_CAM_IMAGETTE_ADAPTIVE:
+		cfg->ap1_golomb_par = cmp_ent_get_ima_ap1_golomb_par(ent);
+		cfg->ap1_spill = cmp_ent_get_ima_ap1_spill(ent);
+		cfg->ap2_golomb_par = cmp_ent_get_ima_ap2_golomb_par(ent);
+		cfg->ap2_spill = cmp_ent_get_ima_ap2_spill(ent);
+		/* fall through */
+	case DATA_TYPE_IMAGETTE:
+	case DATA_TYPE_SAT_IMAGETTE:
+	case DATA_TYPE_F_CAM_IMAGETTE:
+		cfg->spill = cmp_ent_get_ima_spill(ent);
+		cfg->golomb_par = cmp_ent_get_ima_golomb_par(ent);
+		break;
+	case DATA_TYPE_OFFSET:
+	case DATA_TYPE_BACKGROUND:
+	case DATA_TYPE_SMEARING:
+		cfg->cmp_par_mean = cmp_ent_get_non_ima_cmp_par1(ent);
+		cfg->spill_mean = cmp_ent_get_non_ima_spill1(ent);
+		cfg->cmp_par_variance = cmp_ent_get_non_ima_cmp_par2(ent);
+		cfg->spill_variance = cmp_ent_get_non_ima_spill2(ent);
+		cfg->cmp_par_pixels_error = cmp_ent_get_non_ima_cmp_par3(ent);
+		cfg->spill_pixels_error = cmp_ent_get_non_ima_spill3(ent);
+		break;
+	case DATA_TYPE_S_FX:
+	case DATA_TYPE_S_FX_DFX:
+	case DATA_TYPE_S_FX_NCOB:
+	case DATA_TYPE_S_FX_DFX_NCOB_ECOB:
+	case DATA_TYPE_L_FX:
+	case DATA_TYPE_L_FX_DFX:
+	case DATA_TYPE_L_FX_NCOB:
+	case DATA_TYPE_L_FX_DFX_NCOB_ECOB:
+	case DATA_TYPE_F_FX:
+	case DATA_TYPE_F_FX_DFX:
+	case DATA_TYPE_F_FX_NCOB:
+	case DATA_TYPE_F_FX_DFX_NCOB_ECOB:
+		cfg->cmp_par_exp_flags = cmp_ent_get_non_ima_cmp_par1(ent);
+		cfg->spill_exp_flags = cmp_ent_get_non_ima_spill1(ent);
+		cfg->cmp_par_fx = cmp_ent_get_non_ima_cmp_par2(ent);
+		cfg->spill_fx = cmp_ent_get_non_ima_spill2(ent);
+		cfg->cmp_par_ncob = cmp_ent_get_non_ima_cmp_par3(ent);
+		cfg->spill_ncob = cmp_ent_get_non_ima_spill3(ent);
+		cfg->cmp_par_efx = cmp_ent_get_non_ima_cmp_par4(ent);
+		cfg->spill_efx = cmp_ent_get_non_ima_spill4(ent);
+		cfg->cmp_par_ecob = cmp_ent_get_non_ima_cmp_par5(ent);
+		cfg->spill_ecob = cmp_ent_get_non_ima_spill5(ent);
+		cfg->cmp_par_fx_cob_variance = cmp_ent_get_non_ima_cmp_par6(ent);
+		cfg->spill_fx_cob_variance = cmp_ent_get_non_ima_spill6(ent);
+		break;
+	case DATA_TYPE_F_CAM_OFFSET:
+	case DATA_TYPE_F_CAM_BACKGROUND:
+		/* TODO: fix this*/
+			return -1;
+		break;
+	case DATA_TYPE_UNKOWN: /* fall through */
+	default:
+		return -1;
+	}
+
 	return 0;
 }
 
 
-#if 0
-int cmp_ent_read_adaptive_imagette_header(struct cmp_entity *ent, struct cmp_info *info)
-{
-	if (!ent)
-		return -1;
-
-	if (!info)
-		return -1;
-
-	if (cmp_ent_get_imagette_header(ent, info))
-		return -1;
-	/* info->ap1_cmp_size_byte = cmp_ent_get_ap1_cmp_size_byte(ent); */
-	/* info->ap2_cmp_size_byte = cmp_ent_get_ap2_cmp_size_byte(ent); */
-	/* get ap1_spill and ap1/2 gpar*/
-
-	return 0;
-}
-#endif
-
-
-#if __has_include(<time.h>)
+#ifdef HAS_TIME_H
 /*
  * @brief Covert a calendar time expressed as a struct tm object to time since
  *	 epoch as a time_t object. The function interprets the input structure
  *	 as representing Universal Coordinated Time (UTC).
- * @note timegm is a GNU C Library extensions, not standardized. This function
+ * @note timegm is a GNU C Library extension, not standardized. This function
  *	is used as a portable alternative
  * @note The function is thread-unsafe
  *
@@ -2067,9 +2214,9 @@ int cmp_ent_read_adaptive_imagette_header(struct cmp_entity *ent, struct cmp_inf
 
 static time_t my_timegm(struct tm *tm)
 {
-#if defined(_WIN32) || defined(_WIN64)
+#  if defined(_WIN32) || defined(_WIN64)
 	return _mkgmtime(tm);
-#else
+#  else
 	time_t ret;
 	char *tz;
 
@@ -2086,14 +2233,14 @@ static time_t my_timegm(struct tm *tm)
 		unsetenv("TZ");
 	tzset();
 	return ret;
-#endif
+#  endif
 }
 
 
 /*
  * @brief Generate a timestamp for the compression header
  *
- * @param ts  pointer to object of type struct timespec of the timestamp time, null for now
+ * @param ts  pointer to an object of type struct timespec of the timestamp time, null for now
  *
  * @returns returns compression header timestamp or 0 on error
  */
@@ -2186,7 +2333,7 @@ void cmp_ent_print(struct cmp_entity *ent)
 
 
 /**
- * @brief parse the generic compressed entity header
+ * @brief parses the generic compressed entity header
  *
  * @param ent	pointer to a compression entity
  */
@@ -2197,13 +2344,14 @@ static void cmp_ent_parse_generic_header(struct cmp_entity *ent)
 		 model_value_used, model_id, model_counter, lossy_cmp_par_used,
 		 start_coarse_time, end_coarse_time;
 	uint16_t start_fine_time, end_fine_time;
-	enum cmp_ent_data_type data_type;
+	enum cmp_data_type data_type;
 	int raw_bit;
 
 	version_id = cmp_ent_get_version_id(ent);
 	if (version_id & CMP_TOOL_VERSION_ID_BIT) {
 		uint16_t major = (version_id & 0x7FFF0000U) >> 16U;
 		uint16_t minor = version_id & 0xFFFFU;
+
 		printf("Compressed with cmp_tool version: %u.%02u\n", major, minor);
 	} else
 		printf("ICU ASW Version ID: %u\n", version_id);
@@ -2226,10 +2374,11 @@ static void cmp_ent_parse_generic_header(struct cmp_entity *ent)
 	end_fine_time = cmp_ent_get_fine_end_time(ent);
 	printf("Compression Fine End Time: %d\n", end_fine_time);
 
-#if __has_include(<time.h>)
+#ifdef HAS_TIME_H
 	{
 		struct tm epoch_date = EPOCH_DATE;
 		time_t time = my_timegm(&epoch_date) + start_coarse_time;
+
 		printf("Data were compressed on (local time): %s", ctime(&time));
 	}
 #endif
@@ -2319,17 +2468,26 @@ static void cmp_ent_parese_adaptive_imagette_header(struct cmp_entity *ent)
 
 static void cmp_ent_parese_specific_header(struct cmp_entity *ent)
 {
-	enum cmp_ent_data_type data_type = cmp_ent_get_data_type(ent);
+	enum cmp_data_type data_type = cmp_ent_get_data_type(ent);
+
+	if (cmp_ent_get_data_type_raw_bit(ent)) {
+		printf("Uncompressed data bit is set no specific header is used.\n");
+		return;
+	}
 
 	switch (data_type) {
 	case DATA_TYPE_IMAGETTE:
+	case DATA_TYPE_SAT_IMAGETTE:
+	case DATA_TYPE_F_CAM_IMAGETTE:
 		cmp_ent_parese_imagette_header(ent);
 		break;
 	case DATA_TYPE_IMAGETTE_ADAPTIVE:
+	case DATA_TYPE_SAT_IMAGETTE_ADAPTIVE:
+	case DATA_TYPE_F_CAM_IMAGETTE_ADAPTIVE:
 		cmp_ent_parese_adaptive_imagette_header(ent);
 		break;
 	default:
-		printf("Data Product Type not supported!\n");
+		printf("For this data product type no parse functions is implemented!\n");
 		break;
 	}
 }
@@ -2347,3 +2505,4 @@ void cmp_ent_parse(struct cmp_entity *ent)
 
 	cmp_ent_parese_specific_header(ent);
 }
+

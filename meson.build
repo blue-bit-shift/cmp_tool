@@ -5,6 +5,8 @@ project('cmp_tool', 'c',
   default_options : ['warning_level=3', 'c_std=gnu99']
 )
 
+add_project_arguments('-DDEBUGLEVEL=1', language : 'c')
+
 if host_machine.system() == 'windows' and meson.get_compiler('c').get_id() == 'gcc'
   # by default, MinGW on win32 behaves as if it ignores __attribute__((packed)),
   # you need to add -mno-ms-bitfields to make it work as expected.

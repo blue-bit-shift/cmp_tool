@@ -22,16 +22,22 @@
 
 #include "cmp_support.h"
 
+
+
 #define DEFAULT_GUESS_LEVEL 2
 
-#define CMP_GUESS_DEF_MODE_DIFF		MODE_DIFF_ZERO
-#define CMP_GUESS_DEF_MODE_MODEL	MODE_MODEL_MULTI
+#define CMP_GUESS_DEF_MODE_DIFF		CMP_MODE_DIFF_ZERO
+#define CMP_GUESS_DEF_MODE_MODEL	CMP_MODE_MODEL_MULTI
 
+/* good guess for the spill parameter using the MODE_DIFF_MULTI */
+#define CMP_GOOD_SPILL_DIFF_MULTI 2U
 /* how often the model is updated before it is reset default value */
 #define CMP_GUESS_N_MODEL_UPDATE_DEF	8
 
 uint32_t cmp_guess(struct cmp_cfg *cfg, int level);
 void cmp_guess_set_model_updates(int n_model_updates);
+
+uint32_t cmp_rdcu_get_good_spill(unsigned int golomb_par, enum cmp_mode cmp_mode);
 
 uint16_t cmp_guess_model_value(int n_model_updates);
 

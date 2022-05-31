@@ -34,10 +34,6 @@ subdir('tools')
 
 subdir('cmp_tool')
 
-cunit_dep = dependency('cunit', required : false)
-
 unity_dep = dependency('unity', fallback : ['unity', 'unity_dep'])
-# unity_proj = subproject('unity')
-# unity_dep = unity_proj.get_variable('unity_dep')
 
 subdir('cmp_icu')

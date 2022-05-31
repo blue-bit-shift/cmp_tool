@@ -28,11 +28,11 @@
 #include <errno.h>
 #include <sys/stat.h>
 
-#include "../include/rdcu_pkt_to_file.h"
-#include "../include/cmp_rdcu_extended.h"
-#include "../include/rdcu_rmap.h"
-#include "../include/rdcu_ctrl.h"
-#include "../include/rdcu_cmd.h"
+#include "rdcu_pkt_to_file.h"
+#include "cmp_rdcu_extended.h"
+#include "rdcu_rmap.h"
+#include "rdcu_ctrl.h"
+#include "rdcu_cmd.h"
 
 /* Name of directory were the RMAP packages are stored */
 static char tc_folder_dir[MAX_TC_FOLDER_DIR_LEN] = "TC_FILES";
@@ -52,7 +52,6 @@ void set_tc_folder_dir(const char *dir_name)
 	strncpy(tc_folder_dir, dir_name, sizeof(tc_folder_dir));
 	/*  Ensure null-termination. */
 	tc_folder_dir[sizeof(tc_folder_dir) - 1] = '\0';
-	return;
 }
 
 
@@ -292,8 +291,7 @@ static int read_rdcu_pkt_mode_cfg(uint8_t *icu_addr, uint8_t *rdcu_addr,
 	if (read_all < 0x7)
 		return -1;
 
-	printf("Use ICU_ADDR = %#02X, RDCU_ADDR = %#02X and MTU = %d for the "
-	       "RAMP packets.\n", *icu_addr, *rdcu_addr, *mtu);
+	printf("Use ICU_ADDR = %#02X, RDCU_ADDR = %#02X and MTU = %d for the RAMP packets.\n", *icu_addr, *rdcu_addr, *mtu);
 
 	return 0;
 }

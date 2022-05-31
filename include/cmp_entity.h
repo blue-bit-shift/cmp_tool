@@ -33,34 +33,6 @@
 #include "cmp_support.h"
 
 
-/* Defined Compression Data Product Types */
-enum cmp_ent_data_type {
-	DATA_TYPE_IMAGETTE = 1,
-	DATA_TYPE_IMAGETTE_ADAPTIVE,
-	DATA_TYPE_SAT_IMAGETTE,
-	DATA_TYPE_SAT_IMAGETTE_ADAPTIVE,
-	DATA_TYPE_OFFSET,
-	DATA_TYPE_BACKGROUND,
-	DATA_TYPE_SMEARING,
-	DATA_TYPE_S_FX,
-	DATA_TYPE_S_FX_DFX,
-	DATA_TYPE_S_FX_NCOB,
-	DATA_TYPE_S_FX_DFX_NCOB_ECOB,
-	DATA_TYPE_L_FX,
-	DATA_TYPE_L_FX_DFX,
-	DATA_TYPE_L_FX_NCOB,
-	DATA_TYPE_L_FX_DFX_NCOB_ECOB,
-	DATA_TYPE_F_FX,
-	DATA_TYPE_F_FX_DFX,
-	DATA_TYPE_F_FX_NCOB,
-	DATA_TYPE_F_FX_DFX_NCOB_ECOB,
-	DATA_TYPE_F_CAM_IMAGETTE,
-	DATA_TYPE_F_CAM_IMAGETTE_ADAPTIVE,
-	DATA_TYPE_F_CAM_OFFSET,
-	DATA_TYPE_F_CAM_BACKGROUND,
-	DATA_TYPE_UNKOWN = 0x7FFF,
-};
-
 #define GENERIC_HEADER_SIZE 32
 #define SPECIFIC_IMAGETTE_HEADER_SIZE		4
 #define SPECIFIC_IMAGETTE_ADAPTIVE_HEADER_SIZE	12
@@ -155,21 +127,31 @@ compile_time_assert(sizeof(struct cmp_entity) == NON_IMAGETTE_HEADER_SIZE, CMP_E
 
 
 
-/* brief create a compression entity by setting the size of the
- * compression entity and the data product type in the entity header
+/* create a compression entity by setting the size of the compression entity and
+ * the data product type in the entity header
  */
-size_t cmp_ent_create(struct cmp_entity *ent, enum cmp_ent_data_type data_type,
-		      uint32_t cmp_size_byte);
+uint32_t cmp_ent_create(struct cmp_entity *ent, enum cmp_data_type data_type,
+			int raw_mode_flag, uint32_t cmp_size_byte);
 
 /* create a compression entity and set the header fields */
-size_t cmp_ent_build(struct cmp_entity *ent, enum cmp_ent_data_type data_type,
-		     uint32_t version_id, uint64_t start_time,
-		     uint64_t end_time, uint16_t model_id, uint8_t model_counter,
-		     struct cmp_info *info, struct cmp_cfg *cfg);
+size_t cmp_ent_build(struct cmp_entity *ent, uint32_t version_id,
+		     uint64_t start_time, uint64_t end_time, uint16_t model_id,
+		     uint8_t model_counter, struct cmp_cfg *cfg, int cmp_size_bits);
 
-/* read in a imagette compression entity header to a info struct */
-int cmp_ent_read_imagette_header(struct cmp_entity *ent, struct cmp_info *info);
+/* read in a compression entity header */
+int cmp_ent_read_header(struct cmp_entity *ent, struct cmp_cfg *cfg);
 
+/* write the compression parameters from a compression configuration into the
+ * compression entity header
+ */
+int cmp_ent_write_cmp_pars(struct cmp_entity *ent, const struct cmp_cfg *cfg,
+			   int cmp_size_bits);
+
+/* write the parameters from the RDCU decompression information structure in the
+ * compression entity header
+ */
+int cmp_ent_write_rdcu_cmp_pars(struct cmp_entity *ent, const struct cmp_info *info,
+				const struct cmp_cfg *cfg);
 
 
 /* set functions for generic compression entity header */
@@ -187,8 +169,7 @@ int cmp_ent_set_coarse_end_time(struct cmp_entity *ent, uint32_t coarse_time);
 int cmp_ent_set_fine_end_time(struct cmp_entity *ent, uint16_t fine_time);
 
 int cmp_ent_set_data_type(struct cmp_entity *ent,
-			  enum cmp_ent_data_type data_type);
-int cmp_ent_data_type_valid(enum cmp_ent_data_type data_type);
+			  enum cmp_data_type data_type, int raw_mode);
 int cmp_ent_set_cmp_mode(struct cmp_entity *ent, uint32_t cmp_mode_used);
 int cmp_ent_set_model_value(struct cmp_entity *ent, uint32_t model_value_used);
 int cmp_ent_set_model_id(struct cmp_entity *ent, uint32_t model_id);
@@ -247,7 +228,7 @@ uint64_t cmp_ent_get_end_timestamp(struct cmp_entity *ent);
 uint32_t cmp_ent_get_coarse_end_time(struct cmp_entity *ent);
 uint16_t cmp_ent_get_fine_end_time(struct cmp_entity *ent);
 
-enum cmp_ent_data_type cmp_ent_get_data_type(struct cmp_entity *ent);
+enum cmp_data_type cmp_ent_get_data_type(struct cmp_entity *ent);
 int cmp_ent_get_data_type_raw_bit(struct cmp_entity *ent);
 uint8_t cmp_ent_get_cmp_mode(struct cmp_entity *ent);
 uint8_t cmp_ent_get_model_value_used(struct cmp_entity *ent);
@@ -301,7 +282,7 @@ ssize_t cmp_ent_get_cmp_data(struct cmp_entity *ent, uint32_t *data_buf,
 			     size_t data_buf_size);
 
 /* calculate the size of the compression entity header */
-uint32_t cmp_ent_cal_hdr_size(enum cmp_ent_data_type data_type);
+uint32_t cmp_ent_cal_hdr_size(enum cmp_data_type data_type, int raw_mode);
 
 
 #if __has_include(<time.h>)

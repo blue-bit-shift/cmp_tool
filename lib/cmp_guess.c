@@ -17,12 +17,14 @@
  *	dataset
  */
 
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "../include/cmp_icu.h"
-#include "../include/cmp_guess.h"
+#include "cmp_data_types.h"
+#include "cmp_icu.h"
+#include "cmp_guess.h"
 
 
 /* how often the model is updated before it is rested */
@@ -68,6 +70,43 @@ uint16_t cmp_guess_model_value(int n_model_updates)
 
 
 /**
+ * @brief get a good spill threshold parameter for the selected Golomb parameter
+ *	and compression mode
+ *
+ * @param golomb_par	Golomb parameter
+ * @param cmp_mode	compression mode
+ *
+ * @returns a good spill parameter (optimal for zero escape mechanism)
+ * @warning icu compression not support yet!
+ */
+
+uint32_t cmp_rdcu_get_good_spill(unsigned int golomb_par, enum cmp_mode cmp_mode)
+{
+	const uint32_t LUT_RDCU_MULIT[MAX_RDCU_GOLOMB_PAR+1] = {0, 8, 16, 23,
+		30, 36, 44, 51, 58, 64, 71, 77, 84, 90, 97, 108, 115, 121, 128,
+		135, 141, 148, 155, 161, 168, 175, 181, 188, 194, 201, 207, 214,
+		229, 236, 242, 250, 256, 263, 269, 276, 283, 290, 296, 303, 310,
+		317, 324, 330, 336, 344, 351, 358, 363, 370, 377, 383, 391, 397,
+		405, 411, 418, 424, 431, 452 };
+
+	if (zero_escape_mech_is_used(cmp_mode))
+		return get_max_spill(golomb_par, DATA_TYPE_IMAGETTE);
+
+	if (cmp_mode == CMP_MODE_MODEL_MULTI) {
+		if (golomb_par > MAX_RDCU_GOLOMB_PAR)
+			return 0;
+		else
+			return LUT_RDCU_MULIT[golomb_par];
+	}
+
+	if (cmp_mode == CMP_MODE_DIFF_MULTI)
+		return CMP_GOOD_SPILL_DIFF_MULTI;
+
+	return 0;
+}
+
+
+/**
  * @brief guess a good configuration with pre_cal_method
  *
  * @param cfg compression configuration structure
@@ -79,18 +118,17 @@ uint16_t cmp_guess_model_value(int n_model_updates)
 static uint32_t pre_cal_method(struct cmp_cfg *cfg)
 {
 	uint32_t g;
-	uint32_t cmp_size;
-	uint32_t cmp_size_best = ~0U;
+	int cmp_size, cmp_size_best = INT_MAX;
 	uint32_t golomb_par_best = 0;
 	uint32_t spill_best = 0;
 
 	for (g = MIN_RDCU_GOLOMB_PAR; g < MAX_RDCU_GOLOMB_PAR; g++) {
-		uint32_t s = cmp_get_good_spill(g, cfg->cmp_mode);
+		uint32_t s = cmp_rdcu_get_good_spill(g, cfg->cmp_mode);
 
 		cfg->golomb_par = g;
 		cfg->spill = s;
-		cmp_size = cmp_encode_data(cfg);
-		if (cmp_size == 0) {
+		cmp_size = icu_compress_data(cfg);
+		if (cmp_size <= 0) {
 			return 0;
 		} else if (cmp_size < cmp_size_best) {
 			cmp_size_best = cmp_size;
@@ -120,8 +158,7 @@ static uint32_t brute_force(struct cmp_cfg *cfg)
 	uint32_t g, s;
 	uint32_t n_cal_steps = 0, last = 0;
 	const uint32_t max_cal_steps = CMP_GUESS_MAX_CAL_STEPS;
-	uint32_t cmp_size;
-	uint32_t cmp_size_best = ~0U;
+	int cmp_size, cmp_size_best = INT_MAX;
 	uint32_t golomb_par_best = 0;
 	uint32_t spill_best = 0;
 	uint32_t percent;
@@ -134,12 +171,12 @@ static uint32_t brute_force(struct cmp_cfg *cfg)
 	fflush(stdout);
 
 	for (g = MIN_RDCU_GOLOMB_PAR; g < MAX_RDCU_GOLOMB_PAR; g++) {
-		for (s = MIN_RDCU_SPILL; s < get_max_spill(g, cfg->cmp_mode); s++) {
+		for (s = MIN_RDCU_SPILL; s < get_max_spill(g, cfg->data_type); s++) {
 			cfg->golomb_par = g;
 			cfg->spill = s;
 
-			cmp_size = cmp_encode_data(cfg);
-			if (cmp_size == 0) {
+			cmp_size = icu_compress_data(cfg);
+			if (cmp_size <= 0) {
 				return 0;
 			} else if (cmp_size < cmp_size_best) {
 				cmp_size_best = cmp_size;
@@ -185,19 +222,19 @@ static void add_rdcu_pars_internal(struct cmp_cfg *cfg)
 		cfg->ap2_golomb_par = cfg->golomb_par + 1;
 	}
 
-	cfg->ap1_spill = cmp_get_good_spill(cfg->ap1_golomb_par, cfg->cmp_mode);
-	cfg->ap2_spill = cmp_get_good_spill(cfg->ap2_golomb_par, cfg->cmp_mode);
+	cfg->ap1_spill = cmp_rdcu_get_good_spill(cfg->ap1_golomb_par, cfg->cmp_mode);
+	cfg->ap2_spill = cmp_rdcu_get_good_spill(cfg->ap2_golomb_par, cfg->cmp_mode);
 
 	if (model_mode_is_used(cfg->cmp_mode)) {
-		cfg->rdcu_data_adr = DEFAULT_CFG_MODEL.rdcu_data_adr;
-		cfg->rdcu_model_adr = DEFAULT_CFG_MODEL.rdcu_model_adr;
-		cfg->rdcu_new_model_adr = DEFAULT_CFG_MODEL.rdcu_new_model_adr;
-		cfg->rdcu_buffer_adr = DEFAULT_CFG_MODEL.rdcu_buffer_adr;
+		cfg->rdcu_data_adr = CMP_DEF_IMA_MODEL_RDCU_DATA_ADR;
+		cfg->rdcu_model_adr = CMP_DEF_IMA_MODEL_RDCU_MODEL_ADR;
+		cfg->rdcu_new_model_adr = CMP_DEF_IMA_MODEL_RDCU_UP_MODEL_ADR;
+		cfg->rdcu_buffer_adr = CMP_DEF_IMA_MODEL_RDCU_BUFFER_ADR;
 	} else {
-		cfg->rdcu_data_adr = DEFAULT_CFG_DIFF.rdcu_data_adr;
-		cfg->rdcu_model_adr = DEFAULT_CFG_DIFF.rdcu_model_adr;
-		cfg->rdcu_new_model_adr = DEFAULT_CFG_DIFF.rdcu_new_model_adr;
-		cfg->rdcu_buffer_adr = DEFAULT_CFG_DIFF.rdcu_buffer_adr;
+		cfg->rdcu_data_adr = CMP_DEF_IMA_DIFF_RDCU_DATA_ADR;
+		cfg->rdcu_model_adr = CMP_DEF_IMA_DIFF_RDCU_MODEL_ADR;
+		cfg->rdcu_new_model_adr = CMP_DEF_IMA_DIFF_RDCU_UP_MODEL_ADR;
+		cfg->rdcu_buffer_adr = CMP_DEF_IMA_DIFF_RDCU_BUFFER_ADR;
 	}
 }
 
@@ -220,7 +257,6 @@ uint32_t cmp_guess(struct cmp_cfg *cfg, int level)
 {
 	size_t size;
 	struct cmp_cfg work_cfg;
-	int err;
 	uint32_t cmp_size = 0;
 
 	if (!cfg)
@@ -228,52 +264,34 @@ uint32_t cmp_guess(struct cmp_cfg *cfg, int level)
 
 	if (!cfg->input_buf)
 		return 0;
+	if (model_mode_is_used(cfg->cmp_mode))
+		if (!cfg->model_buf)
+			return 0;
 
-	if (!rdcu_supported_mode_is_used(cfg->cmp_mode)) {
+	if (!rdcu_supported_cmp_mode_is_used(cfg->cmp_mode)) {
 		printf("This compression mode is not implied yet.\n");
 		return 0;
 	}
 	/* make a working copy of the input data (and model) because the
-	 * following function works inplace */
+	 * following function works inplace
+	 */
 	work_cfg = *cfg;
-	work_cfg.input_buf = NULL;
-	work_cfg.model_buf = NULL;
 	work_cfg.icu_new_model_buf = NULL;
 	work_cfg.icu_output_buf = NULL;
 	work_cfg.buffer_length = 0;
+	work_cfg.data_type = DATA_TYPE_IMAGETTE; /* TODO: adapt to others data types */
 
-	size = cfg->samples * size_of_a_sample(work_cfg.cmp_mode);
+	size = cmp_cal_size_of_data(cfg->samples, cfg->data_type);
 	if (size == 0)
 		goto error;
-	work_cfg.input_buf = malloc(size);
-	if (!work_cfg.input_buf) {
-		printf("malloc() failed!\n");
-		goto error;
-	}
-	memcpy(work_cfg.input_buf, cfg->input_buf, size);
 
-	if (cfg->model_buf && model_mode_is_used(cfg->cmp_mode)) {
-		work_cfg.model_buf = malloc(size);
-		if (!work_cfg.model_buf) {
-			printf("malloc() failed!\n");
-			goto error;
-		}
-		memcpy(work_cfg.model_buf, cfg->model_buf, size);
-
+	if (model_mode_is_used(cfg->cmp_mode)) {
 		work_cfg.icu_new_model_buf = malloc(size);
 		if (!work_cfg.icu_new_model_buf) {
 			printf("malloc() failed!\n");
 			goto error;
 		}
 	}
-
-	err = cmp_pre_process(&work_cfg);
-	if (err)
-		goto error;
-
-	err = cmp_map_to_pos(&work_cfg);
-	if (err)
-		goto error;
 
 	/* find the best parameters */
 	switch (level) {
@@ -294,8 +312,6 @@ uint32_t cmp_guess(struct cmp_cfg *cfg, int level)
 	if (!cmp_size)
 		goto error;
 
-	free(work_cfg.input_buf);
-	free(work_cfg.model_buf);
 	free(work_cfg.icu_new_model_buf);
 
 	cfg->golomb_par = work_cfg.golomb_par;
@@ -303,16 +319,15 @@ uint32_t cmp_guess(struct cmp_cfg *cfg, int level)
 
 	cfg->model_value = cmp_guess_model_value(num_model_updates);
 
-	if (rdcu_supported_mode_is_used(cfg->cmp_mode))
+	if (rdcu_supported_data_type_is_used(cfg->data_type))
 		add_rdcu_pars_internal(cfg);
 
-	cfg->buffer_length = ((cmp_size + 32)&~0x1FU)/(size_of_a_sample(work_cfg.cmp_mode)*8);
+	/* TODO: check that for non-imagette data */
+	cfg->buffer_length = ((cmp_size + 32)&~0x1FU)/(size_of_a_sample(cfg->data_type)*8);
 
 	return cmp_size;
 
 error:
-	free(work_cfg.input_buf);
-	free(work_cfg.model_buf);
 	free(work_cfg.icu_new_model_buf);
 	return 0;
 }

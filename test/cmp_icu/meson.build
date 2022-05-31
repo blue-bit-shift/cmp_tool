@@ -1,14 +1,26 @@
-test_cmp_icu_files = files ([
-  'test_cmp_icu.c'
-])
+test_case = files('test_cmp_icu.c')
+test_runner = test_runner_generator.process(test_case)
 
 test_cmp_icu = executable('test_cmp_icu',
-   test_cmp_icu_files,
+   test_case, test_runner,
    include_directories : incdir,
    link_with : cmp_lib,
-   # c_args : ['-DMAIN']
-   dependencies : cunit_dep,
+   dependencies : unity_dep,
    build_by_default : false
 )
 
-test('cmp_icu unit test', test_cmp_icu)
+test('cmp_icu Unit Tests', test_cmp_icu)
+
+
+test_case = files('test_decmp.c')
+test_runner = test_runner_generator.process(test_case)
+
+test_cmp_decomp = executable('test_cmp_decomp',
+   test_case, test_runner,
+   include_directories : incdir,
+   link_with : cmp_lib,
+   dependencies : unity_dep,
+   build_by_default : false
+)
+
+test('Compression Decompression Unit Tests', test_cmp_decomp)
