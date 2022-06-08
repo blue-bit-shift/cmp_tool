@@ -15,6 +15,7 @@
  * more details.
  *
  * @brief compression tool Input/Output library
+ * @warning this part of the software is not intended to run on-board on the ICU.
  */
 
 #include <stdio.h>
@@ -24,12 +25,12 @@
 #include <ctype.h>
 #include <sys/stat.h>
 
-#include "cmp_tool-config.h"
-#include "cmp_io.h"
-#include "cmp_support.h"
-#include "rdcu_cmd.h"
-#include "byteorder.h"
-#include "cmp_data_types.h"
+#include <cmp_tool-config.h>
+#include <cmp_io.h>
+#include <cmp_support.h>
+#include <rdcu_cmd.h>
+#include <byteorder.h>
+#include <cmp_data_types.h>
 
 
 /* directory to convert from data_type to string */

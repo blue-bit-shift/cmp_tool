@@ -18,7 +18,7 @@
 #ifndef _CMP_RDCU_EXTENDED_H_
 #define _CMP_RDCU_EXTENDED_H_
 
-#include "../include/cmp_rdcu.h"
+#include <cmp_rdcu.h>
 
 int rdcu_start_compression(void);
 

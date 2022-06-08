@@ -17,7 +17,7 @@
  *
  * This library provided a rmap_rx and rmap_tx function for the rdcu_rmap
  * library to write generated packets into text files.
- *
+ * @warning this part of the software is not intended to run on-board on the ICU.
  */
 
 #include <stdint.h>
@@ -28,11 +28,11 @@
 #include <errno.h>
 #include <sys/stat.h>
 
-#include "rdcu_pkt_to_file.h"
-#include "cmp_rdcu_extended.h"
-#include "rdcu_rmap.h"
-#include "rdcu_ctrl.h"
-#include "rdcu_cmd.h"
+#include <rdcu_pkt_to_file.h>
+#include <cmp_rdcu_extended.h>
+#include <rdcu_rmap.h>
+#include <rdcu_ctrl.h>
+#include <rdcu_cmd.h>
 
 /* Name of directory were the RMAP packages are stored */
 static char tc_folder_dir[MAX_TC_FOLDER_DIR_LEN] = "TC_FILES";

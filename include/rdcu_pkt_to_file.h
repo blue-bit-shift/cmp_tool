@@ -18,7 +18,7 @@
 #ifndef _RDCU_PKT_TO_FILE_H_
 #define _RDCU_PKT_TO_FILE_H_
 
-#include "cmp_support.h"
+#include <cmp_support.h>
 
 /* directory where the tc files are stored, when --rdcu_pkt option is set */
 #define TC_DIR "TC_FILES"

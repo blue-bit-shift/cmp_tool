@@ -32,11 +32,11 @@
 #include <string.h>
 #include <limits.h>
 
-#include "byteorder.h"
-#include "cmp_debug.h"
-#include "cmp_data_types.h"
-#include "cmp_support.h"
-#include "cmp_icu.h"
+#include <byteorder.h>
+#include <cmp_debug.h>
+#include <cmp_data_types.h>
+#include <cmp_support.h>
+#include <cmp_icu.h>
 
 
 /* pointer to a code word generation function */
@@ -75,7 +75,9 @@ struct cmp_cfg cmp_cfg_icu_create(enum cmp_data_type data_type, enum cmp_mode cm
 				  uint32_t model_value, uint32_t lossy_par)
 {
 	int cfg_valid;
-	struct cmp_cfg cfg = {0};
+	struct cmp_cfg cfg;
+
+	memset(&cfg, 0, sizeof(cfg));
 
 	cfg.data_type = data_type;
 	cfg.cmp_mode = cmp_mode;

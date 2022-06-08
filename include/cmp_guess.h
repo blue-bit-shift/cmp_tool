@@ -20,8 +20,7 @@
 #ifndef CMP_GUESS_H
 #define CMP_GUESS_H
 
-#include "cmp_support.h"
-
+#include <cmp_support.h>
 
 
 #define DEFAULT_GUESS_LEVEL 2

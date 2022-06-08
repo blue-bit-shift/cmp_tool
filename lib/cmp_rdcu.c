@@ -28,13 +28,14 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 
-#include "rdcu_cmd.h"
-#include "cmp_support.h"
-#include "cmp_data_types.h"
-#include "rdcu_ctrl.h"
-#include "rdcu_rmap.h"
-#include "cmp_debug.h"
+#include <rdcu_cmd.h>
+#include <cmp_debug.h>
+#include <cmp_support.h>
+#include <cmp_data_types.h>
+#include <rdcu_ctrl.h>
+#include <rdcu_rmap.h>
 
 
 #define IMA_SAM2BYT                                                            \
@@ -144,7 +145,9 @@ static int rdcu_cfg_gen_par_is_invalid(const struct cmp_cfg *cfg)
 struct cmp_cfg rdcu_cfg_create(enum cmp_data_type data_type, enum cmp_mode cmp_mode,
 			       uint32_t model_value, uint32_t lossy_par)
 {
-	struct cmp_cfg cfg = {0};
+	struct cmp_cfg cfg;
+
+	memset(&cfg, 0, sizeof(cfg));
 
 	cfg.data_type = data_type;
 	cfg.cmp_mode = cmp_mode;
@@ -156,6 +159,7 @@ struct cmp_cfg rdcu_cfg_create(enum cmp_data_type data_type, enum cmp_mode cmp_m
 
 	return cfg;
 }
+
 
 /**
  * @brief check if a buffer is in inside the RDCU SRAM
@@ -801,9 +805,9 @@ int rdcu_read_cmp_info(struct cmp_info *info)
 		info->rdcu_new_model_adr_used = rdcu_get_new_model_addr_used();
 		info->samples_used = rdcu_get_samples_used();
 		info->rdcu_cmp_adr_used = rdcu_get_compr_data_start_addr();
-		info->cmp_size = rdcu_get_compr_data_size();
-		info->ap1_cmp_size = rdcu_get_compr_data_adaptive_1_size();
-		info->ap2_cmp_size = rdcu_get_compr_data_adaptive_2_size();
+		info->cmp_size = rdcu_get_compr_data_size_bit();
+		info->ap1_cmp_size = rdcu_get_compr_data_adaptive_1_size_bit();
+		info->ap2_cmp_size = rdcu_get_compr_data_adaptive_2_size_bit();
 		info->cmp_err = rdcu_get_compr_error();
 	}
 	return 0;

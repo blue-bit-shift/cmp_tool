@@ -15,6 +15,7 @@
  *
  * @brief helps the user to find a good compression parameters for a given
  *	dataset
+ * @warning this part of the software is not intended to run on-board on the ICU.
  */
 
 #include <limits.h>

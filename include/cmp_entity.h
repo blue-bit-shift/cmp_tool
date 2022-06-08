@@ -29,8 +29,8 @@
 
 #include <stdint.h>
 
-#include "compiler.h"
-#include "cmp_support.h"
+#include <compiler.h>
+#include <cmp_support.h>
 
 
 #define GENERIC_HEADER_SIZE 32
@@ -285,11 +285,13 @@ ssize_t cmp_ent_get_cmp_data(struct cmp_entity *ent, uint32_t *data_buf,
 uint32_t cmp_ent_cal_hdr_size(enum cmp_data_type data_type, int raw_mode);
 
 
-#if __has_include(<time.h>)
-#include <time.h>
+#if defined __has_include
+#  if __has_include(<time.h>)
+#    include <time.h>
 /* create a timestamp for the compression header */
 extern const struct tm EPOCH_DATE;
 uint64_t cmp_ent_create_timestamp(const struct timespec *ts);
+#  endif
 #endif
 
 /* print and parse functions */
