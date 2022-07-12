@@ -569,7 +569,7 @@ static int guess_cmp_pars(struct cmp_cfg *cfg, const char *guess_cmp_mode,
 }
 
 
-/* generate packets to setup a RDCU compression */
+/* generate packets to setup an RDCU compression */
 static int gen_rdcu_write_pkts(struct cmp_cfg *cfg)
 {
 	int error;

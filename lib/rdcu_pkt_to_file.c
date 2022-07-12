@@ -311,8 +311,11 @@ int init_rmap_pkt_to_file(void)
 	uint8_t icu_addr, rdcu_addr;
 	int mtu;
 
-	if (read_rdcu_pkt_mode_cfg(&icu_addr, &rdcu_addr, &mtu))
-		return -1;
+	if (read_rdcu_pkt_mode_cfg(&icu_addr, &rdcu_addr, &mtu)) {
+		icu_addr = DEF_ICU_ADDR;
+		rdcu_addr = DEF_RDCU_ADDR;
+		mtu = DEF_MTU;
+	}
 	rdcu_ctrl_init();
 	rdcu_set_source_logical_address(icu_addr);
 	rdcu_set_destination_logical_address(rdcu_addr);
@@ -323,7 +326,7 @@ int init_rmap_pkt_to_file(void)
 
 
 /**
- * @brief generate the rmap packets to set up a RDCU compression
+ * @brief generate the rmap packets to set up an RDCU compression
  * @note note that the initialization function init_rmap_pkt_to_file() must be
  *	executed before
  * @note the configuration of the ICU_ADDR, RDCU_ADDR, MTU settings are in the
@@ -363,7 +366,7 @@ int gen_write_rdcu_pkts(const struct cmp_cfg *cfg)
 
 
 /**
- * @brief generate the rmap packets to read the result of a RDCU compression
+ * @brief generate the rmap packets to read the result of an RDCU compression
  * @note note that the initialization function init_rmap_pkt_to_file() must be
  *	executed before
  * @note the configuration of the ICU_ADDR, RDCU_ADDR, MTU settings are in the
@@ -434,7 +437,7 @@ int gen_read_rdcu_pkts(const struct cmp_info *info)
 
 
 /**
- * @brief generate the rmap packets to set up a RDCU compression, read the
+ * @brief generate the rmap packets to set up an RDCU compression, read the
  *	bitstream and the updated model in parallel to write the data to compressed
  *	and the model and start the compression
  * @note the compressed data are read from cfg->rdcu_buffer_adr with the length

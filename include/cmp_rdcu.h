@@ -55,9 +55,9 @@ int rdcu_read_cmp_status(struct cmp_status *status);
 
 int rdcu_read_cmp_info(struct cmp_info *info);
 
-int rdcu_read_cmp_bitstream(const struct cmp_info *info, void *output_buf);
+int rdcu_read_cmp_bitstream(const struct cmp_info *info, void *compressed_data);
 
-int rdcu_read_model(const struct cmp_info *info, void *model_buf);
+int rdcu_read_model(const struct cmp_info *info, void *updated_model);
 
 int rdcu_interrupt_compression(void);
 

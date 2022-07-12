@@ -200,7 +200,7 @@ int write_input_data_to_file(void *data, uint32_t data_size, enum cmp_data_type 
 	if (verbose) {
 		printf("\n\n");
 			for (i = 0; i < data_size; i++) {
-				printf("%02X ", tmp_buf[i]);
+				printf("%02X", tmp_buf[i]);
 			if ((i + 1) % 16 == 0)
 				printf("\n");
 			else

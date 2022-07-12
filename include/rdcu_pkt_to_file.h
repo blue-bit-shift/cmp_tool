@@ -27,6 +27,11 @@
 
 #define MAX_TC_FOLDER_DIR_LEN 256
 
+/* default values when no .rdcu_pkt_mode_cfg file is available */
+#define DEF_ICU_ADDR 0xA7
+#define DEF_RDCU_ADDR 0xFE
+#define DEF_MTU 4224
+
 int init_rmap_pkt_to_file(void);
 
 void set_tc_folder_dir(const char *dir_name);
