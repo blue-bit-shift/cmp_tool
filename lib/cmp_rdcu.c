@@ -133,13 +133,13 @@ static int rdcu_cfg_gen_par_is_invalid(const struct cmp_cfg *cfg)
 /**
  * @brief create an RDCU compression configuration
  *
- * @param data_type	compression data product types
+ * @param data_type	compression data product type
  * @param cmp_mode	compression mode
- * @param model_value	model weighting parameter (only need for model compression mode)
+ * @param model_value	model weighting parameter (only needed for model compression mode)
  * @param lossy_par	lossy rounding parameter (use CMP_LOSSLESS for lossless compression)
  *
- * @returns compression configuration containing the chosen parameters;
- *	on error the data_type record is set to DATA_TYPE_UNKOWN
+ * @returns a compression configuration containing the chosen parameters;
+ *	on error the data_type record is set to DATA_TYPE_UNKNOWN
  */
 
 struct cmp_cfg rdcu_cfg_create(enum cmp_data_type data_type, enum cmp_mode cmp_mode,
@@ -155,7 +155,7 @@ struct cmp_cfg rdcu_cfg_create(enum cmp_data_type data_type, enum cmp_mode cmp_m
 	cfg.round = lossy_par;
 
 	if (rdcu_cfg_gen_par_is_invalid(&cfg))
-		cfg.data_type = DATA_TYPE_UNKOWN;
+		cfg.data_type = DATA_TYPE_UNKNOWN;
 
 	return cfg;
 }
@@ -348,27 +348,26 @@ static int rdcu_cfg_buffers_is_invalid(const struct cmp_cfg *cfg)
 
 
 /**
- *@brief setup of the different data buffers for an RDCU compression
+ * @brief setup of the different data buffers for an RDCU compression
  *
  * @param cfg			pointer to a compression configuration (created
  *				with the rdcu_cfg_create() function)
  * @param data_to_compress	pointer to the data to be compressed (if NULL no
  *				data transfer to the RDCU)
  * @param data_samples		length of the data to be compressed measured in
- *				16-bit data samples (ignoring the multi entity header)
+ *				16-bit data samples (ignoring the collection header)
  * @param model_of_data		pointer to model data buffer (only needed for
  *				model compression mode, if NULL no model data
  *				transfer to the RDCU)
- * @param rdcu_data_adr		RDCU data to compress start address, the first
- *				data address in the RDCU SRAM
- * @param rdcu_model_adr	RDCU model start address, the first model address
- *				in the RDCU SRAM (only need for model compression mode)
- * @param rdcu_new_model_adr	RDCU new/updated model start address(can be the
+ * @param rdcu_data_adr		RDCU SRAM data to compress start address
+ * @param rdcu_model_adr	RDCU SRAM model start address (only need for
+ *				model compression mode)
+ * @param rdcu_new_model_adr	RDCU SRAM new/updated model start address(can be the
  *				by the same as rdcu_model_adr for in-place model update)
- * @param rdcu_buffer_adr	RDCU compressed data start address, the first
- *				output data address in the RDCU SRAM
+ * @param rdcu_buffer_adr	RDCU SRAM compressed data start address
  * @param rdcu_buffer_lenght	length of the RDCU compressed data SRAM buffer
- *				in number of 16-bit samples
+ *				measured in 16-bit units (same as data_samples)
+ *
  * @returns 0 if parameters are valid, non-zero if parameters are invalid
  */
 
@@ -441,9 +440,9 @@ static int rdcu_cfg_imagette_is_invalid(const struct cmp_cfg *cfg)
 		cfg_invalid++;
 	}
 
-	if (cfg->spill > get_max_spill(cfg->golomb_par, cfg->data_type)) {
+	if (cfg->spill > cmp_rdcu_max_spill(cfg->golomb_par)) {
 		debug_print("Error: The selected spillover threshold value: %u is too large for the selected Golomb parameter: %u, the largest possible spillover value is: %u.\n",
-			    cfg->spill, cfg->golomb_par, get_max_spill(cfg->golomb_par, cfg->data_type));
+			    cfg->spill, cfg->golomb_par, cmp_rdcu_max_spill(cfg->golomb_par));
 		cfg_invalid++;
 	}
 
@@ -453,9 +452,9 @@ static int rdcu_cfg_imagette_is_invalid(const struct cmp_cfg *cfg)
 		cfg_invalid++;
 	}
 
-	if (cfg->ap1_spill > get_max_spill(cfg->ap1_golomb_par, cfg->data_type)) {
+	if (cfg->ap1_spill > cmp_rdcu_max_spill(cfg->ap1_golomb_par)) {
 		debug_print("Error: The selected adaptive 1 spillover threshold value: %u is too large for the selected adaptive 1 Golomb parameter: %u, the largest possible adaptive 1 spillover value is: %u.\n",
-			    cfg->ap1_spill, cfg->ap1_golomb_par, get_max_spill(cfg->ap1_golomb_par, cfg->data_type));
+			    cfg->ap1_spill, cfg->ap1_golomb_par, cmp_rdcu_max_spill(cfg->ap1_golomb_par));
 		cfg_invalid++;
 	}
 
@@ -465,9 +464,9 @@ static int rdcu_cfg_imagette_is_invalid(const struct cmp_cfg *cfg)
 		cfg_invalid++;
 	}
 
-	if (cfg->ap2_spill > get_max_spill(cfg->ap2_golomb_par, cfg->data_type)) {
+	if (cfg->ap2_spill > cmp_rdcu_max_spill(cfg->ap2_golomb_par)) {
 		debug_print("Error: The selected adaptive 2 spillover threshold value: %u is too large for the selected adaptive 2 Golomb parameter: %u, the largest possible adaptive 2 spillover value is: %u.\n",
-			    cfg->ap2_spill, cfg->ap2_golomb_par, get_max_spill(cfg->ap2_golomb_par, cfg->data_type));
+			    cfg->ap2_spill, cfg->ap2_golomb_par, cmp_rdcu_max_spill(cfg->ap2_golomb_par));
 		cfg_invalid++;
 	}
 
@@ -484,12 +483,12 @@ static int rdcu_cfg_imagette_is_invalid(const struct cmp_cfg *cfg)
  *
  * @param cfg			pointer to a compression configuration (created
  *				with the rdcu_cfg_create() function)
- * @param golomb_par		imagette compression parameter (Golomb parameter)
+ * @param golomb_par		imagette compression parameter
  * @param spillover_par		imagette spillover threshold parameter
- * @param ap1_golomb_par	adaptive 1 imagette compression parameter (ap1_golomb parameter)
+ * @param ap1_golomb_par	adaptive 1 imagette compression parameter
  * @param ap1_spillover_par	adaptive 1 imagette spillover threshold parameter
- * @param ap2_golomb_par	adaptive 2 imagette compression parameter (ap2_golomb parameter)
- * @param ap2_spillover_par	adaptive 1 imagette spillover threshold parameter
+ * @param ap2_golomb_par	adaptive 2 imagette compression parameter
+ * @param ap2_spillover_par	adaptive 2 imagette spillover threshold parameter
  *
  * @returns 0 if parameters are valid, non-zero if parameters are invalid
  */
@@ -677,11 +676,9 @@ int rdcu_start_compression(void)
  *
  * @param cfg  configuration contains all parameters required for compression
  *
- * @note Before the rdcu_compress function can be used, an initialization of
+ * @note Before the rdcu_compress function can be used, an initialisation of
  *	the RMAP library is required. This is achieved with the functions
  *	rdcu_ctrl_init() and rdcu_rmap_init().
- * @note When using the 1d-differencing mode or the raw mode (cmp_mode = 0,2,4),
- *       the model parameters (model_value, model_of_data, rdcu_model_adr) are ignored.
  * @note The validity of the cfg structure is checked before the compression is
  *	 started.
  *

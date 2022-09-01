@@ -23,6 +23,14 @@
 #include <stddef.h>
 
 
+/* return code if the bitstream buffer is too small to store the whole bitstream */
+#define CMP_ERROR_SAMLL_BUF -2
+
+/* return code if the value or the model is bigger than the max_used_bits
+ * parameter allows
+ */
+#define CMP_ERROR_HIGH_VALUE -3
+
 #define CMP_LOSSLESS	0
 #define CMP_PAR_UNUNSED	0
 
@@ -36,13 +44,13 @@
 #define MAX_RDCU_GOLOMB_PAR	63U
 #define MIN_RDCU_SPILL		2U
 #define MAX_RDCU_ROUND		2U
-/* for maximum spill value look at get_max_spill function */
+/* for maximum spill value look at cmp_rdcu_max_spill function */
 
 /* valid compression parameter ranges for ICU compression */
 #define MIN_ICU_GOLOMB_PAR	1U
-#define MAX_ICU_GOLOMB_PAR	0x80000000U
+#define MAX_ICU_GOLOMB_PAR	UINT16_MAX /* the compression entity dos not allow larger values */
 #define MIN_ICU_SPILL		2U
-/* for maximum spill value look at get_max_spill function */
+/* for maximum spill value look at cmp_icu_max_spill function */
 #define MAX_ICU_ROUND		3U
 #define MAX_STUFF_CMP_PAR	32U
 
@@ -86,7 +94,7 @@
 
 /* defined compression data product types */
 enum cmp_data_type {
-	DATA_TYPE_UNKOWN,
+	DATA_TYPE_UNKNOWN,
 	DATA_TYPE_IMAGETTE,
 	DATA_TYPE_IMAGETTE_ADAPTIVE,
 	DATA_TYPE_SAT_IMAGETTE,
@@ -235,7 +243,8 @@ int cmp_cfg_icu_buffers_is_valid(const struct cmp_cfg *cfg);
 int cmp_cfg_imagette_is_valid(const struct cmp_cfg *cfg);
 int cmp_cfg_fx_cob_is_valid(const struct cmp_cfg *cfg);
 int cmp_cfg_aux_is_valid(const struct cmp_cfg *cfg);
-uint32_t get_max_spill(unsigned int golomb_par, enum cmp_data_type);
+uint32_t cmp_rdcu_max_spill(unsigned int golomb_par);
+uint32_t cmp_icu_max_spill(unsigned int cmp_par);
 
 int cmp_data_type_valid(enum cmp_data_type data_type);
 int rdcu_supported_data_type_is_used(enum cmp_data_type data_type);

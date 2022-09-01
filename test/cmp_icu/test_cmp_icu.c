@@ -1,11 +1,1151 @@
+#include "cmp_support.h"
 #include <string.h>
 #include <stdlib.h>
+#if defined __has_include
+#  if __has_include(<time.h>)
+#    include <time.h>
+#    include <unistd.h>
+#    define HAS_TIME_H 1
+#  endif
+#endif
 
 #include "unity.h"
+#include "cmp_icu.h"
+#include "../lib/cmp_icu.c" /* this is a hack to test static functions */
 
-#include "cmp_support.h"
-/* this is a hack to test static functions */
-#include "../lib/cmp_icu.c"
+/* TODO: test compression with samples = 0 and buffer_length = 0; */
+
+/**
+ * @brief  Seeds the pseudo-random number generator used by rand()
+ */
+
+void setUp(void)
+{
+	unsigned int seed;
+	static int n;
+
+#if HAS_TIME_H
+	seed = time(NULL) * getpid();
+#else
+	seed = 1;
+#endif
+
+	if (!n) {
+		n++;
+		srand(seed);
+		printf("seed: %u\n", seed);
+	}
+}
+
+
+/**
+ * @brief generate a random number
+ *
+ * @param min minimum value
+ * @param max maximum value
+ *
+ * @returns "random" numbers in the range [M, N]
+ *
+ * @see https://c-faq.com/lib/randrange.html
+ */
+
+int random_range(unsigned int min, unsigned int max)
+{
+	if (min > max)
+		TEST_ASSERT(0);
+	if (max-min > RAND_MAX)
+		TEST_ASSERT(0);
+	return min + rand() / (RAND_MAX / (max - min + 1) + 1);
+}
+
+
+/**
+ * @test cmp_cfg_icu_create
+ */
+
+void test_cmp_cfg_icu_create(void)
+{
+	struct cmp_cfg cfg;
+	enum cmp_data_type data_type;
+	enum cmp_mode cmp_mode;
+	uint32_t model_value, lossy_par;
+	/* TODO: change that when DATA_TYPE_BACKGROUND and
+	 * DATA_TYPE_F_CAM_BACKGROUND are implemented */
+	const enum cmp_data_type biggest_data_type = DATA_TYPE_F_CAM_IMAGETTE_ADAPTIVE;
+
+	/* wrong data type tests */
+	data_type = DATA_TYPE_UNKNOWN; /* not valid data type */
+	cmp_mode = CMP_MODE_RAW;
+	model_value = 0;
+	lossy_par = CMP_LOSSLESS;
+	cfg = cmp_cfg_icu_create(data_type, cmp_mode, model_value, lossy_par);
+	TEST_ASSERT_EQUAL_INT(DATA_TYPE_UNKNOWN, cfg.data_type);
+	memset(&cfg, 0, sizeof(cfg));
+
+	data_type = biggest_data_type + 1; /* not valid data type */
+	cfg = cmp_cfg_icu_create(data_type, cmp_mode, model_value, lossy_par);
+	TEST_ASSERT_EQUAL_INT(DATA_TYPE_UNKNOWN, cfg.data_type);
+	memset(&cfg, 0, sizeof(cfg));
+
+	data_type = biggest_data_type;
+	cfg = cmp_cfg_icu_create(data_type, cmp_mode, model_value, lossy_par);
+	TEST_ASSERT_EQUAL_INT(biggest_data_type, cfg.data_type);
+	TEST_ASSERT_EQUAL_INT(CMP_MODE_RAW, cfg.cmp_mode);
+	TEST_ASSERT_EQUAL_INT(0, cfg.model_value);
+	TEST_ASSERT_EQUAL_INT(0, cfg.round);
+	memset(&cfg, 0, sizeof(cfg));
+
+	/* this should work */
+	data_type = DATA_TYPE_IMAGETTE;
+	cfg = cmp_cfg_icu_create(data_type, cmp_mode, model_value, lossy_par);
+	TEST_ASSERT_EQUAL_INT(DATA_TYPE_IMAGETTE, cfg.data_type);
+	TEST_ASSERT_EQUAL_INT(CMP_MODE_RAW, cfg.cmp_mode);
+	TEST_ASSERT_EQUAL_INT(0, cfg.model_value);
+	TEST_ASSERT_EQUAL_INT(0, cfg.round);
+	memset(&cfg, 0, sizeof(cfg));
+
+	/* wrong compression mode tests */
+	cmp_mode = CMP_MODE_STUFF + 1;
+	cfg = cmp_cfg_icu_create(data_type, cmp_mode, model_value, lossy_par);
+	TEST_ASSERT_EQUAL_INT(DATA_TYPE_UNKNOWN, cfg.data_type);
+	memset(&cfg, 0, sizeof(cfg));
+
+	cmp_mode = -1;
+	cfg = cmp_cfg_icu_create(data_type, cmp_mode, model_value, lossy_par);
+	TEST_ASSERT_EQUAL_INT(DATA_TYPE_UNKNOWN, cfg.data_type);
+	memset(&cfg, 0, sizeof(cfg));
+
+	/* this should work */
+	cmp_mode = CMP_MODE_STUFF;
+	cfg = cmp_cfg_icu_create(data_type, cmp_mode, model_value, lossy_par);
+	TEST_ASSERT_EQUAL_INT(DATA_TYPE_IMAGETTE, cfg.data_type);
+	TEST_ASSERT_EQUAL_INT(CMP_MODE_STUFF, cfg.cmp_mode);
+	TEST_ASSERT_EQUAL_INT(0, cfg.model_value);
+	TEST_ASSERT_EQUAL_INT(0, cfg.round);
+	memset(&cfg, 0, sizeof(cfg));
+
+	/* wrong model_value tests */
+	cmp_mode = CMP_MODE_MODEL_MULTI; /* model value checks only active on model mode */
+	model_value = MAX_MODEL_VALUE + 1;
+	cfg = cmp_cfg_icu_create(data_type, cmp_mode, model_value, lossy_par);
+	TEST_ASSERT_EQUAL_INT(DATA_TYPE_UNKNOWN, cfg.data_type);
+
+	model_value = -1U;
+	cfg = cmp_cfg_icu_create(data_type, cmp_mode, model_value, lossy_par);
+	TEST_ASSERT_EQUAL_INT(DATA_TYPE_UNKNOWN, cfg.data_type);
+
+	/* this should work */
+	model_value = MAX_MODEL_VALUE;
+	cfg = cmp_cfg_icu_create(data_type, cmp_mode, model_value, lossy_par);
+	TEST_ASSERT_EQUAL_INT(DATA_TYPE_IMAGETTE, cfg.data_type);
+	TEST_ASSERT_EQUAL_INT(CMP_MODE_MODEL_MULTI, cfg.cmp_mode);
+	TEST_ASSERT_EQUAL_INT(16, cfg.model_value);
+	TEST_ASSERT_EQUAL_INT(0, cfg.round);
+
+	/* no checks for model mode -> no model cmp_mode */
+	cmp_mode = CMP_MODE_STUFF;
+	model_value = MAX_MODEL_VALUE + 1;
+	cfg = cmp_cfg_icu_create(data_type, cmp_mode, model_value, lossy_par);
+	TEST_ASSERT_EQUAL_INT(DATA_TYPE_IMAGETTE, cfg.data_type);
+	TEST_ASSERT_EQUAL_INT(CMP_MODE_STUFF, cfg.cmp_mode);
+	TEST_ASSERT_EQUAL_INT(MAX_MODEL_VALUE + 1, cfg.model_value);
+	TEST_ASSERT_EQUAL_INT(0, cfg.round);
+	model_value = MAX_MODEL_VALUE;
+
+	/* wrong lossy_par tests */
+	lossy_par = MAX_ICU_ROUND + 1;
+	cfg = cmp_cfg_icu_create(data_type, cmp_mode, model_value, lossy_par);
+	TEST_ASSERT_EQUAL_INT(DATA_TYPE_UNKNOWN, cfg.data_type);
+
+	lossy_par = -1U;
+	cfg = cmp_cfg_icu_create(data_type, cmp_mode, model_value, lossy_par);
+	TEST_ASSERT_EQUAL_INT(DATA_TYPE_UNKNOWN, cfg.data_type);
+
+	/* this should work */
+	lossy_par = MAX_ICU_ROUND;
+	cfg = cmp_cfg_icu_create(data_type, cmp_mode, model_value, lossy_par);
+	TEST_ASSERT_EQUAL_INT(DATA_TYPE_IMAGETTE, cfg.data_type);
+	TEST_ASSERT_EQUAL_INT(CMP_MODE_STUFF, cfg.cmp_mode);
+	TEST_ASSERT_EQUAL_INT(16, cfg.model_value);
+	TEST_ASSERT_EQUAL_INT(3, cfg.round);
+
+	/* random test */
+	data_type = random_range(DATA_TYPE_IMAGETTE, biggest_data_type);
+	cmp_mode = random_range(CMP_MODE_RAW, CMP_MODE_STUFF);
+	model_value = random_range(0, MAX_MODEL_VALUE);
+	lossy_par = random_range(CMP_LOSSLESS, MAX_ICU_ROUND);
+	cfg = cmp_cfg_icu_create(data_type, cmp_mode, model_value, lossy_par);
+	TEST_ASSERT_EQUAL_INT(data_type, cfg.data_type);
+	TEST_ASSERT_EQUAL_INT(cmp_mode, cfg.cmp_mode);
+	TEST_ASSERT_EQUAL_INT(model_value, cfg.model_value);
+	TEST_ASSERT_EQUAL_INT(lossy_par, cfg.round);
+}
+
+
+/**
+ * @test cmp_cfg_icu_buffers
+ */
+
+void test_cmp_cfg_icu_buffers(void)
+{
+	struct cmp_cfg cfg;
+	void *data_to_compress;
+	uint32_t data_samples;
+	void *model_of_data;
+	void *updated_model;
+	uint32_t *compressed_data;
+	uint32_t compressed_data_len_samples;
+	size_t s;
+	uint16_t ima_data[4] = {42, 23, 0, 0xFFFF};
+	uint16_t ima_model[4] = {0xC, 0xA, 0xFF, 0xE};
+	uint16_t ima_up_model[4] = {0};
+	uint32_t cmp_data[2] = {0};
+
+	/* error case: unknown  data_type */
+	cfg = cmp_cfg_icu_create(DATA_TYPE_UNKNOWN, CMP_MODE_DIFF_ZERO, 16, CMP_LOSSLESS);
+	data_to_compress = ima_data;
+	data_samples = 4;
+	model_of_data = NULL;
+	updated_model = NULL;
+	compressed_data = cmp_data;
+	compressed_data_len_samples = 4;
+	s = cmp_cfg_icu_buffers(&cfg, data_to_compress, data_samples,
+				model_of_data, updated_model, compressed_data,
+				compressed_data_len_samples);
+	TEST_ASSERT_EQUAL_size_t(0, s);
+
+	/* error case: no data test */
+	cfg = cmp_cfg_icu_create(DATA_TYPE_IMAGETTE, CMP_MODE_DIFF_ZERO, 16, CMP_LOSSLESS);
+	data_to_compress = NULL; /* no data set */
+	data_samples = 4;
+	model_of_data = NULL;
+	updated_model = NULL;
+	compressed_data = cmp_data;
+	compressed_data_len_samples = 4;
+	s = cmp_cfg_icu_buffers(&cfg, data_to_compress, data_samples,
+				model_of_data, updated_model, compressed_data,
+				compressed_data_len_samples);
+	TEST_ASSERT_EQUAL_size_t(0, s);
+
+	/* now its should work */
+	cfg = cmp_cfg_icu_create(DATA_TYPE_IMAGETTE, CMP_MODE_DIFF_ZERO, 16, CMP_LOSSLESS);
+	data_to_compress = ima_data;
+	s = cmp_cfg_icu_buffers(&cfg, data_to_compress, data_samples,
+				model_of_data, updated_model, compressed_data,
+				compressed_data_len_samples);
+	TEST_ASSERT_EQUAL_size_t(8, s);
+	TEST_ASSERT_EQUAL(ima_data, cfg.input_buf);
+	TEST_ASSERT_EQUAL_INT(NULL, cfg.model_buf);
+	TEST_ASSERT_EQUAL_INT(4, cfg.samples);
+	TEST_ASSERT_EQUAL(NULL, cfg.icu_new_model_buf);
+	TEST_ASSERT_EQUAL(cmp_data, cfg.icu_output_buf);
+	TEST_ASSERT_EQUAL_INT(4, cfg.buffer_length);
+
+	/* error case: model mode and no model */
+	cfg = cmp_cfg_icu_create(DATA_TYPE_IMAGETTE, CMP_MODE_MODEL_ZERO, 16, CMP_LOSSLESS);
+	model_of_data = NULL;
+	s = cmp_cfg_icu_buffers(&cfg, data_to_compress, data_samples,
+				model_of_data, updated_model, compressed_data,
+				compressed_data_len_samples);
+	TEST_ASSERT_EQUAL_size_t(0, s);
+
+	/* now its should work */
+	cfg = cmp_cfg_icu_create(DATA_TYPE_IMAGETTE, CMP_MODE_MODEL_ZERO, 16, CMP_LOSSLESS);
+	model_of_data = ima_model;
+	updated_model = ima_model;
+	s = cmp_cfg_icu_buffers(&cfg, data_to_compress, data_samples,
+				model_of_data, updated_model, compressed_data,
+				compressed_data_len_samples);
+	TEST_ASSERT_EQUAL_size_t(8, s);
+	TEST_ASSERT_EQUAL(ima_data, cfg.input_buf);
+	TEST_ASSERT_EQUAL_INT(ima_model, cfg.model_buf);
+	TEST_ASSERT_EQUAL_INT(4, cfg.samples);
+	TEST_ASSERT_EQUAL(ima_model, cfg.icu_new_model_buf);
+	TEST_ASSERT_EQUAL(cmp_data, cfg.icu_output_buf);
+	TEST_ASSERT_EQUAL_INT(4, cfg.buffer_length);
+
+	/* error case: data == model */
+	cfg = cmp_cfg_icu_create(DATA_TYPE_IMAGETTE, CMP_MODE_MODEL_ZERO, 16, CMP_LOSSLESS);
+	data_to_compress = ima_data;
+	model_of_data = ima_data;
+	s = cmp_cfg_icu_buffers(&cfg, data_to_compress, data_samples,
+				model_of_data, updated_model, compressed_data,
+				compressed_data_len_samples);
+	TEST_ASSERT_EQUAL_size_t(0, s);
+
+	/* error case: data == compressed_data */
+	cfg = cmp_cfg_icu_create(DATA_TYPE_IMAGETTE, CMP_MODE_MODEL_ZERO, 16, CMP_LOSSLESS);
+	data_to_compress = ima_data;
+	model_of_data = ima_model;
+	compressed_data = (void *)ima_data;
+	s = cmp_cfg_icu_buffers(&cfg, data_to_compress, data_samples,
+				model_of_data, updated_model, compressed_data,
+				compressed_data_len_samples);
+	TEST_ASSERT_EQUAL_size_t(0, s);
+
+	/* error case: data == updated_model */
+	cfg = cmp_cfg_icu_create(DATA_TYPE_IMAGETTE, CMP_MODE_MODEL_ZERO, 16, CMP_LOSSLESS);
+	data_to_compress = ima_data;
+	model_of_data = ima_model;
+	updated_model = ima_data;
+	compressed_data = (void *)ima_data;
+	s = cmp_cfg_icu_buffers(&cfg, data_to_compress, data_samples,
+				model_of_data, updated_model, compressed_data,
+				compressed_data_len_samples);
+	TEST_ASSERT_EQUAL_size_t(0, s);
+
+	/* error case: model == compressed_data */
+	cfg = cmp_cfg_icu_create(DATA_TYPE_IMAGETTE, CMP_MODE_MODEL_ZERO, 16, CMP_LOSSLESS);
+	data_to_compress = ima_data;
+	model_of_data = ima_model;
+	compressed_data = (void *)ima_model;
+	s = cmp_cfg_icu_buffers(&cfg, data_to_compress, data_samples,
+				model_of_data, updated_model, compressed_data,
+				compressed_data_len_samples);
+	TEST_ASSERT_EQUAL_size_t(0, s);
+
+	/* error case: updated_model == compressed_data */
+	cfg = cmp_cfg_icu_create(DATA_TYPE_IMAGETTE, CMP_MODE_MODEL_ZERO, 16, CMP_LOSSLESS);
+	data_to_compress = ima_data;
+	model_of_data = ima_model;
+	updated_model = ima_up_model;
+	compressed_data = (void *)ima_up_model;
+	s = cmp_cfg_icu_buffers(&cfg, data_to_compress, data_samples,
+				model_of_data, updated_model, compressed_data,
+				compressed_data_len_samples);
+	TEST_ASSERT_EQUAL_size_t(0, s);
+
+	/* warning case: samples = 0 */
+	cfg = cmp_cfg_icu_create(DATA_TYPE_IMAGETTE, CMP_MODE_MODEL_ZERO, 16, CMP_LOSSLESS);
+	data_to_compress = ima_data;
+	data_samples = 0;
+	model_of_data = ima_model;
+	updated_model = ima_up_model;
+	compressed_data = cmp_data;
+	compressed_data_len_samples = 4;
+	s = cmp_cfg_icu_buffers(&cfg, data_to_compress, data_samples,
+				model_of_data, updated_model, compressed_data,
+				compressed_data_len_samples);
+	TEST_ASSERT_EQUAL_size_t(8, s);
+	TEST_ASSERT_EQUAL(ima_data, cfg.input_buf);
+	TEST_ASSERT_EQUAL_INT(ima_model, cfg.model_buf);
+	TEST_ASSERT_EQUAL_INT(0, cfg.samples);
+	TEST_ASSERT_EQUAL(ima_up_model, cfg.icu_new_model_buf);
+	TEST_ASSERT_EQUAL(cmp_data, cfg.icu_output_buf);
+	TEST_ASSERT_EQUAL_INT(4, cfg.buffer_length);
+	memset(&cfg, 0, sizeof(cfg));
+
+	/* error case: compressed_data_len_samples = 0 */
+	cfg = cmp_cfg_icu_create(DATA_TYPE_IMAGETTE, CMP_MODE_MODEL_ZERO, 16, CMP_LOSSLESS);
+	data_samples = 4;
+	compressed_data_len_samples = 0;
+	s = cmp_cfg_icu_buffers(&cfg, data_to_compress, data_samples,
+				model_of_data, updated_model, compressed_data,
+				compressed_data_len_samples);
+	TEST_ASSERT_EQUAL_size_t(0, s);
+
+	/* this should now work */
+	/* if data_samples = 0 -> compressed_data_len_samples = 0 is allowed */
+	cfg = cmp_cfg_icu_create(DATA_TYPE_IMAGETTE, CMP_MODE_MODEL_ZERO, 16, CMP_LOSSLESS);
+	data_samples = 0;
+	compressed_data_len_samples = 0;
+	s = cmp_cfg_icu_buffers(&cfg, data_to_compress, data_samples,
+				model_of_data, updated_model, compressed_data,
+				compressed_data_len_samples);
+	TEST_ASSERT_EQUAL_size_t(0, s); /* not an error, it is the size of the compressed data */
+	TEST_ASSERT_EQUAL(ima_data, cfg.input_buf);
+	TEST_ASSERT_EQUAL_INT(ima_model, cfg.model_buf);
+	TEST_ASSERT_EQUAL_INT(0, cfg.samples);
+	TEST_ASSERT_EQUAL(ima_up_model, cfg.icu_new_model_buf);
+	TEST_ASSERT_EQUAL(cmp_data, cfg.icu_output_buf);
+	TEST_ASSERT_EQUAL_INT(0, cfg.buffer_length);
+
+	/* this should now work */
+	/* if compressed_data = NULL -> compressed_data_len_samples = 0 is allowed */
+	cfg = cmp_cfg_icu_create(DATA_TYPE_IMAGETTE, CMP_MODE_MODEL_ZERO, 16, CMP_LOSSLESS);
+	data_samples = 4;
+	compressed_data = NULL;
+	compressed_data_len_samples = 0;
+	s = cmp_cfg_icu_buffers(&cfg, data_to_compress, data_samples,
+				model_of_data, updated_model, compressed_data,
+				compressed_data_len_samples);
+	TEST_ASSERT_EQUAL_size_t(0, s); /* not an error, it is the size of the compressed data */
+	TEST_ASSERT_EQUAL(ima_data, cfg.input_buf);
+	TEST_ASSERT_EQUAL_INT(ima_model, cfg.model_buf);
+	TEST_ASSERT_EQUAL_INT(4, cfg.samples);
+	TEST_ASSERT_EQUAL(ima_up_model, cfg.icu_new_model_buf);
+	TEST_ASSERT_EQUAL(NULL, cfg.icu_output_buf);
+	TEST_ASSERT_EQUAL_INT(0, cfg.buffer_length);
+
+	/* error case: RAW mode compressed_data smaller than data_samples */
+	compressed_data = cmp_data;
+	compressed_data_len_samples = 3;
+	cfg = cmp_cfg_icu_create(DATA_TYPE_IMAGETTE, CMP_MODE_RAW, 16, CMP_LOSSLESS);
+	s = cmp_cfg_icu_buffers(&cfg, data_to_compress, data_samples,
+				model_of_data, updated_model, compressed_data,
+				compressed_data_len_samples);
+	TEST_ASSERT_EQUAL_size_t(0, s);
+
+	/* this should now work */
+	compressed_data = NULL;
+	cfg = cmp_cfg_icu_create(DATA_TYPE_IMAGETTE, CMP_MODE_RAW, 16, CMP_LOSSLESS);
+	s = cmp_cfg_icu_buffers(&cfg, data_to_compress, data_samples,
+				model_of_data, updated_model, compressed_data,
+				compressed_data_len_samples);
+	TEST_ASSERT_EQUAL_size_t(6, s);
+	TEST_ASSERT_EQUAL(ima_data, cfg.input_buf);
+	TEST_ASSERT_EQUAL_INT(ima_model, cfg.model_buf);
+	TEST_ASSERT_EQUAL_INT(4, cfg.samples);
+	TEST_ASSERT_EQUAL(ima_up_model, cfg.icu_new_model_buf);
+	TEST_ASSERT_EQUAL(NULL, cfg.icu_output_buf);
+	TEST_ASSERT_EQUAL_INT(3, cfg.buffer_length);
+
+	/* this should also now work */
+	compressed_data = cmp_data;
+	compressed_data_len_samples = 4;
+	cfg = cmp_cfg_icu_create(DATA_TYPE_IMAGETTE, CMP_MODE_RAW, 16, CMP_LOSSLESS);
+	s = cmp_cfg_icu_buffers(&cfg, data_to_compress, data_samples,
+				model_of_data, updated_model, compressed_data,
+				compressed_data_len_samples);
+	TEST_ASSERT_EQUAL_size_t(8, s);
+	TEST_ASSERT_EQUAL(ima_data, cfg.input_buf);
+	TEST_ASSERT_EQUAL_INT(ima_model, cfg.model_buf);
+	TEST_ASSERT_EQUAL_INT(4, cfg.samples);
+	TEST_ASSERT_EQUAL(ima_up_model, cfg.icu_new_model_buf);
+	TEST_ASSERT_EQUAL(cmp_data, cfg.icu_output_buf);
+	TEST_ASSERT_EQUAL_INT(4, cfg.buffer_length);
+
+	/* error case: cfg = NULL */
+	s = cmp_cfg_icu_buffers(NULL, data_to_compress, data_samples,
+				model_of_data, updated_model, compressed_data,
+				compressed_data_len_samples);
+	TEST_ASSERT_EQUAL_size_t(0, s);
+}
+
+
+/**
+ * @test cmp_cfg_icu_imagette
+ */
+
+void test_cmp_cfg_icu_imagette(void)
+{
+	struct cmp_cfg cfg = {0};
+	uint32_t cmp_par;
+	uint32_t spillover_par;
+	enum cmp_data_type data_type;
+
+	int error;
+
+	/* lowest values 1d/model mode */
+	cfg = cmp_cfg_icu_create(DATA_TYPE_IMAGETTE, CMP_MODE_MODEL_ZERO, 0, CMP_LOSSLESS);
+	cmp_par = MIN_ICU_GOLOMB_PAR;
+	spillover_par = MIN_ICU_SPILL;
+	error = cmp_cfg_icu_imagette(&cfg, cmp_par, spillover_par);
+	TEST_ASSERT_FALSE(error);
+	TEST_ASSERT_EQUAL_INT(cfg.golomb_par, 1);
+	TEST_ASSERT_EQUAL_INT(cfg.spill, 2);
+
+	/* highest values 1d/model mode */
+	cfg = cmp_cfg_icu_create(DATA_TYPE_F_CAM_IMAGETTE, CMP_MODE_DIFF_MULTI, 16, CMP_LOSSLESS);
+	cmp_par = MAX_ICU_GOLOMB_PAR;
+	spillover_par = cmp_icu_max_spill(cmp_par);
+	error = cmp_cfg_icu_imagette(&cfg, cmp_par, spillover_par);
+	TEST_ASSERT_FALSE(error);
+	TEST_ASSERT_EQUAL_INT(cfg.golomb_par, 0xFFFF);
+	TEST_ASSERT_EQUAL_INT(cfg.spill, 1048545);
+
+	/* wrong data type  test */
+	for (data_type = 0; data_type <= DATA_TYPE_F_CAM_BACKGROUND; data_type++) {
+		cfg = cmp_cfg_icu_create(data_type, CMP_MODE_DIFF_MULTI, 16, CMP_LOSSLESS);
+		error = cmp_cfg_icu_imagette(&cfg, cmp_par, spillover_par);
+		if (data_type == DATA_TYPE_IMAGETTE ||
+		    data_type == DATA_TYPE_SAT_IMAGETTE ||
+		    data_type == DATA_TYPE_F_CAM_IMAGETTE) {
+			TEST_ASSERT_FALSE(error);
+			TEST_ASSERT_EQUAL_INT(data_type, cfg.data_type);
+			TEST_ASSERT_EQUAL_INT(cfg.golomb_par, 0xFFFF);
+			TEST_ASSERT_EQUAL_INT(cfg.spill, 1048545);
+		} else {
+			TEST_ASSERT_TRUE(error);
+		}
+	}
+
+	/* model/1d MODE tests */
+
+	/* cmp_par to big */
+	cfg = cmp_cfg_icu_create(DATA_TYPE_IMAGETTE, CMP_MODE_MODEL_MULTI, 16, CMP_LOSSLESS);
+	cmp_par = MAX_ICU_GOLOMB_PAR + 1;
+	spillover_par = MIN_ICU_SPILL;
+	error = cmp_cfg_icu_imagette(&cfg, cmp_par, spillover_par);
+	TEST_ASSERT_TRUE(error);
+	/* ignore in RAW MODE */
+	cfg = cmp_cfg_icu_create(DATA_TYPE_IMAGETTE, CMP_MODE_RAW, 16, CMP_LOSSLESS);
+	error = cmp_cfg_icu_imagette(&cfg, cmp_par, spillover_par);
+	TEST_ASSERT_FALSE(error);
+
+	/* cmp_par to small */
+	cfg = cmp_cfg_icu_create(DATA_TYPE_IMAGETTE, CMP_MODE_MODEL_MULTI, 16, CMP_LOSSLESS);
+	cmp_par = MIN_ICU_GOLOMB_PAR - 1;
+	spillover_par = MIN_ICU_SPILL;
+	error = cmp_cfg_icu_imagette(&cfg, cmp_par, spillover_par);
+	TEST_ASSERT_TRUE(error);
+	/* ignore in RAW MODE */
+	cfg = cmp_cfg_icu_create(DATA_TYPE_IMAGETTE, CMP_MODE_RAW, 16, CMP_LOSSLESS);
+	error = cmp_cfg_icu_imagette(&cfg, cmp_par, spillover_par);
+	TEST_ASSERT_FALSE(error);
+
+	/* spillover_par to big */
+	cfg = cmp_cfg_icu_create(DATA_TYPE_IMAGETTE, CMP_MODE_MODEL_MULTI, 16, CMP_LOSSLESS);
+	cmp_par = MIN_ICU_GOLOMB_PAR;
+	spillover_par = cmp_icu_max_spill(cmp_par)+1;
+	error = cmp_cfg_icu_imagette(&cfg, cmp_par, spillover_par);
+	TEST_ASSERT_TRUE(error);
+	/* ignore in RAW MODE */
+	cfg = cmp_cfg_icu_create(DATA_TYPE_IMAGETTE, CMP_MODE_RAW, 16, CMP_LOSSLESS);
+	error = cmp_cfg_icu_imagette(&cfg, cmp_par, spillover_par);
+	TEST_ASSERT_FALSE(error);
+
+	/* spillover_par to small */
+	cfg = cmp_cfg_icu_create(DATA_TYPE_IMAGETTE, CMP_MODE_DIFF_ZERO, 0, CMP_LOSSLESS);
+	cmp_par = MAX_ICU_GOLOMB_PAR;
+	spillover_par = MIN_ICU_SPILL -1 ;
+	error = cmp_cfg_icu_imagette(&cfg, cmp_par, spillover_par);
+	TEST_ASSERT_TRUE(error);
+	/* ignore in RAW MODE */
+	cfg = cmp_cfg_icu_create(DATA_TYPE_IMAGETTE, CMP_MODE_RAW, 16, CMP_LOSSLESS);
+	error = cmp_cfg_icu_imagette(&cfg, cmp_par, spillover_par);
+	TEST_ASSERT_FALSE(error);
+
+	/* CMP_MODE_STUFF tests */
+	spillover_par = ~0; /* is ignored */
+
+	/* highest values STUFF MODE */
+	cfg = cmp_cfg_icu_create(DATA_TYPE_IMAGETTE, CMP_MODE_STUFF, ~0, CMP_LOSSLESS);
+	cmp_par = MAX_STUFF_CMP_PAR;
+	error = cmp_cfg_icu_imagette(&cfg, cmp_par, spillover_par);
+	TEST_ASSERT_FALSE(error);
+	TEST_ASSERT_EQUAL_INT(cfg.golomb_par, 32);
+
+	/* lowest values STUFF MODE */
+	cfg = cmp_cfg_icu_create(DATA_TYPE_IMAGETTE, CMP_MODE_STUFF, ~0, CMP_LOSSLESS);
+	cmp_par = 0;
+	error = cmp_cfg_icu_imagette(&cfg, cmp_par, spillover_par);
+	TEST_ASSERT_FALSE(error);
+	TEST_ASSERT_EQUAL_INT(cfg.golomb_par, 0);
+
+	/* cmp_par to big */
+	cfg = cmp_cfg_icu_create(DATA_TYPE_SAT_IMAGETTE, CMP_MODE_STUFF, ~0, CMP_LOSSLESS);
+	cmp_par = MAX_STUFF_CMP_PAR+1;
+	error = cmp_cfg_icu_imagette(&cfg, cmp_par, spillover_par);
+	TEST_ASSERT_TRUE(error);
+
+	/* cfg = NULL test*/
+	error = cmp_cfg_icu_imagette(NULL, cmp_par, spillover_par);
+	TEST_ASSERT_TRUE(error);
+
+	/* invalid compression mode  test*/
+	cfg = cmp_cfg_icu_create(DATA_TYPE_SAT_IMAGETTE, CMP_MODE_STUFF+1, ~0, CMP_LOSSLESS);
+	cmp_par = MAX_STUFF_CMP_PAR+1;
+	error = cmp_cfg_icu_imagette(&cfg, cmp_par, spillover_par);
+	TEST_ASSERT_TRUE(error);
+}
+
+
+/**
+ * @test cmp_cfg_fx_cob
+ */
+
+void test_cmp_cfg_fx_cob(void)
+{
+	struct cmp_cfg cfg = {0};
+	uint32_t cmp_par_exp_flags = 2;
+	uint32_t spillover_exp_flags = 2;
+	uint32_t cmp_par_fx = 2;
+	uint32_t spillover_fx = 2;
+	uint32_t cmp_par_ncob = 2;
+	uint32_t spillover_ncob = 2;
+	uint32_t cmp_par_efx = 2;
+	uint32_t spillover_efx = 2;
+	uint32_t cmp_par_ecob = 2;
+	uint32_t spillover_ecob = 2;
+	uint32_t cmp_par_fx_cob_variance = 2;
+	uint32_t spillover_fx_cob_variance = 2;
+	int error;
+	enum cmp_data_type data_type;
+
+
+	/* wrong data type test */
+	for (data_type = 0; data_type <= DATA_TYPE_F_CAM_BACKGROUND; data_type++) {
+		cfg = cmp_cfg_icu_create(data_type, CMP_MODE_MODEL_ZERO, 16, CMP_LOSSLESS);
+		error = cmp_cfg_fx_cob(&cfg, cmp_par_exp_flags, spillover_exp_flags,
+				       cmp_par_fx, spillover_fx, cmp_par_ncob, spillover_ncob,
+				       cmp_par_efx, spillover_efx, cmp_par_ecob, spillover_ecob,
+				       cmp_par_fx_cob_variance, spillover_fx_cob_variance);
+		if (data_type == DATA_TYPE_S_FX ||
+		    data_type == DATA_TYPE_S_FX_DFX ||
+		    data_type == DATA_TYPE_S_FX_NCOB ||
+		    data_type == DATA_TYPE_S_FX_DFX_NCOB_ECOB ||
+		    data_type == DATA_TYPE_L_FX ||
+		    data_type == DATA_TYPE_L_FX_DFX ||
+		    data_type == DATA_TYPE_L_FX_NCOB ||
+		    data_type == DATA_TYPE_L_FX_DFX_NCOB_ECOB ||
+		    data_type == DATA_TYPE_F_FX ||
+		    data_type == DATA_TYPE_F_FX_DFX ||
+		    data_type == DATA_TYPE_F_FX_NCOB ||
+		    data_type == DATA_TYPE_F_FX_DFX_NCOB_ECOB) {
+			TEST_ASSERT_FALSE(error);
+			TEST_ASSERT_EQUAL_INT(data_type, cfg.data_type);
+			TEST_ASSERT_EQUAL_INT(2, cfg.cmp_par_fx);
+			TEST_ASSERT_EQUAL_INT(2, cfg.spill_fx);
+			TEST_ASSERT_EQUAL_INT(2, cfg.cmp_par_exp_flags);
+			TEST_ASSERT_EQUAL_INT(2, cfg.spill_exp_flags);
+			TEST_ASSERT_EQUAL_INT(2, cfg.cmp_par_efx);
+			TEST_ASSERT_EQUAL_INT(2, cfg.spill_efx);
+			TEST_ASSERT_EQUAL_INT(2, cfg.cmp_par_ncob);
+			TEST_ASSERT_EQUAL_INT(2, cfg.spill_ncob);
+			TEST_ASSERT_EQUAL_INT(2, cfg.cmp_par_ecob);
+			TEST_ASSERT_EQUAL_INT(2, cfg.spill_ecob);
+			TEST_ASSERT_EQUAL_INT(2, cfg.cmp_par_fx_cob_variance);
+			TEST_ASSERT_EQUAL_INT(2, cfg.spill_fx_cob_variance);
+		} else {
+			TEST_ASSERT_TRUE(error);
+		}
+	}
+
+	/* cfg == NULL test */
+	error = cmp_cfg_fx_cob(NULL, cmp_par_exp_flags, spillover_exp_flags,
+			       cmp_par_fx, spillover_fx, cmp_par_ncob, spillover_ncob,
+			       cmp_par_efx, spillover_efx, cmp_par_ecob, spillover_ecob,
+			       cmp_par_fx_cob_variance, spillover_fx_cob_variance);
+	TEST_ASSERT_TRUE(error);
+
+	/* test DATA_TYPE_S_FX */
+	cfg = cmp_cfg_icu_create(DATA_TYPE_S_FX, CMP_MODE_MODEL_ZERO, 16, CMP_LOSSLESS);
+	cmp_par_exp_flags = MAX_ICU_GOLOMB_PAR;
+	spillover_exp_flags = cmp_icu_max_spill(cmp_par_exp_flags);
+	cmp_par_fx = MIN_ICU_GOLOMB_PAR;
+	spillover_fx = MIN_ICU_SPILL;
+	cmp_par_ncob = ~0; /* invalid parameter */
+	spillover_ncob = ~0; /* invalid parameter */
+	cmp_par_efx = ~0; /* invalid parameter */
+	spillover_efx = ~0; /* invalid parameter */
+	cmp_par_ecob = ~0; /* invalid parameter */
+	spillover_ecob = ~0; /* invalid parameter */
+	cmp_par_fx_cob_variance = ~0; /* invalid parameter */
+	spillover_fx_cob_variance = ~0; /* invalid parameter */
+
+	error = cmp_cfg_fx_cob(&cfg, cmp_par_exp_flags, spillover_exp_flags,
+			       cmp_par_fx, spillover_fx, cmp_par_ncob, spillover_ncob,
+			       cmp_par_efx, spillover_efx, cmp_par_ecob, spillover_ecob,
+			       cmp_par_fx_cob_variance, spillover_fx_cob_variance);
+	TEST_ASSERT_FALSE(error);
+	TEST_ASSERT_EQUAL_INT(cmp_par_fx, cfg.cmp_par_fx);
+	TEST_ASSERT_EQUAL_INT(spillover_fx, cfg.spill_fx);
+	TEST_ASSERT_EQUAL_INT(cmp_par_exp_flags, cfg.cmp_par_exp_flags);
+	TEST_ASSERT_EQUAL_INT(spillover_exp_flags, cfg.spill_exp_flags);
+
+	/* invalid spillover_exp_flags parameter */
+	cmp_par_exp_flags = MAX_ICU_GOLOMB_PAR;
+	spillover_exp_flags = cmp_icu_max_spill(cmp_par_exp_flags)+1;
+	error = cmp_cfg_fx_cob(&cfg, cmp_par_exp_flags, spillover_exp_flags,
+			       cmp_par_fx, spillover_fx, cmp_par_ncob, spillover_ncob,
+			       cmp_par_efx, spillover_efx, cmp_par_ecob, spillover_ecob,
+			       cmp_par_fx_cob_variance, spillover_fx_cob_variance);
+	TEST_ASSERT_TRUE(error);
+
+	/* invalid cmp_par_fx parameter */
+	cmp_par_exp_flags = MAX_ICU_GOLOMB_PAR;
+	spillover_exp_flags = cmp_icu_max_spill(cmp_par_exp_flags);
+	cmp_par_fx = MIN_ICU_GOLOMB_PAR - 1;
+	spillover_fx = MIN_ICU_SPILL;
+	error = cmp_cfg_fx_cob(&cfg, cmp_par_exp_flags, spillover_exp_flags,
+			       cmp_par_fx, spillover_fx, cmp_par_ncob, spillover_ncob,
+			       cmp_par_efx, spillover_efx, cmp_par_ecob, spillover_ecob,
+			       cmp_par_fx_cob_variance, spillover_fx_cob_variance);
+	TEST_ASSERT_TRUE(error);
+
+
+	/* test DATA_TYPE_S_FX_DFX */
+	cfg = cmp_cfg_icu_create(DATA_TYPE_S_FX_DFX, CMP_MODE_MODEL_ZERO, 0, 1);
+	cmp_par_exp_flags = MAX_ICU_GOLOMB_PAR;
+	spillover_exp_flags = cmp_icu_max_spill(cmp_par_exp_flags);
+	cmp_par_fx = MIN_ICU_GOLOMB_PAR;
+	spillover_fx = MIN_ICU_SPILL;
+	cmp_par_ncob = ~0; /* invalid parameter */
+	spillover_ncob = ~0; /* invalid parameter */
+	cmp_par_efx = 23;
+	spillover_efx = 42;
+	cmp_par_ecob = ~0; /* invalid parameter */
+	spillover_ecob = ~0; /* invalid parameter */
+	cmp_par_fx_cob_variance = ~0; /* invalid parameter */
+	spillover_fx_cob_variance = ~0; /* invalid parameter */
+	error = cmp_cfg_fx_cob(&cfg, cmp_par_exp_flags, spillover_exp_flags,
+			       cmp_par_fx, spillover_fx, cmp_par_ncob, spillover_ncob,
+			       cmp_par_efx, spillover_efx, cmp_par_ecob, spillover_ecob,
+			       cmp_par_fx_cob_variance, spillover_fx_cob_variance);
+	TEST_ASSERT_FALSE(error);
+	TEST_ASSERT_EQUAL_INT(cmp_par_fx, cfg.cmp_par_fx);
+	TEST_ASSERT_EQUAL_INT(spillover_fx, cfg.spill_fx);
+	TEST_ASSERT_EQUAL_INT(cmp_par_exp_flags, cfg.cmp_par_exp_flags);
+	TEST_ASSERT_EQUAL_INT(spillover_exp_flags, cfg.spill_exp_flags);
+	TEST_ASSERT_EQUAL_INT(cmp_par_efx, cfg.cmp_par_efx);
+	TEST_ASSERT_EQUAL_INT(spillover_efx, cfg.spill_efx);
+
+	/* invalid spillover_efx parameter */
+	spillover_efx = 0;
+	error = cmp_cfg_fx_cob(&cfg, cmp_par_exp_flags, spillover_exp_flags,
+			       cmp_par_fx, spillover_fx, cmp_par_ncob, spillover_ncob,
+			       cmp_par_efx, spillover_efx, cmp_par_ecob, spillover_ecob,
+			       cmp_par_fx_cob_variance, spillover_fx_cob_variance);
+	TEST_ASSERT_TRUE(error);
+
+
+	/* test DATA_TYPE_S_FX_NCOB */
+	cfg = cmp_cfg_icu_create(DATA_TYPE_S_FX_NCOB, CMP_MODE_MODEL_ZERO, 0, 1);
+	cmp_par_exp_flags = MAX_ICU_GOLOMB_PAR;
+	spillover_exp_flags = cmp_icu_max_spill(cmp_par_exp_flags);
+	cmp_par_fx = MIN_ICU_GOLOMB_PAR;
+	spillover_fx = MIN_ICU_SPILL;
+	cmp_par_ncob = 19;
+	spillover_ncob = 5;
+	cmp_par_efx = ~0; /* invalid parameter */
+	spillover_efx = ~0; /* invalid parameter */
+	cmp_par_ecob = ~0; /* invalid parameter */
+	spillover_ecob = ~0; /* invalid parameter */
+	cmp_par_fx_cob_variance = ~0; /* invalid parameter */
+	spillover_fx_cob_variance = ~0; /* invalid parameter */
+	error = cmp_cfg_fx_cob(&cfg, cmp_par_exp_flags, spillover_exp_flags,
+			       cmp_par_fx, spillover_fx, cmp_par_ncob, spillover_ncob,
+			       cmp_par_efx, spillover_efx, cmp_par_ecob, spillover_ecob,
+			       cmp_par_fx_cob_variance, spillover_fx_cob_variance);
+	TEST_ASSERT_FALSE(error);
+	TEST_ASSERT_EQUAL_INT(cmp_par_fx, cfg.cmp_par_fx);
+	TEST_ASSERT_EQUAL_INT(spillover_fx, cfg.spill_fx);
+	TEST_ASSERT_EQUAL_INT(cmp_par_exp_flags, cfg.cmp_par_exp_flags);
+	TEST_ASSERT_EQUAL_INT(spillover_exp_flags, cfg.spill_exp_flags);
+	TEST_ASSERT_EQUAL_INT(cmp_par_ncob, cfg.cmp_par_ncob);
+	TEST_ASSERT_EQUAL_INT(spillover_ncob, cfg.spill_ncob);
+
+	/* invalid cmp_par_ncob parameter */
+	cmp_par_ncob = 0;
+	error = cmp_cfg_fx_cob(&cfg, cmp_par_exp_flags, spillover_exp_flags,
+			       cmp_par_fx, spillover_fx, cmp_par_ncob, spillover_ncob,
+			       cmp_par_efx, spillover_efx, cmp_par_ecob, spillover_ecob,
+			       cmp_par_fx_cob_variance, spillover_fx_cob_variance);
+	TEST_ASSERT_TRUE(error);
+
+
+	/* test DATA_TYPE_S_FX_DFX_NCOB_ECOB */
+	cfg = cmp_cfg_icu_create(DATA_TYPE_S_FX_DFX_NCOB_ECOB, CMP_MODE_DIFF_ZERO, 7, CMP_LOSSLESS);
+	cmp_par_exp_flags = MAX_ICU_GOLOMB_PAR;
+	spillover_exp_flags = cmp_icu_max_spill(cmp_par_exp_flags);
+	cmp_par_fx = MIN_ICU_GOLOMB_PAR;
+	spillover_fx = MIN_ICU_SPILL;
+	cmp_par_ncob = 19;
+	spillover_ncob = 5;
+	cmp_par_efx = 23;
+	spillover_efx = 42;
+	cmp_par_ecob = MAX_ICU_GOLOMB_PAR;
+	spillover_ecob = MIN_ICU_SPILL;
+	cmp_par_fx_cob_variance = ~0; /* invalid parameter */
+	spillover_fx_cob_variance = ~0; /* invalid parameter */
+	error = cmp_cfg_fx_cob(&cfg, cmp_par_exp_flags, spillover_exp_flags,
+			       cmp_par_fx, spillover_fx, cmp_par_ncob, spillover_ncob,
+			       cmp_par_efx, spillover_efx, cmp_par_ecob, spillover_ecob,
+			       cmp_par_fx_cob_variance, spillover_fx_cob_variance);
+	TEST_ASSERT_FALSE(error);
+	TEST_ASSERT_EQUAL_INT(cmp_par_fx, cfg.cmp_par_fx);
+	TEST_ASSERT_EQUAL_INT(spillover_fx, cfg.spill_fx);
+	TEST_ASSERT_EQUAL_INT(cmp_par_exp_flags, cfg.cmp_par_exp_flags);
+	TEST_ASSERT_EQUAL_INT(spillover_exp_flags, cfg.spill_exp_flags);
+	TEST_ASSERT_EQUAL_INT(cmp_par_ncob, cfg.cmp_par_ncob);
+	TEST_ASSERT_EQUAL_INT(spillover_ncob, cfg.spill_ncob);
+	TEST_ASSERT_EQUAL_INT(cmp_par_efx, cfg.cmp_par_efx);
+	TEST_ASSERT_EQUAL_INT(spillover_efx, cfg.spill_efx);
+	TEST_ASSERT_EQUAL_INT(cmp_par_ecob, cfg.cmp_par_ecob);
+	TEST_ASSERT_EQUAL_INT(spillover_ecob, cfg.spill_ecob);
+
+	/* invalid cmp_par_ecob parameter */
+	cmp_par_ecob = -1U;
+	error = cmp_cfg_fx_cob(&cfg, cmp_par_exp_flags, spillover_exp_flags,
+			       cmp_par_fx, spillover_fx, cmp_par_ncob, spillover_ncob,
+			       cmp_par_efx, spillover_efx, cmp_par_ecob, spillover_ecob,
+			       cmp_par_fx_cob_variance, spillover_fx_cob_variance);
+	TEST_ASSERT_TRUE(error);
+
+
+	/* DATA_TYPE_L_FX */
+	cfg = cmp_cfg_icu_create(DATA_TYPE_L_FX, CMP_MODE_DIFF_ZERO, 7, CMP_LOSSLESS);
+	cmp_par_exp_flags = MAX_ICU_GOLOMB_PAR;
+	spillover_exp_flags = cmp_icu_max_spill(cmp_par_exp_flags);
+	cmp_par_fx = MIN_ICU_GOLOMB_PAR;
+	spillover_fx = MIN_ICU_SPILL;
+	cmp_par_ncob = ~0; /* invalid parameter */
+	spillover_ncob = ~0; /* invalid parameter */
+	cmp_par_efx = ~0; /* invalid parameter */
+	spillover_efx = ~0; /* invalid parameter */
+	cmp_par_ecob = ~0; /* invalid parameter */
+	spillover_ecob = ~0; /* invalid parameter */
+	cmp_par_fx_cob_variance = 30;
+	spillover_fx_cob_variance = 8;
+
+	error = cmp_cfg_fx_cob(&cfg, cmp_par_exp_flags, spillover_exp_flags,
+			       cmp_par_fx, spillover_fx, cmp_par_ncob, spillover_ncob,
+			       cmp_par_efx, spillover_efx, cmp_par_ecob, spillover_ecob,
+			       cmp_par_fx_cob_variance, spillover_fx_cob_variance);
+	TEST_ASSERT_FALSE(error);
+	TEST_ASSERT_EQUAL_INT(cmp_par_fx, cfg.cmp_par_fx);
+	TEST_ASSERT_EQUAL_INT(spillover_fx, cfg.spill_fx);
+	TEST_ASSERT_EQUAL_INT(cmp_par_exp_flags, cfg.cmp_par_exp_flags);
+	TEST_ASSERT_EQUAL_INT(spillover_exp_flags, cfg.spill_exp_flags);
+	TEST_ASSERT_EQUAL_INT(cmp_par_fx_cob_variance, cfg.cmp_par_fx_cob_variance);
+	TEST_ASSERT_EQUAL_INT(spillover_fx_cob_variance, cfg.spill_fx_cob_variance);
+
+	/* invalid spillover_fx_cob_variance parameter */
+	spillover_fx_cob_variance = 1;
+	error = cmp_cfg_fx_cob(&cfg, cmp_par_exp_flags, spillover_exp_flags,
+			       cmp_par_fx, spillover_fx, cmp_par_ncob, spillover_ncob,
+			       cmp_par_efx, spillover_efx, cmp_par_ecob, spillover_ecob,
+			       cmp_par_fx_cob_variance, spillover_fx_cob_variance);
+	TEST_ASSERT_TRUE(error);
+
+
+	/* DATA_TYPE_L_FX_DFX */
+	cfg = cmp_cfg_icu_create(DATA_TYPE_L_FX_DFX, CMP_MODE_DIFF_ZERO, 7, CMP_LOSSLESS);
+	cmp_par_exp_flags = MAX_ICU_GOLOMB_PAR;
+	spillover_exp_flags = cmp_icu_max_spill(cmp_par_exp_flags);
+	cmp_par_fx = MIN_ICU_GOLOMB_PAR;
+	spillover_fx = MIN_ICU_SPILL;
+	cmp_par_ncob = ~0; /* invalid parameter */
+	spillover_ncob = ~0; /* invalid parameter */
+	cmp_par_efx = 23;
+	spillover_efx = 42;
+	cmp_par_ecob = ~0; /* invalid parameter */
+	spillover_ecob = ~0; /* invalid parameter */
+	cmp_par_fx_cob_variance = 30;
+	spillover_fx_cob_variance = 8;
+
+	error = cmp_cfg_fx_cob(&cfg, cmp_par_exp_flags, spillover_exp_flags,
+			       cmp_par_fx, spillover_fx, cmp_par_ncob, spillover_ncob,
+			       cmp_par_efx, spillover_efx, cmp_par_ecob, spillover_ecob,
+			       cmp_par_fx_cob_variance, spillover_fx_cob_variance);
+	TEST_ASSERT_FALSE(error);
+	TEST_ASSERT_EQUAL_INT(cmp_par_fx, cfg.cmp_par_fx);
+	TEST_ASSERT_EQUAL_INT(spillover_fx, cfg.spill_fx);
+	TEST_ASSERT_EQUAL_INT(cmp_par_exp_flags, cfg.cmp_par_exp_flags);
+	TEST_ASSERT_EQUAL_INT(spillover_exp_flags, cfg.spill_exp_flags);
+	TEST_ASSERT_EQUAL_INT(cmp_par_efx, cfg.cmp_par_efx);
+	TEST_ASSERT_EQUAL_INT(spillover_efx, cfg.spill_efx);
+	TEST_ASSERT_EQUAL_INT(cmp_par_fx_cob_variance, cfg.cmp_par_fx_cob_variance);
+	TEST_ASSERT_EQUAL_INT(spillover_fx_cob_variance, cfg.spill_fx_cob_variance);
+
+
+	/* DATA_TYPE_L_FX_NCOB */
+	cfg = cmp_cfg_icu_create(DATA_TYPE_L_FX_NCOB, CMP_MODE_DIFF_ZERO, 7, CMP_LOSSLESS);
+	cmp_par_exp_flags = MAX_ICU_GOLOMB_PAR;
+	spillover_exp_flags = cmp_icu_max_spill(cmp_par_exp_flags);
+	cmp_par_fx = MIN_ICU_GOLOMB_PAR;
+	spillover_fx = MIN_ICU_SPILL;
+	cmp_par_ncob = 19;
+	spillover_ncob = 5;
+	cmp_par_efx = ~0; /* invalid parameter */
+	spillover_efx = ~0; /* invalid parameter */
+	cmp_par_ecob = ~0; /* invalid parameter */
+	spillover_ecob = ~0; /* invalid parameter */
+	cmp_par_fx_cob_variance = 30;
+	spillover_fx_cob_variance = 8;
+
+	error = cmp_cfg_fx_cob(&cfg, cmp_par_exp_flags, spillover_exp_flags,
+			       cmp_par_fx, spillover_fx, cmp_par_ncob, spillover_ncob,
+			       cmp_par_efx, spillover_efx, cmp_par_ecob, spillover_ecob,
+			       cmp_par_fx_cob_variance, spillover_fx_cob_variance);
+	TEST_ASSERT_FALSE(error);
+	TEST_ASSERT_EQUAL_INT(cmp_par_fx, cfg.cmp_par_fx);
+	TEST_ASSERT_EQUAL_INT(spillover_fx, cfg.spill_fx);
+	TEST_ASSERT_EQUAL_INT(cmp_par_exp_flags, cfg.cmp_par_exp_flags);
+	TEST_ASSERT_EQUAL_INT(spillover_exp_flags, cfg.spill_exp_flags);
+	TEST_ASSERT_EQUAL_INT(cmp_par_ncob, cfg.cmp_par_ncob);
+	TEST_ASSERT_EQUAL_INT(spillover_ncob, cfg.spill_ncob);
+	TEST_ASSERT_EQUAL_INT(cmp_par_fx_cob_variance, cfg.cmp_par_fx_cob_variance);
+	TEST_ASSERT_EQUAL_INT(spillover_fx_cob_variance, cfg.spill_fx_cob_variance);
+
+
+	/* DATA_TYPE_L_FX_DFX_NCOB_ECOB */
+	cfg = cmp_cfg_icu_create(DATA_TYPE_L_FX_DFX_NCOB_ECOB, CMP_MODE_DIFF_ZERO, 7, CMP_LOSSLESS);
+	cmp_par_exp_flags = MAX_ICU_GOLOMB_PAR;
+	spillover_exp_flags = cmp_icu_max_spill(cmp_par_exp_flags);
+	cmp_par_fx = MIN_ICU_GOLOMB_PAR;
+	spillover_fx = MIN_ICU_SPILL;
+	cmp_par_ncob = 19;
+	spillover_ncob = 5;
+	cmp_par_efx = 23;
+	spillover_efx = 42;
+	cmp_par_ecob = MAX_ICU_GOLOMB_PAR;
+	spillover_ecob = MIN_ICU_SPILL;
+	cmp_par_fx_cob_variance = 30;
+	spillover_fx_cob_variance = 8;
+
+	error = cmp_cfg_fx_cob(&cfg, cmp_par_exp_flags, spillover_exp_flags,
+			       cmp_par_fx, spillover_fx, cmp_par_ncob, spillover_ncob,
+			       cmp_par_efx, spillover_efx, cmp_par_ecob, spillover_ecob,
+			       cmp_par_fx_cob_variance, spillover_fx_cob_variance);
+	TEST_ASSERT_FALSE(error);
+	TEST_ASSERT_EQUAL_INT(cmp_par_fx, cfg.cmp_par_fx);
+	TEST_ASSERT_EQUAL_INT(spillover_fx, cfg.spill_fx);
+	TEST_ASSERT_EQUAL_INT(cmp_par_exp_flags, cfg.cmp_par_exp_flags);
+	TEST_ASSERT_EQUAL_INT(spillover_exp_flags, cfg.spill_exp_flags);
+	TEST_ASSERT_EQUAL_INT(cmp_par_efx, cfg.cmp_par_efx);
+	TEST_ASSERT_EQUAL_INT(spillover_efx, cfg.spill_efx);
+	TEST_ASSERT_EQUAL_INT(cmp_par_ncob, cfg.cmp_par_ncob);
+	TEST_ASSERT_EQUAL_INT(spillover_ncob, cfg.spill_ncob);
+	TEST_ASSERT_EQUAL_INT(cmp_par_ecob, cfg.cmp_par_ecob);
+	TEST_ASSERT_EQUAL_INT(spillover_ecob, cfg.spill_ecob);
+	TEST_ASSERT_EQUAL_INT(cmp_par_fx_cob_variance, cfg.cmp_par_fx_cob_variance);
+	TEST_ASSERT_EQUAL_INT(spillover_fx_cob_variance, cfg.spill_fx_cob_variance);
+
+
+	/* DATA_TYPE_F_FX */
+	cfg = cmp_cfg_icu_create(DATA_TYPE_F_FX, CMP_MODE_DIFF_ZERO, 7, CMP_LOSSLESS);
+	cmp_par_exp_flags = ~0; /* invalid parameter */
+	spillover_exp_flags = ~0; /* invalid parameter */
+	cmp_par_fx = MIN_ICU_GOLOMB_PAR;
+	spillover_fx = MIN_ICU_SPILL;
+	cmp_par_ncob = ~0; /* invalid parameter */
+	spillover_ncob = ~0; /* invalid parameter */
+	cmp_par_efx = ~0; /* invalid parameter */
+	spillover_efx = ~0; /* invalid parameter */
+	cmp_par_ecob = ~0; /* invalid parameter */
+	spillover_ecob = ~0; /* invalid parameter */
+	cmp_par_fx_cob_variance = ~0; /* invalid parameter */
+	spillover_fx_cob_variance = ~0; /* invalid parameter */
+
+	error = cmp_cfg_fx_cob(&cfg, cmp_par_exp_flags, spillover_exp_flags,
+			       cmp_par_fx, spillover_fx, cmp_par_ncob, spillover_ncob,
+			       cmp_par_efx, spillover_efx, cmp_par_ecob, spillover_ecob,
+			       cmp_par_fx_cob_variance, spillover_fx_cob_variance);
+	TEST_ASSERT_FALSE(error);
+	TEST_ASSERT_EQUAL_INT(cmp_par_fx, cfg.cmp_par_fx);
+	TEST_ASSERT_EQUAL_INT(spillover_fx, cfg.spill_fx);
+
+
+	/* DATA_TYPE_F_FX_DFX */
+	cfg = cmp_cfg_icu_create(DATA_TYPE_F_FX_DFX, CMP_MODE_DIFF_ZERO, 7, CMP_LOSSLESS);
+	cmp_par_exp_flags = ~0; /* invalid parameter */
+	spillover_exp_flags = ~0; /* invalid parameter */
+	cmp_par_fx = MIN_ICU_GOLOMB_PAR;
+	spillover_fx = MIN_ICU_SPILL;
+	cmp_par_ncob = ~0; /* invalid parameter */
+	spillover_ncob = ~0; /* invalid parameter */
+	cmp_par_efx = 23;
+	spillover_efx = 42;
+	cmp_par_ecob = ~0; /* invalid parameter */
+	spillover_ecob = ~0; /* invalid parameter */
+	cmp_par_fx_cob_variance = ~0; /* invalid parameter */
+	spillover_fx_cob_variance = ~0; /* invalid parameter */
+
+	error = cmp_cfg_fx_cob(&cfg, cmp_par_exp_flags, spillover_exp_flags,
+			       cmp_par_fx, spillover_fx, cmp_par_ncob, spillover_ncob,
+			       cmp_par_efx, spillover_efx, cmp_par_ecob, spillover_ecob,
+			       cmp_par_fx_cob_variance, spillover_fx_cob_variance);
+	TEST_ASSERT_FALSE(error);
+	TEST_ASSERT_EQUAL_INT(cmp_par_fx, cfg.cmp_par_fx);
+	TEST_ASSERT_EQUAL_INT(spillover_fx, cfg.spill_fx);
+	TEST_ASSERT_EQUAL_INT(cmp_par_efx, cfg.cmp_par_efx);
+	TEST_ASSERT_EQUAL_INT(spillover_efx, cfg.spill_efx);
+
+
+	/* DATA_TYPE_F_FX_NCOB */
+	cfg = cmp_cfg_icu_create(DATA_TYPE_F_FX_NCOB, CMP_MODE_DIFF_ZERO, 7, CMP_LOSSLESS);
+	cmp_par_exp_flags = ~0; /* invalid parameter */
+	spillover_exp_flags = ~0; /* invalid parameter */
+	cmp_par_fx = MIN_ICU_GOLOMB_PAR;
+	spillover_fx = MIN_ICU_SPILL;
+	cmp_par_ncob = MIN_ICU_GOLOMB_PAR;
+	spillover_ncob = cmp_icu_max_spill(cmp_par_ncob);
+	cmp_par_efx = ~0; /* invalid parameter */
+	spillover_efx = ~0; /* invalid parameter */
+	cmp_par_ecob = ~0; /* invalid parameter */
+	spillover_ecob = ~0; /* invalid parameter */
+	cmp_par_fx_cob_variance = ~0; /* invalid parameter */
+	spillover_fx_cob_variance = ~0; /* invalid parameter */
+
+	error = cmp_cfg_fx_cob(&cfg, cmp_par_exp_flags, spillover_exp_flags,
+			       cmp_par_fx, spillover_fx, cmp_par_ncob, spillover_ncob,
+			       cmp_par_efx, spillover_efx, cmp_par_ecob, spillover_ecob,
+			       cmp_par_fx_cob_variance, spillover_fx_cob_variance);
+	TEST_ASSERT_FALSE(error);
+	TEST_ASSERT_EQUAL_INT(cmp_par_fx, cfg.cmp_par_fx);
+	TEST_ASSERT_EQUAL_INT(spillover_fx, cfg.spill_fx);
+	TEST_ASSERT_EQUAL_INT(cmp_par_ncob, cfg.cmp_par_ncob);
+	TEST_ASSERT_EQUAL_INT(spillover_ncob, cfg.spill_ncob);
+
+
+	/* DATA_TYPE_F_FX_DFX_NCOB_ECOB */
+	cfg = cmp_cfg_icu_create(DATA_TYPE_F_FX_DFX_NCOB_ECOB, CMP_MODE_DIFF_ZERO, 7, CMP_LOSSLESS);
+	cmp_par_exp_flags = ~0; /* invalid parameter */
+	spillover_exp_flags = ~0; /* invalid parameter */
+	cmp_par_fx = MIN_ICU_GOLOMB_PAR;
+	spillover_fx = MIN_ICU_SPILL;
+	cmp_par_ncob = MIN_ICU_GOLOMB_PAR;
+	spillover_ncob = cmp_icu_max_spill(cmp_par_ncob);
+	cmp_par_efx = 23;
+	spillover_efx = 42;
+	cmp_par_ecob = MAX_ICU_GOLOMB_PAR;
+	spillover_ecob = MIN_ICU_SPILL;
+	cmp_par_fx_cob_variance = ~0; /* invalid parameter */
+	spillover_fx_cob_variance = ~0; /* invalid parameter */
+
+	error = cmp_cfg_fx_cob(&cfg, cmp_par_exp_flags, spillover_exp_flags,
+			       cmp_par_fx, spillover_fx, cmp_par_ncob, spillover_ncob,
+			       cmp_par_efx, spillover_efx, cmp_par_ecob, spillover_ecob,
+			       cmp_par_fx_cob_variance, spillover_fx_cob_variance);
+	TEST_ASSERT_FALSE(error);
+	TEST_ASSERT_EQUAL_INT(cmp_par_fx, cfg.cmp_par_fx);
+	TEST_ASSERT_EQUAL_INT(spillover_fx, cfg.spill_fx);
+	TEST_ASSERT_EQUAL_INT(cmp_par_ncob, cfg.cmp_par_ncob);
+	TEST_ASSERT_EQUAL_INT(spillover_ncob, cfg.spill_ncob);
+	TEST_ASSERT_EQUAL_INT(cmp_par_efx, cfg.cmp_par_efx);
+	TEST_ASSERT_EQUAL_INT(spillover_efx, cfg.spill_efx);
+	TEST_ASSERT_EQUAL_INT(cmp_par_ecob, cfg.cmp_par_ecob);
+	TEST_ASSERT_EQUAL_INT(spillover_ecob, cfg.spill_ecob);
+}
+
+/**
+ * @test cmp_cfg_aux
+ */
+
+void test_cmp_cfg_aux(void)
+{	struct cmp_cfg cfg;
+	uint32_t cmp_par_mean = 2;
+	uint32_t spillover_mean = 2;
+	uint32_t cmp_par_variance = 2;
+	uint32_t spillover_variance = 2;
+	uint32_t cmp_par_pixels_error = 2;
+	uint32_t spillover_pixels_error = 2;
+	int error;
+	enum cmp_data_type data_type;
+
+	/* wrong data type test */
+	for (data_type = 0; data_type <= DATA_TYPE_F_CAM_BACKGROUND; data_type++) {
+		cfg = cmp_cfg_icu_create(data_type, CMP_MODE_MODEL_ZERO, 16, CMP_LOSSLESS);
+		error = cmp_cfg_aux(&cfg, cmp_par_mean, spillover_mean,
+				    cmp_par_variance, spillover_variance,
+				    cmp_par_pixels_error, spillover_pixels_error);
+		if (data_type == DATA_TYPE_OFFSET ||
+		    data_type == DATA_TYPE_BACKGROUND ||
+		    data_type == DATA_TYPE_SMEARING
+		    /* data_type == DATA_TYPE_F_CAM_OFFSET || */
+		    /* data_type == DATA_TYPE_F_CAM_BACKGROUND */
+		    ) {
+			TEST_ASSERT_FALSE(error);
+			TEST_ASSERT_EQUAL_INT(data_type, cfg.data_type);
+			TEST_ASSERT_EQUAL_INT(2, cfg.cmp_par_mean);
+			TEST_ASSERT_EQUAL_INT(2, cfg.spill_mean);
+			TEST_ASSERT_EQUAL_INT(2, cfg.cmp_par_variance);
+			TEST_ASSERT_EQUAL_INT(2, cfg.spill_variance);
+			TEST_ASSERT_EQUAL_INT(2, cfg.cmp_par_pixels_error);
+			TEST_ASSERT_EQUAL_INT(2, cfg.spill_pixels_error);
+		} else {
+			TEST_ASSERT_TRUE(error);
+		}
+	}
+
+	/* cfg == NULL test */
+	error = cmp_cfg_aux(NULL, cmp_par_mean, spillover_mean,
+			    cmp_par_variance, spillover_variance,
+			    cmp_par_pixels_error, spillover_pixels_error);
+	TEST_ASSERT_TRUE(error);
+
+
+	/* DATA_TYPE_OFFSET */
+	cfg = cmp_cfg_icu_create(DATA_TYPE_OFFSET, CMP_MODE_DIFF_ZERO, 7, CMP_LOSSLESS);
+	cmp_par_mean = MIN_ICU_GOLOMB_PAR;
+	spillover_mean = cmp_icu_max_spill(MIN_ICU_GOLOMB_PAR);
+	cmp_par_variance = MIN_ICU_GOLOMB_PAR;
+	spillover_variance = MIN_ICU_SPILL;
+	cmp_par_pixels_error = ~0;
+	spillover_pixels_error = ~0;
+
+	error = cmp_cfg_aux(&cfg, cmp_par_mean, spillover_mean,
+			    cmp_par_variance, spillover_variance,
+			    cmp_par_pixels_error, spillover_pixels_error);
+	TEST_ASSERT_FALSE(error);
+	TEST_ASSERT_EQUAL_INT(MIN_ICU_GOLOMB_PAR, cfg.cmp_par_mean);
+	TEST_ASSERT_EQUAL_INT(cmp_icu_max_spill(MIN_ICU_GOLOMB_PAR), cfg.spill_mean);
+	TEST_ASSERT_EQUAL_INT(MIN_ICU_GOLOMB_PAR, cfg.cmp_par_variance);
+	TEST_ASSERT_EQUAL_INT(2, cfg.spill_variance);
+
+	/* This should fail */
+	cmp_par_mean = MIN_ICU_GOLOMB_PAR-1;
+	error = cmp_cfg_aux(&cfg, cmp_par_mean, spillover_mean,
+			    cmp_par_variance, spillover_variance,
+			    cmp_par_pixels_error, spillover_pixels_error);
+	TEST_ASSERT_TRUE(error);
+
+
+	/* DATA_TYPE_BACKGROUND */
+	cfg = cmp_cfg_icu_create(DATA_TYPE_BACKGROUND, CMP_MODE_DIFF_ZERO, 7, CMP_LOSSLESS);
+	cmp_par_mean = MAX_ICU_GOLOMB_PAR;
+	spillover_mean = cmp_icu_max_spill(MAX_ICU_GOLOMB_PAR);
+	cmp_par_variance = MIN_ICU_GOLOMB_PAR;
+	spillover_variance = MIN_ICU_SPILL;
+	cmp_par_pixels_error = 42;
+	spillover_pixels_error = 23;
+
+	error = cmp_cfg_aux(&cfg, cmp_par_mean, spillover_mean,
+			    cmp_par_variance, spillover_variance,
+			    cmp_par_pixels_error, spillover_pixels_error);
+	TEST_ASSERT_FALSE(error);
+	TEST_ASSERT_EQUAL_INT(MAX_ICU_GOLOMB_PAR, cfg.cmp_par_mean);
+	TEST_ASSERT_EQUAL_INT(cmp_icu_max_spill(MAX_ICU_GOLOMB_PAR), cfg.spill_mean);
+	TEST_ASSERT_EQUAL_INT(MIN_ICU_GOLOMB_PAR, cfg.cmp_par_variance);
+	TEST_ASSERT_EQUAL_INT(MIN_ICU_SPILL, cfg.spill_variance);
+	TEST_ASSERT_EQUAL_INT(42, cfg.cmp_par_pixels_error);
+	TEST_ASSERT_EQUAL_INT(23, cfg.spill_pixels_error);
+
+	/* This should fail */
+	cmp_par_variance = MIN_ICU_GOLOMB_PAR-1;
+	error = cmp_cfg_aux(&cfg, cmp_par_mean, spillover_mean,
+			    cmp_par_variance, spillover_variance,
+			    cmp_par_pixels_error, spillover_pixels_error);
+	TEST_ASSERT_TRUE(error);
+
+
+	/* DATA_TYPE_SMEARING */
+	cfg = cmp_cfg_icu_create(DATA_TYPE_SMEARING, CMP_MODE_DIFF_ZERO, 7, CMP_LOSSLESS);
+	cmp_par_mean = MAX_ICU_GOLOMB_PAR;
+	spillover_mean = cmp_icu_max_spill(MAX_ICU_GOLOMB_PAR);
+	cmp_par_variance = MIN_ICU_GOLOMB_PAR;
+	spillover_variance = MIN_ICU_SPILL;
+	cmp_par_pixels_error = 42;
+	spillover_pixels_error = 23;
+
+	error = cmp_cfg_aux(&cfg, cmp_par_mean, spillover_mean,
+			    cmp_par_variance, spillover_variance,
+			    cmp_par_pixels_error, spillover_pixels_error);
+	TEST_ASSERT_FALSE(error);
+	TEST_ASSERT_EQUAL_INT(MAX_ICU_GOLOMB_PAR, cfg.cmp_par_mean);
+	TEST_ASSERT_EQUAL_INT(cmp_icu_max_spill(MAX_ICU_GOLOMB_PAR), cfg.spill_mean);
+	TEST_ASSERT_EQUAL_INT(MIN_ICU_GOLOMB_PAR, cfg.cmp_par_variance);
+	TEST_ASSERT_EQUAL_INT(MIN_ICU_SPILL, cfg.spill_variance);
+	TEST_ASSERT_EQUAL_INT(42, cfg.cmp_par_pixels_error);
+	TEST_ASSERT_EQUAL_INT(23, cfg.spill_pixels_error);
+
+	/* This should fail */
+	spillover_pixels_error = cmp_icu_max_spill(42)+1;
+	error = cmp_cfg_aux(&cfg, cmp_par_mean, spillover_mean,
+			    cmp_par_variance, spillover_variance,
+			    cmp_par_pixels_error, spillover_pixels_error);
+	TEST_ASSERT_TRUE(error);
+
+#if 0
+TODO: implemented F_CAM DATA_TYPE_F_CAM_OFFSET and DATA_TYPE_F_CAM_BACKGROUND
+	/* DATA_TYPE_F_CAM_OFFSET */
+	cfg = cmp_cfg_icu_create(DATA_TYPE_F_CAM_OFFSET, CMP_MODE_DIFF_ZERO, 7, CMP_LOSSLESS);
+	/* DATA_TYPE_F_CAM_BACKGROUND */
+	cfg = cmp_cfg_icu_create(DATA_TYPE_F_CAM_BACKGROUND, CMP_MODE_DIFF_ZERO, 7, CMP_LOSSLESS);
+#endif
+}
 
 
 /**
@@ -518,6 +1658,7 @@ void test_put_n_bits32(void)
 void test_rice_encoder(void)
 {
 	uint32_t value, g_par, log2_g_par, cw, cw_len;
+	const uint32_t MAX_GOLOMB_PAR = 0x80000000;
 
 	/* test minimum Golomb parameter */
 	value = 0; log2_g_par = (uint32_t)ilog_2(MIN_ICU_GOLOMB_PAR); g_par = 1U << log2_g_par; cw = ~0U;
@@ -557,7 +1698,7 @@ void test_rice_encoder(void)
 	TEST_ASSERT_EQUAL_HEX(0xFFFFFFEF, cw);
 
 	/* test maximum Golomb parameter for rice_encoder */
-	value = 0; log2_g_par = (uint32_t)ilog_2(MAX_ICU_GOLOMB_PAR); g_par = 1U << log2_g_par; cw = ~0U;
+	value = 0; log2_g_par = (uint32_t)ilog_2(MAX_GOLOMB_PAR); g_par = 1U << log2_g_par; cw = ~0U;
 	cw_len = rice_encoder(value, g_par, log2_g_par, &cw);
 	TEST_ASSERT_EQUAL_INT(32, cw_len);
 	TEST_ASSERT_EQUAL_HEX(0x0, cw);
@@ -583,9 +1724,10 @@ void test_rice_encoder(void)
  * @test golomb_encoder
  */
 
-void test_Golomb_encoder(void)
+void test_golomb_encoder(void)
 {
 	uint32_t value, g_par, log2_g_par, cw, cw_len;
+	const uint32_t MAX_GOLOMB_PAR = 0x80000000;
 
 	/* test minimum Golomb parameter */
 	value = 0; g_par = MIN_ICU_GOLOMB_PAR; log2_g_par = (uint32_t)ilog_2(g_par); cw = ~0U;
@@ -659,12 +1801,12 @@ void test_Golomb_encoder(void)
 
 
 	/* test maximum Golomb parameter for golomb_encoder */
-	value = 0; g_par = MAX_ICU_GOLOMB_PAR; log2_g_par = (uint32_t)ilog_2(g_par); cw = ~0U;
+	value = 0; g_par = MAX_GOLOMB_PAR; log2_g_par = (uint32_t)ilog_2(g_par); cw = ~0U;
 	cw_len = golomb_encoder(value, g_par, log2_g_par, &cw);
 	TEST_ASSERT_EQUAL_INT(32, cw_len);
 	TEST_ASSERT_EQUAL_HEX(0x0, cw);
 
-	value = 1; g_par = MAX_ICU_GOLOMB_PAR; log2_g_par = (uint32_t)ilog_2(g_par); cw = ~0U;
+	value = 1; g_par = MAX_GOLOMB_PAR; log2_g_par = (uint32_t)ilog_2(g_par); cw = ~0U;
 	cw_len = golomb_encoder(value, g_par, log2_g_par, &cw);
 	TEST_ASSERT_EQUAL_INT(32, cw_len);
 	TEST_ASSERT_EQUAL_HEX(0x1, cw);
@@ -1010,6 +2152,7 @@ void test_encode_value(void)
 
 /**
  * @test cmp_get_max_used_bits
+ * TODO: move this test
  */
 
 void test_cmp_get_max_used_bits(void)
@@ -1058,6 +2201,188 @@ void test_cmp_get_max_used_bits(void)
 }
 
 
+/**
+ * @test configure_encoder_setup
+ */
+
+void test_configure_encoder_setup(void)
+{
+	struct encoder_setupt setup;
+	uint32_t cmp_par;
+	uint32_t spillover;
+	uint32_t lossy_par;
+	uint32_t max_data_bits;
+	struct cmp_cfg cfg;
+	int error;
+
+	/* test Golomb encoder zero escape mechanism */
+	cmp_par = 42;
+	spillover = 23;
+	lossy_par = 0;
+	max_data_bits = 15;
+	cfg.data_type = DATA_TYPE_IMAGETTE;
+	cfg.cmp_mode = CMP_MODE_MODEL_ZERO;
+	cfg.icu_output_buf = (void *)123;
+	cfg.buffer_length = 2;
+	error = configure_encoder_setup(&setup, cmp_par, spillover,lossy_par,
+					max_data_bits, &cfg);
+	TEST_ASSERT_FALSE(error);
+	TEST_ASSERT_EQUAL(golomb_encoder, setup.generate_cw_f); /* pointer to the code word encoder */
+	TEST_ASSERT_EQUAL(encode_value_zero, setup.encode_method_f); /* pointer to the encoding function */
+	TEST_ASSERT_EQUAL(123, setup.bitstream_adr); /* start address of the compressed data bitstream */
+	TEST_ASSERT_EQUAL_INT(32, setup.max_stream_len); /* maximum length of the bitstream/icu_output_buf in bits */
+	TEST_ASSERT_EQUAL_INT(42, setup.encoder_par1); /* encoding parameter 1 */
+	TEST_ASSERT_EQUAL_INT(5, setup.encoder_par2); /* encoding parameter 2 */
+	TEST_ASSERT_EQUAL_INT(23, setup.spillover_par); /* outlier parameter */
+	TEST_ASSERT_EQUAL_INT(0, setup.lossy_par); /* lossy compression parameter */
+	TEST_ASSERT_EQUAL_INT(15, setup.max_data_bits); /* how many bits are needed to represent the highest possible value */
+	memset(&setup, 0, sizeof(setup));
+
+	/* test Rice encoder multi escape mechanism */
+	cmp_par = 32;
+	spillover = 23;
+	lossy_par = 0;
+	max_data_bits = 32;
+	cfg.data_type = DATA_TYPE_IMAGETTE;
+	cfg.cmp_mode = CMP_MODE_DIFF_MULTI;
+	cfg.icu_output_buf = (void *)123;
+	cfg.buffer_length = 2;
+	error = configure_encoder_setup(&setup, cmp_par, spillover,lossy_par,
+					max_data_bits, &cfg);
+	TEST_ASSERT_FALSE(error);
+	TEST_ASSERT_EQUAL(rice_encoder, setup.generate_cw_f); /* pointer to the code word encoder */
+	TEST_ASSERT_EQUAL(encode_value_multi, setup.encode_method_f); /* pointer to the encoding function */
+	TEST_ASSERT_EQUAL(123, setup.bitstream_adr); /* start address of the compressed data bitstream */
+	TEST_ASSERT_EQUAL_INT(32, setup.max_stream_len); /* maximum length of the bitstream/icu_output_buf in bits */
+	TEST_ASSERT_EQUAL_INT(32, setup.encoder_par1); /* encoding parameter 1 */
+	TEST_ASSERT_EQUAL_INT(5, setup.encoder_par2); /* encoding parameter 2 */
+	TEST_ASSERT_EQUAL_INT(23, setup.spillover_par); /* outlier parameter */
+	TEST_ASSERT_EQUAL_INT(0, setup.lossy_par); /* lossy compression parameter */
+	TEST_ASSERT_EQUAL_INT(32, setup.max_data_bits); /* how many bits are needed to represent the highest possible value */
+	memset(&setup, 0, sizeof(setup));
+
+	/* test CMP_MODE_STUFF */
+	cmp_par = 32;
+	spillover = ~0;
+	lossy_par = 1;
+	max_data_bits = 32;
+	cfg.data_type = DATA_TYPE_IMAGETTE;
+	cfg.cmp_mode = CMP_MODE_STUFF;
+	cfg.icu_output_buf = (void *)123;
+	cfg.buffer_length = 2;
+	error = configure_encoder_setup(&setup, cmp_par, spillover,lossy_par,
+					max_data_bits, &cfg);
+	TEST_ASSERT_FALSE(error);
+	TEST_ASSERT_EQUAL(NULL, setup.generate_cw_f); /* pointer to the code word encoder */
+	TEST_ASSERT_EQUAL(encode_value_none, setup.encode_method_f); /* pointer to the encoding function */
+	TEST_ASSERT_EQUAL(123, setup.bitstream_adr); /* start address of the compressed data bitstream */
+	TEST_ASSERT_EQUAL_INT(32, setup.max_stream_len); /* maximum length of the bitstream/icu_output_buf in bits */
+	TEST_ASSERT_EQUAL_INT(32, setup.encoder_par1); /* encoding parameter 1 */
+	TEST_ASSERT_EQUAL_INT(0, setup.encoder_par2); /* encoding parameter 2 */
+	TEST_ASSERT_EQUAL_INT(0, setup.spillover_par); /* outlier parameter */
+	TEST_ASSERT_EQUAL_INT(1, setup.lossy_par); /* lossy compression parameter */
+	TEST_ASSERT_EQUAL_INT(32, setup.max_data_bits); /* how many bits are needed to represent the highest possible value */
+	memset(&setup, 0, sizeof(setup));
+
+	/* test max_used_bits = 33 */
+	cmp_par = 32;
+	spillover = 23;
+	lossy_par = 0;
+	max_data_bits = 33;
+	cfg.data_type = DATA_TYPE_IMAGETTE;
+	cfg.cmp_mode = CMP_MODE_DIFF_MULTI;
+	cfg.icu_output_buf = (void *)123;
+	cfg.buffer_length = 2;
+	error = configure_encoder_setup(&setup, cmp_par, spillover,lossy_par,
+					max_data_bits, &cfg);
+	TEST_ASSERT_TRUE(error);
+	memset(&setup, 0, sizeof(setup));
+
+	/* cmp_par = 0 test */
+	cmp_par = 0;
+	spillover = 23;
+	lossy_par = 0;
+	max_data_bits = 32;
+	cfg.data_type = DATA_TYPE_IMAGETTE;
+	cfg.cmp_mode = CMP_MODE_DIFF_MULTI;
+	cfg.icu_output_buf = (void *)123;
+	cfg.buffer_length = 2;
+	error = configure_encoder_setup(&setup, cmp_par, spillover,lossy_par,
+					max_data_bits, &cfg);
+	TEST_ASSERT_TRUE(error);
+	memset(&setup, 0, sizeof(setup));
+
+	/* cmp_par = 0 test STUFF MODE this should work*/
+	cmp_par = 0;
+	spillover = 23;
+	lossy_par = 0;
+	max_data_bits = 32;
+	cfg.data_type = DATA_TYPE_IMAGETTE;
+	cfg.cmp_mode = CMP_MODE_STUFF;
+	cfg.icu_output_buf = (void *)123;
+	cfg.buffer_length = 2;
+	error = configure_encoder_setup(&setup, cmp_par, spillover,lossy_par,
+					max_data_bits, &cfg);
+	TEST_ASSERT_FALSE(error);
+	TEST_ASSERT_EQUAL(NULL, setup.generate_cw_f); /* pointer to the code word encoder */
+	TEST_ASSERT_EQUAL(encode_value_none, setup.encode_method_f); /* pointer to the encoding function */
+	TEST_ASSERT_EQUAL(123, setup.bitstream_adr); /* start address of the compressed data bitstream */
+	TEST_ASSERT_EQUAL_INT(32, setup.max_stream_len); /* maximum length of the bitstream/icu_output_buf in bits */
+	TEST_ASSERT_EQUAL_INT(0, setup.encoder_par1); /* encoding parameter 1 */
+	TEST_ASSERT_EQUAL_INT(0, setup.encoder_par2); /* encoding parameter 2 */
+	TEST_ASSERT_EQUAL_INT(0, setup.spillover_par); /* outlier parameter */
+	TEST_ASSERT_EQUAL_INT(0, setup.lossy_par); /* lossy compression parameter */
+	TEST_ASSERT_EQUAL_INT(0, setup.max_data_bits); /* how many bits are needed to represent the highest possible value */
+	memset(&setup, 0, sizeof(setup));
+
+	/* cmp_mode = STUFF_MODE +1  */
+	cmp_par = 32;
+	spillover = 23;
+	lossy_par = 0;
+	max_data_bits = 1;
+	cfg.data_type = DATA_TYPE_IMAGETTE;
+	cfg.cmp_mode = CMP_MODE_STUFF+1;
+	cfg.icu_output_buf = (void *)123;
+	cfg.buffer_length = 2;
+	error = configure_encoder_setup(&setup, cmp_par, spillover,lossy_par,
+					max_data_bits, &cfg);
+	TEST_ASSERT_TRUE(error);
+	memset(&setup, 0, sizeof(setup));
+
+	/* setup = NULL test */
+	cmp_par = 42;
+	spillover = 23;
+	lossy_par = 0;
+	max_data_bits = 15;
+	cfg.data_type = DATA_TYPE_IMAGETTE;
+	cfg.cmp_mode = CMP_MODE_MODEL_ZERO;
+	cfg.icu_output_buf = (void *)123;
+	cfg.buffer_length = 2;
+	error = configure_encoder_setup(NULL, cmp_par, spillover,lossy_par,
+					max_data_bits, &cfg);
+	TEST_ASSERT_TRUE(error);
+	memset(&setup, 0, sizeof(setup));
+
+	/* cfg = NULL test */
+	cmp_par = 42;
+	spillover = 23;
+	lossy_par = 0;
+	max_data_bits = 15;
+	cfg.data_type = DATA_TYPE_IMAGETTE;
+	cfg.cmp_mode = CMP_MODE_MODEL_ZERO;
+	cfg.icu_output_buf = (void *)123;
+	cfg.buffer_length = 2;
+	error = configure_encoder_setup(&setup, cmp_par, spillover,lossy_par,
+					max_data_bits, NULL);
+	TEST_ASSERT_TRUE(error);
+	memset(&setup, 0, sizeof(setup));
+}
+
+
+/**
+ * @test compress_imagette
+ */
+
 void test_compress_imagette_diff(void)
 {
 	uint16_t data[] = {0xFFFF, 1, 0, 42, 0x8000, 0x7FFF, 0xFFFF};
@@ -1080,6 +2405,11 @@ void test_compress_imagette_diff(void)
 	TEST_ASSERT_EQUAL_HEX(0xFEB70000, be32_to_cpu(output_buf[1]));
 	TEST_ASSERT_EQUAL_HEX(0x00000000, be32_to_cpu(output_buf[2]));
 }
+
+
+/**
+ * @test compress_imagette
+ */
 
 void test_compress_imagette_model(void)
 {
@@ -1116,8 +2446,18 @@ void test_compress_imagette_model(void)
 	TEST_ASSERT_EQUAL_HEX(0x3FFF, model_up[4]);
 	TEST_ASSERT_EQUAL_HEX(0xFFFF, model_up[5]);
 	TEST_ASSERT_EQUAL_HEX(0x7FFF, model_up[6]);
+
+
+	/* error case: model mode without model data */
+	cfg.model_buf = NULL; /* this is the error */
+	cmp_size = icu_compress_data(&cfg);
+	TEST_ASSERT_EQUAL(-1, cmp_size);
 }
 
+
+/**
+ * @test compress_imagette
+ */
 
 void test_compress_imagette_stuff(void)
 {
@@ -1151,12 +2491,15 @@ void test_compress_imagette_stuff(void)
 }
 
 
+/**
+ * @test compress_imagette
+ */
+
 void test_compress_imagette_raw(void)
 {
 	uint16_t data[] = {0x0, 0x1, 0x23, 0x42, INT16_MIN, INT16_MAX, UINT16_MAX};
-	uint16_t output_buf[7] = {0};
+	uint16_t output_buf[7] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 	struct cmp_cfg cfg = {0};
-
 	int cmp_size;
 
 	cfg.data_type = DATA_TYPE_IMAGETTE;
@@ -1166,9 +2509,7 @@ void test_compress_imagette_raw(void)
 	cfg.icu_output_buf = (uint32_t *)output_buf;
 	cfg.buffer_length = 7;
 
-
 	cmp_size = icu_compress_data(&cfg);
-
 	TEST_ASSERT_EQUAL_INT(7*16, cmp_size);
 	TEST_ASSERT_EQUAL_HEX16(0x0, be16_to_cpu(output_buf[0]));
 	TEST_ASSERT_EQUAL_HEX16(0x1, be16_to_cpu(output_buf[1]));
@@ -1177,6 +2518,181 @@ void test_compress_imagette_raw(void)
 	TEST_ASSERT_EQUAL_HEX16(INT16_MIN, be16_to_cpu(output_buf[4]));
 	TEST_ASSERT_EQUAL_HEX16(INT16_MAX, be16_to_cpu(output_buf[5]));
 	TEST_ASSERT_EQUAL_HEX16(UINT16_MAX, be16_to_cpu(output_buf[6]));
+
+
+	/* compressed data buf = NULL test */
+	memset(&cfg, 0, sizeof(struct cmp_cfg));
+	cfg.data_type = DATA_TYPE_IMAGETTE;
+	cfg.input_buf = data;
+	cfg.samples = 7;
+	cfg.icu_output_buf = NULL;
+	cfg.buffer_length = 7;
+
+	cmp_size = icu_compress_data(&cfg);
+	TEST_ASSERT_EQUAL_INT(7*16, cmp_size);
+
+
+	/* error case: input_buf = NULL */
+	memset(&cfg, 0, sizeof(struct cmp_cfg));
+	cfg.data_type = DATA_TYPE_IMAGETTE;
+	cfg.input_buf = NULL; /* no data to compress */
+	cfg.samples = 7;
+	cfg.icu_output_buf = (uint32_t *)output_buf;
+	cfg.buffer_length = 7;
+
+	cmp_size = icu_compress_data(&cfg);
+	TEST_ASSERT_EQUAL_INT(-1, cmp_size);
+
+
+	/* error case: compressed data buffer to small */
+	memset(&cfg, 0, sizeof(struct cmp_cfg));
+	cfg.data_type = DATA_TYPE_IMAGETTE;
+	cfg.input_buf = data;
+	cfg.samples = 7;
+	cfg.icu_output_buf = (uint32_t *)output_buf;
+	cfg.buffer_length = 6; /* the buffer is to small */
+
+	cmp_size = icu_compress_data(&cfg);
+	TEST_ASSERT_EQUAL_INT(CMP_ERROR_SAMLL_BUF, cmp_size);
+}
+
+
+/**
+ * @test compress_imagette
+ */
+
+void test_compress_imagette_error_cases(void)
+{
+	uint16_t data[] = {0xFFFF, 1, 0, 42, 0x8000, 0x7FFF, 0xFFFF};
+	uint32_t output_buf[2] = {0xFFFF, 0xFFFF};
+	struct cmp_cfg cfg = {0};
+	int cmp_size;
+
+	cfg.data_type = DATA_TYPE_IMAGETTE;
+	cfg.cmp_mode = CMP_MODE_DIFF_ZERO;
+	cfg.input_buf = NULL;
+	cfg.samples = 0;  /* nothing to compress */
+	cfg.golomb_par = 1;
+	cfg.spill = 8;
+	cfg.icu_output_buf = NULL;
+	cfg.buffer_length = 0;
+
+	cmp_size = icu_compress_data(&cfg);
+	TEST_ASSERT_EQUAL_INT(0, cmp_size);
+
+
+	/* compressed data buffer to small test */
+	cfg.data_type = DATA_TYPE_IMAGETTE;
+	cfg.cmp_mode = CMP_MODE_DIFF_ZERO;
+	cfg.input_buf = data;
+	cfg.samples = 7;
+	cfg.golomb_par = 1;
+	cfg.spill = 8;
+	cfg.icu_output_buf = (uint32_t *)output_buf;
+	cfg.buffer_length = 4;
+
+	cmp_size = icu_compress_data(&cfg);
+	TEST_ASSERT_EQUAL_INT(CMP_ERROR_SAMLL_BUF, cmp_size);
+
+
+	/* error in setup */
+	struct cmp_max_used_bits max_used_bits = cmp_get_max_used_bits();
+	max_used_bits.nc_imagette = 33;
+	cmp_set_max_used_bits(&max_used_bits);
+	cfg.data_type = DATA_TYPE_IMAGETTE;
+	cfg.cmp_mode = CMP_MODE_DIFF_ZERO;
+	cfg.input_buf = data;
+	cfg.samples = 2;
+	cfg.golomb_par = 1;
+	cfg.spill = 8;
+	cfg.icu_output_buf = (uint32_t *)output_buf;
+	cfg.buffer_length = 4;
+
+	cmp_size = icu_compress_data(&cfg);
+	TEST_ASSERT_EQUAL_INT(-1, cmp_size);
+}
+
+
+/**
+ * @test compress_multi_entry_hdr
+ */
+
+void test_compress_multi_entry_hdr(void)
+{
+	int stream_len;
+	uint8_t data[MULTI_ENTRY_HDR_SIZE];
+	uint8_t model[MULTI_ENTRY_HDR_SIZE];
+	uint8_t up_model[MULTI_ENTRY_HDR_SIZE];
+	uint8_t cmp_data[MULTI_ENTRY_HDR_SIZE];
+	uint8_t *data_p = NULL;
+	uint8_t *model_p = NULL;
+	uint8_t *up_model_p = NULL;
+
+	memset(data, 0x42, sizeof(data));
+
+	/* no data; no cmp_data no model test */
+	/* no data; no model; no up_model; no cmp_data */
+	stream_len = compress_multi_entry_hdr((void **)&data_p, (void **)&model_p,
+					      (void **)&up_model_p, NULL);
+	TEST_ASSERT_EQUAL_INT(96, stream_len);
+
+	/* no model; no up_model */
+	data_p = data;
+	stream_len = compress_multi_entry_hdr((void **)&data_p, (void **)&model_p,
+					      (void **)&up_model_p, cmp_data);
+	TEST_ASSERT_EQUAL_INT(96, stream_len);
+	TEST_ASSERT_FALSE(memcmp(cmp_data, data, MULTI_ENTRY_HDR_SIZE));
+	TEST_ASSERT_EQUAL(data_p-data, MULTI_ENTRY_HDR_SIZE);
+
+	/* no up_model */
+	memset(cmp_data, 0, sizeof(cmp_data));
+	data_p = data;
+	model_p = model;
+	up_model_p = NULL;
+	stream_len = compress_multi_entry_hdr((void **)&data_p, (void **)&model_p,
+					      (void **)&up_model_p, cmp_data);
+	TEST_ASSERT_EQUAL_INT(96, stream_len);
+	TEST_ASSERT_FALSE(memcmp(cmp_data, data, MULTI_ENTRY_HDR_SIZE));
+	TEST_ASSERT_EQUAL(data_p-data, MULTI_ENTRY_HDR_SIZE);
+	TEST_ASSERT_EQUAL(model_p-model, MULTI_ENTRY_HDR_SIZE);
+
+	/* all buffer test */
+	memset(cmp_data, 0, sizeof(cmp_data));
+	data_p = data;
+	model_p = model;
+	up_model_p = up_model;
+	stream_len = compress_multi_entry_hdr((void **)&data_p, (void **)&model_p,
+					      (void **)&up_model_p, cmp_data);
+	TEST_ASSERT_EQUAL_INT(96, stream_len);
+	TEST_ASSERT_FALSE(memcmp(cmp_data, data, MULTI_ENTRY_HDR_SIZE));
+	TEST_ASSERT_FALSE(memcmp(up_model, data, MULTI_ENTRY_HDR_SIZE));
+	TEST_ASSERT_EQUAL(data_p-data, MULTI_ENTRY_HDR_SIZE);
+	TEST_ASSERT_EQUAL(model_p-model, MULTI_ENTRY_HDR_SIZE);
+	TEST_ASSERT_EQUAL(up_model_p-up_model, MULTI_ENTRY_HDR_SIZE);
+
+	/* all buffer test; no cmp_data */
+	memset(cmp_data, 0, sizeof(cmp_data));
+	data_p = data;
+	model_p = model;
+	up_model_p = up_model;
+	stream_len = compress_multi_entry_hdr((void **)&data_p, (void **)&model_p,
+					      (void **)&up_model_p, NULL);
+	TEST_ASSERT_EQUAL_INT(96, stream_len);
+	TEST_ASSERT_FALSE(memcmp(up_model, data, MULTI_ENTRY_HDR_SIZE));
+	TEST_ASSERT_EQUAL(data_p-data, MULTI_ENTRY_HDR_SIZE);
+	TEST_ASSERT_EQUAL(model_p-model, MULTI_ENTRY_HDR_SIZE);
+	TEST_ASSERT_EQUAL(up_model_p-up_model, MULTI_ENTRY_HDR_SIZE);
+
+	/* no data, use up_model test */
+	memset(cmp_data, 0, sizeof(cmp_data));
+	data_p = NULL;
+	model_p = model;
+	up_model_p = up_model;
+	stream_len = compress_multi_entry_hdr((void **)&data_p, (void **)&model_p,
+					      (void **)&up_model_p, NULL);
+	TEST_ASSERT_EQUAL_INT(96, stream_len);
+	TEST_ASSERT_EQUAL(model_p-model, MULTI_ENTRY_HDR_SIZE);
+	TEST_ASSERT_EQUAL(up_model_p-up_model, MULTI_ENTRY_HDR_SIZE);
 }
 
 
@@ -1363,9 +2879,9 @@ void test_compress_s_fx_model_multi(void)
 	TEST_ASSERT_EQUAL_HEX(0xAFFF4DE5, be32_to_cpu(cmp_data[1]));
 	TEST_ASSERT_EQUAL_HEX(0xCC000000, be32_to_cpu(cmp_data[2]));
 
-	TEST_ASSERT_FALSE(memcmp(cfg.input_buf, cfg.icu_output_buf, MULTI_ENTRY_HDR_SIZE));
 	hdr = cfg.icu_new_model_buf;
 	up_model_buf = (struct s_fx *)hdr->entry;
+	TEST_ASSERT_FALSE(memcmp(hdr, cfg.icu_output_buf, MULTI_ENTRY_HDR_SIZE));
 	TEST_ASSERT_EQUAL_HEX(0x0, up_model_buf[0].exp_flags);
 	TEST_ASSERT_EQUAL_HEX(0x0, up_model_buf[0].fx);
 	TEST_ASSERT_EQUAL_HEX(0x2, up_model_buf[1].exp_flags);
@@ -1385,4 +2901,140 @@ void test_compress_s_fx_model_multi(void)
 	free(cfg.icu_output_buf);
 }
 
+
+void test_compress_s_fx_efx_model_multi(void)
+{
+	uint32_t i;
+	struct s_fx_efx data[6], model[6];
+	struct s_fx_efx *up_model_buf;
+	struct cmp_cfg cfg = {0};
+	int cmp_size;
+	struct multi_entry_hdr *hdr;
+	uint32_t *cmp_data;
+	struct cmp_max_used_bits max_used_bits = cmp_get_max_used_bits();
+
+	/* define max_used_bits */
+	max_used_bits.s_exp_flags = 2;
+	max_used_bits.s_fx = 21;
+	max_used_bits.s_efx = 21;
+	cmp_set_max_used_bits(&max_used_bits);
+
+	/* setup configuration */
+	cfg.data_type = DATA_TYPE_S_FX_DFX;
+	cfg.cmp_mode = CMP_MODE_MODEL_MULTI;
+	cfg.model_value = 16;
+	cfg.samples = 6;
+	cfg.input_buf = malloc(cmp_cal_size_of_data(cfg.samples, cfg.data_type));
+	TEST_ASSERT_NOT_NULL(cfg.input_buf);
+	cfg.model_buf = malloc(cmp_cal_size_of_data(cfg.samples, cfg.data_type));
+	TEST_ASSERT_NOT_NULL(cfg.model_buf);
+	cfg.icu_new_model_buf = malloc(cmp_cal_size_of_data(cfg.samples, cfg.data_type));
+	TEST_ASSERT_NOT_NULL(cfg.icu_new_model_buf);
+	cfg.buffer_length = 6;
+	cfg.icu_output_buf = malloc(cmp_cal_size_of_data(cfg.buffer_length, cfg.data_type));
+	TEST_ASSERT_NOT_NULL(cfg.icu_output_buf);
+	cfg.cmp_par_exp_flags = 1;
+	cfg.spill_exp_flags = 8;
+	cfg.cmp_par_fx = 3;
+	cfg.spill_fx = 35;
+	cfg.cmp_par_efx = 4;
+	cfg.spill_efx = 35;
+
+
+	/* generate input data */
+	hdr = cfg.input_buf;
+	/* use dummy data for the header */
+	memset(hdr, 0x42, sizeof(struct multi_entry_hdr));
+	data[0].exp_flags = 0x0;
+	data[0].fx = 0x0;
+	data[0].efx = 0x0;
+	data[1].exp_flags = 0x1;
+	data[1].fx = 0x1;
+	data[1].efx = 0;
+	data[2].exp_flags = 0x2;
+	data[2].fx = 0x23;
+	data[2].efx = 0;
+	data[3].exp_flags = 0x3;
+	data[3].fx = 0x42;
+	data[3].efx = 0;
+	data[4].exp_flags = 0x0;
+	data[4].fx = 0x001FFFFF;
+	data[4].efx = 0;
+	data[5].exp_flags = 0x0;
+	data[5].fx = 0x0;
+	data[5].efx = 0;
+	memcpy(hdr->entry, data, sizeof(data));
+
+	/* generate model data */
+	hdr = cfg.model_buf;
+	/* use dummy data for the header */
+	memset(hdr, 0x41, sizeof(struct multi_entry_hdr));
+	model[0].exp_flags = 0x0;
+	model[0].fx = 0x0;
+	model[0].efx = 0x1FFFFF;
+	model[1].exp_flags = 0x3;
+	model[1].fx = 0x1;
+	model[1].efx = 0x1FFFFF;
+	model[2].exp_flags = 0x0;
+	model[2].fx = 0x42;
+	model[2].efx = 0x1FFFFF;
+	model[3].exp_flags = 0x0;
+	model[3].fx = 0x23;
+	model[3].efx = 0x1FFFFF;
+	model[4].exp_flags = 0x3;
+	model[4].fx = 0x0;
+	model[4].efx = 0x1FFFFF;
+	model[5].exp_flags = 0x2;
+	model[5].fx = 0x001FFFFF;
+	model[5].efx = 0x1FFFFF;
+	memcpy(hdr->entry, model, sizeof(model));
+
+	cmp_size = icu_compress_data(&cfg);
+#if 0
+	TEST_ASSERT_EQUAL_INT(166, cmp_size);
+	TEST_ASSERT_FALSE(memcmp(cfg.input_buf, cfg.icu_output_buf, MULTI_ENTRY_HDR_SIZE));
+	cmp_data = &cfg.icu_output_buf[MULTI_ENTRY_HDR_SIZE/sizeof(uint32_t)];
+	TEST_ASSERT_EQUAL_HEX(0x1C77FFA6, be32_to_cpu(cmp_data[0]));
+	TEST_ASSERT_EQUAL_HEX(0xAFFF4DE5, be32_to_cpu(cmp_data[1]));
+	TEST_ASSERT_EQUAL_HEX(0xCC000000, be32_to_cpu(cmp_data[2]));
+
+#endif
+	hdr = cfg.icu_new_model_buf;
+	up_model_buf = (struct s_fx *)hdr->entry;
+	TEST_ASSERT_FALSE(memcmp(hdr, cfg.icu_output_buf, MULTI_ENTRY_HDR_SIZE));
+	for (i = 0; i < cfg.samples; i++) {
+		TEST_ASSERT_EQUAL(model[i].exp_flags, up_model_buf[i].exp_flags);
+		TEST_ASSERT_EQUAL(model[i].fx, up_model_buf[i].fx);
+		TEST_ASSERT_EQUAL(model[i].efx, up_model_buf[i].efx);
+	}
+
+
+	free(cfg.input_buf);
+	free(cfg.model_buf);
+	free(cfg.icu_new_model_buf);
+	free(cfg.icu_output_buf);
+}
+
+
+/**
+ * @test icu_compress_data
+ */
+
+void test_icu_compress_data_error_cases(void)
+{
+	int cmp_size;
+	struct cmp_cfg cfg = {0};
+	uint16_t data[4] = {0, 0xFFFF, 23, 42};
+	uint32_t cmp_data_buf[4] = {0};
+
+	/* cfg = NULL test */
+	cmp_size = icu_compress_data(NULL);
+	TEST_ASSERT_EQUAL(-1, cmp_size);
+
+	/* samples = 0 test */
+	cfg.samples = 0;
+	cmp_size = icu_compress_data(&cfg);
+	TEST_ASSERT_EQUAL(0, cmp_size);
+
+}
 

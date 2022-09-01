@@ -91,7 +91,7 @@ uint32_t cmp_rdcu_get_good_spill(unsigned int golomb_par, enum cmp_mode cmp_mode
 		405, 411, 418, 424, 431, 452 };
 
 	if (zero_escape_mech_is_used(cmp_mode))
-		return get_max_spill(golomb_par, DATA_TYPE_IMAGETTE);
+		return cmp_rdcu_max_spill(golomb_par);
 
 	if (cmp_mode == CMP_MODE_MODEL_MULTI) {
 		if (golomb_par > MAX_RDCU_GOLOMB_PAR)
@@ -172,7 +172,7 @@ static uint32_t brute_force(struct cmp_cfg *cfg)
 	fflush(stdout);
 
 	for (g = MIN_RDCU_GOLOMB_PAR; g < MAX_RDCU_GOLOMB_PAR; g++) {
-		for (s = MIN_RDCU_SPILL; s < get_max_spill(g, cfg->data_type); s++) {
+		for (s = MIN_RDCU_SPILL; s < cmp_rdcu_max_spill(g); s++) {
 			cfg->golomb_par = g;
 			cfg->spill = s;
 

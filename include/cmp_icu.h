@@ -22,15 +22,7 @@
 
 #include <cmp_support.h>
 
-
-/* return code if the bitstream buffer is too small to store the whole bitstream */
-#define CMP_ERROR_SAMLL_BUF -2
-
-/* return code if the value or the model is bigger than the max_used_bits
- * parameter allows
- */
-#define CMP_ERROR_HIGH_VALUE -3
-
+#define CMP_PAR_UNUSED 0
 
 /* create and setup a compression configuration */
 struct cmp_cfg cmp_cfg_icu_create(enum cmp_data_type data_type, enum cmp_mode cmp_mode,
