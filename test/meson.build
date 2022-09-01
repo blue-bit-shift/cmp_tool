@@ -37,3 +37,4 @@ subdir('cmp_tool')
 unity_dep = dependency('unity', fallback : ['unity', 'unity_dep'])
 
 subdir('cmp_icu')
+subdir('cmp_data_types')

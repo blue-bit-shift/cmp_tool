@@ -20,6 +20,8 @@
 #include <cmp_data_types.h>
 #include <cmp_debug.h>
 #include <byteorder.h>
+#include <stdint.h>
+#include <stdio.h>
 
 
 /* the maximum length of the different data products types in bits */
@@ -89,6 +91,17 @@ struct cmp_max_used_bits cmp_get_max_used_bits(void)
 
 
 /**
+ * @brief get the version record form the max used bits registry
+ *
+ * @returns version of the max used bits registry
+ */
+
+uint8_t cmp_get_max_used_bits_version(void) {
+	return max_used_bits.version;
+}
+
+
+/**
  * @brief calculate the size of a sample for the different compression data type
  *
  * @param data_type	compression data_type
@@ -106,6 +119,8 @@ size_t size_of_a_sample(enum cmp_data_type data_type)
 	case DATA_TYPE_IMAGETTE_ADAPTIVE:
 	case DATA_TYPE_SAT_IMAGETTE:
 	case DATA_TYPE_SAT_IMAGETTE_ADAPTIVE:
+	case DATA_TYPE_F_CAM_IMAGETTE:
+	case DATA_TYPE_F_CAM_IMAGETTE_ADAPTIVE:
 		sample_size = sizeof(uint16_t);
 		break;
 	case DATA_TYPE_OFFSET:
@@ -155,7 +170,7 @@ size_t size_of_a_sample(enum cmp_data_type data_type)
 		break;
 	case DATA_TYPE_F_CAM_OFFSET:
 	case DATA_TYPE_F_CAM_BACKGROUND:
-	case DATA_TYPE_UNKOWN:
+	case DATA_TYPE_UNKNOWN:
 	default:
 		debug_print("Error: Compression data type is not supported.\n");
 		break;
@@ -178,16 +193,20 @@ size_t size_of_a_sample(enum cmp_data_type data_type)
 unsigned int cmp_cal_size_of_data(unsigned int samples, enum cmp_data_type data_type)
 {
 	unsigned int s = size_of_a_sample(data_type);
+	uint64_t x; /* use 64 bit to catch overflow */
 
 	if (!s)
 		return 0;
 
-	s *= samples;
+	x = (uint64_t)s*samples;
 
 	if (!rdcu_supported_data_type_is_used(data_type))
-		s += MULTI_ENTRY_HDR_SIZE;
+		x += MULTI_ENTRY_HDR_SIZE;
 
-	return s;
+	if (x > UINT32_MAX) /* catch overflow */
+		return 0;
+
+	return (unsigned int)x;
 }
 
 
@@ -510,7 +529,7 @@ int cmp_input_big_to_cpu_endianness(void *data, uint32_t data_size_byte,
 	/* TODO: implement F_CAM conversion */
 	case DATA_TYPE_F_CAM_OFFSET:
 	case DATA_TYPE_F_CAM_BACKGROUND:
-	case DATA_TYPE_UNKOWN:
+	case DATA_TYPE_UNKNOWN:
 	default:
 		debug_print("Error: Can not swap endianness for this compression data type.\n");
 		return -1;

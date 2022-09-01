@@ -97,7 +97,7 @@ uint32_t cmp_ent_cal_hdr_size(enum cmp_data_type data_type, int raw_mode_flag)
 		case DATA_TYPE_F_CAM_BACKGROUND:
 			size = NON_IMAGETTE_HEADER_SIZE;
 			break;
-		case DATA_TYPE_UNKOWN:
+		case DATA_TYPE_UNKNOWN:
 			size = 0;
 			break;
 		}
@@ -437,6 +437,27 @@ int cmp_ent_set_model_counter(struct cmp_entity *ent, uint32_t model_counter)
 		return -1;
 
 	ent->model_counter = model_counter;
+
+	return 0;
+}
+
+
+/**
+ * @brief set version identifier for the max. used bits registry in the
+ *	compression entity header
+ *
+ * @param ent			pointer to a compression entity
+ * @param max_used_bits_version	the identifier for the max. used bits registry
+ *
+ * @returns 0 on success, otherwise error
+ */
+
+int cmp_ent_set_max_used_bits_version(struct cmp_entity *ent, uint8_t max_used_bits_version)
+{
+	if (!ent)
+		return -1;
+
+	ent->max_used_bits_version = max_used_bits_version;
 
 	return 0;
 }
@@ -1108,7 +1129,7 @@ uint16_t cmp_ent_get_fine_end_time(struct cmp_entity *ent)
  * @param ent	pointer to a compression entity
  *
  * @returns the data_type NOT including the uncompressed data bit on success,
- *	DATA_TYPE_UNKOWN on error
+ *	DATA_TYPE_UNKNOWN on error
  */
 
 enum cmp_data_type cmp_ent_get_data_type(struct cmp_entity *ent)
@@ -1116,13 +1137,13 @@ enum cmp_data_type cmp_ent_get_data_type(struct cmp_entity *ent)
 	enum cmp_data_type data_type;
 
 	if (!ent)
-		return DATA_TYPE_UNKOWN;
+		return DATA_TYPE_UNKNOWN;
 
 	data_type = be16_to_cpu(ent->data_type);
 	data_type &= (1U << RAW_BIT_DATA_TYPE_POS)-1; /* remove uncompressed data flag */
 
 	if (!cmp_data_type_valid(data_type))
-		data_type = DATA_TYPE_UNKOWN;
+		data_type = DATA_TYPE_UNKNOWN;
 
 	return data_type;
 }
@@ -1211,6 +1232,25 @@ uint8_t cmp_ent_get_model_counter(struct cmp_entity *ent)
 		return 0;
 
 	return ent->model_counter;
+}
+
+
+/**
+ * @brief get the version identifier for the max. used bits registry from the
+ *	compression entity header
+ *
+ * @param ent	pointer to a compression entity
+ *
+ * @returns the version identifier for the max. used bits registry on success,
+ *	0 on error
+ */
+
+uint8_t cmp_ent_get_max_use_bits_version(struct cmp_entity *ent)
+{
+	if (!ent)
+		return 0;
+
+	return ent->max_used_bits_version;
 }
 
 
@@ -1598,10 +1638,15 @@ void *cmp_ent_get_data_buf(struct cmp_entity *ent)
 	if (!ent)
 		return NULL;
 
+	data_type = cmp_ent_get_data_type(ent);
+	if (!cmp_data_type_valid(data_type)) {
+		debug_print("Error: Compression data type not supported.\n");
+		return NULL;
+	}
+
 	if (cmp_ent_get_data_type_raw_bit(ent))
 		return (uint8_t *)ent + GENERIC_HEADER_SIZE;
 
-	data_type = cmp_ent_get_data_type(ent);
 
 	switch (data_type) {
 	case DATA_TYPE_IMAGETTE:
@@ -1630,7 +1675,8 @@ void *cmp_ent_get_data_buf(struct cmp_entity *ent)
 	case DATA_TYPE_F_CAM_OFFSET:
 	case DATA_TYPE_F_CAM_BACKGROUND:
 		return ent->non_ima.cmp_data;
-	case DATA_TYPE_UNKOWN:
+	case DATA_TYPE_UNKNOWN:
+	default:
 		return NULL;
 	}
 
@@ -1777,6 +1823,8 @@ int cmp_ent_write_cmp_pars(struct cmp_entity *ent, const struct cmp_cfg *cfg,
 		return -1;
 	if (cmp_ent_set_model_value(ent, cfg->model_value))
 		return -1;
+	if (cmp_ent_set_max_used_bits_version(ent, cmp_get_max_used_bits_version()))
+		return -1;
 	if (cmp_ent_set_lossy_cmp_par(ent, cfg->round))
 		return -1;
 
@@ -1819,9 +1867,9 @@ int cmp_ent_write_cmp_pars(struct cmp_entity *ent, const struct cmp_cfg *cfg,
 		if (cmp_ent_set_non_ima_spill1(ent, cfg->spill_mean))
 			return -1;
 
-		if (cmp_ent_set_non_ima_spill2(ent, cfg->cmp_par_variance))
+		if (cmp_ent_set_non_ima_cmp_par2(ent, cfg->cmp_par_variance))
 			return -1;
-		if (cmp_ent_set_non_ima_cmp_par2(ent, cfg->spill_variance))
+		if (cmp_ent_set_non_ima_spill2(ent, cfg->spill_variance))
 			return -1;
 
 		if (cmp_ent_set_non_ima_cmp_par3(ent, cfg->cmp_par_pixels_error))
@@ -1892,7 +1940,7 @@ int cmp_ent_write_cmp_pars(struct cmp_entity *ent, const struct cmp_cfg *cfg,
 		/* TODO: fix this*/
 			return -1;
 		break;
-	case DATA_TYPE_UNKOWN:
+	case DATA_TYPE_UNKNOWN:
 	default:
 		return -1;
 	}
@@ -2187,7 +2235,7 @@ int cmp_ent_read_header(struct cmp_entity *ent, struct cmp_cfg *cfg)
 		/* TODO: fix this*/
 			return -1;
 		break;
-	case DATA_TYPE_UNKOWN: /* fall through */
+	case DATA_TYPE_UNKNOWN: /* fall through */
 	default:
 		return -1;
 	}
@@ -2341,8 +2389,8 @@ void cmp_ent_print(struct cmp_entity *ent)
 static void cmp_ent_parse_generic_header(struct cmp_entity *ent)
 {
 	uint32_t version_id, cmp_ent_size, original_size, cmp_mode_used,
-		 model_value_used, model_id, model_counter, lossy_cmp_par_used,
-		 start_coarse_time, end_coarse_time;
+		 model_value_used, model_id, model_counter, max_used_bits_version,
+		 lossy_cmp_par_used, start_coarse_time, end_coarse_time;
 	uint16_t start_fine_time, end_fine_time;
 	enum cmp_data_type data_type;
 	int raw_bit;
@@ -2386,7 +2434,7 @@ static void cmp_ent_parse_generic_header(struct cmp_entity *ent)
 		+ ((end_fine_time - start_fine_time)/256./256.));
 
 	data_type = cmp_ent_get_data_type(ent);
-	if (data_type != DATA_TYPE_UNKOWN)
+	if (data_type != DATA_TYPE_UNKNOWN)
 		printf("Data Product Type: %d\n", data_type);
 	else
 		printf("Data Product Type: unknown!");
@@ -2405,6 +2453,9 @@ static void cmp_ent_parse_generic_header(struct cmp_entity *ent)
 
 	model_counter = cmp_ent_get_model_counter(ent);
 	printf("Model Counter: %u\n", model_counter);
+
+	max_used_bits_version = cmp_ent_get_max_use_bits_version(ent);
+	printf("Maximum Used Bits Registry Version: %u\n", max_used_bits_version);
 
 	lossy_cmp_par_used = cmp_ent_get_lossy_cmp_par(ent);
 	printf("Used Lossy Compression Parameters: %u\n", lossy_cmp_par_used);
