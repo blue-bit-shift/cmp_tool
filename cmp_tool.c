@@ -424,6 +424,11 @@ int main(int argc, char **argv)
 		printf("DONE\n");
 	}
 
+	if (model_file_name && !guess_operation &&
+	    ((cmp_operation && !model_mode_is_used(cfg.cmp_mode)) ||
+	     (!cmp_operation && !model_mode_is_used(cmp_ent_get_cmp_mode(decomp_entity)))))
+		printf("Warring: Model file (-m option) specified but no model is used.\n");
+
 	/* read in model */
 	if ((cmp_operation && model_mode_is_used(cfg.cmp_mode)) ||
 	    (!cmp_operation && model_mode_is_used(cmp_ent_get_cmp_mode(decomp_entity))) ||
@@ -459,6 +464,7 @@ int main(int argc, char **argv)
 		printf("DONE\n");
 
 		cfg.model_buf = input_model_buf;
+		cfg.icu_new_model_buf = input_model_buf; /* in-place model update */
 	}
 
 	if (guess_operation) {
@@ -479,7 +485,7 @@ int main(int argc, char **argv)
 	if (!guess_operation &&
 	    ((cmp_operation && model_mode_is_used(cfg.cmp_mode)) ||
 	    (!cmp_operation && model_mode_is_used(cmp_ent_get_cmp_mode(decomp_entity))))) {
-		enum cmp_data_type data_type = DATA_TYPE_UNKOWN;
+		enum cmp_data_type data_type = DATA_TYPE_UNKNOWN;
 		uint32_t model_size;
 
 		printf("Write updated model to file %s_upmodel.dat ... ", output_prefix);

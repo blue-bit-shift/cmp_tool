@@ -481,7 +481,7 @@ def test_model_compression():
             assert(stderr == "")
             cfg = parse_key_value(stdout)
             cfg['cmp_mode'] = 'MODE_MODEL_MULTI'
-            cfg['model_value'] = '16'
+            cfg['model_value'] = '0'
             cfg["samples"] = '5'
             cfg["buffer_length"] = '2'
             for key, value in cfg.items():
@@ -566,8 +566,8 @@ def test_model_compression():
 
             with open(output_prefix1+"_upmodel.dat", encoding='utf-8') as f1:
                 with open(output_prefix2+"_upmodel.dat", encoding='utf-8') as f2:
-                    assert(f1.read() == f2.read() ==
-                           '00 00 00 01 00 02 00 03 00 04 \n')
+                    assert(f1.read() == f2.read() == data) # upmodel == data -> model_value = 0
+                           # '00 00 00 01 00 02 00 03 00 04 \n')
     # clean up
     finally:
         del_file(data_file_name)

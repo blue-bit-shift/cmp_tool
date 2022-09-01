@@ -61,7 +61,7 @@ static const struct {
 	{DATA_TYPE_F_CAM_IMAGETTE_ADAPTIVE, "DATA_TYPE_F_CAM_IMAGETTE_ADAPTIVE"},
 	{DATA_TYPE_F_CAM_OFFSET, "DATA_TYPE_F_CAM_OFFSET"},
 	{DATA_TYPE_F_CAM_BACKGROUND, "DATA_TYPE_F_CAM_BACKGROUND"},
-	{DATA_TYPE_UNKOWN, "DATA_TYPE_UNKOWN"}
+	{DATA_TYPE_UNKNOWN, "DATA_TYPE_UNKNOWN"}
 };
 
 
@@ -403,12 +403,12 @@ int atoui32(const char *dep_str, const char *val_str, uint32_t *red_val)
  *
  * @param data_type_str	string containing the compression data type to parse
  *
- * @returns data type on success, DATA_TYPE_UNKOWN on error
+ * @returns data type on success, DATA_TYPE_UNKNOWN on error
  */
 
 enum cmp_data_type string2data_type(const char *data_type_str)
 {
-	enum cmp_data_type data_type = DATA_TYPE_UNKOWN;
+	enum cmp_data_type data_type = DATA_TYPE_UNKNOWN;
 
 	if (data_type_str) {
 		if (isalpha(data_type_str[0])) {  /* check if mode is given as text */
@@ -426,7 +426,7 @@ enum cmp_data_type string2data_type(const char *data_type_str)
 			if (!atoui32("Compression Data Type", data_type_str, &read_val)) {
 				data_type = read_val;
 				if (!cmp_data_type_valid(data_type))
-					data_type = DATA_TYPE_UNKOWN;
+					data_type = DATA_TYPE_UNKNOWN;
 			}
 		}
 	}
@@ -439,13 +439,13 @@ enum cmp_data_type string2data_type(const char *data_type_str)
  *
  * @param data_type compression data type to convert in string
  *
- * @returns data type on success, DATA_TYPE_UNKOWN on error
+ * @returns data type on success, DATA_TYPE_UNKNOWN on error
  */
 
 const char *data_type2string(enum cmp_data_type data_type)
 {
 	size_t j;
-	const char *string = "DATA_TYPE_UNKOWN";
+	const char *string = "DATA_TYPE_UNKNOWN";
 
 	for (j = 0;  j < sizeof(data_type_string_table) / sizeof(data_type_string_table[0]); j++) {
 		if (data_type == data_type_string_table[j].data_type) {
@@ -527,7 +527,7 @@ static int parse_cfg(FILE *fp, struct cmp_cfg *cfg)
 {
 	char *token1, *token2;
 	char line[MAX_CONFIG_LINE];
-	enum {CMP_MODE, GOLOMB_PAR, SPILL, SAMPLES, BUFFER_LENGTH, LAST_ITEM};
+	enum {CMP_MODE, SAMPLES, BUFFER_LENGTH, LAST_ITEM};
 	int j, must_read_items[LAST_ITEM] = {0};
 
 	if (!fp)
@@ -559,53 +559,24 @@ static int parse_cfg(FILE *fp, struct cmp_cfg *cfg)
 
 		if (!strcmp(token1, "data_type")) {
 			cfg->data_type = string2data_type(token2);
-			if (cfg->data_type == DATA_TYPE_UNKOWN)
+			if (cfg->data_type == DATA_TYPE_UNKNOWN)
 				return -1;
 			continue;
 		}
 		if (!strcmp(token1, "cmp_mode")) {
 			must_read_items[CMP_MODE] = 1;
-			if (isalpha(*token2)) { /* check if mode is given as text or val*/
-				/* TODO: use conversion function for this: */
-				if (!strcmp(token2, "MODE_RAW")) {
-					cfg->cmp_mode = 0;
-					continue;
-				}
-				if (!strcmp(token2, "MODE_MODEL_ZERO")) {
-					cfg->cmp_mode = 1;
-					continue;
-				}
-				if (!strcmp(token2, "MODE_DIFF_ZERO")) {
-					cfg->cmp_mode = 2;
-					continue;
-				}
-				if (!strcmp(token2, "MODE_MODEL_MULTI")) {
-					cfg->cmp_mode = 3;
-					continue;
-				}
-				if (!strcmp(token2, "MODE_DIFF_MULTI")) {
-					cfg->cmp_mode = 4;
-					continue;
-				}
-				fprintf(stderr, "%s: Error read in cmp_mode.\n",
-					PROGRAM_NAME);
+			if (cmp_mode_parse(token2, &cfg->cmp_mode))
 				return -1;
-			} else {
-				if (atoui32(token1, token2, &cfg->cmp_mode))
-					return -1;
-				continue;
-			}
+			continue;
 		}
 		if (!strcmp(token1, "golomb_par")) {
 			if (atoui32(token1, token2, &cfg->golomb_par))
 				return -1;
-			must_read_items[GOLOMB_PAR] = 1;
 			continue;
 		}
 		if (!strcmp(token1, "spill")) {
 			if (atoui32(token1, token2, &cfg->spill))
 				return -1;
-			must_read_items[SPILL] = 1;
 			continue;
 		}
 		if (!strcmp(token1, "model_value")) {
@@ -635,6 +606,96 @@ static int parse_cfg(FILE *fp, struct cmp_cfg *cfg)
 		}
 		if (!strcmp(token1, "ap2_spill")) {
 			if (atoui32(token1, token2, &cfg->ap2_spill))
+				return -1;
+			continue;
+		}
+		if (!strcmp(token1, "cmp_par_exp_flags")) {
+			if (atoui32(token1, token2, &cfg->cmp_par_exp_flags))
+				return -1;
+			continue;
+		}
+		if (!strcmp(token1, "spill_exp_flags")) {
+			if (atoui32(token1, token2, &cfg->spill_exp_flags))
+				return -1;
+			continue;
+		}
+		if (!strcmp(token1, "cmp_par_fx")) {
+			if (atoui32(token1, token2, &cfg->cmp_par_fx))
+				return -1;
+			continue;
+		}
+		if (!strcmp(token1, "spill_fx")) {
+			if (atoui32(token1, token2, &cfg->spill_fx))
+				return -1;
+			continue;
+		}
+		if (!strcmp(token1, "cmp_par_ncob")) {
+			if (atoui32(token1, token2, &cfg->cmp_par_ncob))
+				return -1;
+			continue;
+		}
+		if (!strcmp(token1, "spill_ncob")) {
+			if (atoui32(token1, token2, &cfg->spill_ncob))
+				return -1;
+			continue;
+		}
+		if (!strcmp(token1, "cmp_par_efx")) {
+			if (atoui32(token1, token2, &cfg->cmp_par_efx))
+				return -1;
+			continue;
+		}
+		if (!strcmp(token1, "spill_efx")) {
+			if (atoui32(token1, token2, &cfg->spill_efx))
+				return -1;
+			continue;
+		}
+		if (!strcmp(token1, "cmp_par_ecob")) {
+			if (atoui32(token1, token2, &cfg->cmp_par_ecob))
+				return -1;
+			continue;
+		}
+		if (!strcmp(token1, "spill_ecob")) {
+			if (atoui32(token1, token2, &cfg->spill_ecob))
+				return -1;
+			continue;
+		}
+		if (!strcmp(token1, "cmp_par_fx_cob_variance")) {
+			if (atoui32(token1, token2, &cfg->cmp_par_fx_cob_variance))
+				return -1;
+			continue;
+		}
+		if (!strcmp(token1, "spill_fx_cob_variance")) {
+			if (atoui32(token1, token2, &cfg->spill_fx_cob_variance))
+				return -1;
+			continue;
+		}
+		if (!strcmp(token1, "cmp_par_mean")) {
+			if (atoui32(token1, token2, &cfg->cmp_par_mean))
+				return -1;
+			continue;
+		}
+		if (!strcmp(token1, "spill_mean")) {
+			if (atoui32(token1, token2, &cfg->spill_mean))
+				return -1;
+			continue;
+		}
+		if (!strcmp(token1, "cmp_par_variance")) {
+			if (atoui32(token1, token2, &cfg->cmp_par_variance))
+				return -1;
+			continue;
+		}
+		if (!strcmp(token1, "spill_variance")) {
+			if (atoui32(token1, token2, &cfg->spill_variance))
+				return -1;
+			continue;
+		}
+		if (!strcmp(token1, "cmp_par_pixels_error")) {
+			if (atoui32(token1, token2, &cfg->cmp_par_pixels_error))
+				return -1;
+			continue;
+		}
+		if (!strcmp(token1, "spill_pixels_error")) {
+			if (atoui32(token1, token2, &cfg->spill_pixels_error))
 				return -1;
 			continue;
 		}
@@ -1384,7 +1445,7 @@ ssize_t read_file_cmp_entity(const char *file_name, struct cmp_entity *ent,
 	if (ent) {
 		enum cmp_data_type data_type = cmp_ent_get_data_type(ent);
 
-		if (data_type == DATA_TYPE_UNKOWN) {
+		if (data_type == DATA_TYPE_UNKNOWN) {
 			fprintf(stderr, "%s: %s: Error: Compression data type is not supported.\n",
 				PROGRAM_NAME, file_name);
 			return -1;
@@ -1501,7 +1562,7 @@ static void write_cfg_internal(FILE *fp, const struct cmp_cfg *cfg, int rdcu_cfg
 	fprintf(fp, "#-------------------------------------------------------------------------------\n");
 	fprintf(fp, "# Selected compression data type\n");
 	fprintf(fp, "\n");
-	fprintf(fp, "data_type = %u\n", cfg->data_type);
+	fprintf(fp, "data_type = %s\n", data_type2string(cfg->data_type));
 	fprintf(fp, "\n");
 	fprintf(fp, "# Selected compression mode\n");
 	fprintf(fp, "# 0: raw mode\n");
