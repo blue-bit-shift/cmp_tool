@@ -1,3 +1,24 @@
+/**
+ * @file   decmp.c
+ * @author Dominik Loidolt (dominik.loidolt@univie.ac.at),
+ * @date   2020
+ *
+ * @copyright GPLv2
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms and conditions of the GNU General Public License,
+ * version 2, as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+ * more details.
+ *
+ * @brief software decompression library
+ * @see Data Compression User Manual PLATO-UVIE-PL-UM-0001
+ *
+ * TODO: how to decomprss?
+ */
+
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,19 +31,21 @@
 #include "cmp_data_types.h"
 #include "cmp_entity.h"
 
-#define CMP_ERROR_SAMLL_BUF -2
 
+/* maximum used bits registry */
+extern struct cmp_max_used_bits max_used_bits;
+
+/* function pointer to a code word decoder function */
+typedef int (*decoder_ptr)(unsigned int, unsigned int, unsigned int, unsigned int *);
 
 /* structure to hold a setup to encode a value */
-typedef unsigned int (*decoder_ptr)(unsigned int, unsigned int, unsigned int, unsigned int *);
 struct decoder_setup {
-	/* generate_cw_f_pt generate_cw_f; /1* pointer to the code word generation function *1/ */
-	decoder_ptr decode_cw_f;
-	int (*encode_method_f)(uint32_t *decoded_value, int stream_pos,
+	decoder_ptr decode_cw_f; /* pointer to the code word decoder (Golomb/Rice)*/
+	int (*decode_method_f)(uint32_t *decoded_value, int stream_pos,
 			       const struct decoder_setup *setup); /* pointer to the decoding function */
 	uint32_t *bitstream_adr; /* start address of the compressed data bitstream */
 	uint32_t max_stream_len; /* maximum length of the bitstream/icu_output_buf in bits */
-	uint32_t max_cw_len;
+	uint32_t max_cw_len; /* TODO */
 	uint32_t encoder_par1; /* encoding parameter 1 */
 	uint32_t encoder_par2; /* encoding parameter 2 */
 	uint32_t outlier_par; /* outlier parameter */
@@ -32,23 +55,22 @@ struct decoder_setup {
 };
 
 
-double get_compression_ratio(uint32_t samples, uint32_t cmp_size_bits,
-			     enum cmp_data_type data_type)
-{
-	double orign_len_bits = (double)cmp_cal_size_of_data(samples, data_type) * CHAR_BIT;
+/**
+ * @brief count leading 1-bits
+ *
+ * @param value	input vale
+ *
+ * @returns the number of leading 1-bits in value, starting at the most
+ *	significant bit position
+ */
 
-	return orign_len_bits/(double)cmp_size_bits;
-}
-
-
-static unsigned int count_leading_ones(unsigned int value)
+static unsigned int count_leading_ones(uint32_t value)
 {
 	unsigned int n_ones = 0; /* number of leading 1s */
 
 	while (1) {
-		unsigned int leading_bit;
+		uint32_t leading_bit = value & 0x80000000;
 
-		leading_bit = value & 0x80000000;
 		if (!leading_bit)
 			break;
 
@@ -59,7 +81,19 @@ static unsigned int count_leading_ones(unsigned int value)
 }
 
 
-static unsigned int rice_decoder(uint32_t code_word, unsigned int m,
+/**
+ * @brief decode a Rice code word
+ *
+ * @param code_word	Rice code word bitstream starting at the MSB
+ * @param m		Golomb parameter (not used)
+ * @param log2_m	Rice parameter, must be the same used for encoding
+ * @param decoded_cw	pointer where decoded value is written
+ *
+ * @returns the length of the decoded code word in bits (NOT the decoded value);
+ *	0 on failure
+ */
+
+static int rice_decoder(uint32_t code_word, unsigned int m,
 				 unsigned int log2_m, unsigned int *decoded_cw)
 {
 	unsigned int q; /* quotient code */
@@ -68,9 +102,9 @@ static unsigned int rice_decoder(uint32_t code_word, unsigned int m,
 	unsigned int rl; /* length of the remainder code */
 	unsigned int cw_len; /* length of the decoded code word in bits */
 
-	(void)m;
+	(void)m; /* we don't need the Golomb parameter */
 
-	q = count_leading_ones(code_word);
+	q = count_leading_ones(code_word); /* decode unary coding */
 	ql = q + 1; /* Number of 1's + following 0 */
 
 	rl = log2_m;
@@ -96,7 +130,20 @@ static unsigned int rice_decoder(uint32_t code_word, unsigned int m,
 }
 
 
-static unsigned int golomb_decoder(unsigned int code_word, unsigned int m,
+/**
+ * @brief decode a Golomb code word
+ *
+ * @param code_word	Golomb code word bitstream starting at the MSB
+ * @param m		Golomb parameter (have to be bigger than 0)
+ * @param log2_m	is log_2(m) calculate outside function for better
+ *			performance
+ * @param decoded_cw	pointer where decoded value is written
+ *
+ * @returns the length of the decoded code word in bits (NOT the decoded value);
+ *	0 on failure
+ */
+
+static int golomb_decoder(unsigned int code_word, unsigned int m,
 				   unsigned int log2_m, unsigned int
 				   *decoded_cw)
 {
@@ -108,7 +155,7 @@ static unsigned int golomb_decoder(unsigned int code_word, unsigned int m,
 	unsigned int cutoff; /* cutoff between group 1 and 2 */
 	unsigned int cw_len; /* length of the decoded code word in bits */
 
-	q = count_leading_ones(code_word);
+	q = count_leading_ones(code_word); /* decode unary coding */
 
 	rl = log2_m + 1;
 	code_word <<= (q+1);  /* shift quotient code out */
@@ -118,10 +165,10 @@ static unsigned int golomb_decoder(unsigned int code_word, unsigned int m,
 
 	cutoff = (1UL << rl) - m;
 
-	if (r1 < cutoff) {
+	if (r1 < cutoff) { /* group 1 */
 		cw_len = q + rl;
 		r = r1;
-	} else {
+	} else { /* group 2 */
 		cw_len = q + rl + 1;
 		r = r2 - cutoff;
 	}
@@ -133,6 +180,16 @@ static unsigned int golomb_decoder(unsigned int code_word, unsigned int m,
 	return cw_len;
 }
 
+
+/**
+ * @brief select the decoder based on the used Golomb parameter
+ * @note if the Golomb parameter is a power of 2 we can use the faster Rice
+ *	decoder
+ *
+ * @param golomb_par	Golomb parameter (have to be bigger than 0)
+ *
+ * @returns function pointer to the select decoder function; NULL on failure
+ */
 
 static decoder_ptr select_decoder(unsigned int golomb_par)
 {
@@ -149,7 +206,9 @@ static decoder_ptr select_decoder(unsigned int golomb_par)
 /**
  * @brief read a value of up to 32 bits from a bitstream
  *
- * @param p_value		pointer to the read value
+ * @param p_value		pointer to the read value (can be NULL), the
+ *				read value will be converted to the system
+ *				endianness
  * @param n_bits		number of bits to read from the bitstream
  * @param bit_offset		bit index where the bits will be read, seen from
  *				the very beginning of the bitstream
@@ -158,9 +217,10 @@ static decoder_ptr select_decoder(unsigned int golomb_par)
  * @param max_stream_len	maximum length of the bitstream in bits; is
  *				ignored if bitstream_adr is NULL
  *
- * @returns length in bits of the generated bitstream on success; returns
- *          negative in case of erroneous input; returns CMP_ERROR_SAMLL_BUF if
- *          the bitstream buffer is too small to read the value from the bitstream
+ * @returns bit position of the last read bit in the bitstream on success;
+ *	returns negative in case of erroneous input; returns CMP_ERROR_SAMLL_BUF
+ *	if the bitstream buffer is too small to read the value from the
+ *	bitstream
  */
 
 static int get_n_bits32(uint32_t *p_value, unsigned int n_bits, int bit_offset,
@@ -174,16 +234,14 @@ static int get_n_bits32(uint32_t *p_value, unsigned int n_bits, int bit_offset,
 	/*leave in case of erroneous input */
 	if (bit_offset < 0)
 		return -1;
-
 	if (n_bits == 0)
-		return stream_len;
-
+		return -1;
 	if (n_bits > 32)
 		return -1;
 
+	/* nothing to read */
 	if (!bitstream_adr)
 		return stream_len;
-
 	if (!p_value)
 		return stream_len;
 
@@ -231,88 +289,130 @@ static int get_n_bits32(uint32_t *p_value, unsigned int n_bits, int bit_offset,
 }
 
 
-static int decode_normal(uint32_t *decoded_value, int stream_pos, const struct decoder_setup *setup)
-{
-	uint32_t read_val = ~0U;
-	int n_read_bits, cw_len, n_bits;
+/**
+ * @brief decode a Golomb/Rice encoded code word from the bitstream
+ *
+ * @param decoded_value	pointer to the decoded value
+ * @param stream_pos	start bit position code word to be decoded in the bitstream
+ * @param setup		pointer to the decoder setup
+ *
+ * @returns bit index of the next code word in the bitstream on success; returns
+ *	negative in case of erroneous input; returns CMP_ERROR_SAMLL_BUF if the
+ *	bitstream buffer is too small to read the value from the bitstream
+ */
 
-	if (stream_pos + setup->max_cw_len > setup->max_stream_len)   /* check buffer overflow */
-		n_read_bits = setup->max_stream_len - stream_pos;
+static int decode_normal(uint32_t *decoded_value, int stream_pos,
+			 const struct decoder_setup *setup)
+{
+	uint32_t read_val;
+	unsigned int n_read_bits;
+	int stream_pos_read, cw_len;
+
+	/* check if we can read max_cw_len or less; we do not now how long the
+	 * code word actually is so we try to read the maximum cw length */
+	if ((unsigned int)stream_pos + setup->max_cw_len > setup->max_stream_len)
+		n_read_bits = setup->max_stream_len - (unsigned int)stream_pos;
 	else
 		n_read_bits = setup->max_cw_len;
-	if (n_read_bits >= 32 || n_read_bits == 0)
-		return -1;
 
-	n_bits = get_n_bits32(&read_val, n_read_bits, stream_pos,
-				  setup->bitstream_adr, setup->max_stream_len);
-	if (n_bits <= 0)
-		return -1;
+	stream_pos_read = get_n_bits32(&read_val, n_read_bits, stream_pos,
+				       setup->bitstream_adr, setup->max_stream_len);
+	if (stream_pos_read < 0)
+		return stream_pos_read;
 
+	/* if we read less than 32, we shift the bitstream so that it starts at the MSB */
 	read_val = read_val << (32 - n_read_bits);
 
-	cw_len = setup->decode_cw_f(read_val, setup->encoder_par1, setup->encoder_par2, decoded_value);
-	if (cw_len < 0)
+	cw_len = setup->decode_cw_f(read_val, setup->encoder_par1,
+				    setup->encoder_par2, decoded_value);
+	if (cw_len <= 0)
+		return -1;
+	/* consistency check: code word length can not be bigger than read bits */
+	if (cw_len > (int)n_read_bits)
 		return -1;
 
 	return stream_pos + cw_len;
 }
 
 
-static int decode_multi(uint32_t *decoded_value, int stream_pos,
-			    const struct decoder_setup *setup)
+/**
+ * @brief decode a Golomb/Rice encoded code word with zero escape system
+ *	mechanism from the bitstream
+ *
+ * @param decoded_value	pointer to the decoded value
+ * @param stream_pos	start bit position code word to be decoded in the bitstream
+ * @param setup		pointer to the decoder setup
+ *
+ * @returns bit index of the next code word in the bitstream on success; returns
+ *	negative in case of erroneous input; returns CMP_ERROR_SAMLL_BUF if the
+ *	bitstream buffer is too small to read the value from the bitstream
+ */
+
+static int decode_zero(uint32_t *decoded_value, int stream_pos,
+		       const struct decoder_setup *setup)
 {
 	stream_pos = decode_normal(decoded_value, stream_pos, setup);
 	if (stream_pos < 0)
 		return stream_pos;
 
-	if (*decoded_value >= setup->outlier_par) {
+	/* consistency check: value lager than the outlier parameter should not
+	 * be Golomb/Rice encoded */
+	if (*decoded_value > setup->outlier_par)
+		return -1;
+
+	if (*decoded_value == 0) {
 		/* escape symbol mechanism was used; read unencoded value */
-		int n_bits;
-		uint32_t unencoded_val = 0;
-		unsigned int unencoded_len;
+		uint32_t unencoded_val;
 
-		unencoded_len = (*decoded_value - setup->outlier_par + 1) * 2;
-
-		n_bits = get_n_bits32(&unencoded_val, unencoded_len, stream_pos,
-				  setup->bitstream_adr, setup->max_stream_len);
-		if (n_bits <= 0)
+		stream_pos = get_n_bits32(&unencoded_val, setup->max_data_bits, stream_pos,
+					  setup->bitstream_adr, setup->max_stream_len);
+		if (stream_pos < 0)
+			return stream_pos;
+		/* consistency check: outliers must be bigger than the outlier_par */
+		if (unencoded_val < setup->outlier_par && unencoded_val != 0)
 			return -1;
 
-		*decoded_value = unencoded_val + setup->outlier_par;
-		stream_pos += unencoded_len;
+		*decoded_value = unencoded_val;
 	}
+
+	(*decoded_value)--;
+	if (*decoded_value == 0xFFFFFFFF) /* catch underflow */
+		(*decoded_value) >>=  (32 - setup->max_data_bits);
+
 	return stream_pos;
 }
 
 
-static int decode_zero(uint32_t *decoded_value, int stream_pos,
-			   const struct decoder_setup *setup)
+/**
+ * @brief decode a Golomb/Rice encoded code word with multi escape system
+ *	mechanism from the bitstream
+ *
+ * @param decoded_value	pointer to the decoded value
+ * @param stream_pos	start bit position code word to be decoded in the bitstream
+ * @param setup		pointer to the decoder setup
+ *
+ * @returns bit index of the next code word in the bitstream on success; returns
+ *	negative in case of erroneous input; returns CMP_ERROR_SAMLL_BUF if the
+ *	bitstream buffer is too small to read the value from the bitstream
+ */
+
+static int decode_multi(uint32_t *decoded_value, int stream_pos,
+			const struct decoder_setup *setup)
 {
 	stream_pos = decode_normal(decoded_value, stream_pos, setup);
 
-	if (stream_pos <= 0)
-		return stream_pos;
+	if (*decoded_value >= setup->outlier_par) {
+		/* escape symbol mechanism was used; read unencoded value */
+		uint32_t unencoded_val;
+		unsigned int unencoded_len;
 
-	if (*decoded_value > setup->outlier_par) /* consistency check */
-		return -1;
+		unencoded_len = (*decoded_value - setup->outlier_par + 1) * 2;
 
-	if (*decoded_value == 0) {/* escape symbol mechanism was used; read unencoded value */
-		int n_bits;
-		uint32_t unencoded_val = 0;
+		stream_pos = get_n_bits32(&unencoded_val, unencoded_len, stream_pos,
+					  setup->bitstream_adr, setup->max_stream_len);
 
-		n_bits = get_n_bits32(&unencoded_val, setup->max_data_bits, stream_pos,
-				  setup->bitstream_adr, setup->max_stream_len);
-		if (n_bits <= 0)
-			return -1;
-		if (unencoded_val < setup->outlier_par && unencoded_val != 0) /* consistency check */
-			return -1;
-
-		*decoded_value = unencoded_val;
-		stream_pos += setup->max_data_bits;
+		*decoded_value = unencoded_val + setup->outlier_par;
 	}
-	(*decoded_value)--;
-	if (*decoded_value == 0xFFFFFFFF) /* catch underflow */
-		(*decoded_value) = (*decoded_value) >> (32-setup->max_data_bits);
 	return stream_pos;
 }
 
@@ -332,21 +432,36 @@ static uint32_t re_map_to_pos(uint32_t value_to_unmap)
 		if (value_to_unmap == 0xFFFFFFFF) /* catch overflow */
 			return 0x80000000;
 		return -((value_to_unmap + 1) / 2);
-	} else
+	} else {
 		return value_to_unmap / 2;
+	}
 }
 
+
+/**
+ * @brief decompress the next code word in the bitstream and decorate it with
+ *	the model
+ *
+ * @param decoded_value	pointer to the decoded value
+ * @param model		model of the decoded_value (0 if not used)
+ * @param stream_pos	start bit position code word to be decoded in the bitstream
+ * @param setup		pointer to the decoder setup
+ *
+ * @returns bit index of the next code word in the bitstream on success; returns
+ *	negative in case of erroneous input; returns CMP_ERROR_SAMLL_BUF if the
+ *	bitstream buffer is too small to read the value from the bitstream
+ */
 
 static int decode_value(uint32_t *decoded_value, uint32_t model,
 			int stream_pos, const struct decoder_setup *setup)
 {
 	uint32_t mask = (~0U >> (32 - setup->max_data_bits)); /* mask the used bits */
 
-	stream_pos = setup->encode_method_f(decoded_value, stream_pos, setup);
+	stream_pos = setup->decode_method_f(decoded_value, stream_pos, setup);
 	if (stream_pos <= 0)
 		return stream_pos;
 
-	*decoded_value = re_map_to_pos(*decoded_value); //, setup->max_used_bits);
+	*decoded_value = re_map_to_pos(*decoded_value);
 
 	*decoded_value += round_fwd(model, setup->lossy_par);
 
@@ -364,9 +479,9 @@ static int configure_decoder_setup(struct decoder_setup *setup,
 				   const struct cmp_cfg *cfg)
 {
 	if (multi_escape_mech_is_used(cfg->cmp_mode))
-		setup->encode_method_f = &decode_multi;
+		setup->decode_method_f = &decode_multi;
 	else if (zero_escape_mech_is_used(cfg->cmp_mode))
-		setup->encode_method_f = &decode_zero;
+		setup->decode_method_f = &decode_zero;
 	else {
 		debug_print("Error: Compression mode not supported.\n");
 		return -1;
@@ -396,6 +511,7 @@ static int configure_decoder_setup(struct decoder_setup *setup,
 
 static int decompress_imagette(struct cmp_cfg *cfg)
 {
+	int err;
 	size_t i;
 	int stream_pos = 0;
 	struct decoder_setup setup;
@@ -404,10 +520,9 @@ static int decompress_imagette(struct cmp_cfg *cfg)
 	uint16_t *up_model_buf = cfg->icu_new_model_buf;
 	uint32_t decoded_value = 0;
 	uint16_t model;
-	int err;
 
 	err = configure_decoder_setup(&setup, cfg->golomb_par, cfg->spill,
-				      cfg->round, 16, cfg);
+				      cfg->round, max_used_bits.nc_imagette, cfg);
 	if (err)
 		return -1;
 
@@ -431,6 +546,1422 @@ static int decompress_imagette(struct cmp_cfg *cfg)
 
 	return stream_pos;
 }
+
+
+/**
+ * @brief TODO: decompress the multi-entry packet header structure and sets the data,
+ *	model and up_model pointers to the data after the header
+ *
+ * @param data		pointer to a pointer pointing to the data to be compressed
+ * @param model		pointer to a pointer pointing to the model of the data
+ * @param up_model	pointer to a pointer pointing to the updated model buffer
+ * @param cfg		pointer to the compression configuration structure
+ *
+ * @returns the bit length of the bitstream on success; negative on error,
+ *
+ * @note the (void **) cast relies on all pointer types having the same internal
+ *	representation which is common, but not universal; http://www.c-faq.com/ptrs/genericpp.html
+ */
+
+static int decompress_multi_entry_hdr(void **data, void **model, void **up_model,
+				      const struct cmp_cfg *cfg)
+{
+	if (cfg->buffer_length < MULTI_ENTRY_HDR_SIZE)
+		return -1;
+
+	if (*data) {
+		if (cfg->icu_output_buf)
+			memcpy(*data, cfg->icu_output_buf, MULTI_ENTRY_HDR_SIZE);
+		*data = (uint8_t *)*data + MULTI_ENTRY_HDR_SIZE;
+	}
+
+	if (*model) {
+		if (cfg->icu_output_buf)
+			memcpy(*model, cfg->icu_output_buf, MULTI_ENTRY_HDR_SIZE);
+		*model = (uint8_t *)*model + MULTI_ENTRY_HDR_SIZE;
+	}
+
+	if (*up_model) {
+		if (cfg->icu_output_buf)
+			memcpy(*up_model, cfg->icu_output_buf, MULTI_ENTRY_HDR_SIZE);
+		*up_model = (uint8_t *)*up_model + MULTI_ENTRY_HDR_SIZE;
+	}
+
+	return MULTI_ENTRY_HDR_SIZE * CHAR_BIT;
+}
+
+
+/**
+ * @brief decompress short normal light flux (S_FX) data
+ *
+ * @param cfg	pointer to the compression configuration structure
+ *
+ * @returns the bit length of the bitstream on success; negative on error,
+ *	CMP_ERROR_SAMLL_BUF if the bitstream buffer is too small to put the
+ *	value in the bitstream
+ */
+
+static int decompress_s_fx(const struct cmp_cfg *cfg)
+{
+	size_t i;
+	int stream_pos = 0;
+	uint32_t decoded_value;
+	struct decoder_setup setup_exp_flags, setup_fx;
+	struct s_fx *data_buf = cfg->input_buf;
+	struct s_fx *model_buf = cfg->model_buf;
+	struct s_fx *up_model_buf = NULL;
+	struct s_fx *next_model_p;
+	struct s_fx model;
+
+	if (model_mode_is_used(cfg->cmp_mode))
+		up_model_buf = cfg->icu_new_model_buf;
+
+	stream_pos = decompress_multi_entry_hdr((void **)&data_buf, (void **)&model_buf,
+						(void **)&up_model_buf, cfg);
+
+	if (model_mode_is_used(cfg->cmp_mode)) {
+		model = model_buf[0];
+		next_model_p = &model_buf[1];
+	} else {
+		memset(&model, 0, sizeof(model));
+		next_model_p = data_buf;
+	}
+
+	if (configure_decoder_setup(&setup_exp_flags, cfg->cmp_par_exp_flags, cfg->spill_exp_flags,
+				    cfg->round, max_used_bits.s_exp_flags, cfg))
+		return -1;
+	if (configure_decoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
+				    cfg->round, max_used_bits.s_fx, cfg))
+		return -1;
+
+	for (i = 0; ; i++) {
+		stream_pos = decode_value(&decoded_value, model.exp_flags,
+					  stream_pos, &setup_exp_flags);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].exp_flags = decoded_value;
+
+		stream_pos = decode_value(&decoded_value, model.fx, stream_pos,
+					  &setup_fx);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].fx = decoded_value;
+
+		if (up_model_buf) {
+			up_model_buf[i].exp_flags = cmp_up_model(data_buf[i].exp_flags, model.exp_flags,
+								 cfg->model_value, setup_exp_flags.lossy_par);
+			up_model_buf[i].fx = cmp_up_model(data_buf[i].fx, model.fx,
+							  cfg->model_value, setup_fx.lossy_par);
+		}
+
+		if (i >= cfg->samples-1)
+			break;
+
+		model = next_model_p[i];
+	}
+	return stream_pos;
+}
+
+
+/**
+ * @brief decompress S_FX_DFX data
+ *
+ * @param cfg	pointer to the compression configuration structure
+ *
+ * @returns the bit length of the bitstream on success; negative on error,
+ *	CMP_ERROR_SAMLL_BUF if the bitstream buffer is too small to put the
+ *	value in the bitstream
+ */
+
+static int decompress_s_fx_efx(const struct cmp_cfg *cfg)
+{
+	size_t i;
+	int stream_pos = 0;
+	uint32_t decoded_value;
+	struct decoder_setup setup_exp_flags, setup_fx, setup_efx;
+	struct s_fx_efx *data_buf = cfg->input_buf;
+	struct s_fx_efx *model_buf = cfg->model_buf;
+	struct s_fx_efx *up_model_buf = NULL;
+	struct s_fx_efx *next_model_p;
+	struct s_fx_efx model;
+
+	if (model_mode_is_used(cfg->cmp_mode))
+		up_model_buf = cfg->icu_new_model_buf;
+
+	stream_pos = decompress_multi_entry_hdr((void **)&data_buf, (void **)&model_buf,
+						(void **)&up_model_buf, cfg);
+
+	if (model_mode_is_used(cfg->cmp_mode)) {
+		model = model_buf[0];
+		next_model_p = &model_buf[1];
+	} else {
+		memset(&model, 0, sizeof(model));
+		next_model_p = data_buf;
+	}
+
+	if (configure_decoder_setup(&setup_exp_flags, cfg->cmp_par_exp_flags, cfg->spill_exp_flags,
+				    cfg->round, max_used_bits.s_exp_flags, cfg))
+		return -1;
+	if (configure_decoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
+				    cfg->round, max_used_bits.s_fx, cfg))
+		return -1;
+	if (configure_decoder_setup(&setup_efx, cfg->cmp_par_efx, cfg->spill_efx,
+				    cfg->round, max_used_bits.s_efx, cfg))
+		return -1;
+
+	for (i = 0; ; i++) {
+		stream_pos = decode_value(&decoded_value, model.exp_flags,
+					  stream_pos, &setup_exp_flags);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].exp_flags = decoded_value;
+
+		stream_pos = decode_value(&decoded_value, model.fx, stream_pos,
+					  &setup_fx);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].fx = decoded_value;
+
+		stream_pos = decode_value(&decoded_value, model.efx, stream_pos,
+					  &setup_efx);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].efx = decoded_value;
+
+		if (up_model_buf) {
+			up_model_buf[i].exp_flags = cmp_up_model(data_buf[i].exp_flags, model.exp_flags,
+								 cfg->model_value, setup_exp_flags.lossy_par);
+			up_model_buf[i].fx = cmp_up_model(data_buf[i].fx, model.fx,
+							  cfg->model_value, setup_fx.lossy_par);
+			up_model_buf[i].efx = cmp_up_model(data_buf[i].efx, model.efx,
+							   cfg->model_value, setup_efx.lossy_par);
+		}
+
+		if (i >= cfg->samples-1)
+			break;
+
+		model = next_model_p[i];
+	}
+	return stream_pos;
+}
+
+
+/**
+ * @brief decompress short S_FX_NCOB data
+ *
+ * @param cfg	pointer to the compression configuration structure
+ *
+ * @returns the bit length of the bitstream on success; negative on error,
+ *	CMP_ERROR_SAMLL_BUF if the bitstream buffer is too small to put the
+ *	value in the bitstream
+ */
+
+static int decompress_s_fx_ncob(const struct cmp_cfg *cfg)
+{
+	size_t i;
+	int stream_pos = 0;
+	uint32_t decoded_value;
+	struct decoder_setup setup_exp_flags, setup_fx, setup_ncob;
+	struct s_fx_ncob *data_buf = cfg->input_buf;
+	struct s_fx_ncob *model_buf = cfg->model_buf;
+	struct s_fx_ncob *up_model_buf = NULL;
+	struct s_fx_ncob *next_model_p;
+	struct s_fx_ncob model;
+
+	if (model_mode_is_used(cfg->cmp_mode))
+		up_model_buf = cfg->icu_new_model_buf;
+
+	stream_pos = decompress_multi_entry_hdr((void **)&data_buf, (void **)&model_buf,
+						(void **)&up_model_buf, cfg);
+
+	if (model_mode_is_used(cfg->cmp_mode)) {
+		model = model_buf[0];
+		next_model_p = &model_buf[1];
+	} else {
+		memset(&model, 0, sizeof(model));
+		next_model_p = data_buf;
+	}
+
+	if (configure_decoder_setup(&setup_exp_flags, cfg->cmp_par_exp_flags, cfg->spill_exp_flags,
+				    cfg->round, max_used_bits.s_exp_flags, cfg))
+		return -1;
+	if (configure_decoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
+				    cfg->round, max_used_bits.s_fx, cfg))
+		return -1;
+	if (configure_decoder_setup(&setup_ncob, cfg->cmp_par_ncob, cfg->spill_ncob,
+				    cfg->round, max_used_bits.s_ncob, cfg))
+		return -1;
+
+	for (i = 0; ; i++) {
+		stream_pos = decode_value(&decoded_value, model.exp_flags,
+					  stream_pos, &setup_exp_flags);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].exp_flags = decoded_value;
+
+		stream_pos = decode_value(&decoded_value, model.fx, stream_pos,
+					  &setup_fx);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].fx = decoded_value;
+
+		stream_pos = decode_value(&decoded_value, model.ncob_x, stream_pos,
+					  &setup_ncob);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].ncob_x = decoded_value;
+
+		stream_pos = decode_value(&decoded_value, model.ncob_y, stream_pos,
+					  &setup_ncob);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].ncob_y = decoded_value;
+
+		if (up_model_buf) {
+			up_model_buf[i].exp_flags = cmp_up_model(data_buf[i].exp_flags, model.exp_flags,
+								 cfg->model_value, setup_exp_flags.lossy_par);
+			up_model_buf[i].fx = cmp_up_model(data_buf[i].fx, model.fx,
+							  cfg->model_value, setup_fx.lossy_par);
+			up_model_buf[i].ncob_x = cmp_up_model(data_buf[i].ncob_x, model.ncob_x,
+							      cfg->model_value, setup_ncob.lossy_par);
+			up_model_buf[i].ncob_y = cmp_up_model(data_buf[i].ncob_y, model.ncob_y,
+							      cfg->model_value, setup_ncob.lossy_par);
+		}
+
+		if (i >= cfg->samples-1)
+			break;
+
+		model = next_model_p[i];
+	}
+	return stream_pos;
+}
+
+
+/**
+ * @brief decompress short S_FX_NCOB_ECOB data
+ *
+ * @param cfg	pointer to the compression configuration structure
+ *
+ * @returns the bit length of the bitstream on success; negative on error,
+ *	CMP_ERROR_SAMLL_BUF if the bitstream buffer is too small to put the
+ *	value in the bitstream
+ */
+
+static int decompress_s_fx_efx_ncob_ecob(const struct cmp_cfg *cfg)
+{
+	size_t i;
+	int stream_pos = 0;
+	uint32_t decoded_value;
+	struct decoder_setup setup_exp_flags, setup_fx, setup_ncob, setup_efx, setup_ecob;
+	struct s_fx_efx_ncob_ecob *data_buf = cfg->input_buf;
+	struct s_fx_efx_ncob_ecob *model_buf = cfg->model_buf;
+	struct s_fx_efx_ncob_ecob *up_model_buf = NULL;
+	struct s_fx_efx_ncob_ecob *next_model_p;
+	struct s_fx_efx_ncob_ecob model;
+
+	if (model_mode_is_used(cfg->cmp_mode))
+		up_model_buf = cfg->icu_new_model_buf;
+
+	stream_pos = decompress_multi_entry_hdr((void **)&data_buf, (void **)&model_buf,
+						(void **)&up_model_buf, cfg);
+
+	if (model_mode_is_used(cfg->cmp_mode)) {
+		model = model_buf[0];
+		next_model_p = &model_buf[1];
+	} else {
+		memset(&model, 0, sizeof(model));
+		next_model_p = data_buf;
+	}
+
+	if (configure_decoder_setup(&setup_exp_flags, cfg->cmp_par_exp_flags, cfg->spill_exp_flags,
+				    cfg->round, max_used_bits.s_exp_flags, cfg))
+		return -1;
+	if (configure_decoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
+				    cfg->round, max_used_bits.s_fx, cfg))
+		return -1;
+	if (configure_decoder_setup(&setup_ncob, cfg->cmp_par_ncob, cfg->spill_ncob,
+				    cfg->round, max_used_bits.s_ncob, cfg))
+		return -1;
+	if (configure_decoder_setup(&setup_efx, cfg->cmp_par_efx, cfg->spill_efx,
+				    cfg->round, max_used_bits.s_efx, cfg))
+		return -1;
+	if (configure_decoder_setup(&setup_ecob, cfg->cmp_par_ecob, cfg->spill_ecob,
+				    cfg->round, max_used_bits.s_ecob, cfg))
+		return -1;
+
+	for (i = 0; ; i++) {
+		stream_pos = decode_value(&decoded_value, model.exp_flags,
+					  stream_pos, &setup_exp_flags);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].exp_flags = decoded_value;
+
+		stream_pos = decode_value(&decoded_value, model.fx, stream_pos,
+					  &setup_fx);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].fx = decoded_value;
+
+		stream_pos = decode_value(&decoded_value, model.ncob_x, stream_pos,
+					  &setup_ncob);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].ncob_x = decoded_value;
+
+		stream_pos = decode_value(&decoded_value, model.ncob_y, stream_pos,
+					  &setup_ncob);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].ncob_y = decoded_value;
+
+		stream_pos = decode_value(&decoded_value, model.efx, stream_pos,
+					  &setup_efx);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].efx = decoded_value;
+
+		stream_pos = decode_value(&decoded_value, model.ecob_x, stream_pos,
+					  &setup_ecob);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].ecob_x = decoded_value;
+
+		stream_pos = decode_value(&decoded_value, model.ecob_y, stream_pos,
+					  &setup_ecob);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].ecob_y = decoded_value;
+
+		if (up_model_buf) {
+			up_model_buf[i].exp_flags = cmp_up_model(data_buf[i].exp_flags, model.exp_flags,
+								 cfg->model_value, setup_exp_flags.lossy_par);
+			up_model_buf[i].fx = cmp_up_model(data_buf[i].fx, model.fx,
+							  cfg->model_value, setup_fx.lossy_par);
+			up_model_buf[i].ncob_x = cmp_up_model(data_buf[i].ncob_x, model.ncob_x,
+							      cfg->model_value, setup_ncob.lossy_par);
+			up_model_buf[i].ncob_y = cmp_up_model(data_buf[i].ncob_y, model.ncob_y,
+							      cfg->model_value, setup_ncob.lossy_par);
+			up_model_buf[i].efx = cmp_up_model(data_buf[i].efx, model.efx,
+							   cfg->model_value, setup_efx.lossy_par);
+			up_model_buf[i].ecob_x = cmp_up_model(data_buf[i].ecob_x, model.ecob_x,
+							      cfg->model_value, setup_ecob.lossy_par);
+			up_model_buf[i].ecob_y = cmp_up_model(data_buf[i].ecob_y, model.ecob_y,
+							      cfg->model_value, setup_ecob.lossy_par);
+		}
+
+		if (i >= cfg->samples-1)
+			break;
+
+		model = next_model_p[i];
+	}
+	return stream_pos;
+}
+
+
+/**
+ * @brief decompress fast normal light flux (F_FX) data
+ *
+ * @param cfg	pointer to the compression configuration structure
+ *
+ * @returns the bit length of the bitstream on success; negative on error,
+ *	CMP_ERROR_SAMLL_BUF if the bitstream buffer is too small to put the
+ *	value in the bitstream
+ */
+
+static int decompress_f_fx(const struct cmp_cfg *cfg)
+{
+	size_t i;
+	int stream_pos = 0;
+	uint32_t decoded_value;
+	struct decoder_setup setup_fx;
+	struct f_fx *data_buf = cfg->input_buf;
+	struct f_fx *model_buf = cfg->model_buf;
+	struct f_fx *up_model_buf = NULL;
+	struct f_fx *next_model_p;
+	struct f_fx model;
+
+	if (model_mode_is_used(cfg->cmp_mode))
+		up_model_buf = cfg->icu_new_model_buf;
+
+	stream_pos = decompress_multi_entry_hdr((void **)&data_buf, (void **)&model_buf,
+						(void **)&up_model_buf, cfg);
+
+	if (model_mode_is_used(cfg->cmp_mode)) {
+		model = model_buf[0];
+		next_model_p = &model_buf[1];
+	} else {
+		memset(&model, 0, sizeof(model));
+		next_model_p = data_buf;
+	}
+
+	if (configure_decoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
+				    cfg->round, max_used_bits.f_fx, cfg))
+		return -1;
+
+	for (i = 0; ; i++) {
+		stream_pos = decode_value(&decoded_value, model.fx, stream_pos,
+					  &setup_fx);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].fx = decoded_value;
+
+		if (up_model_buf)
+			up_model_buf[i].fx = cmp_up_model(data_buf[i].fx, model.fx,
+							  cfg->model_value, setup_fx.lossy_par);
+
+		if (i >= cfg->samples-1)
+			break;
+
+		model = next_model_p[i];
+	}
+	return stream_pos;
+}
+
+
+/**
+ * @brief decompress F_FX_DFX data
+ *
+ * @param cfg	pointer to the compression configuration structure
+ *
+ * @returns the bit length of the bitstream on success; negative on error,
+ *	CMP_ERROR_SAMLL_BUF if the bitstream buffer is too small to put the
+ *	value in the bitstream
+ */
+
+static int decompress_f_fx_efx(const struct cmp_cfg *cfg)
+{
+	size_t i;
+	int stream_pos = 0;
+	uint32_t decoded_value;
+	struct decoder_setup setup_fx, setup_efx;
+	struct f_fx_efx *data_buf = cfg->input_buf;
+	struct f_fx_efx *model_buf = cfg->model_buf;
+	struct f_fx_efx *up_model_buf = NULL;
+	struct f_fx_efx *next_model_p;
+	struct f_fx_efx model;
+
+	if (model_mode_is_used(cfg->cmp_mode))
+		up_model_buf = cfg->icu_new_model_buf;
+
+	stream_pos = decompress_multi_entry_hdr((void **)&data_buf, (void **)&model_buf,
+						(void **)&up_model_buf, cfg);
+
+	if (model_mode_is_used(cfg->cmp_mode)) {
+		model = model_buf[0];
+		next_model_p = &model_buf[1];
+	} else {
+		memset(&model, 0, sizeof(model));
+		next_model_p = data_buf;
+	}
+
+	if (configure_decoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
+				    cfg->round, max_used_bits.f_fx, cfg))
+		return -1;
+	if (configure_decoder_setup(&setup_efx, cfg->cmp_par_efx, cfg->spill_efx,
+				    cfg->round, max_used_bits.f_efx, cfg))
+		return -1;
+
+	for (i = 0; ; i++) {
+		stream_pos = decode_value(&decoded_value, model.fx, stream_pos,
+					  &setup_fx);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].fx = decoded_value;
+
+		stream_pos = decode_value(&decoded_value, model.efx, stream_pos,
+					  &setup_efx);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].efx = decoded_value;
+
+		if (up_model_buf) {
+			up_model_buf[i].fx = cmp_up_model(data_buf[i].fx, model.fx,
+							  cfg->model_value, setup_fx.lossy_par);
+			up_model_buf[i].efx = cmp_up_model(data_buf[i].efx, model.efx,
+							   cfg->model_value, setup_efx.lossy_par);
+		}
+
+		if (i >= cfg->samples-1)
+			break;
+
+		model = next_model_p[i];
+	}
+	return stream_pos;
+}
+
+
+/**
+ * @brief decompress short F_FX_NCOB data
+ *
+ * @param cfg	pointer to the compression configuration structure
+ *
+ * @returns the bit length of the bitstream on success; negative on error,
+ *	CMP_ERROR_SAMLL_BUF if the bitstream buffer is too small to put the
+ *	value in the bitstream
+ */
+
+static int decompress_f_fx_ncob(const struct cmp_cfg *cfg)
+{
+	size_t i;
+	int stream_pos = 0;
+	uint32_t decoded_value;
+	struct decoder_setup setup_fx, setup_ncob;
+	struct f_fx_ncob *data_buf = cfg->input_buf;
+	struct f_fx_ncob *model_buf = cfg->model_buf;
+	struct f_fx_ncob *up_model_buf = NULL;
+	struct f_fx_ncob *next_model_p;
+	struct f_fx_ncob model;
+
+	if (model_mode_is_used(cfg->cmp_mode))
+		up_model_buf = cfg->icu_new_model_buf;
+
+	stream_pos = decompress_multi_entry_hdr((void **)&data_buf, (void **)&model_buf,
+						(void **)&up_model_buf, cfg);
+
+	if (model_mode_is_used(cfg->cmp_mode)) {
+		model = model_buf[0];
+		next_model_p = &model_buf[1];
+	} else {
+		memset(&model, 0, sizeof(model));
+		next_model_p = data_buf;
+	}
+
+	if (configure_decoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
+				    cfg->round, max_used_bits.f_fx, cfg))
+		return -1;
+	if (configure_decoder_setup(&setup_ncob, cfg->cmp_par_ncob, cfg->spill_ncob,
+				    cfg->round, max_used_bits.f_ncob, cfg))
+		return -1;
+
+	for (i = 0; ; i++) {
+		stream_pos = decode_value(&decoded_value, model.fx, stream_pos,
+					  &setup_fx);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].fx = decoded_value;
+
+		stream_pos = decode_value(&decoded_value, model.ncob_x, stream_pos,
+					  &setup_ncob);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].ncob_x = decoded_value;
+
+		stream_pos = decode_value(&decoded_value, model.ncob_y, stream_pos,
+					  &setup_ncob);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].ncob_y = decoded_value;
+
+		if (up_model_buf) {
+			up_model_buf[i].fx = cmp_up_model(data_buf[i].fx, model.fx,
+							  cfg->model_value, setup_fx.lossy_par);
+			up_model_buf[i].ncob_x = cmp_up_model(data_buf[i].ncob_x, model.ncob_x,
+							      cfg->model_value, setup_ncob.lossy_par);
+			up_model_buf[i].ncob_y = cmp_up_model(data_buf[i].ncob_y, model.ncob_y,
+							      cfg->model_value, setup_ncob.lossy_par);
+		}
+
+		if (i >= cfg->samples-1)
+			break;
+
+		model = next_model_p[i];
+	}
+	return stream_pos;
+}
+
+
+/**
+ * @brief decompress short F_FX_NCOB_ECOB data
+ *
+ * @param cfg	pointer to the compression configuration structure
+ *
+ * @returns the bit length of the bitstream on success; negative on error,
+ *	CMP_ERROR_SAMLL_BUF if the bitstream buffer is too small to put the
+ *	value in the bitstream
+ */
+
+static int decompress_f_fx_efx_ncob_ecob(const struct cmp_cfg *cfg)
+{
+	size_t i;
+	int stream_pos = 0;
+	uint32_t decoded_value;
+	struct decoder_setup setup_fx, setup_ncob, setup_efx, setup_ecob;
+	struct f_fx_efx_ncob_ecob *data_buf = cfg->input_buf;
+	struct f_fx_efx_ncob_ecob *model_buf = cfg->model_buf;
+	struct f_fx_efx_ncob_ecob *up_model_buf = NULL;
+	struct f_fx_efx_ncob_ecob *next_model_p;
+	struct f_fx_efx_ncob_ecob model;
+
+	if (model_mode_is_used(cfg->cmp_mode))
+		up_model_buf = cfg->icu_new_model_buf;
+
+	stream_pos = decompress_multi_entry_hdr((void **)&data_buf, (void **)&model_buf,
+						(void **)&up_model_buf, cfg);
+
+	if (model_mode_is_used(cfg->cmp_mode)) {
+		model = model_buf[0];
+		next_model_p = &model_buf[1];
+	} else {
+		memset(&model, 0, sizeof(model));
+		next_model_p = data_buf;
+	}
+
+	if (configure_decoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
+				    cfg->round, max_used_bits.f_fx, cfg))
+		return -1;
+	if (configure_decoder_setup(&setup_ncob, cfg->cmp_par_ncob, cfg->spill_ncob,
+				    cfg->round, max_used_bits.f_ncob, cfg))
+		return -1;
+	if (configure_decoder_setup(&setup_efx, cfg->cmp_par_efx, cfg->spill_efx,
+				    cfg->round, max_used_bits.f_efx, cfg))
+		return -1;
+	if (configure_decoder_setup(&setup_ecob, cfg->cmp_par_ecob, cfg->spill_ecob,
+				    cfg->round, max_used_bits.f_ecob, cfg))
+		return -1;
+
+	for (i = 0; ; i++) {
+		stream_pos = decode_value(&decoded_value, model.fx, stream_pos,
+					  &setup_fx);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].fx = decoded_value;
+
+		stream_pos = decode_value(&decoded_value, model.ncob_x, stream_pos,
+					  &setup_ncob);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].ncob_x = decoded_value;
+
+		stream_pos = decode_value(&decoded_value, model.ncob_y, stream_pos,
+					  &setup_ncob);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].ncob_y = decoded_value;
+
+		stream_pos = decode_value(&decoded_value, model.efx, stream_pos,
+					  &setup_efx);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].efx = decoded_value;
+
+		stream_pos = decode_value(&decoded_value, model.ecob_x, stream_pos,
+					  &setup_ecob);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].ecob_x = decoded_value;
+
+		stream_pos = decode_value(&decoded_value, model.ecob_y, stream_pos,
+					  &setup_ecob);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].ecob_y = decoded_value;
+
+		if (up_model_buf) {
+			up_model_buf[i].fx = cmp_up_model(data_buf[i].fx, model.fx,
+				cfg->model_value, setup_fx.lossy_par);
+			up_model_buf[i].ncob_x = cmp_up_model(data_buf[i].ncob_x, model.ncob_x,
+				cfg->model_value, setup_ncob.lossy_par);
+			up_model_buf[i].ncob_y = cmp_up_model(data_buf[i].ncob_y, model.ncob_y,
+				cfg->model_value, setup_ncob.lossy_par);
+			up_model_buf[i].efx = cmp_up_model(data_buf[i].efx, model.efx,
+				cfg->model_value, setup_efx.lossy_par);
+			up_model_buf[i].ecob_x = cmp_up_model(data_buf[i].ecob_x, model.ecob_x,
+				cfg->model_value, setup_ecob.lossy_par);
+			up_model_buf[i].ecob_y = cmp_up_model(data_buf[i].ecob_y, model.ecob_y,
+				cfg->model_value, setup_ecob.lossy_par);
+		}
+
+		if (i >= cfg->samples-1)
+			break;
+
+		model = next_model_p[i];
+	}
+	return stream_pos;
+}
+
+
+/**
+ * @brief decompress long normal light flux (L_FX) data
+ *
+ * @param cfg	pointer to the compression configuration structure
+ *
+ * @returns the bit length of the bitstream on success; negative on error,
+ *	CMP_ERROR_SAMLL_BUF if the bitstream buffer is too small to put the
+ *	value in the bitstream
+ */
+
+static int decompress_l_fx(const struct cmp_cfg *cfg)
+{
+	size_t i;
+	int stream_pos = 0;
+	uint32_t decoded_value;
+	struct decoder_setup setup_exp_flags, setup_fx, setup_fx_var;
+	struct l_fx *data_buf = cfg->input_buf;
+	struct l_fx *model_buf = cfg->model_buf;
+	struct l_fx *up_model_buf = NULL;
+	struct l_fx *next_model_p;
+	struct l_fx model;
+
+	if (model_mode_is_used(cfg->cmp_mode))
+		up_model_buf = cfg->icu_new_model_buf;
+
+	stream_pos = decompress_multi_entry_hdr((void **)&data_buf, (void **)&model_buf,
+						(void **)&up_model_buf, cfg);
+
+	if (model_mode_is_used(cfg->cmp_mode)) {
+		model = model_buf[0];
+		next_model_p = &model_buf[1];
+	} else {
+		memset(&model, 0, sizeof(model));
+		next_model_p = data_buf;
+	}
+
+	if (configure_decoder_setup(&setup_exp_flags, cfg->cmp_par_exp_flags, cfg->spill_exp_flags,
+				    cfg->round, max_used_bits.l_exp_flags, cfg))
+		return -1;
+	if (configure_decoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
+				    cfg->round, max_used_bits.l_fx, cfg))
+		return -1;
+	if (configure_decoder_setup(&setup_fx_var, cfg->cmp_par_fx_cob_variance, cfg->spill_fx_cob_variance,
+				    cfg->round, max_used_bits.l_fx_variance, cfg))
+		return -1;
+
+	for (i = 0; ; i++) {
+		stream_pos = decode_value(&decoded_value, model.exp_flags,
+					  stream_pos, &setup_exp_flags);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].exp_flags = decoded_value;
+
+		stream_pos = decode_value(&decoded_value, model.fx, stream_pos,
+					  &setup_fx);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].fx = decoded_value;
+
+		stream_pos = decode_value(&decoded_value, model.fx_variance, stream_pos,
+					  &setup_fx_var);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].fx_variance = decoded_value;
+
+		if (up_model_buf) {
+			up_model_buf[i].exp_flags = cmp_up_model(data_buf[i].exp_flags, model.exp_flags,
+								 cfg->model_value, setup_exp_flags.lossy_par);
+			up_model_buf[i].fx = cmp_up_model(data_buf[i].fx, model.fx,
+							  cfg->model_value, setup_fx.lossy_par);
+			up_model_buf[i].fx_variance = cmp_up_model(data_buf[i].fx_variance, model.fx_variance,
+								   cfg->model_value, setup_fx_var.lossy_par);
+		}
+
+		if (i >= cfg->samples-1)
+			break;
+
+		model = next_model_p[i];
+	}
+	return stream_pos;
+}
+
+
+/**
+ * @brief decompress L_FX_EFX data
+ *
+ * @param cfg	pointer to the compression configuration structure
+ *
+ * @returns the bit length of the bitstream on success; negative on error,
+ *	CMP_ERROR_SAMLL_BUF if the bitstream buffer is too small to put the
+ *	value in the bitstream
+ */
+
+static int decompress_l_fx_efx(const struct cmp_cfg *cfg)
+{
+	size_t i;
+	int stream_pos = 0;
+	uint32_t decoded_value;
+	struct decoder_setup setup_exp_flags, setup_fx, setup_efx, setup_fx_var;
+	struct l_fx_efx *data_buf = cfg->input_buf;
+	struct l_fx_efx *model_buf = cfg->model_buf;
+	struct l_fx_efx *up_model_buf = NULL;
+	struct l_fx_efx *next_model_p;
+	struct l_fx_efx model;
+
+	if (model_mode_is_used(cfg->cmp_mode))
+		up_model_buf = cfg->icu_new_model_buf;
+
+	stream_pos = decompress_multi_entry_hdr((void **)&data_buf, (void **)&model_buf,
+						(void **)&up_model_buf, cfg);
+
+	if (model_mode_is_used(cfg->cmp_mode)) {
+		model = model_buf[0];
+		next_model_p = &model_buf[1];
+	} else {
+		memset(&model, 0, sizeof(model));
+		next_model_p = data_buf;
+	}
+
+	if (configure_decoder_setup(&setup_exp_flags, cfg->cmp_par_exp_flags, cfg->spill_exp_flags,
+				    cfg->round, max_used_bits.l_exp_flags, cfg))
+		return -1;
+	if (configure_decoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
+				    cfg->round, max_used_bits.l_fx, cfg))
+		return -1;
+	if (configure_decoder_setup(&setup_efx, cfg->cmp_par_efx, cfg->spill_efx,
+				    cfg->round, max_used_bits.l_efx, cfg))
+		return -1;
+	if (configure_decoder_setup(&setup_fx_var, cfg->cmp_par_fx_cob_variance, cfg->spill_fx_cob_variance,
+				    cfg->round, max_used_bits.l_fx_variance, cfg))
+		return -1;
+
+	for (i = 0; ; i++) {
+		stream_pos = decode_value(&decoded_value, model.exp_flags,
+					  stream_pos, &setup_exp_flags);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].exp_flags = decoded_value;
+
+		stream_pos = decode_value(&decoded_value, model.fx, stream_pos,
+					  &setup_fx);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].fx = decoded_value;
+
+		stream_pos = decode_value(&decoded_value, model.efx, stream_pos,
+					  &setup_efx);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].efx = decoded_value;
+
+		stream_pos = decode_value(&decoded_value, model.fx_variance, stream_pos,
+					  &setup_fx_var);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].fx_variance = decoded_value;
+
+		if (up_model_buf) {
+			up_model_buf[i].exp_flags = cmp_up_model(data_buf[i].exp_flags, model.exp_flags,
+								 cfg->model_value, setup_exp_flags.lossy_par);
+			up_model_buf[i].fx = cmp_up_model(data_buf[i].fx, model.fx,
+							  cfg->model_value, setup_fx.lossy_par);
+			up_model_buf[i].efx = cmp_up_model(data_buf[i].efx, model.efx,
+							   cfg->model_value, setup_efx.lossy_par);
+			up_model_buf[i].fx_variance = cmp_up_model(data_buf[i].fx_variance, model.fx_variance,
+								   cfg->model_value, setup_fx_var.lossy_par);
+		}
+
+		if (i >= cfg->samples-1)
+			break;
+
+		model = next_model_p[i];
+	}
+	return stream_pos;
+}
+
+
+/**
+ * @brief decompress L_FX_NCOB data
+ *
+ * @param cfg	pointer to the compression configuration structure
+ *
+ * @returns the bit length of the bitstream on success; negative on error,
+ *	CMP_ERROR_SAMLL_BUF if the bitstream buffer is too small to put the
+ *	value in the bitstream
+ */
+
+static int decompress_l_fx_ncob(const struct cmp_cfg *cfg)
+{
+	size_t i;
+	int stream_pos = 0;
+	uint32_t decoded_value;
+	struct decoder_setup setup_exp_flags, setup_fx, setup_ncob,
+			     setup_fx_var, setup_cob_var;
+	struct l_fx_ncob *data_buf = cfg->input_buf;
+	struct l_fx_ncob *model_buf = cfg->model_buf;
+	struct l_fx_ncob *up_model_buf = NULL;
+	struct l_fx_ncob *next_model_p;
+	struct l_fx_ncob model;
+
+	if (model_mode_is_used(cfg->cmp_mode))
+		up_model_buf = cfg->icu_new_model_buf;
+
+	stream_pos = decompress_multi_entry_hdr((void **)&data_buf, (void **)&model_buf,
+						(void **)&up_model_buf, cfg);
+
+	if (model_mode_is_used(cfg->cmp_mode)) {
+		model = model_buf[0];
+		next_model_p = &model_buf[1];
+	} else {
+		memset(&model, 0, sizeof(model));
+		next_model_p = data_buf;
+	}
+
+	if (configure_decoder_setup(&setup_exp_flags, cfg->cmp_par_exp_flags, cfg->spill_exp_flags,
+				    cfg->round, max_used_bits.l_exp_flags, cfg))
+		return -1;
+	if (configure_decoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
+				    cfg->round, max_used_bits.l_fx, cfg))
+		return -1;
+	if (configure_decoder_setup(&setup_ncob, cfg->cmp_par_ncob, cfg->spill_ncob,
+				    cfg->round, max_used_bits.l_ncob, cfg))
+		return -1;
+	if (configure_decoder_setup(&setup_fx_var, cfg->cmp_par_fx_cob_variance, cfg->spill_fx_cob_variance,
+				    cfg->round, max_used_bits.l_fx_variance, cfg))
+		return -1;
+	if (configure_decoder_setup(&setup_cob_var, cfg->cmp_par_fx_cob_variance, cfg->spill_fx_cob_variance,
+				    cfg->round, max_used_bits.l_cob_variance, cfg))
+		return -1;
+
+	for (i = 0; ; i++) {
+		stream_pos = decode_value(&decoded_value, model.exp_flags,
+					  stream_pos, &setup_exp_flags);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].exp_flags = decoded_value;
+
+		stream_pos = decode_value(&decoded_value, model.fx, stream_pos,
+					  &setup_fx);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].fx = decoded_value;
+
+		stream_pos = decode_value(&decoded_value, model.ncob_x,
+					  stream_pos, &setup_ncob);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].ncob_x = decoded_value;
+
+		stream_pos = decode_value(&decoded_value, model.ncob_y,
+					  stream_pos, &setup_ncob);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].ncob_y = decoded_value;
+
+		stream_pos = decode_value(&decoded_value, model.fx_variance,
+					  stream_pos, &setup_fx_var);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].fx_variance = decoded_value;
+
+		stream_pos = decode_value(&decoded_value, model.cob_x_variance,
+					  stream_pos, &setup_cob_var);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].cob_x_variance = decoded_value;
+
+		stream_pos = decode_value(&decoded_value, model.cob_y_variance,
+					  stream_pos, &setup_cob_var);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].cob_y_variance = decoded_value;
+
+		if (up_model_buf) {
+			up_model_buf[i].exp_flags = cmp_up_model(data_buf[i].exp_flags, model.exp_flags,
+				cfg->model_value, setup_exp_flags.lossy_par);
+			up_model_buf[i].fx = cmp_up_model(data_buf[i].fx, model.fx,
+				cfg->model_value, setup_fx.lossy_par);
+			up_model_buf[i].ncob_x = cmp_up_model(data_buf[i].ncob_x, model.ncob_x,
+				cfg->model_value, setup_ncob.lossy_par);
+			up_model_buf[i].ncob_y = cmp_up_model(data_buf[i].ncob_y, model.ncob_y,
+				cfg->model_value, setup_ncob.lossy_par);
+			up_model_buf[i].fx_variance = cmp_up_model(data_buf[i].fx_variance, model.fx_variance,
+				cfg->model_value, setup_fx_var.lossy_par);
+			up_model_buf[i].cob_x_variance = cmp_up_model(data_buf[i].cob_x_variance, model.cob_x_variance,
+				cfg->model_value, setup_cob_var.lossy_par);
+			up_model_buf[i].cob_y_variance = cmp_up_model(data_buf[i].cob_y_variance, model.cob_y_variance,
+				cfg->model_value, setup_cob_var.lossy_par);
+		}
+
+		if (i >= cfg->samples-1)
+			break;
+
+		model = next_model_p[i];
+	}
+	return stream_pos;
+}
+
+
+/**
+ * @brief decompress L_FX_EFX_NCOB_ECOB data
+ *
+ * @param cfg	pointer to the compression configuration structure
+ *
+ * @returns the bit length of the bitstream on success; negative on error,
+ *	CMP_ERROR_SAMLL_BUF if the bitstream buffer is too small to put the
+ *	value in the bitstream
+ */
+
+static int decompress_l_fx_efx_ncob_ecob(const struct cmp_cfg *cfg)
+{
+	size_t i;
+	int stream_pos = 0;
+	uint32_t decoded_value;
+	struct decoder_setup setup_exp_flags, setup_fx, setup_ncob, setup_efx,
+			     setup_ecob, setup_fx_var, setup_cob_var;
+	struct l_fx_efx_ncob_ecob *data_buf = cfg->input_buf;
+	struct l_fx_efx_ncob_ecob *model_buf = cfg->model_buf;
+	struct l_fx_efx_ncob_ecob *up_model_buf = NULL;
+	struct l_fx_efx_ncob_ecob *next_model_p;
+	struct l_fx_efx_ncob_ecob model;
+
+	if (model_mode_is_used(cfg->cmp_mode))
+		up_model_buf = cfg->icu_new_model_buf;
+
+	stream_pos = decompress_multi_entry_hdr((void **)&data_buf, (void **)&model_buf,
+						(void **)&up_model_buf, cfg);
+
+	if (model_mode_is_used(cfg->cmp_mode)) {
+		model = model_buf[0];
+		next_model_p = &model_buf[1];
+	} else {
+		memset(&model, 0, sizeof(model));
+		next_model_p = data_buf;
+	}
+
+	if (configure_decoder_setup(&setup_exp_flags, cfg->cmp_par_exp_flags, cfg->spill_exp_flags,
+				    cfg->round, max_used_bits.l_exp_flags, cfg))
+		return -1;
+	if (configure_decoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
+				    cfg->round, max_used_bits.l_fx, cfg))
+		return -1;
+	if (configure_decoder_setup(&setup_ncob, cfg->cmp_par_ncob, cfg->spill_ncob,
+				    cfg->round, max_used_bits.l_ncob, cfg))
+		return -1;
+	if (configure_decoder_setup(&setup_efx, cfg->cmp_par_efx, cfg->spill_efx,
+				    cfg->round, max_used_bits.l_efx, cfg))
+		return -1;
+	if (configure_decoder_setup(&setup_ecob, cfg->cmp_par_ecob, cfg->spill_ecob,
+				    cfg->round, max_used_bits.l_ecob, cfg))
+		return -1;
+	if (configure_decoder_setup(&setup_fx_var, cfg->cmp_par_fx_cob_variance, cfg->spill_fx_cob_variance,
+				    cfg->round, max_used_bits.l_fx_variance, cfg))
+		return -1;
+	if (configure_decoder_setup(&setup_cob_var, cfg->cmp_par_fx_cob_variance, cfg->spill_fx_cob_variance,
+				    cfg->round, max_used_bits.l_cob_variance, cfg))
+		return -1;
+
+	for (i = 0; ; i++) {
+		stream_pos = decode_value(&decoded_value, model.exp_flags,
+					  stream_pos, &setup_exp_flags);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].exp_flags = decoded_value;
+
+		stream_pos = decode_value(&decoded_value, model.fx, stream_pos,
+					  &setup_fx);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].fx = decoded_value;
+
+		stream_pos = decode_value(&decoded_value, model.ncob_x,
+					  stream_pos, &setup_ncob);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].ncob_x = decoded_value;
+
+		stream_pos = decode_value(&decoded_value, model.ncob_y,
+					  stream_pos, &setup_ncob);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].ncob_y = decoded_value;
+
+		stream_pos = decode_value(&decoded_value, model.efx, stream_pos,
+					  &setup_efx);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].efx = decoded_value;
+
+		stream_pos = decode_value(&decoded_value, model.ecob_x,
+					  stream_pos, &setup_ecob);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].ecob_x = decoded_value;
+
+		stream_pos = decode_value(&decoded_value, model.ecob_y,
+					  stream_pos, &setup_ecob);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].ecob_y = decoded_value;
+
+		stream_pos = decode_value(&decoded_value, model.fx_variance,
+					  stream_pos, &setup_fx_var);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].fx_variance = decoded_value;
+
+		stream_pos = decode_value(&decoded_value, model.cob_x_variance,
+					  stream_pos, &setup_cob_var);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].cob_x_variance = decoded_value;
+
+		stream_pos = decode_value(&decoded_value, model.cob_y_variance,
+					  stream_pos, &setup_cob_var);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].cob_y_variance = decoded_value;
+
+		if (up_model_buf) {
+			up_model_buf[i].exp_flags = cmp_up_model(data_buf[i].exp_flags, model.exp_flags,
+				cfg->model_value, setup_exp_flags.lossy_par);
+			up_model_buf[i].fx = cmp_up_model(data_buf[i].fx, model.fx,
+				cfg->model_value, setup_fx.lossy_par);
+			up_model_buf[i].ncob_x = cmp_up_model(data_buf[i].ncob_x, model.ncob_x,
+				cfg->model_value, setup_ncob.lossy_par);
+			up_model_buf[i].ncob_y = cmp_up_model(data_buf[i].ncob_y, model.ncob_y,
+				cfg->model_value, setup_ncob.lossy_par);
+			up_model_buf[i].fx_variance = cmp_up_model(data_buf[i].fx_variance, model.fx_variance,
+				cfg->model_value, setup_fx_var.lossy_par);
+			up_model_buf[i].cob_x_variance = cmp_up_model(data_buf[i].cob_x_variance, model.cob_x_variance,
+				cfg->model_value, setup_cob_var.lossy_par);
+			up_model_buf[i].cob_y_variance = cmp_up_model(data_buf[i].cob_y_variance, model.cob_y_variance,
+				cfg->model_value, setup_cob_var.lossy_par);
+		}
+
+		if (i >= cfg->samples-1)
+			break;
+
+		model = next_model_p[i];
+	}
+	return stream_pos;
+}
+
+
+/**
+ * @brief decompress N-CAM offset data
+ *
+ * @param cfg	pointer to the compression configuration structure
+ *
+ * @returns the bit length of the bitstream on success; negative on error,
+ *	CMP_ERROR_SAMLL_BUF if the bitstream buffer is too small to put the
+ *	value in the bitstream
+ */
+
+static int decompress_nc_offset(const struct cmp_cfg *cfg)
+{
+	size_t i;
+	int stream_pos = 0;
+	uint32_t decoded_value;
+	struct decoder_setup setup_mean, setup_var;
+	struct nc_offset *data_buf = cfg->input_buf;
+	struct nc_offset *model_buf = cfg->model_buf;
+	struct nc_offset *up_model_buf = NULL;
+	struct nc_offset *next_model_p;
+	struct nc_offset model;
+
+	if (model_mode_is_used(cfg->cmp_mode))
+		up_model_buf = cfg->icu_new_model_buf;
+
+	stream_pos = decompress_multi_entry_hdr((void **)&data_buf, (void **)&model_buf,
+						(void **)&up_model_buf, cfg);
+
+	if (model_mode_is_used(cfg->cmp_mode)) {
+		model = model_buf[0];
+		next_model_p = &model_buf[1];
+	} else {
+		memset(&model, 0, sizeof(model));
+		next_model_p = data_buf;
+	}
+
+	if (configure_decoder_setup(&setup_mean, cfg->cmp_par_mean, cfg->spill_mean,
+				    cfg->round, max_used_bits.nc_offset_mean, cfg))
+		return -1;
+	if (configure_decoder_setup(&setup_var, cfg->cmp_par_variance, cfg->spill_variance,
+				    cfg->round, max_used_bits.nc_offset_variance, cfg))
+		return -1;
+
+	for (i = 0; ; i++) {
+		stream_pos = decode_value(&decoded_value, model.mean, stream_pos,
+					  &setup_mean);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].mean = decoded_value;
+
+		stream_pos = decode_value(&decoded_value, model.variance, stream_pos,
+					  &setup_var);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].variance = decoded_value;
+
+		if (up_model_buf) {
+			up_model_buf[i].mean = cmp_up_model(data_buf[i].mean,
+				model.mean, cfg->model_value, setup_mean.lossy_par);
+			up_model_buf[i].variance = cmp_up_model(data_buf[i].variance,
+				model.variance, cfg->model_value, setup_var.lossy_par);
+		}
+
+		if (i >= cfg->samples-1)
+			break;
+
+		model = next_model_p[i];
+	}
+	return stream_pos;
+}
+
+
+/**
+ * @brief decompress N-CAM background data
+ *
+ * @param cfg	pointer to the compression configuration structure
+ *
+ * @returns the bit length of the bitstream on success; negative on error,
+ *	CMP_ERROR_SAMLL_BUF if the bitstream buffer is too small to put the
+ *	value in the bitstream
+ */
+
+static int decompress_nc_background(const struct cmp_cfg *cfg)
+{
+	size_t i;
+	int stream_pos = 0;
+	uint32_t decoded_value;
+	struct decoder_setup setup_mean, setup_var, setup_pix;
+	struct nc_background *data_buf = cfg->input_buf;
+	struct nc_background *model_buf = cfg->model_buf;
+	struct nc_background *up_model_buf = NULL;
+	struct nc_background *next_model_p;
+	struct nc_background model;
+
+	if (model_mode_is_used(cfg->cmp_mode))
+		up_model_buf = cfg->icu_new_model_buf;
+
+	stream_pos = decompress_multi_entry_hdr((void **)&data_buf, (void **)&model_buf,
+						(void **)&up_model_buf, cfg);
+
+	if (model_mode_is_used(cfg->cmp_mode)) {
+		model = model_buf[0];
+		next_model_p = &model_buf[1];
+	} else {
+		memset(&model, 0, sizeof(model));
+		next_model_p = data_buf;
+	}
+
+	if (configure_decoder_setup(&setup_mean, cfg->cmp_par_mean, cfg->spill_mean,
+				    cfg->round, max_used_bits.nc_background_mean, cfg))
+		return -1;
+	if (configure_decoder_setup(&setup_var, cfg->cmp_par_variance, cfg->spill_variance,
+				    cfg->round, max_used_bits.nc_background_variance, cfg))
+		return -1;
+	if (configure_decoder_setup(&setup_pix, cfg->cmp_par_pixels_error, cfg->spill_pixels_error,
+				    cfg->round, max_used_bits.nc_background_outlier_pixels, cfg))
+		return -1;
+
+	for (i = 0; ; i++) {
+		stream_pos = decode_value(&decoded_value, model.mean, stream_pos,
+					  &setup_mean);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].mean = decoded_value;
+
+		stream_pos = decode_value(&decoded_value, model.variance, stream_pos,
+					  &setup_var);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].variance = decoded_value;
+
+		stream_pos = decode_value(&decoded_value, model.outlier_pixels, stream_pos,
+					  &setup_pix);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].outlier_pixels = decoded_value;
+
+		if (up_model_buf) {
+			up_model_buf[i].mean = cmp_up_model(data_buf[i].mean,
+				model.mean, cfg->model_value, setup_mean.lossy_par);
+			up_model_buf[i].variance = cmp_up_model(data_buf[i].variance,
+				model.variance, cfg->model_value, setup_var.lossy_par);
+			up_model_buf[i].outlier_pixels = cmp_up_model(data_buf[i].outlier_pixels,
+				model.outlier_pixels, cfg->model_value, setup_pix.lossy_par);
+		}
+
+		if (i >= cfg->samples-1)
+			break;
+
+		model = next_model_p[i];
+	}
+	return stream_pos;
+}
+
+
+/**
+ * @brief decompress N-CAM smearing data
+ *
+ * @param cfg	pointer to the compression configuration structure
+ *
+ * @returns the bit length of the bitstream on success; negative on error,
+ *	CMP_ERROR_SAMLL_BUF if the bitstream buffer is too small to put the
+ *	value in the bitstream
+ */
+
+static int decompress_smearing(const struct cmp_cfg *cfg)
+{
+	size_t i;
+	int stream_pos = 0;
+	uint32_t decoded_value;
+	struct decoder_setup setup_mean, setup_var, setup_pix;
+	struct smearing *data_buf = cfg->input_buf;
+	struct smearing *model_buf = cfg->model_buf;
+	struct smearing *up_model_buf = NULL;
+	struct smearing *next_model_p;
+	struct smearing model;
+
+	if (model_mode_is_used(cfg->cmp_mode))
+		up_model_buf = cfg->icu_new_model_buf;
+
+	stream_pos = decompress_multi_entry_hdr((void **)&data_buf, (void **)&model_buf,
+						(void **)&up_model_buf, cfg);
+
+	if (model_mode_is_used(cfg->cmp_mode)) {
+		model = model_buf[0];
+		next_model_p = &model_buf[1];
+	} else {
+		memset(&model, 0, sizeof(model));
+		next_model_p = data_buf;
+	}
+
+	if (configure_decoder_setup(&setup_mean, cfg->cmp_par_mean, cfg->spill_mean,
+				    cfg->round, max_used_bits.smeating_mean, cfg))
+		return -1;
+	if (configure_decoder_setup(&setup_var, cfg->cmp_par_variance, cfg->spill_variance,
+				    cfg->round, max_used_bits.smeating_variance_mean, cfg))
+		return -1;
+	if (configure_decoder_setup(&setup_pix, cfg->cmp_par_pixels_error, cfg->spill_pixels_error,
+				    cfg->round, max_used_bits.smearing_outlier_pixels, cfg))
+		return -1;
+
+	for (i = 0; ; i++) {
+		stream_pos = decode_value(&decoded_value, model.mean, stream_pos,
+					  &setup_mean);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].mean = decoded_value;
+
+		stream_pos = decode_value(&decoded_value, model.variance_mean, stream_pos,
+					  &setup_var);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].variance_mean = decoded_value;
+
+		stream_pos = decode_value(&decoded_value, model.outlier_pixels, stream_pos,
+					  &setup_pix);
+		if (stream_pos <= 0)
+			return stream_pos;
+		data_buf[i].outlier_pixels = decoded_value;
+
+		if (up_model_buf) {
+			up_model_buf[i].mean = cmp_up_model(data_buf[i].mean,
+				model.mean, cfg->model_value, setup_mean.lossy_par);
+			up_model_buf[i].variance_mean = cmp_up_model(data_buf[i].variance_mean,
+				model.variance_mean, cfg->model_value, setup_var.lossy_par);
+			up_model_buf[i].outlier_pixels = cmp_up_model(data_buf[i].outlier_pixels,
+				model.outlier_pixels, cfg->model_value, setup_pix.lossy_par);
+		}
+
+		if (i >= cfg->samples-1)
+			break;
+
+		model = next_model_p[i];
+	}
+	return stream_pos;
+}
+
 
 static int decompressed_data_internal(struct cmp_cfg *cfg)
 {
@@ -464,8 +1995,65 @@ static int decompressed_data_internal(struct cmp_cfg *cfg)
 	} else {
 		switch (cfg->data_type) {
 		case DATA_TYPE_IMAGETTE:
+		case DATA_TYPE_IMAGETTE_ADAPTIVE:
+		case DATA_TYPE_SAT_IMAGETTE:
+		case DATA_TYPE_SAT_IMAGETTE_ADAPTIVE:
+		case DATA_TYPE_F_CAM_IMAGETTE:
+		case DATA_TYPE_F_CAM_IMAGETTE_ADAPTIVE:
 			strem_len_bit = decompress_imagette(cfg);
 			break;
+		case DATA_TYPE_S_FX:
+			strem_len_bit = decompress_s_fx(cfg);
+			break;
+		case DATA_TYPE_S_FX_DFX:
+			strem_len_bit = decompress_s_fx_efx(cfg);
+			break;
+		case DATA_TYPE_S_FX_NCOB:
+			strem_len_bit = decompress_s_fx_ncob(cfg);
+			break;
+		case DATA_TYPE_S_FX_DFX_NCOB_ECOB:
+			strem_len_bit = decompress_s_fx_efx_ncob_ecob(cfg);
+			break;
+
+		case DATA_TYPE_F_FX:
+			strem_len_bit = decompress_f_fx(cfg);
+			break;
+		case DATA_TYPE_F_FX_DFX:
+			strem_len_bit = decompress_f_fx_efx(cfg);
+			break;
+		case DATA_TYPE_F_FX_NCOB:
+			strem_len_bit = decompress_f_fx_ncob(cfg);
+			break;
+		case DATA_TYPE_F_FX_DFX_NCOB_ECOB:
+			strem_len_bit = decompress_f_fx_efx_ncob_ecob(cfg);
+			break;
+
+		case DATA_TYPE_L_FX:
+			strem_len_bit = decompress_l_fx(cfg);
+			break;
+		case DATA_TYPE_L_FX_DFX:
+			strem_len_bit = decompress_l_fx_efx(cfg);
+			break;
+		case DATA_TYPE_L_FX_NCOB:
+			strem_len_bit = decompress_l_fx_ncob(cfg);
+			break;
+		case DATA_TYPE_L_FX_DFX_NCOB_ECOB:
+			strem_len_bit = decompress_l_fx_efx_ncob_ecob(cfg);
+			break;
+
+		case DATA_TYPE_OFFSET:
+			strem_len_bit = decompress_nc_offset(cfg);
+			break;
+		case DATA_TYPE_BACKGROUND:
+			strem_len_bit = decompress_nc_background(cfg);
+			break;
+		case DATA_TYPE_SMEARING:
+			strem_len_bit = decompress_smearing(cfg);
+			break;
+
+		case DATA_TYPE_F_CAM_OFFSET:
+		case DATA_TYPE_F_CAM_BACKGROUND:
+		case DATA_TYPE_UNKNOWN:
 		default:
 			strem_len_bit = -1;
 			debug_print("Error: Compressed data type not supported.\n");
@@ -476,7 +2064,6 @@ static int decompressed_data_internal(struct cmp_cfg *cfg)
 	/* TODO: is this usefull? if (strem_len_bit != data_size * CHAR_BIT) { */
 	if (strem_len_bit <= 0)
 		return -1;
-
 
 	return data_size;
 }
@@ -544,6 +2131,4 @@ int decompress_data(uint32_t *compressed_data, void *de_model_buf,
 		return -1;
 	else
 		return 0;
-
-
 }

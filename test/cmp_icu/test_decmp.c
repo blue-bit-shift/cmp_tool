@@ -10,12 +10,14 @@
 #include "../../lib/decmp.c" /* .c file included to test static functions */
 
 
-/* returns the needed size of the compression entry header plus the max size of the
+/**
+ * returns the needed size of the compression entry header plus the max size of the
  * compressed data if ent ==  NULL if ent is set the size of the compression
- * entry */
+ * entry (entity header + compressed data)
+ */
 size_t icu_compress_data_entity(struct cmp_entity *ent, const struct cmp_cfg *cfg)
 {
-	size_t s, hdr_size;
+	size_t s;
 	struct cmp_cfg cfg_cpy;
 	int cmp_size_bits;
 
@@ -25,32 +27,37 @@ size_t icu_compress_data_entity(struct cmp_entity *ent, const struct cmp_cfg *cf
 	if (cfg->icu_output_buf)
 		debug_print("Warning the set buffer for the compressed data is ignored! The compressed data are write to the compression entry.");
 
-	if (!ent) {
-		s = cmp_cal_size_of_data(cfg->buffer_length, cfg->data_type);
-		if (!s)
-			return 0;
+	s = cmp_cal_size_of_data(cfg->buffer_length, cfg->data_type);
+	if (!s)
+		return 0;
+	/* we round down to the next 4-byte allied address because we access the
+	 * cmp_buffer in uint32_t words
+	 */
+	if (cfg->cmp_mode != CMP_MODE_RAW)
+		s &= ~0x3U;
 
-		hdr_size = cmp_ent_cal_hdr_size(cfg->data_type, cfg->cmp_mode == CMP_MODE_RAW);
-		if (!hdr_size)
-			return 0;
+	s = cmp_ent_create(ent, cfg->data_type, cfg->cmp_mode == CMP_MODE_RAW, s);
 
-		return s + hdr_size;
-	}
+	if (!ent || !s)
+		return s;
 
 	cfg_cpy = *cfg;
 	cfg_cpy.icu_output_buf = cmp_ent_get_data_buf(ent);
-
+	if (!cfg_cpy.icu_output_buf)
+		return 0;
 	cmp_size_bits = icu_compress_data(&cfg_cpy);
 	if (cmp_size_bits < 0)
 		return 0;
 
+	/* XXX overwrite the size of the compression entity with the size of the
+	 * actual size of the compressed data */
+	/* not all allocated memory is normally needed */
 	s = cmp_ent_create(ent, cfg->data_type, cfg->cmp_mode == CMP_MODE_RAW,
-					 cmp_bit_to_4byte(cmp_size_bits));
-	if (!s)
-		return 0;
+			   cmp_bit_to_4byte(cmp_size_bits));
 
 	if (cmp_ent_write_cmp_pars(ent, cfg, cmp_size_bits))
 		return 0;
+
 
 	return s;
 }
@@ -177,7 +184,7 @@ void test_decode_normal(void)
 		TEST_ASSERT_EQUAL_HEX(sample, decoded_value);
 	}
 
-	 /* TODO error case: negativ stream_pos */
+	 /* TODO error case: negative stream_pos */
 }
 
 
@@ -288,11 +295,74 @@ void test_decompress_imagette_model(void)
 	TEST_ASSERT_EQUAL_HEX(4, up_model[4]);
 }
 
+
+
+#define CMP_PAR_UNUSED 0 /*TODO: remove this*/
+#define DATA_SAMPLES 5
+void test_cmp_decmp_s_fx_diff(void)
+{
+	size_t s;
+	int err;
+
+	struct cmp_entity *ent;
+	const uint32_t MAX_VALUE = ~(~0U << MAX_USED_S_FX_BITS);
+	struct s_fx data_entry[DATA_SAMPLES] = {
+		{0,0}, {1,23}, {2,42}, {3,MAX_VALUE}, {3,MAX_VALUE>>1} };
+	uint8_t data_to_compress[MULTI_ENTRY_HDR_SIZE + sizeof(data_entry)];
+	struct s_fx *decompressed_data = NULL;
+	/* uint32_t *compressed_data = NULL; */
+	uint32_t compressed_data_len_samples = DATA_SAMPLES;
+	struct cmp_cfg cfg;
+
+	for (s = 0; s < MULTI_ENTRY_HDR_SIZE; s++)
+		data_to_compress[s] = s;
+	memcpy(&data_to_compress[MULTI_ENTRY_HDR_SIZE], data_entry, sizeof(data_entry));
+
+	cfg = cmp_cfg_icu_create(DATA_TYPE_S_FX, CMP_MODE_DIFF_MULTI,
+				 CMP_PAR_UNUSED, CMP_LOSSLESS);
+	TEST_ASSERT(cfg.data_type != DATA_TYPE_UNKNOWN);
+
+	s = cmp_cfg_icu_buffers(&cfg, data_to_compress, DATA_SAMPLES, NULL, NULL,
+				NULL, compressed_data_len_samples);
+	TEST_ASSERT_TRUE(s);
+
+	err = cmp_cfg_fx_cob(&cfg, 2, 6, 4, 14, CMP_PAR_UNUSED, CMP_PAR_UNUSED,
+			     CMP_PAR_UNUSED, CMP_PAR_UNUSED, CMP_PAR_UNUSED,
+			     CMP_PAR_UNUSED, CMP_PAR_UNUSED, CMP_PAR_UNUSED);
+	TEST_ASSERT_FALSE(err);
+
+	s = icu_compress_data_entity(NULL, &cfg);
+	TEST_ASSERT_TRUE(s);
+	ent = malloc(s); TEST_ASSERT_TRUE(ent);
+	s = icu_compress_data_entity(ent, &cfg);
+	TEST_ASSERT_TRUE(s);
+
+	/* now decompress the data */
+	s = decompress_cmp_entiy(ent, NULL, NULL, decompressed_data);
+	TEST_ASSERT_EQUAL_INT(cmp_cal_size_of_data(cfg.samples, cfg.data_type), s);
+	decompressed_data = malloc(s); TEST_ASSERT_TRUE(decompressed_data);
+	s = decompress_cmp_entiy(ent, NULL, NULL, decompressed_data);
+	TEST_ASSERT_EQUAL_INT(cmp_cal_size_of_data(cfg.samples, cfg.data_type), s);
+
+	TEST_ASSERT_FALSE(memcmp(data_to_compress, decompressed_data, s));
+	/* for (i = 0; i < samples; ++i) { */
+	/* 	printf("%u == %u (round: %u)\n", data[i], decompressed_data[i], round); */
+	/* 	uint32_t mask = ~0U << round; */
+	/* 	if ((data[i]&mask) != (decompressed_data[i]&mask)) */
+	/* 		TEST_ASSERT(0); */
+	/* 	if (model_mode_is_used(cmp_mode)) */
+	/* 		if (up_model[i] != de_up_model[i]) */
+	/* 			TEST_ASSERT(0); */
+	/* } */
+}
+#undef DATA_SAMPLES
+
+
 int my_random(unsigned int min, unsigned int max)
 {
-	if (max-min > RAND_MAX)
-		TEST_ASSERT(0);
 	if (min > max)
+		TEST_ASSERT(0);
+	if (max-min > RAND_MAX)
 		TEST_ASSERT(0);
 	return min + rand() / (RAND_MAX / (max - min + 1) + 1);
 }
@@ -394,7 +464,7 @@ void test_imagette_random(void)
 
 	/* create a compression configuration */
 	cfg = cmp_cfg_icu_create(data_type, cmp_mode, model_value, round);
-	TEST_ASSERT(cfg.data_type != DATA_TYPE_UNKOWN);
+	TEST_ASSERT(cfg.data_type != DATA_TYPE_UNKNOWN);
 
 
 	cmp_data_size = cmp_cfg_icu_buffers(&cfg, data, samples, model, up_model,
@@ -402,14 +472,14 @@ void test_imagette_random(void)
 	TEST_ASSERT_TRUE(cmp_data_size);
 
 	uint32_t golomb_par = my_random(MIN_RDCU_GOLOMB_PAR, MAX_RDCU_GOLOMB_PAR);
-	uint32_t max_spill = get_max_spill(golomb_par, data_type);
+	uint32_t max_spill = cmp_icu_max_spill(golomb_par);
 	TEST_ASSERT(max_spill > 1);
 	uint32_t spill = my_random(2, max_spill);
 
 	error = cmp_cfg_icu_imagette(&cfg, golomb_par, spill);
 	TEST_ASSERT_FALSE(error);
 
-	print_cfg(&cfg, 0);
+	/* print_cfg(&cfg, 0); */
 	s = icu_compress_data_entity(NULL, &cfg);
 	TEST_ASSERT_TRUE(s);
 	ent = malloc(s); TEST_ASSERT_TRUE(ent);
@@ -424,7 +494,7 @@ void test_imagette_random(void)
 	TEST_ASSERT_EQUAL_INT(samples * sizeof(*data), s);
 
 	for (i = 0; i < samples; ++i) {
-		printf("%u == %u (round: %u)\n", data[i], decompressed_data[i], round);
+		/* printf("%u == %u (round: %u)\n", data[i], decompressed_data[i], round); */
 		uint32_t mask = ~0U << round;
 		if ((data[i]&mask) != (decompressed_data[i]&mask))
 			TEST_ASSERT(0);
@@ -439,4 +509,228 @@ void test_imagette_random(void)
 	free(de_up_model);
 	free(ent);
 	free(decompressed_data);
+}
+
+
+void test_s_fx_diff(void)
+{
+	size_t s, i;
+	uint8_t cmp_entity[88] = {
+		0x80, 0x00, 0x00, 0x09, 0x00, 0x00, 0x58, 0x00, 0x00, 0x20, 0x04, 0xEE, 0x21, 0xBD, 0xB0, 0x1C, 0x04, 0xEE, 0x21, 0xBD, 0xB0, 0x41, 0x00, 0x08, 0x02, 0x08, 0xD0, 0x10, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x0A, 0x00, 0x01, 0x00, 0x00, 0x0A, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0xAE, 0xDE, 0x00, 0x00, 0x00, 0x73, 0xFF, 0xFF, 0xF8, 0x00, 0x00, 0x00,
+	};
+
+	uint8_t result_data[32] = {0};
+	struct multi_entry_hdr *hdr = (struct multi_entry_hdr *)result_data;
+	struct s_fx *data = (struct s_fx *)hdr->entry;
+	/* put some dummy data in the header*/
+	for (i = 0; i < sizeof(*hdr); ++i)
+		result_data[i] = i;
+	data[0].exp_flags = 0;
+	data[0].fx = 0;
+	data[1].exp_flags = 1;
+	data[1].fx = 0xFFFFFF;
+	data[2].exp_flags = 3;
+	data[2].fx = 0x7FFFFF;
+	data[3].exp_flags = 0;
+	data[3].fx = 0;
+
+	s = decompress_cmp_entiy((void *)cmp_entity, NULL, NULL, NULL);
+	TEST_ASSERT_EQUAL_INT(sizeof(result_data), s);
+	uint8_t *decompressed_data = malloc(s);
+	TEST_ASSERT_TRUE(decompressed_data);
+	s = decompress_cmp_entiy((void *)cmp_entity, NULL, NULL, decompressed_data);
+	TEST_ASSERT_EQUAL_INT(sizeof(result_data), s);
+	for (i = 0; i < s; ++i) {
+		TEST_ASSERT_EQUAL(result_data[i], decompressed_data[i]);
+	}
+}
+
+
+void test_s_fx_model(void)
+{
+	size_t s, i;
+	uint8_t compressed_data_buf[92] = {
+		0x80, 0x00, 0x00, 0x09, 0x00, 0x00, 0x5C, 0x00, 0x00, 0x20, 0x04, 0xF0, 0xC2, 0xD3, 0x47, 0xE4, 0x04, 0xF0, 0xC2, 0xD3, 0x48, 0x16, 0x00, 0x08, 0x03, 0x08, 0xD0, 0x10, 0x01, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x0A, 0x00, 0x01, 0x00, 0x00, 0x0A, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x3B, 0xFF, 0xFF, 0xEF, 0xFF, 0xFF, 0x5B, 0xFF, 0xFF, 0xEF, 0xFF, 0xFF, 0x5D, 0x80, 0x00, 0x00,
+	};
+	struct cmp_entity * cmp_entity = (struct cmp_entity *)compressed_data_buf;
+
+	uint8_t model_buf[32];
+	uint8_t decompressed_data[32];
+	uint8_t up_model_buf[32];
+	uint8_t exp_data_buf[32] = {0}; /* expected uncompressed data */
+	uint8_t exp_up_model_buf[32] = {0};
+
+	struct multi_entry_hdr *model_collection = (struct multi_entry_hdr *)model_buf;
+	struct s_fx *model_data = (struct s_fx *)model_collection->entry;
+
+	memset(model_collection, 0xFF, sizeof(*model_collection));
+	model_data[0].exp_flags = 0;
+	model_data[0].fx = 0;
+	model_data[1].exp_flags = 3;
+	model_data[1].fx = 0x7FFFFF;
+	model_data[2].exp_flags = 0;
+	model_data[2].fx = 0xFFFFFF;
+	model_data[3].exp_flags = 3;
+	model_data[3].fx = 0xFFFFFF;
+
+	struct multi_entry_hdr *exp_data_collection = (struct multi_entry_hdr *)exp_data_buf;
+	struct s_fx *exp_data = (struct s_fx *)exp_data_collection->entry;
+	/* put some dummy data in the header */
+	for (i = 0; i < sizeof(*exp_data_collection); i++)
+		exp_data_buf[i] = i;
+	exp_data[0].exp_flags = 0;
+	exp_data[0].fx = 0;
+	exp_data[1].exp_flags = 1;
+	exp_data[1].fx = 0xFFFFFF;
+	exp_data[2].exp_flags = 3;
+	exp_data[2].fx = 0x7FFFFF;
+	exp_data[3].exp_flags = 0;
+	exp_data[3].fx = 0;
+
+	struct multi_entry_hdr *exp_up_model_collection = (struct multi_entry_hdr *)exp_up_model_buf;
+	struct s_fx *exp_updated_model_data = (struct s_fx *)exp_up_model_collection->entry;
+	/* put some dummy data in the header*/
+	for (i = 0; i < sizeof(*exp_up_model_collection); i++)
+		exp_up_model_buf[i] = i;
+	exp_updated_model_data[0].exp_flags = 0;
+	exp_updated_model_data[0].fx = 0;
+	exp_updated_model_data[1].exp_flags = 2;
+	exp_updated_model_data[1].fx = 0xBFFFFF;
+	exp_updated_model_data[2].exp_flags = 1;
+	exp_updated_model_data[2].fx = 0xBFFFFF;
+	exp_updated_model_data[3].exp_flags = 1;
+	exp_updated_model_data[3].fx = 0x7FFFFF;
+
+	s = decompress_cmp_entiy(cmp_entity, model_buf, up_model_buf, decompressed_data);
+	TEST_ASSERT_EQUAL_INT(sizeof(exp_data_buf), s);
+
+	TEST_ASSERT_FALSE(memcmp(exp_data_buf, decompressed_data, s));
+	TEST_ASSERT_FALSE(memcmp(exp_up_model_buf, up_model_buf, s));
+}
+
+/* TODO: implement this! */
+void generate_random_test_data(void *data, int samples,
+			       enum cmp_data_type data_type)
+{
+	int s = cmp_cal_size_of_data(samples, data_type);
+	memset(data, 0x0, s);
+}
+
+
+void test_random_compression_decompression(void)
+{
+	size_t s;
+	struct cmp_cfg cfg = {0};
+	struct cmp_entity *cmp_ent;
+	void *decompressed_data;
+	void *decompressed_up_model = NULL;
+
+	srand(0); /* TODO:XXX*/
+	puts("--------------------------------------------------------------");
+
+	/* for (cfg.data_type = DATA_TYPE_IMAGETTE; TODO:!! implement this */
+	/*      cfg.data_type < DATA_TYPE_F_CAM_BACKGROUND+1; cfg.data_type++) { */
+	for (cfg.data_type = DATA_TYPE_IMAGETTE;
+	     cfg.data_type < DATA_TYPE_F_CAM_IMAGETTE_ADAPTIVE+1; cfg.data_type++) {
+		cfg.samples = my_random(1,0x30000);
+			if (cfg.data_type == DATA_TYPE_OFFSET)
+				puts("FADF");
+
+		cfg.buffer_length = (CMP_ENTITY_MAX_SIZE - NON_IMAGETTE_HEADER_SIZE - MULTI_ENTRY_HDR_SIZE)/size_of_a_sample(cfg.data_type);;
+		s = cmp_cal_size_of_data(cfg.samples, cfg.data_type);
+		printf("%s\n", data_type2string(cfg.data_type));
+		TEST_ASSERT_TRUE(s);
+		cfg.input_buf = calloc(1, s);
+		TEST_ASSERT_NOT_NULL(cfg.input_buf);
+		cfg.model_buf = calloc(1, s);
+		TEST_ASSERT_TRUE(cfg.model_buf);
+		decompressed_data = calloc(1, s);
+		TEST_ASSERT_NOT_NULL(decompressed_data);
+		cfg.icu_new_model_buf = calloc(1, s);
+		TEST_ASSERT_TRUE(cfg.icu_new_model_buf);
+		decompressed_up_model = calloc(1, s);
+		TEST_ASSERT_TRUE(decompressed_up_model);
+		cmp_ent = calloc(1, CMP_ENTITY_MAX_SIZE);
+
+		generate_random_test_data(cfg.input_buf, cfg.samples, cfg.data_type);
+		generate_random_test_data(cfg.model_buf, cfg.samples, cfg.data_type);
+
+		cfg.model_value = my_random(0,16);
+		/* cfg.round = my_random(0,3); /1* XXX *1/ */
+		cfg.round = 0;
+
+		cfg.golomb_par = my_random(MIN_RDCU_GOLOMB_PAR, MAX_RDCU_GOLOMB_PAR);
+		cfg.ap1_golomb_par = my_random(MIN_RDCU_GOLOMB_PAR, MAX_RDCU_GOLOMB_PAR);
+		cfg.ap2_golomb_par = my_random(MIN_RDCU_GOLOMB_PAR, MAX_RDCU_GOLOMB_PAR);
+		cfg.cmp_par_exp_flags = my_random(MIN_ICU_GOLOMB_PAR, MAX_ICU_GOLOMB_PAR);
+		cfg.cmp_par_fx = my_random(MIN_ICU_GOLOMB_PAR, MAX_ICU_GOLOMB_PAR);
+		cfg.cmp_par_ncob = my_random(MIN_ICU_GOLOMB_PAR, MAX_ICU_GOLOMB_PAR);
+		cfg.cmp_par_efx = my_random(MIN_ICU_GOLOMB_PAR, MAX_ICU_GOLOMB_PAR);
+		cfg.cmp_par_ecob = my_random(MIN_ICU_GOLOMB_PAR, MAX_ICU_GOLOMB_PAR);
+		cfg.cmp_par_fx_cob_variance = my_random(MIN_ICU_GOLOMB_PAR, MAX_ICU_GOLOMB_PAR);
+		cfg.cmp_par_mean = my_random(MIN_ICU_GOLOMB_PAR, MAX_ICU_GOLOMB_PAR);
+		cfg.cmp_par_variance = my_random(MIN_ICU_GOLOMB_PAR, MAX_ICU_GOLOMB_PAR);
+		cfg.cmp_par_pixels_error = my_random(MIN_ICU_GOLOMB_PAR, MAX_ICU_GOLOMB_PAR);
+
+		cfg.spill = my_random(MIN_RDCU_SPILL, cmp_icu_max_spill(cfg.golomb_par));
+		cfg.ap1_spill = my_random(MIN_RDCU_SPILL, cmp_icu_max_spill(cfg.ap1_golomb_par));
+		cfg.ap2_spill = my_random(MIN_RDCU_SPILL, cmp_icu_max_spill(cfg.ap2_golomb_par));
+		if (!rdcu_supported_data_type_is_used(cfg.data_type)) {
+			cfg.spill_exp_flags = my_random(MIN_ICU_SPILL, cmp_icu_max_spill(cfg.cmp_par_exp_flags));
+			cfg.spill_fx = my_random(MIN_ICU_SPILL, cmp_icu_max_spill(cfg.cmp_par_fx));
+			cfg.spill_ncob = my_random(MIN_ICU_SPILL, cmp_icu_max_spill(cfg.cmp_par_ncob));
+			cfg.spill_efx = my_random(MIN_ICU_SPILL, cmp_icu_max_spill(cfg.cmp_par_efx));
+			cfg.spill_ecob = my_random(MIN_ICU_SPILL, cmp_icu_max_spill(cfg.cmp_par_ecob));
+			cfg.spill_fx_cob_variance = my_random(MIN_ICU_SPILL, cmp_icu_max_spill(cfg.cmp_par_fx_cob_variance));
+			cfg.spill_mean = my_random(MIN_ICU_SPILL, cmp_icu_max_spill(cfg.cmp_par_mean));
+			cfg.spill_variance = my_random(MIN_ICU_SPILL, cmp_icu_max_spill(cfg.cmp_par_variance));
+			cfg.spill_pixels_error = my_random(MIN_ICU_SPILL, cmp_icu_max_spill(cfg.cmp_par_pixels_error));
+		}
+
+		for (cfg.cmp_mode = CMP_MODE_RAW; cfg.cmp_mode < CMP_MODE_STUFF; cfg.cmp_mode++) {
+			int cmp_size, decompress_size;
+
+			cmp_size = icu_compress_data_entity(cmp_ent, &cfg);
+			if (cmp_size <= 0) {
+				printf("cmp_size: %i\n", cmp_size);
+				print_cfg(&cfg, 0);
+			}
+			TEST_ASSERT_GREATER_THAN(0, cmp_size);
+
+			/* now decompress the data */
+			decompress_size = decompress_cmp_entiy(cmp_ent, cfg.model_buf,
+							       decompressed_up_model, decompressed_data);
+
+			TEST_ASSERT_EQUAL_INT(s, decompress_size);
+			if (memcmp(cfg.input_buf, decompressed_data, s)) {
+				print_cfg(&cfg, 0);
+				TEST_ASSERT_FALSE(memcmp(cfg.input_buf, decompressed_data, s));
+			}
+			if (model_mode_is_used(cfg.cmp_mode))
+				TEST_ASSERT_FALSE(memcmp(cfg.icu_new_model_buf, decompressed_up_model, s));
+
+			memset(cmp_ent, 0, CMP_ENTITY_MAX_SIZE);
+			memset(decompressed_data, 0, s);
+			memset(decompressed_up_model, 0, s);
+			memset(cfg.icu_new_model_buf, 0, s);
+		}
+
+		free(cfg.model_buf);
+		cfg.model_buf = NULL;
+		free(cfg.input_buf);
+		cfg.input_buf = NULL;
+		free(cfg.icu_new_model_buf);
+		cfg.icu_new_model_buf = NULL;
+		free(cmp_ent);
+		cmp_ent = NULL;
+		free(decompressed_data);
+		decompressed_data = NULL;
+		free(decompressed_up_model);
+		decompressed_up_model = NULL;
+
+	}
 }
