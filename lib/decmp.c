@@ -664,7 +664,7 @@ static int decompress_s_fx(const struct cmp_cfg *cfg)
 
 
 /**
- * @brief decompress S_FX_DFX data
+ * @brief decompress S_FX_EFX data
  *
  * @param cfg	pointer to the compression configuration structure
  *
@@ -1019,7 +1019,7 @@ static int decompress_f_fx(const struct cmp_cfg *cfg)
 
 
 /**
- * @brief decompress F_FX_DFX data
+ * @brief decompress F_FX_EFX data
  *
  * @param cfg	pointer to the compression configuration structure
  *
@@ -2005,39 +2005,39 @@ static int decompressed_data_internal(struct cmp_cfg *cfg)
 		case DATA_TYPE_S_FX:
 			strem_len_bit = decompress_s_fx(cfg);
 			break;
-		case DATA_TYPE_S_FX_DFX:
+		case DATA_TYPE_S_FX_EFX:
 			strem_len_bit = decompress_s_fx_efx(cfg);
 			break;
 		case DATA_TYPE_S_FX_NCOB:
 			strem_len_bit = decompress_s_fx_ncob(cfg);
 			break;
-		case DATA_TYPE_S_FX_DFX_NCOB_ECOB:
+		case DATA_TYPE_S_FX_EFX_NCOB_ECOB:
 			strem_len_bit = decompress_s_fx_efx_ncob_ecob(cfg);
 			break;
 
 		case DATA_TYPE_F_FX:
 			strem_len_bit = decompress_f_fx(cfg);
 			break;
-		case DATA_TYPE_F_FX_DFX:
+		case DATA_TYPE_F_FX_EFX:
 			strem_len_bit = decompress_f_fx_efx(cfg);
 			break;
 		case DATA_TYPE_F_FX_NCOB:
 			strem_len_bit = decompress_f_fx_ncob(cfg);
 			break;
-		case DATA_TYPE_F_FX_DFX_NCOB_ECOB:
+		case DATA_TYPE_F_FX_EFX_NCOB_ECOB:
 			strem_len_bit = decompress_f_fx_efx_ncob_ecob(cfg);
 			break;
 
 		case DATA_TYPE_L_FX:
 			strem_len_bit = decompress_l_fx(cfg);
 			break;
-		case DATA_TYPE_L_FX_DFX:
+		case DATA_TYPE_L_FX_EFX:
 			strem_len_bit = decompress_l_fx_efx(cfg);
 			break;
 		case DATA_TYPE_L_FX_NCOB:
 			strem_len_bit = decompress_l_fx_ncob(cfg);
 			break;
-		case DATA_TYPE_L_FX_DFX_NCOB_ECOB:
+		case DATA_TYPE_L_FX_EFX_NCOB_ECOB:
 			strem_len_bit = decompress_l_fx_efx_ncob_ecob(cfg);
 			break;
 

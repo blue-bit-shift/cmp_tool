@@ -582,17 +582,17 @@ void test_cmp_cfg_fx_cob(void)
 				       cmp_par_efx, spillover_efx, cmp_par_ecob, spillover_ecob,
 				       cmp_par_fx_cob_variance, spillover_fx_cob_variance);
 		if (data_type == DATA_TYPE_S_FX ||
-		    data_type == DATA_TYPE_S_FX_DFX ||
+		    data_type == DATA_TYPE_S_FX_EFX ||
 		    data_type == DATA_TYPE_S_FX_NCOB ||
-		    data_type == DATA_TYPE_S_FX_DFX_NCOB_ECOB ||
+		    data_type == DATA_TYPE_S_FX_EFX_NCOB_ECOB ||
 		    data_type == DATA_TYPE_L_FX ||
-		    data_type == DATA_TYPE_L_FX_DFX ||
+		    data_type == DATA_TYPE_L_FX_EFX ||
 		    data_type == DATA_TYPE_L_FX_NCOB ||
-		    data_type == DATA_TYPE_L_FX_DFX_NCOB_ECOB ||
+		    data_type == DATA_TYPE_L_FX_EFX_NCOB_ECOB ||
 		    data_type == DATA_TYPE_F_FX ||
-		    data_type == DATA_TYPE_F_FX_DFX ||
+		    data_type == DATA_TYPE_F_FX_EFX ||
 		    data_type == DATA_TYPE_F_FX_NCOB ||
-		    data_type == DATA_TYPE_F_FX_DFX_NCOB_ECOB) {
+		    data_type == DATA_TYPE_F_FX_EFX_NCOB_ECOB) {
 			TEST_ASSERT_FALSE(error);
 			TEST_ASSERT_EQUAL_INT(data_type, cfg.data_type);
 			TEST_ASSERT_EQUAL_INT(2, cfg.cmp_par_fx);
@@ -665,8 +665,8 @@ void test_cmp_cfg_fx_cob(void)
 	TEST_ASSERT_TRUE(error);
 
 
-	/* test DATA_TYPE_S_FX_DFX */
-	cfg = cmp_cfg_icu_create(DATA_TYPE_S_FX_DFX, CMP_MODE_MODEL_ZERO, 0, 1);
+	/* test DATA_TYPE_S_FX_EFX */
+	cfg = cmp_cfg_icu_create(DATA_TYPE_S_FX_EFX, CMP_MODE_MODEL_ZERO, 0, 1);
 	cmp_par_exp_flags = MAX_ICU_GOLOMB_PAR;
 	spillover_exp_flags = cmp_icu_max_spill(cmp_par_exp_flags);
 	cmp_par_fx = MIN_ICU_GOLOMB_PAR;
@@ -735,8 +735,8 @@ void test_cmp_cfg_fx_cob(void)
 	TEST_ASSERT_TRUE(error);
 
 
-	/* test DATA_TYPE_S_FX_DFX_NCOB_ECOB */
-	cfg = cmp_cfg_icu_create(DATA_TYPE_S_FX_DFX_NCOB_ECOB, CMP_MODE_DIFF_ZERO, 7, CMP_LOSSLESS);
+	/* test DATA_TYPE_S_FX_EFX_NCOB_ECOB */
+	cfg = cmp_cfg_icu_create(DATA_TYPE_S_FX_EFX_NCOB_ECOB, CMP_MODE_DIFF_ZERO, 7, CMP_LOSSLESS);
 	cmp_par_exp_flags = MAX_ICU_GOLOMB_PAR;
 	spillover_exp_flags = cmp_icu_max_spill(cmp_par_exp_flags);
 	cmp_par_fx = MIN_ICU_GOLOMB_PAR;
@@ -810,8 +810,8 @@ void test_cmp_cfg_fx_cob(void)
 	TEST_ASSERT_TRUE(error);
 
 
-	/* DATA_TYPE_L_FX_DFX */
-	cfg = cmp_cfg_icu_create(DATA_TYPE_L_FX_DFX, CMP_MODE_DIFF_ZERO, 7, CMP_LOSSLESS);
+	/* DATA_TYPE_L_FX_EFX */
+	cfg = cmp_cfg_icu_create(DATA_TYPE_L_FX_EFX, CMP_MODE_DIFF_ZERO, 7, CMP_LOSSLESS);
 	cmp_par_exp_flags = MAX_ICU_GOLOMB_PAR;
 	spillover_exp_flags = cmp_icu_max_spill(cmp_par_exp_flags);
 	cmp_par_fx = MIN_ICU_GOLOMB_PAR;
@@ -870,8 +870,8 @@ void test_cmp_cfg_fx_cob(void)
 	TEST_ASSERT_EQUAL_INT(spillover_fx_cob_variance, cfg.spill_fx_cob_variance);
 
 
-	/* DATA_TYPE_L_FX_DFX_NCOB_ECOB */
-	cfg = cmp_cfg_icu_create(DATA_TYPE_L_FX_DFX_NCOB_ECOB, CMP_MODE_DIFF_ZERO, 7, CMP_LOSSLESS);
+	/* DATA_TYPE_L_FX_EFX_NCOB_ECOB */
+	cfg = cmp_cfg_icu_create(DATA_TYPE_L_FX_EFX_NCOB_ECOB, CMP_MODE_DIFF_ZERO, 7, CMP_LOSSLESS);
 	cmp_par_exp_flags = MAX_ICU_GOLOMB_PAR;
 	spillover_exp_flags = cmp_icu_max_spill(cmp_par_exp_flags);
 	cmp_par_fx = MIN_ICU_GOLOMB_PAR;
@@ -928,8 +928,8 @@ void test_cmp_cfg_fx_cob(void)
 	TEST_ASSERT_EQUAL_INT(spillover_fx, cfg.spill_fx);
 
 
-	/* DATA_TYPE_F_FX_DFX */
-	cfg = cmp_cfg_icu_create(DATA_TYPE_F_FX_DFX, CMP_MODE_DIFF_ZERO, 7, CMP_LOSSLESS);
+	/* DATA_TYPE_F_FX_EFX */
+	cfg = cmp_cfg_icu_create(DATA_TYPE_F_FX_EFX, CMP_MODE_DIFF_ZERO, 7, CMP_LOSSLESS);
 	cmp_par_exp_flags = ~0; /* invalid parameter */
 	spillover_exp_flags = ~0; /* invalid parameter */
 	cmp_par_fx = MIN_ICU_GOLOMB_PAR;
@@ -980,8 +980,8 @@ void test_cmp_cfg_fx_cob(void)
 	TEST_ASSERT_EQUAL_INT(spillover_ncob, cfg.spill_ncob);
 
 
-	/* DATA_TYPE_F_FX_DFX_NCOB_ECOB */
-	cfg = cmp_cfg_icu_create(DATA_TYPE_F_FX_DFX_NCOB_ECOB, CMP_MODE_DIFF_ZERO, 7, CMP_LOSSLESS);
+	/* DATA_TYPE_F_FX_EFX_NCOB_ECOB */
+	cfg = cmp_cfg_icu_create(DATA_TYPE_F_FX_EFX_NCOB_ECOB, CMP_MODE_DIFF_ZERO, 7, CMP_LOSSLESS);
 	cmp_par_exp_flags = ~0; /* invalid parameter */
 	spillover_exp_flags = ~0; /* invalid parameter */
 	cmp_par_fx = MIN_ICU_GOLOMB_PAR;
@@ -2920,7 +2920,7 @@ void test_compress_s_fx_efx_model_multi(void)
 	cmp_set_max_used_bits(&max_used_bits);
 
 	/* setup configuration */
-	cfg.data_type = DATA_TYPE_S_FX_DFX;
+	cfg.data_type = DATA_TYPE_S_FX_EFX;
 	cfg.cmp_mode = CMP_MODE_MODEL_MULTI;
 	cfg.model_value = 16;
 	cfg.samples = 6;

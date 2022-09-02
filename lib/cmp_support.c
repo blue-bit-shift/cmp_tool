@@ -297,17 +297,17 @@ int cmp_fx_cob_data_type_is_used(enum cmp_data_type data_type)
 {
 	switch (data_type) {
 	case DATA_TYPE_S_FX:
-	case DATA_TYPE_S_FX_DFX:
+	case DATA_TYPE_S_FX_EFX:
 	case DATA_TYPE_S_FX_NCOB:
-	case DATA_TYPE_S_FX_DFX_NCOB_ECOB:
+	case DATA_TYPE_S_FX_EFX_NCOB_ECOB:
 	case DATA_TYPE_L_FX:
-	case DATA_TYPE_L_FX_DFX:
+	case DATA_TYPE_L_FX_EFX:
 	case DATA_TYPE_L_FX_NCOB:
-	case DATA_TYPE_L_FX_DFX_NCOB_ECOB:
+	case DATA_TYPE_L_FX_EFX_NCOB_ECOB:
 	case DATA_TYPE_F_FX:
-	case DATA_TYPE_F_FX_DFX:
+	case DATA_TYPE_F_FX_EFX:
 	case DATA_TYPE_F_FX_NCOB:
-	case DATA_TYPE_F_FX_DFX_NCOB_ECOB:
+	case DATA_TYPE_F_FX_EFX_NCOB_ECOB:
 		return 1;
 	default:
 		return 0;
@@ -723,7 +723,7 @@ int cmp_cfg_fx_cob_is_valid(const struct cmp_cfg *cfg)
 	case DATA_TYPE_S_FX:
 		check_exp_flags = 1;
 		break;
-	case DATA_TYPE_S_FX_DFX:
+	case DATA_TYPE_S_FX_EFX:
 		check_exp_flags = 1;
 		check_efx = 1;
 		break;
@@ -731,7 +731,7 @@ int cmp_cfg_fx_cob_is_valid(const struct cmp_cfg *cfg)
 		check_exp_flags = 1;
 		check_ncob = 1;
 		break;
-	case DATA_TYPE_S_FX_DFX_NCOB_ECOB:
+	case DATA_TYPE_S_FX_EFX_NCOB_ECOB:
 		check_exp_flags = 1;
 		check_ncob = 1;
 		check_efx = 1;
@@ -741,7 +741,7 @@ int cmp_cfg_fx_cob_is_valid(const struct cmp_cfg *cfg)
 		check_exp_flags = 1;
 		check_var = 1;
 		break;
-	case DATA_TYPE_L_FX_DFX:
+	case DATA_TYPE_L_FX_EFX:
 		check_exp_flags = 1;
 		check_efx = 1;
 		check_var = 1;
@@ -751,7 +751,7 @@ int cmp_cfg_fx_cob_is_valid(const struct cmp_cfg *cfg)
 		check_ncob = 1;
 		check_var = 1;
 		break;
-	case DATA_TYPE_L_FX_DFX_NCOB_ECOB:
+	case DATA_TYPE_L_FX_EFX_NCOB_ECOB:
 		check_exp_flags = 1;
 		check_ncob = 1;
 		check_efx = 1;
@@ -760,13 +760,13 @@ int cmp_cfg_fx_cob_is_valid(const struct cmp_cfg *cfg)
 		break;
 	case DATA_TYPE_F_FX:
 		break;
-	case DATA_TYPE_F_FX_DFX:
+	case DATA_TYPE_F_FX_EFX:
 		check_efx = 1;
 		break;
 	case DATA_TYPE_F_FX_NCOB:
 		check_ncob = 1;
 		break;
-	case DATA_TYPE_F_FX_DFX_NCOB_ECOB:
+	case DATA_TYPE_F_FX_EFX_NCOB_ECOB:
 		check_ncob = 1;
 		check_efx = 1;
 		check_ecob = 1;

@@ -82,17 +82,17 @@ uint32_t cmp_ent_cal_hdr_size(enum cmp_data_type data_type, int raw_mode_flag)
 		case DATA_TYPE_BACKGROUND:
 		case DATA_TYPE_SMEARING:
 		case DATA_TYPE_S_FX:
-		case DATA_TYPE_S_FX_DFX:
+		case DATA_TYPE_S_FX_EFX:
 		case DATA_TYPE_S_FX_NCOB:
-		case DATA_TYPE_S_FX_DFX_NCOB_ECOB:
+		case DATA_TYPE_S_FX_EFX_NCOB_ECOB:
 		case DATA_TYPE_L_FX:
-		case DATA_TYPE_L_FX_DFX:
+		case DATA_TYPE_L_FX_EFX:
 		case DATA_TYPE_L_FX_NCOB:
-		case DATA_TYPE_L_FX_DFX_NCOB_ECOB:
+		case DATA_TYPE_L_FX_EFX_NCOB_ECOB:
 		case DATA_TYPE_F_FX:
-		case DATA_TYPE_F_FX_DFX:
+		case DATA_TYPE_F_FX_EFX:
 		case DATA_TYPE_F_FX_NCOB:
-		case DATA_TYPE_F_FX_DFX_NCOB_ECOB:
+		case DATA_TYPE_F_FX_EFX_NCOB_ECOB:
 		case DATA_TYPE_F_CAM_OFFSET:
 		case DATA_TYPE_F_CAM_BACKGROUND:
 			size = NON_IMAGETTE_HEADER_SIZE;
@@ -1661,17 +1661,17 @@ void *cmp_ent_get_data_buf(struct cmp_entity *ent)
 	case DATA_TYPE_BACKGROUND:
 	case DATA_TYPE_SMEARING:
 	case DATA_TYPE_S_FX:
-	case DATA_TYPE_S_FX_DFX:
+	case DATA_TYPE_S_FX_EFX:
 	case DATA_TYPE_S_FX_NCOB:
-	case DATA_TYPE_S_FX_DFX_NCOB_ECOB:
+	case DATA_TYPE_S_FX_EFX_NCOB_ECOB:
 	case DATA_TYPE_L_FX:
-	case DATA_TYPE_L_FX_DFX:
+	case DATA_TYPE_L_FX_EFX:
 	case DATA_TYPE_L_FX_NCOB:
-	case DATA_TYPE_L_FX_DFX_NCOB_ECOB:
+	case DATA_TYPE_L_FX_EFX_NCOB_ECOB:
 	case DATA_TYPE_F_FX:
-	case DATA_TYPE_F_FX_DFX:
+	case DATA_TYPE_F_FX_EFX:
 	case DATA_TYPE_F_FX_NCOB:
-	case DATA_TYPE_F_FX_DFX_NCOB_ECOB:
+	case DATA_TYPE_F_FX_EFX_NCOB_ECOB:
 	case DATA_TYPE_F_CAM_OFFSET:
 	case DATA_TYPE_F_CAM_BACKGROUND:
 		return ent->non_ima.cmp_data;
@@ -1893,17 +1893,17 @@ int cmp_ent_write_cmp_pars(struct cmp_entity *ent, const struct cmp_cfg *cfg,
 			return -1;
 		break;
 	case DATA_TYPE_S_FX:
-	case DATA_TYPE_S_FX_DFX:
+	case DATA_TYPE_S_FX_EFX:
 	case DATA_TYPE_S_FX_NCOB:
-	case DATA_TYPE_S_FX_DFX_NCOB_ECOB:
+	case DATA_TYPE_S_FX_EFX_NCOB_ECOB:
 	case DATA_TYPE_L_FX:
-	case DATA_TYPE_L_FX_DFX:
+	case DATA_TYPE_L_FX_EFX:
 	case DATA_TYPE_L_FX_NCOB:
-	case DATA_TYPE_L_FX_DFX_NCOB_ECOB:
+	case DATA_TYPE_L_FX_EFX_NCOB_ECOB:
 	case DATA_TYPE_F_FX:
-	case DATA_TYPE_F_FX_DFX:
+	case DATA_TYPE_F_FX_EFX:
 	case DATA_TYPE_F_FX_NCOB:
-	case DATA_TYPE_F_FX_DFX_NCOB_ECOB:
+	case DATA_TYPE_F_FX_EFX_NCOB_ECOB:
 		if (cmp_ent_set_non_ima_cmp_par1(ent, cfg->cmp_par_exp_flags))
 			return -1;
 		if (cmp_ent_set_non_ima_spill1(ent, cfg->spill_exp_flags))
@@ -2206,17 +2206,17 @@ int cmp_ent_read_header(struct cmp_entity *ent, struct cmp_cfg *cfg)
 		cfg->spill_pixels_error = cmp_ent_get_non_ima_spill3(ent);
 		break;
 	case DATA_TYPE_S_FX:
-	case DATA_TYPE_S_FX_DFX:
+	case DATA_TYPE_S_FX_EFX:
 	case DATA_TYPE_S_FX_NCOB:
-	case DATA_TYPE_S_FX_DFX_NCOB_ECOB:
+	case DATA_TYPE_S_FX_EFX_NCOB_ECOB:
 	case DATA_TYPE_L_FX:
-	case DATA_TYPE_L_FX_DFX:
+	case DATA_TYPE_L_FX_EFX:
 	case DATA_TYPE_L_FX_NCOB:
-	case DATA_TYPE_L_FX_DFX_NCOB_ECOB:
+	case DATA_TYPE_L_FX_EFX_NCOB_ECOB:
 	case DATA_TYPE_F_FX:
-	case DATA_TYPE_F_FX_DFX:
+	case DATA_TYPE_F_FX_EFX:
 	case DATA_TYPE_F_FX_NCOB:
-	case DATA_TYPE_F_FX_DFX_NCOB_ECOB:
+	case DATA_TYPE_F_FX_EFX_NCOB_ECOB:
 		cfg->cmp_par_exp_flags = cmp_ent_get_non_ima_cmp_par1(ent);
 		cfg->spill_exp_flags = cmp_ent_get_non_ima_spill1(ent);
 		cfg->cmp_par_fx = cmp_ent_get_non_ima_cmp_par2(ent);

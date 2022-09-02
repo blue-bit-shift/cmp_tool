@@ -135,37 +135,37 @@ size_t size_of_a_sample(enum cmp_data_type data_type)
 	case DATA_TYPE_S_FX:
 		sample_size = sizeof(struct s_fx);
 		break;
-	case DATA_TYPE_S_FX_DFX:
+	case DATA_TYPE_S_FX_EFX:
 		sample_size = sizeof(struct s_fx_efx);
 		break;
 	case DATA_TYPE_S_FX_NCOB:
 		sample_size = sizeof(struct s_fx_ncob);
 		break;
-	case DATA_TYPE_S_FX_DFX_NCOB_ECOB:
+	case DATA_TYPE_S_FX_EFX_NCOB_ECOB:
 		sample_size = sizeof(struct s_fx_efx_ncob_ecob);
 		break;
 	case DATA_TYPE_L_FX:
 		sample_size = sizeof(struct l_fx);
 		break;
-	case DATA_TYPE_L_FX_DFX:
+	case DATA_TYPE_L_FX_EFX:
 		sample_size = sizeof(struct l_fx_efx);
 		break;
 	case DATA_TYPE_L_FX_NCOB:
 		sample_size = sizeof(struct l_fx_ncob);
 		break;
-	case DATA_TYPE_L_FX_DFX_NCOB_ECOB:
+	case DATA_TYPE_L_FX_EFX_NCOB_ECOB:
 		sample_size = sizeof(struct l_fx_efx_ncob_ecob);
 		break;
 	case DATA_TYPE_F_FX:
 		sample_size = sizeof(struct f_fx);
 		break;
-	case DATA_TYPE_F_FX_DFX:
+	case DATA_TYPE_F_FX_EFX:
 		sample_size = sizeof(struct f_fx_efx);
 		break;
 	case DATA_TYPE_F_FX_NCOB:
 		sample_size = sizeof(struct f_fx_ncob);
 		break;
-	case DATA_TYPE_F_FX_DFX_NCOB_ECOB:
+	case DATA_TYPE_F_FX_EFX_NCOB_ECOB:
 		sample_size = sizeof(struct f_fx_efx_ncob_ecob);
 		break;
 	case DATA_TYPE_F_CAM_OFFSET:
@@ -493,37 +493,37 @@ int cmp_input_big_to_cpu_endianness(void *data, uint32_t data_size_byte,
 	case DATA_TYPE_S_FX:
 		be_to_cpus_s_fx(data, samples);
 		break;
-	case DATA_TYPE_S_FX_DFX:
+	case DATA_TYPE_S_FX_EFX:
 		be_to_cpus_s_fx_efx(data, samples);
 		break;
 	case DATA_TYPE_S_FX_NCOB:
 		be_to_cpus_s_fx_ncob(data, samples);
 		break;
-	case DATA_TYPE_S_FX_DFX_NCOB_ECOB:
+	case DATA_TYPE_S_FX_EFX_NCOB_ECOB:
 		be_to_cpus_s_fx_efx_ncob_ecob(data, samples);
 		break;
 	case DATA_TYPE_L_FX:
 		be_to_cpus_l_fx(data, samples);
 		break;
-	case DATA_TYPE_L_FX_DFX:
+	case DATA_TYPE_L_FX_EFX:
 		be_to_cpus_l_fx_efx(data, samples);
 		break;
 	case DATA_TYPE_L_FX_NCOB:
 		be_to_cpus_l_fx_ncob(data, samples);
 		break;
-	case DATA_TYPE_L_FX_DFX_NCOB_ECOB:
+	case DATA_TYPE_L_FX_EFX_NCOB_ECOB:
 		be_to_cpus_l_fx_efx_ncob_ecob(data, samples);
 		break;
 	case DATA_TYPE_F_FX:
 		be_to_cpus_f_fx(data, samples);
 		break;
-	case DATA_TYPE_F_FX_DFX:
+	case DATA_TYPE_F_FX_EFX:
 		be_to_cpus_f_fx_efx(data, samples);
 		break;
 	case DATA_TYPE_F_FX_NCOB:
 		be_to_cpus_f_fx_ncob(data, samples);
 		break;
-	case DATA_TYPE_F_FX_DFX_NCOB_ECOB:
+	case DATA_TYPE_F_FX_EFX_NCOB_ECOB:
 		be_to_cpus_f_fx_efx_ncob_ecob(data, samples);
 		break;
 	/* TODO: implement F_CAM conversion */
