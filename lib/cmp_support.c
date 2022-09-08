@@ -671,7 +671,7 @@ int cmp_cfg_imagette_is_valid(const struct cmp_cfg *cfg)
 		return 0;
 
 	if (!cmp_imagette_data_type_is_used(cfg->data_type)) {
-		debug_print("Error: The compression data type is not an imagette compression data type!\n");
+		debug_print("Error: The compression data type is not an imagette compression data type.\n");
 		cfg_invalid++;
 	}
 
@@ -712,7 +712,7 @@ int cmp_cfg_fx_cob_is_valid(const struct cmp_cfg *cfg)
 		return 0;
 
 	if (!cmp_fx_cob_data_type_is_used(cfg->data_type)) {
-		debug_print("Error: The compression data type is not a flux/center of brightness compression data type.!\n");
+		debug_print("Error: The compression data type is not a flux/center of brightness compression data type.\n");
 		cfg_invalid++;
 	}
 	/* flux parameter is needed for every fx_cob data_type */
@@ -816,7 +816,7 @@ int cmp_cfg_aux_is_valid(const struct cmp_cfg *cfg)
 		return 0;
 
 	if (!cmp_aux_data_type_is_used(cfg->data_type)) {
-		debug_print("Error: The compression data type is not an auxiliary science compression data type.!\n");
+		debug_print("Error: The compression data type is not an auxiliary science compression data type.\n");
 		cfg_invalid++;
 	}
 

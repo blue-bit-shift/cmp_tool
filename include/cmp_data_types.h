@@ -108,8 +108,8 @@ struct cmp_max_used_bits {
 	unsigned int nc_background_mean;
 	unsigned int nc_background_variance;
 	unsigned int nc_background_outlier_pixels;
-	unsigned int smeating_mean;
-	unsigned int smeating_variance_mean;
+	unsigned int smearing_mean;
+	unsigned int smearing_variance_mean;
 	unsigned int smearing_outlier_pixels;
 	unsigned int fc_imagette;
 	unsigned int fc_offset_mean;

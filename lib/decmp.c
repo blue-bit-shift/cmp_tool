@@ -218,7 +218,7 @@ static decoder_ptr select_decoder(unsigned int golomb_par)
  *				ignored if bitstream_adr is NULL
  *
  * @returns bit position of the last read bit in the bitstream on success;
- *	returns negative in case of erroneous input; returns CMP_ERROR_SAMLL_BUF
+ *	returns negative in case of erroneous input; returns CMP_ERROR_SMALL_BUF
  *	if the bitstream buffer is too small to read the value from the
  *	bitstream
  */
@@ -248,7 +248,7 @@ static int get_n_bits32(uint32_t *p_value, unsigned int n_bits, int bit_offset,
 	/* Check if bitstream buffer is large enough */
 	if ((unsigned int)stream_len > max_stream_len) {
 		debug_print("Error: Buffer overflow detected.\n");
-		return CMP_ERROR_SAMLL_BUF;
+		return CMP_ERROR_SMALL_BUF;
 
 	}
 
@@ -297,7 +297,7 @@ static int get_n_bits32(uint32_t *p_value, unsigned int n_bits, int bit_offset,
  * @param setup		pointer to the decoder setup
  *
  * @returns bit index of the next code word in the bitstream on success; returns
- *	negative in case of erroneous input; returns CMP_ERROR_SAMLL_BUF if the
+ *	negative in case of erroneous input; returns CMP_ERROR_SMALL_BUF if the
  *	bitstream buffer is too small to read the value from the bitstream
  */
 
@@ -344,7 +344,7 @@ static int decode_normal(uint32_t *decoded_value, int stream_pos,
  * @param setup		pointer to the decoder setup
  *
  * @returns bit index of the next code word in the bitstream on success; returns
- *	negative in case of erroneous input; returns CMP_ERROR_SAMLL_BUF if the
+ *	negative in case of erroneous input; returns CMP_ERROR_SMALL_BUF if the
  *	bitstream buffer is too small to read the value from the bitstream
  */
 
@@ -392,7 +392,7 @@ static int decode_zero(uint32_t *decoded_value, int stream_pos,
  * @param setup		pointer to the decoder setup
  *
  * @returns bit index of the next code word in the bitstream on success; returns
- *	negative in case of erroneous input; returns CMP_ERROR_SAMLL_BUF if the
+ *	negative in case of erroneous input; returns CMP_ERROR_SMALL_BUF if the
  *	bitstream buffer is too small to read the value from the bitstream
  */
 
@@ -448,7 +448,7 @@ static uint32_t re_map_to_pos(uint32_t value_to_unmap)
  * @param setup		pointer to the decoder setup
  *
  * @returns bit index of the next code word in the bitstream on success; returns
- *	negative in case of erroneous input; returns CMP_ERROR_SAMLL_BUF if the
+ *	negative in case of erroneous input; returns CMP_ERROR_SMALL_BUF if the
  *	bitstream buffer is too small to read the value from the bitstream
  */
 
@@ -597,7 +597,7 @@ static int decompress_multi_entry_hdr(void **data, void **model, void **up_model
  * @param cfg	pointer to the compression configuration structure
  *
  * @returns the bit length of the bitstream on success; negative on error,
- *	CMP_ERROR_SAMLL_BUF if the bitstream buffer is too small to put the
+ *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
  *	value in the bitstream
  */
 
@@ -669,7 +669,7 @@ static int decompress_s_fx(const struct cmp_cfg *cfg)
  * @param cfg	pointer to the compression configuration structure
  *
  * @returns the bit length of the bitstream on success; negative on error,
- *	CMP_ERROR_SAMLL_BUF if the bitstream buffer is too small to put the
+ *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
  *	value in the bitstream
  */
 
@@ -752,7 +752,7 @@ static int decompress_s_fx_efx(const struct cmp_cfg *cfg)
  * @param cfg	pointer to the compression configuration structure
  *
  * @returns the bit length of the bitstream on success; negative on error,
- *	CMP_ERROR_SAMLL_BUF if the bitstream buffer is too small to put the
+ *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
  *	value in the bitstream
  */
 
@@ -843,7 +843,7 @@ static int decompress_s_fx_ncob(const struct cmp_cfg *cfg)
  * @param cfg	pointer to the compression configuration structure
  *
  * @returns the bit length of the bitstream on success; negative on error,
- *	CMP_ERROR_SAMLL_BUF if the bitstream buffer is too small to put the
+ *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
  *	value in the bitstream
  */
 
@@ -964,7 +964,7 @@ static int decompress_s_fx_efx_ncob_ecob(const struct cmp_cfg *cfg)
  * @param cfg	pointer to the compression configuration structure
  *
  * @returns the bit length of the bitstream on success; negative on error,
- *	CMP_ERROR_SAMLL_BUF if the bitstream buffer is too small to put the
+ *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
  *	value in the bitstream
  */
 
@@ -1024,7 +1024,7 @@ static int decompress_f_fx(const struct cmp_cfg *cfg)
  * @param cfg	pointer to the compression configuration structure
  *
  * @returns the bit length of the bitstream on success; negative on error,
- *	CMP_ERROR_SAMLL_BUF if the bitstream buffer is too small to put the
+ *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
  *	value in the bitstream
  */
 
@@ -1096,7 +1096,7 @@ static int decompress_f_fx_efx(const struct cmp_cfg *cfg)
  * @param cfg	pointer to the compression configuration structure
  *
  * @returns the bit length of the bitstream on success; negative on error,
- *	CMP_ERROR_SAMLL_BUF if the bitstream buffer is too small to put the
+ *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
  *	value in the bitstream
  */
 
@@ -1176,7 +1176,7 @@ static int decompress_f_fx_ncob(const struct cmp_cfg *cfg)
  * @param cfg	pointer to the compression configuration structure
  *
  * @returns the bit length of the bitstream on success; negative on error,
- *	CMP_ERROR_SAMLL_BUF if the bitstream buffer is too small to put the
+ *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
  *	value in the bitstream
  */
 
@@ -1286,7 +1286,7 @@ static int decompress_f_fx_efx_ncob_ecob(const struct cmp_cfg *cfg)
  * @param cfg	pointer to the compression configuration structure
  *
  * @returns the bit length of the bitstream on success; negative on error,
- *	CMP_ERROR_SAMLL_BUF if the bitstream buffer is too small to put the
+ *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
  *	value in the bitstream
  */
 
@@ -1369,7 +1369,7 @@ static int decompress_l_fx(const struct cmp_cfg *cfg)
  * @param cfg	pointer to the compression configuration structure
  *
  * @returns the bit length of the bitstream on success; negative on error,
- *	CMP_ERROR_SAMLL_BUF if the bitstream buffer is too small to put the
+ *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
  *	value in the bitstream
  */
 
@@ -1463,7 +1463,7 @@ static int decompress_l_fx_efx(const struct cmp_cfg *cfg)
  * @param cfg	pointer to the compression configuration structure
  *
  * @returns the bit length of the bitstream on success; negative on error,
- *	CMP_ERROR_SAMLL_BUF if the bitstream buffer is too small to put the
+ *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
  *	value in the bitstream
  */
 
@@ -1585,7 +1585,7 @@ static int decompress_l_fx_ncob(const struct cmp_cfg *cfg)
  * @param cfg	pointer to the compression configuration structure
  *
  * @returns the bit length of the bitstream on success; negative on error,
- *	CMP_ERROR_SAMLL_BUF if the bitstream buffer is too small to put the
+ *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
  *	value in the bitstream
  */
 
@@ -1731,7 +1731,7 @@ static int decompress_l_fx_efx_ncob_ecob(const struct cmp_cfg *cfg)
  * @param cfg	pointer to the compression configuration structure
  *
  * @returns the bit length of the bitstream on success; negative on error,
- *	CMP_ERROR_SAMLL_BUF if the bitstream buffer is too small to put the
+ *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
  *	value in the bitstream
  */
 
@@ -1803,7 +1803,7 @@ static int decompress_nc_offset(const struct cmp_cfg *cfg)
  * @param cfg	pointer to the compression configuration structure
  *
  * @returns the bit length of the bitstream on success; negative on error,
- *	CMP_ERROR_SAMLL_BUF if the bitstream buffer is too small to put the
+ *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
  *	value in the bitstream
  */
 
@@ -1886,7 +1886,7 @@ static int decompress_nc_background(const struct cmp_cfg *cfg)
  * @param cfg	pointer to the compression configuration structure
  *
  * @returns the bit length of the bitstream on success; negative on error,
- *	CMP_ERROR_SAMLL_BUF if the bitstream buffer is too small to put the
+ *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
  *	value in the bitstream
  */
 
@@ -1917,10 +1917,10 @@ static int decompress_smearing(const struct cmp_cfg *cfg)
 	}
 
 	if (configure_decoder_setup(&setup_mean, cfg->cmp_par_mean, cfg->spill_mean,
-				    cfg->round, max_used_bits.smeating_mean, cfg))
+				    cfg->round, max_used_bits.smearing_mean, cfg))
 		return -1;
 	if (configure_decoder_setup(&setup_var, cfg->cmp_par_variance, cfg->spill_variance,
-				    cfg->round, max_used_bits.smeating_variance_mean, cfg))
+				    cfg->round, max_used_bits.smearing_variance_mean, cfg))
 		return -1;
 	if (configure_decoder_setup(&setup_pix, cfg->cmp_par_pixels_error, cfg->spill_pixels_error,
 				    cfg->round, max_used_bits.smearing_outlier_pixels, cfg))

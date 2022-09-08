@@ -50,8 +50,8 @@ struct cmp_max_used_bits max_used_bits = {
 	MAX_USED_NC_BACKGROUND_MEAN_BITS, /* nc_background_mean */
 	MAX_USED_NC_BACKGROUND_VARIANCE_BITS, /* nc_background_variance */
 	MAX_USED_NC_BACKGROUND_OUTLIER_PIXELS_BITS, /* nc_background_outlier_pixels */
-	MAX_USED_SMEARING_MEAN_BITS, /* smeating_mean */
-	MAX_USED_SMEARING_VARIANCE_MEAN_BITS, /* smeating_variance_mean */
+	MAX_USED_SMEARING_MEAN_BITS, /* smearing_mean */
+	MAX_USED_SMEARING_VARIANCE_MEAN_BITS, /* smearing_variance_mean */
 	MAX_USED_SMEARING_OUTLIER_PIXELS_BITS, /* smearing_outlier_pixels */
 	MAX_USED_FC_IMAGETTE_BITS, /* fc_imagette */
 	MAX_USED_FC_OFFSET_MEAN_BITS, /* fc_offset_mean */

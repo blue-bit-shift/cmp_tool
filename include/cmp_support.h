@@ -24,7 +24,7 @@
 
 
 /* return code if the bitstream buffer is too small to store the whole bitstream */
-#define CMP_ERROR_SAMLL_BUF -2
+#define CMP_ERROR_SMALL_BUF -2
 
 /* return code if the value or the model is bigger than the max_used_bits
  * parameter allows

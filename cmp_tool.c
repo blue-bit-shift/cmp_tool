@@ -655,7 +655,7 @@ static int cmp_gernate_rdcu_info(const struct cmp_cfg *cfg, int cmp_size_bit, st
 		info->rdcu_new_model_adr_used = cfg->rdcu_new_model_adr;
 		info->rdcu_cmp_adr_used = cfg->rdcu_buffer_adr;
 
-		if (cmp_size_bit == CMP_ERROR_SAMLL_BUF)
+		if (cmp_size_bit == CMP_ERROR_SMALL_BUF)
 			/* the icu_output_buf is to small to store the whole bitstream */
 			info->cmp_err |= 1UL << SMALL_BUFFER_ERR_BIT; /* set small buffer error */
 		if (cmp_size_bit < 0)

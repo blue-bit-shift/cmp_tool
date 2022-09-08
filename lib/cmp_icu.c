@@ -306,7 +306,7 @@ static uint32_t map_to_pos(uint32_t value_to_map, unsigned int max_data_bits)
  *				ignored if bitstream_adr is NULL
  *
  * @returns length in bits of the generated bitstream on success; returns
- *          negative in case of erroneous input; returns CMP_ERROR_SAMLL_BUF if
+ *          negative in case of erroneous input; returns CMP_ERROR_SMALL_BUF if
  *          the bitstream buffer is too small to put the value in the bitstream
  */
 
@@ -335,7 +335,7 @@ static int put_n_bits32(uint32_t value, unsigned int n_bits, int bit_offset,
 	/* Check if bitstream buffer is large enough */
 	if ((unsigned int)stream_len > max_stream_len) {
 		debug_print("Error: The buffer for the compressed data is too small to hold the compressed data. Try a larger buffer_length parameter.\n");
-		return CMP_ERROR_SAMLL_BUF;
+		return CMP_ERROR_SMALL_BUF;
 	}
 
 	/* (M) is the n_bits parameter large enough to cover all value bits; the
@@ -510,7 +510,7 @@ static uint32_t golomb_encoder(uint32_t value, uint32_t m, uint32_t log2_m,
  * @param setup		pointer to the encoder setup
  *
  * @returns the bit length of the bitstream with the added encoded value on
- *	success; negative on error, CMP_ERROR_SAMLL_BUF if the bitstream buffer
+ *	success; negative on error, CMP_ERROR_SMALL_BUF if the bitstream buffer
  *	is too small to put the value in the bitstream
  */
 
@@ -537,7 +537,7 @@ static int encode_normal(uint32_t value, int stream_len,
  * @param setup		pointer to the encoder setup
  *
  * @returns the bit length of the bitstream with the added encoded value on
- *	success; negative on error, CMP_ERROR_SAMLL_BUF if the bitstream buffer
+ *	success; negative on error, CMP_ERROR_SMALL_BUF if the bitstream buffer
  *	is too small to put the value in the bitstream
  *
  * @note no check if the data or model are in the allowed range
@@ -587,7 +587,7 @@ static int encode_value_zero(uint32_t data, uint32_t model, int stream_len,
  * @param setup		pointer to the encoder setup
  *
  * @returns the bit length of the bitstream with the added encoded value on
- *	success; negative on error, CMP_ERROR_SAMLL_BUF if the bitstream buffer
+ *	success; negative on error, CMP_ERROR_SMALL_BUF if the bitstream buffer
  *	is too small to put the value in the bitstream
  *
  * @note no check if the data or model are in the allowed range
@@ -653,7 +653,7 @@ static int encode_value_multi(uint32_t data, uint32_t model, int stream_len,
  * @param setup		pointer to the encoder setup
  *
  * @returns the bit length of the bitstream with the added unencoded value on
- *	success; negative on error, CMP_ERROR_SAMLL_BUF if the bitstream buffer
+ *	success; negative on error, CMP_ERROR_SMALL_BUF if the bitstream buffer
  *	is too small to put the value in the bitstream
  *
  */
@@ -678,7 +678,7 @@ static int encode_value_none(uint32_t value, uint32_t unused, int stream_len,
  * @param setup		pointer to the encoder setup
  *
  * @returns the bit length of the bitstream with the added encoded value on
- *	success; negative on error, CMP_ERROR_SAMLL_BUF if the bitstream buffer
+ *	success; negative on error, CMP_ERROR_SMALL_BUF if the bitstream buffer
  *	is too small to put the value in the bitstream, CMP_ERROR_HIGH_VALUE if
  *	the value or the model is bigger than the max_used_bits parameter allows
  */
@@ -798,7 +798,7 @@ static int configure_encoder_setup(struct encoder_setupt *setup,
  * @param cfg	pointer to the compression configuration structure
  *
  * @returns the bit length of the bitstream on success; negative on error,
- *	CMP_ERROR_SAMLL_BUF if the bitstream buffer is too small to put the
+ *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
  *	value in the bitstream, CMP_ERROR_HIGH_VALUE if the value or the model is
  *	bigger than the max_used_bits parameter allows
  */
@@ -887,7 +887,7 @@ static int compress_multi_entry_hdr(void **data, void **model, void **up_model,
  * @param cfg	pointer to the compression configuration structure
  *
  * @returns the bit length of the bitstream on success; negative on error,
- *	CMP_ERROR_SAMLL_BUF if the bitstream buffer is too small to put the
+ *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
  *	value in the bitstream
  */
 
@@ -959,7 +959,7 @@ static int compress_s_fx(const struct cmp_cfg *cfg)
  * @param cfg	pointer to the compression configuration structure
  *
  * @returns the bit length of the bitstream on success; negative on error,
- *	CMP_ERROR_SAMLL_BUF if the bitstream buffer is too small to put the
+ *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
  *	value in the bitstream
  */
 
@@ -1041,7 +1041,7 @@ static int compress_s_fx_efx(const struct cmp_cfg *cfg)
  * @param cfg	pointer to the compression configuration structure
  *
  * @returns the bit length of the bitstream on success; negative on error,
- *	CMP_ERROR_SAMLL_BUF if the bitstream buffer is too small to put the
+ *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
  *	value in the bitstream
  */
 
@@ -1129,7 +1129,7 @@ static int compress_s_fx_ncob(const struct cmp_cfg *cfg)
  * @param cfg	pointer to the compression configuration structure
  *
  * @returns the bit length of the bitstream on success; negative on error,
- *	CMP_ERROR_SAMLL_BUF if the bitstream buffer is too small to put the
+ *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
  *	value in the bitstream
  */
 
@@ -1244,7 +1244,7 @@ static int compress_s_fx_efx_ncob_ecob(const struct cmp_cfg *cfg)
  * @param cfg	pointer to the compression configuration structure
  *
  * @returns the bit length of the bitstream on success; negative on error,
- *	CMP_ERROR_SAMLL_BUF if the bitstream buffer is too small to put the
+ *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
  *	value in the bitstream
  */
 
@@ -1306,7 +1306,7 @@ static int compress_f_fx(const struct cmp_cfg *cfg)
  * @param cfg	pointer to the compression configuration structure
  *
  * @returns the bit length of the bitstream on success; negative on error,
- *	CMP_ERROR_SAMLL_BUF if the bitstream buffer is too small to put the
+ *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
  *	value in the bitstream
  */
 
@@ -1378,7 +1378,7 @@ static int compress_f_fx_efx(const struct cmp_cfg *cfg)
  * @param cfg	pointer to the compression configuration structure
  *
  * @returns the bit length of the bitstream on success; negative on error,
- *	CMP_ERROR_SAMLL_BUF if the bitstream buffer is too small to put the
+ *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
  *	value in the bitstream
  */
 
@@ -1456,7 +1456,7 @@ static int compress_f_fx_ncob(const struct cmp_cfg *cfg)
  * @param cfg	pointer to the compression configuration structure
  *
  * @returns the bit length of the bitstream on success; negative on error,
- *	CMP_ERROR_SAMLL_BUF if the bitstream buffer is too small to put the
+ *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
  *	value in the bitstream
  */
 
@@ -1560,7 +1560,7 @@ static int compress_f_fx_efx_ncob_ecob(const struct cmp_cfg *cfg)
  * @param cfg	pointer to the compression configuration structure
  *
  * @returns the bit length of the bitstream on success; negative on error,
- *	CMP_ERROR_SAMLL_BUF if the bitstream buffer is too small to put the
+ *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
  *	value in the bitstream
  */
 
@@ -1642,7 +1642,7 @@ static int compress_l_fx(const struct cmp_cfg *cfg)
  * @param cfg	pointer to the compression configuration structure
  *
  * @returns the bit length of the bitstream on success; negative on error,
- *	CMP_ERROR_SAMLL_BUF if the bitstream buffer is too small to put the
+ *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
  *	value in the bitstream
  */
 
@@ -1734,7 +1734,7 @@ static int compress_l_fx_efx(const struct cmp_cfg *cfg)
  * @param cfg	pointer to the compression configuration structure
  *
  * @returns the bit length of the bitstream on success; negative on error,
- *	CMP_ERROR_SAMLL_BUF if the bitstream buffer is too small to put the
+ *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
  *	value in the bitstream
  */
 
@@ -1850,7 +1850,7 @@ static int compress_l_fx_ncob(const struct cmp_cfg *cfg)
  * @param cfg	pointer to the compression configuration structure
  *
  * @returns the bit length of the bitstream on success; negative on error,
- *	CMP_ERROR_SAMLL_BUF if the bitstream buffer is too small to put the
+ *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
  *	value in the bitstream
  */
 
@@ -1991,7 +1991,7 @@ static int compress_l_fx_efx_ncob_ecob(const struct cmp_cfg *cfg)
  *
  * @param cfg	pointer to the compression configuration structure
  * @returns the bit length of the bitstream on success; negative on error,
- *	CMP_ERROR_SAMLL_BUF if the bitstream buffer is too small to put the
+ *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
  *	value in the bitstream
  */
 
@@ -2062,7 +2062,7 @@ static int compress_nc_offset(const struct cmp_cfg *cfg)
  *
  * @param cfg	pointer to the compression configuration structure
  * @returns the bit length of the bitstream on success; negative on error,
- *	CMP_ERROR_SAMLL_BUF if the bitstream buffer is too small to put the
+ *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
  *	value in the bitstream
  */
 
@@ -2144,7 +2144,7 @@ static int compress_nc_background(const struct cmp_cfg *cfg)
  * @param cfg	pointer to the compression configuration structure
  *
  * @returns the bit length of the bitstream on success; negative on error,
- *	CMP_ERROR_SAMLL_BUF if the bitstream buffer is too small to put the
+ *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
  *	value in the bitstream
  */
 
@@ -2176,11 +2176,11 @@ static int compress_smearing(const struct cmp_cfg *cfg)
 	}
 
 	err = configure_encoder_setup(&setup_mean, cfg->cmp_par_mean, cfg->spill_mean,
-				      cfg->round, max_used_bits.smeating_mean, cfg);
+				      cfg->round, max_used_bits.smearing_mean, cfg);
 	if (err)
 		return -1;
 	err = configure_encoder_setup(&setup_var_mean, cfg->cmp_par_variance, cfg->spill_variance,
-				      cfg->round, max_used_bits.smeating_variance_mean, cfg);
+				      cfg->round, max_used_bits.smearing_variance_mean, cfg);
 	if (err)
 		return -1;
 	err = configure_encoder_setup(&setup_pix, cfg->cmp_par_pixels_error, cfg->spill_pixels_error,
@@ -2227,7 +2227,7 @@ static int compress_smearing(const struct cmp_cfg *cfg)
  * @param cmp_size	length of the bitstream in bits
  *
  * @returns the bit length of the bitstream on success; negative on error,
- *	CMP_ERROR_SAMLL_BUF if the bitstream buffer is too small to put the
+ *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
  *	value in the bitstream
  */
 
@@ -2277,6 +2277,8 @@ static int cmp_data_to_big_endian(const struct cmp_cfg *cfg, int cmp_size)
 		return cmp_size;
 
 	if (cfg->cmp_mode == CMP_MODE_RAW) {
+		if (s & 0x7) /* size must be a multiple of 8 in RAW mode */
+			return -1;
 		if (cmp_input_big_to_cpu_endianness(cfg->icu_output_buf,
 						    s/CHAR_BIT, cfg->data_type))
 			cmp_size = -1;
@@ -2309,7 +2311,7 @@ static int cmp_data_to_big_endian(const struct cmp_cfg *cfg, int cmp_size)
  *	 started
  *
  * @returns the bit length of the bitstream on success; negative on error,
- *	CMP_ERROR_SAMLL_BUF (-2) if the compressed data buffer is too small to
+ *	CMP_ERROR_SMALL_BUF (-2) if the compressed data buffer is too small to
  *	hold the whole compressed data, CMP_ERROR_HIGH_VALUE (-3) if a data or
  *	model value is bigger than the max_used_bits parameter allows (set with
  *	the cmp_set_max_used_bits() function)
@@ -2327,7 +2329,7 @@ int icu_compress_data(const struct cmp_cfg *cfg)
 
 	if (raw_mode_is_used(cfg->cmp_mode))
 		if (cfg->samples > cfg->buffer_length)
-			return CMP_ERROR_SAMLL_BUF;
+			return CMP_ERROR_SMALL_BUF;
 
 	if (!cmp_cfg_is_valid(cfg))
 		return -1;
@@ -2402,11 +2404,13 @@ int icu_compress_data(const struct cmp_cfg *cfg)
 
 		case DATA_TYPE_F_CAM_OFFSET:
 		case DATA_TYPE_F_CAM_BACKGROUND:
+		/* LCOV_EXCL_START */
 		case DATA_TYPE_UNKNOWN:
 		default:
 			debug_print("Error: Data type not supported.\n");
 			cmp_size = -1;
 		}
+		/* LCOV_EXCL_STOP */
 	}
 
 	if (cfg->icu_output_buf) {
