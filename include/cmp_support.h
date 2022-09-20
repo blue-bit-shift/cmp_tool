@@ -153,7 +153,7 @@ struct cmp_cfg {
 	uint32_t rdcu_new_model_adr;/* RDCU updated model start address, the address in the RDCU SRAM where the updated model is stored */
 	uint32_t rdcu_buffer_adr;   /* RDCU compressed data start address, the first output data address in the RDCU SRAM */
 	enum cmp_data_type data_type; /* Compression Data Product Types */
-	uint32_t cmp_mode;          /* 0: raw mode
+	enum cmp_mode cmp_mode;     /* 0: raw mode
 				     * 1: model mode with zero escape symbol mechanism
 				     * 2: 1d differencing mode without input model with zero escape symbol mechanism
 				     * 3: model mode with multi escape symbol mechanism

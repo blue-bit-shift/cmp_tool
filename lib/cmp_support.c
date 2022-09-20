@@ -149,6 +149,7 @@ int rdcu_supported_cmp_mode_is_used(enum cmp_mode cmp_mode)
 	case CMP_MODE_MODEL_MULTI:
 	case CMP_MODE_DIFF_MULTI:
 		return 1;
+	case CMP_MODE_STUFF:
 	default:
 		return 0;
 	}
@@ -250,17 +251,7 @@ int multi_escape_mech_is_used(enum cmp_mode cmp_mode)
 
 int cmp_imagette_data_type_is_used(enum cmp_data_type data_type)
 {
-	switch (data_type) {
-	case DATA_TYPE_IMAGETTE:
-	case DATA_TYPE_IMAGETTE_ADAPTIVE:
-	case DATA_TYPE_SAT_IMAGETTE:
-	case DATA_TYPE_SAT_IMAGETTE_ADAPTIVE:
-	case DATA_TYPE_F_CAM_IMAGETTE:
-	case DATA_TYPE_F_CAM_IMAGETTE_ADAPTIVE:
-		return 1;
-	default:
-		return 0;
-	}
+	return rdcu_supported_data_type_is_used(data_type);
 }
 
 
@@ -487,7 +478,7 @@ int cmp_cfg_icu_gen_par_is_valid(const struct cmp_cfg *cfg)
 	}
 
 	if (cfg->cmp_mode > CMP_MODE_STUFF) {
-		debug_print("Error: selected cmp_mode: %u is not supported.\n", cfg->cmp_mode);
+		debug_print("Error: selected cmp_mode: %i is not supported.\n", cfg->cmp_mode);
 		cfg_invalid++;
 	}
 
@@ -594,7 +585,6 @@ int cmp_cfg_icu_buffers_is_valid(const struct cmp_cfg *cfg)
  * @param cmp_par	compression parameter
  * @param spill		spillover threshold parameter
  * @param cmp_mode	compression mode
- * @param data_type	compression data type
  * @param par_name	string describing the use of the compression par. for
  *			debug messages (can be NULL)
  *
@@ -891,7 +881,7 @@ void print_cmp_cfg(const struct cmp_cfg *cfg)
 {
 	size_t i;
 
-	printf("cmp_mode: %u\n", cfg->cmp_mode);
+	printf("cmp_mode: %i\n", cfg->cmp_mode);
 	printf("golomb_par: %u\n", cfg->golomb_par);
 	printf("spill: %u\n", cfg->spill);
 	printf("model_value: %u\n", cfg->model_value);
