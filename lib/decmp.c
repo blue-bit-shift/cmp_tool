@@ -32,6 +32,8 @@
 #include "cmp_entity.h"
 
 
+#define MAX_CW_LEN 32 /* maximum Golomb code word bit length */
+
 /* maximum used bits registry */
 extern struct cmp_max_used_bits max_used_bits;
 
@@ -45,7 +47,6 @@ struct decoder_setup {
 			       const struct decoder_setup *setup); /* pointer to the decoding function */
 	uint32_t *bitstream_adr; /* start address of the compressed data bitstream */
 	uint32_t max_stream_len; /* maximum length of the bitstream/icu_output_buf in bits */
-	uint32_t max_cw_len; /* TODO */
 	uint32_t encoder_par1; /* encoding parameter 1 */
 	uint32_t encoder_par2; /* encoding parameter 2 */
 	uint32_t outlier_par; /* outlier parameter */
@@ -93,8 +94,8 @@ static unsigned int count_leading_ones(uint32_t value)
  *	0 on failure
  */
 
-static int rice_decoder(uint32_t code_word, unsigned int m,
-				 unsigned int log2_m, unsigned int *decoded_cw)
+static int rice_decoder(uint32_t code_word, unsigned int m, unsigned int log2_m,
+			unsigned int *decoded_cw)
 {
 	unsigned int q; /* quotient code */
 	unsigned int ql; /* length of the quotient code */
@@ -103,6 +104,9 @@ static int rice_decoder(uint32_t code_word, unsigned int m,
 	unsigned int cw_len; /* length of the decoded code word in bits */
 
 	(void)m; /* we don't need the Golomb parameter */
+
+	if (log2_m > 32)
+		return 0;
 
 	q = count_leading_ones(code_word); /* decode unary coding */
 	ql = q + 1; /* Number of 1's + following 0 */
@@ -124,7 +128,7 @@ static int rice_decoder(uint32_t code_word, unsigned int m,
 	else
 		r = code_word >> (32 - rl);
 
-	*decoded_cw = (q << log2_m) + r;
+	*decoded_cw = (q << rl) + r;
 
 	return cw_len;
 }
@@ -206,16 +210,15 @@ static decoder_ptr select_decoder(unsigned int golomb_par)
 /**
  * @brief read a value of up to 32 bits from a bitstream
  *
- * @param p_value		pointer to the read value (can be NULL), the
+ * @param p_value		pointer to the read value, the
  *				read value will be converted to the system
  *				endianness
  * @param n_bits		number of bits to read from the bitstream
  * @param bit_offset		bit index where the bits will be read, seen from
  *				the very beginning of the bitstream
  * @param bitstream_adr		this is the pointer to the beginning of the
- *				bitstream (can be NULL)
- * @param max_stream_len	maximum length of the bitstream in bits; is
- *				ignored if bitstream_adr is NULL
+ *				bitstream
+ * @param max_stream_len	maximum length of the bitstream in bits *
  *
  * @returns bit position of the last read bit in the bitstream on success;
  *	returns negative in case of erroneous input; returns CMP_ERROR_SMALL_BUF
@@ -238,12 +241,10 @@ static int get_n_bits32(uint32_t *p_value, unsigned int n_bits, int bit_offset,
 		return -1;
 	if (n_bits > 32)
 		return -1;
-
-	/* nothing to read */
 	if (!bitstream_adr)
-		return stream_len;
+		return -1;
 	if (!p_value)
-		return stream_len;
+		return -1;
 
 	/* Check if bitstream buffer is large enough */
 	if ((unsigned int)stream_len > max_stream_len) {
@@ -310,10 +311,10 @@ static int decode_normal(uint32_t *decoded_value, int stream_pos,
 
 	/* check if we can read max_cw_len or less; we do not now how long the
 	 * code word actually is so we try to read the maximum cw length */
-	if ((unsigned int)stream_pos + setup->max_cw_len > setup->max_stream_len)
+	if ((unsigned int)stream_pos + 32 > setup->max_stream_len)
 		n_read_bits = setup->max_stream_len - (unsigned int)stream_pos;
 	else
-		n_read_bits = setup->max_cw_len;
+		n_read_bits = MAX_CW_LEN;
 
 	stream_pos_read = get_n_bits32(&read_val, n_read_bits, stream_pos,
 				       setup->bitstream_adr, setup->max_stream_len);
@@ -410,9 +411,33 @@ static int decode_multi(uint32_t *decoded_value, int stream_pos,
 
 		stream_pos = get_n_bits32(&unencoded_val, unencoded_len, stream_pos,
 					  setup->bitstream_adr, setup->max_stream_len);
-
-		*decoded_value = unencoded_val + setup->outlier_par;
+		if (stream_pos >= 0)
+			*decoded_value = unencoded_val + setup->outlier_par;
 	}
+	return stream_pos;
+}
+
+
+/**
+ * @brief get the value unencoded with setup->cmp_par_1 bits without any
+ *	additional changes from the bitstream
+ *
+ * @param decoded_value	pointer to the decoded value
+ * @param stream_pos	start bit position code word to be decoded in the bitstream
+ * @param setup		pointer to the decoder setup
+ *
+ * @returns bit index of the next code word in the bitstream on success; returns
+ *	negative in case of erroneous input; returns CMP_ERROR_SMALL_BUF if the
+ *	bitstream buffer is too small to read the value from the bitstream
+ *
+ */
+
+static int decode_none(uint32_t *decoded_value, int stream_pos,
+		       const struct decoder_setup *setup)
+{
+	stream_pos = get_n_bits32(decoded_value, setup->encoder_par1, stream_pos,
+				  setup->bitstream_adr, setup->max_stream_len);
+
 	return stream_pos;
 }
 
@@ -461,11 +486,14 @@ static int decode_value(uint32_t *decoded_value, uint32_t model,
 	if (stream_pos <= 0)
 		return stream_pos;
 
+	if (setup->decode_method_f == decode_none) /* we are done here in stuff mode */
+		return stream_pos;
+
 	*decoded_value = re_map_to_pos(*decoded_value);
 
 	*decoded_value += round_fwd(model, setup->lossy_par);
 
-	*decoded_value &= mask;
+	*decoded_value &= mask; /* TODO: why?? */
 
 	*decoded_value = round_inv(*decoded_value, setup->lossy_par);
 
@@ -482,7 +510,10 @@ static int configure_decoder_setup(struct decoder_setup *setup,
 		setup->decode_method_f = &decode_multi;
 	else if (zero_escape_mech_is_used(cfg->cmp_mode))
 		setup->decode_method_f = &decode_zero;
+	else if (cfg->cmp_mode == CMP_MODE_STUFF)
+		setup->decode_method_f = &decode_none;
 	else {
+		setup->decode_method_f = NULL;
 		debug_print("Error: Compression mode not supported.\n");
 		return -1;
 	}
@@ -493,11 +524,9 @@ static int configure_decoder_setup(struct decoder_setup *setup,
 		return -1;
 	}
 	setup->max_stream_len = (cfg->buffer_length) * CHAR_BIT;  /* maximum length of the bitstream/icu_output_buf in bits */
-	if (rdcu_supported_data_type_is_used(cfg->data_type))
-		setup->max_cw_len = 16;
-	else
-		setup->max_cw_len = 32;
 	setup->encoder_par1 = cmp_par; /* encoding parameter 1 */
+	if (ilog_2(cmp_par) < 0)
+		return -1;
 	setup->encoder_par2 = ilog_2(cmp_par); /* encoding parameter 2 */
 	setup->outlier_par = spill; /* outlier parameter */
 	setup->lossy_par = lossy_par; /* lossy compression parameter */
@@ -1708,6 +1737,12 @@ static int decompress_l_fx_efx_ncob_ecob(const struct cmp_cfg *cfg)
 				cfg->model_value, setup_ncob.lossy_par);
 			up_model_buf[i].ncob_y = cmp_up_model(data_buf[i].ncob_y, model.ncob_y,
 				cfg->model_value, setup_ncob.lossy_par);
+			up_model_buf[i].efx = cmp_up_model(data_buf[i].efx, model.efx,
+				cfg->model_value, setup_efx.lossy_par);
+			up_model_buf[i].ecob_x = cmp_up_model(data_buf[i].ecob_x, model.ecob_x,
+				cfg->model_value, setup_ecob.lossy_par);
+			up_model_buf[i].ecob_y = cmp_up_model(data_buf[i].ecob_y, model.ecob_y,
+				cfg->model_value, setup_ecob.lossy_par);
 			up_model_buf[i].fx_variance = cmp_up_model(data_buf[i].fx_variance, model.fx_variance,
 				cfg->model_value, setup_fx_var.lossy_par);
 			up_model_buf[i].cob_x_variance = cmp_up_model(data_buf[i].cob_x_variance, model.cob_x_variance,
@@ -1968,7 +2003,8 @@ static int decompressed_data_internal(struct cmp_cfg *cfg)
 	int data_size, strem_len_bit = -1;
 
 	if (!cfg)
-		return 0; /* or -1? */
+		return -1;
+
 	if (!cfg->icu_output_buf)
 		return -1;
 
