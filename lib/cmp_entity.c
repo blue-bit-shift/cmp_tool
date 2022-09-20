@@ -1650,13 +1650,13 @@ void *cmp_ent_get_data_buf(struct cmp_entity *ent)
 
 	switch (data_type) {
 	case DATA_TYPE_IMAGETTE:
+	case DATA_TYPE_SAT_IMAGETTE:
 	case DATA_TYPE_F_CAM_IMAGETTE:
 		return ent->ima.ima_cmp_dat;
 	case DATA_TYPE_IMAGETTE_ADAPTIVE:
+	case DATA_TYPE_SAT_IMAGETTE_ADAPTIVE:
 	case DATA_TYPE_F_CAM_IMAGETTE_ADAPTIVE:
 		return ent->ima.ap_ima_cmp_data;
-	case DATA_TYPE_SAT_IMAGETTE:
-	case DATA_TYPE_SAT_IMAGETTE_ADAPTIVE:
 	case DATA_TYPE_OFFSET:
 	case DATA_TYPE_BACKGROUND:
 	case DATA_TYPE_SMEARING:
@@ -2038,7 +2038,7 @@ int cmp_ent_write_rdcu_cmp_pars(struct cmp_entity *ent, const struct cmp_info *i
  *			returns the needed size
  * @param data_type	compression entity data product type
  * @param raw_mode_flag	set this flag if the raw compression mode (CMP_MODE_RAW) is used
- * @param cmp_size_byte	size of the compressed data in bytes
+ * @param cmp_size_byte	size of the compressed data in bytes (should be a multiple of 4)
  *
  * @note if the entity size is smaller than the largest header, the function
  *	rounds up the entity size to the largest header
@@ -2063,6 +2063,8 @@ uint32_t cmp_ent_create(struct cmp_entity *ent, enum cmp_data_type data_type,
 	if (ent_size > CMP_ENTITY_MAX_SIZE)
 		return 0;
 
+	/* to be safe a compression entity should be at least the size of the
+	 * largest entity header */
 	if (ent_size < sizeof(struct cmp_entity))
 		ent_size = sizeof(struct cmp_entity);
 
