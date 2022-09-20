@@ -17,11 +17,14 @@
  */
 
 
+#include <stdint.h>
+#include <stdio.h>
+#include <limits.h>
+
+
 #include <cmp_data_types.h>
 #include <cmp_debug.h>
 #include <byteorder.h>
-#include <stdint.h>
-#include <stdio.h>
 
 
 /* the maximum length of the different data products types in bits */
@@ -187,12 +190,12 @@ size_t size_of_a_sample(enum cmp_data_type data_type)
  *
  * @note for non-imagette data program types the multi entry header size is added
  *
- * @returns the size in bytes to store the data sample
+ * @returns the size in bytes to store the data sample; zero on failure
  */
 
 unsigned int cmp_cal_size_of_data(unsigned int samples, enum cmp_data_type data_type)
 {
-	unsigned int s = size_of_a_sample(data_type);
+	size_t s = size_of_a_sample(data_type);
 	uint64_t x; /* use 64 bit to catch overflow */
 
 	if (!s)
@@ -203,7 +206,7 @@ unsigned int cmp_cal_size_of_data(unsigned int samples, enum cmp_data_type data_
 	if (!rdcu_supported_data_type_is_used(data_type))
 		x += MULTI_ENTRY_HDR_SIZE;
 
-	if (x > UINT32_MAX) /* catch overflow */
+	if (x > UINT_MAX) /* catch overflow */
 		return 0;
 
 	return (unsigned int)x;
@@ -222,7 +225,7 @@ unsigned int cmp_cal_size_of_data(unsigned int samples, enum cmp_data_type data_
 
 int cmp_input_size_to_samples(unsigned int size, enum cmp_data_type data_type)
 {
-	int samples_size = (int)size_of_a_sample(data_type);
+	uint32_t samples_size = size_of_a_sample(data_type);
 
 	if (!samples_size)
 		return -1;
@@ -236,7 +239,7 @@ int cmp_input_size_to_samples(unsigned int size, enum cmp_data_type data_type)
 	if (size % samples_size)
 		return -1;
 
-	return size/samples_size;
+	return (int)(size/samples_size);
 }
 
 
