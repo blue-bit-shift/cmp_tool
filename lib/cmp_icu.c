@@ -37,6 +37,7 @@
 #include <cmp_data_types.h>
 #include <cmp_support.h>
 #include <cmp_icu.h>
+#include <cmp_entity.h>
 
 
 /* maximum used bits registry */
@@ -118,11 +119,13 @@ struct cmp_cfg cmp_cfg_icu_create(enum cmp_data_type data_type, enum cmp_mode cm
  *	parameters are invalid
  */
 
-size_t cmp_cfg_icu_buffers(struct cmp_cfg *cfg, void *data_to_compress,
-			   uint32_t data_samples, void *model_of_data,
-			   void *updated_model, uint32_t *compressed_data,
-			   uint32_t compressed_data_len_samples)
+uint32_t cmp_cfg_icu_buffers(struct cmp_cfg *cfg, void *data_to_compress,
+			     uint32_t data_samples, void *model_of_data,
+			     void *updated_model, uint32_t *compressed_data,
+			     uint32_t compressed_data_len_samples)
 {
+	uint32_t data_size, hdr_size;
+
 	if (!cfg) {
 		debug_print("Error: pointer to the compression configuration structure is NULL.\n");
 		return 0;
@@ -138,7 +141,15 @@ size_t cmp_cfg_icu_buffers(struct cmp_cfg *cfg, void *data_to_compress,
 	if (!cmp_cfg_icu_buffers_is_valid(cfg))
 		return 0;
 
-	return cmp_cal_size_of_data(compressed_data_len_samples, cfg->data_type);
+	data_size = cmp_cal_size_of_data(compressed_data_len_samples, cfg->data_type);
+	hdr_size = cmp_ent_cal_hdr_size(cfg->data_type, cfg->cmp_mode == CMP_MODE_RAW);
+
+	if ((data_size + hdr_size) > CMP_ENTITY_MAX_SIZE) {
+		debug_print("Error: The buffer for the compressed data is too large to fit in a compression entity.\n");
+		return 0;
+	}
+
+	return data_size;
 }
 
 
@@ -643,7 +654,7 @@ static int encode_value_multi(uint32_t data, uint32_t model, int stream_len,
 
 
 /**
- * @brief put the value unencoded with(setup->cmp_par_1 bits without any changes
+ * @brief put the value unencoded with setup->cmp_par_1 bits without any changes
  *	in the bitstream
  *
  * @param value		value to put unchanged in the bitstream
@@ -783,6 +794,7 @@ static int configure_encoder_setup(struct encoder_setupt *setup,
 		setup->encode_method_f = &encode_value_none;
 		setup->max_data_bits = cmp_par;
 		break;
+	case CMP_MODE_RAW:
 	default:
 		return -1;
 	}
@@ -2340,7 +2352,7 @@ int icu_compress_data(const struct cmp_cfg *cfg)
 			memcpy(cfg->icu_output_buf, cfg->input_buf, cmp_size);
 		cmp_size *= CHAR_BIT; /* convert to bits */
 	} else {
-		if (cfg->samples < cfg->buffer_length/3)
+		if (cfg->icu_output_buf && cfg->samples/3 > cfg->buffer_length)
 			debug_print("Warning: The size of the compressed_data buffer is 3 times smaller than the data_to_compress. This is probably unintended.\n");
 
 		switch (cfg->data_type) {
