@@ -414,7 +414,7 @@ enum cmp_data_type string2data_type(const char *data_type_str)
 		if (isalpha(data_type_str[0])) {  /* check if mode is given as text */
 			size_t j;
 
-			for (j = 0;  j < sizeof(data_type_string_table) / sizeof(data_type_string_table[0]); j++) {
+			for (j = 0; j < sizeof(data_type_string_table) / sizeof(data_type_string_table[0]); j++) {
 				if (!strcmp(data_type_str, data_type_string_table[j].str)) {
 					data_type = data_type_string_table[j].data_type;
 					break;
@@ -447,7 +447,7 @@ const char *data_type2string(enum cmp_data_type data_type)
 	size_t j;
 	const char *string = "DATA_TYPE_UNKNOWN";
 
-	for (j = 0;  j < sizeof(data_type_string_table) / sizeof(data_type_string_table[0]); j++) {
+	for (j = 0; j < sizeof(data_type_string_table) / sizeof(data_type_string_table[0]); j++) {
 		if (data_type == data_type_string_table[j].data_type) {
 			string = data_type_string_table[j].str;
 			break;
@@ -472,7 +472,7 @@ int cmp_mode_parse(const char *cmp_mode_str, uint32_t *cmp_mode)
 {
 	size_t j;
 	static const struct {
-		uint32_t  cmp_mode;
+		uint32_t cmp_mode;
 		const char *str;
 	} conversion[] = {
 		{CMP_MODE_RAW, "MODE_RAW"},
@@ -493,7 +493,7 @@ int cmp_mode_parse(const char *cmp_mode_str, uint32_t *cmp_mode)
 		return -1;
 
 	if (isalpha(cmp_mode_str[0])) {  /* check if mode is given as text */
-		for (j = 0;  j < sizeof(conversion) / sizeof(conversion[0]);  ++j) {
+		for (j = 0; j < sizeof(conversion) / sizeof(conversion[0]); ++j) {
 			if (!strcmp(cmp_mode_str, conversion[j].str)) {
 				*cmp_mode = conversion[j].cmp_mode;
 				return 0;
@@ -825,7 +825,7 @@ int read_cmp_cfg(const char *file_name, struct cmp_cfg *cfg, int verbose_en)
 
 
 /**
- * @brief  parse a file containing a decompression information
+ * @brief parse a file containing a decompression information
  * @note internal use only!
  *
  * @param fp	FILE pointer

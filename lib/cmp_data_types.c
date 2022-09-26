@@ -99,7 +99,8 @@ struct cmp_max_used_bits cmp_get_max_used_bits(void)
  * @returns version of the max used bits registry
  */
 
-uint8_t cmp_get_max_used_bits_version(void) {
+uint8_t cmp_get_max_used_bits_version(void)
+{
 	return max_used_bits.version;
 }
 

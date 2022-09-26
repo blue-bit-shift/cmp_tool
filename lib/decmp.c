@@ -148,8 +148,7 @@ static int rice_decoder(uint32_t code_word, unsigned int m, unsigned int log2_m,
  */
 
 static int golomb_decoder(unsigned int code_word, unsigned int m,
-				   unsigned int log2_m, unsigned int
-				   *decoded_cw)
+			  unsigned int log2_m, unsigned int *decoded_cw)
 {
 	unsigned int q; /* quotient code */
 	unsigned int r1; /* remainder code group 1 */
