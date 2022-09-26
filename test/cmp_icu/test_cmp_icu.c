@@ -1,6 +1,5 @@
-#include "cmp_support.h"
-#include <string.h>
 #include <stdlib.h>
+
 #if defined __has_include
 #  if __has_include(<time.h>)
 #    include <time.h>
@@ -436,8 +435,8 @@ void test_cmp_cfg_icu_imagette(void)
 
 	/* lowest values 1d/model mode */
 	cfg = cmp_cfg_icu_create(DATA_TYPE_IMAGETTE, CMP_MODE_MODEL_ZERO, 0, CMP_LOSSLESS);
-	cmp_par = MIN_ICU_GOLOMB_PAR;
-	spillover_par = MIN_ICU_SPILL;
+	cmp_par = MIN_IMA_GOLOMB_PAR;
+	spillover_par = MIN_IMA_SPILL;
 	error = cmp_cfg_icu_imagette(&cfg, cmp_par, spillover_par);
 	TEST_ASSERT_FALSE(error);
 	TEST_ASSERT_EQUAL_INT(cfg.golomb_par, 1);
@@ -445,12 +444,12 @@ void test_cmp_cfg_icu_imagette(void)
 
 	/* highest values 1d/model mode */
 	cfg = cmp_cfg_icu_create(DATA_TYPE_F_CAM_IMAGETTE, CMP_MODE_DIFF_MULTI, 16, CMP_LOSSLESS);
-	cmp_par = MAX_ICU_GOLOMB_PAR;
-	spillover_par = cmp_icu_max_spill(cmp_par);
+	cmp_par = MAX_IMA_GOLOMB_PAR;
+	spillover_par = cmp_ima_max_spill(cmp_par);
 	error = cmp_cfg_icu_imagette(&cfg, cmp_par, spillover_par);
 	TEST_ASSERT_FALSE(error);
-	TEST_ASSERT_EQUAL_INT(cfg.golomb_par, 0xFFFF);
-	TEST_ASSERT_EQUAL_INT(cfg.spill, 1048545);
+	TEST_ASSERT_EQUAL_INT(cfg.golomb_par, MAX_IMA_GOLOMB_PAR);
+	TEST_ASSERT_EQUAL_INT(cfg.spill, cmp_ima_max_spill(MAX_IMA_GOLOMB_PAR));
 
 	/* wrong data type  test */
 	for (data_type = 0; data_type <= DATA_TYPE_F_CAM_BACKGROUND; data_type++) {
@@ -461,8 +460,8 @@ void test_cmp_cfg_icu_imagette(void)
 		    data_type == DATA_TYPE_F_CAM_IMAGETTE) {
 			TEST_ASSERT_FALSE(error);
 			TEST_ASSERT_EQUAL_INT(data_type, cfg.data_type);
-			TEST_ASSERT_EQUAL_INT(cfg.golomb_par, 0xFFFF);
-			TEST_ASSERT_EQUAL_INT(cfg.spill, 1048545);
+			TEST_ASSERT_EQUAL_INT(cfg.golomb_par, MAX_IMA_GOLOMB_PAR);
+			TEST_ASSERT_EQUAL_INT(cfg.spill, cmp_ima_max_spill(MAX_IMA_GOLOMB_PAR));
 		} else {
 			TEST_ASSERT_TRUE(error);
 		}
@@ -472,8 +471,8 @@ void test_cmp_cfg_icu_imagette(void)
 
 	/* cmp_par to big */
 	cfg = cmp_cfg_icu_create(DATA_TYPE_IMAGETTE, CMP_MODE_MODEL_MULTI, 16, CMP_LOSSLESS);
-	cmp_par = MAX_ICU_GOLOMB_PAR + 1;
-	spillover_par = MIN_ICU_SPILL;
+	cmp_par = MAX_IMA_GOLOMB_PAR + 1;
+	spillover_par = MIN_IMA_SPILL;
 	error = cmp_cfg_icu_imagette(&cfg, cmp_par, spillover_par);
 	TEST_ASSERT_TRUE(error);
 	/* ignore in RAW MODE */
@@ -483,8 +482,8 @@ void test_cmp_cfg_icu_imagette(void)
 
 	/* cmp_par to small */
 	cfg = cmp_cfg_icu_create(DATA_TYPE_IMAGETTE, CMP_MODE_MODEL_MULTI, 16, CMP_LOSSLESS);
-	cmp_par = MIN_ICU_GOLOMB_PAR - 1;
-	spillover_par = MIN_ICU_SPILL;
+	cmp_par = MIN_IMA_GOLOMB_PAR - 1;
+	spillover_par = MIN_IMA_SPILL;
 	error = cmp_cfg_icu_imagette(&cfg, cmp_par, spillover_par);
 	TEST_ASSERT_TRUE(error);
 	/* ignore in RAW MODE */
@@ -494,8 +493,8 @@ void test_cmp_cfg_icu_imagette(void)
 
 	/* spillover_par to big */
 	cfg = cmp_cfg_icu_create(DATA_TYPE_IMAGETTE, CMP_MODE_MODEL_MULTI, 16, CMP_LOSSLESS);
-	cmp_par = MIN_ICU_GOLOMB_PAR;
-	spillover_par = cmp_icu_max_spill(cmp_par)+1;
+	cmp_par = MIN_IMA_GOLOMB_PAR;
+	spillover_par = cmp_ima_max_spill(cmp_par)+1;
 	error = cmp_cfg_icu_imagette(&cfg, cmp_par, spillover_par);
 	TEST_ASSERT_TRUE(error);
 	/* ignore in RAW MODE */
@@ -505,8 +504,8 @@ void test_cmp_cfg_icu_imagette(void)
 
 	/* spillover_par to small */
 	cfg = cmp_cfg_icu_create(DATA_TYPE_IMAGETTE, CMP_MODE_DIFF_ZERO, 0, CMP_LOSSLESS);
-	cmp_par = MAX_ICU_GOLOMB_PAR;
-	spillover_par = MIN_ICU_SPILL -1 ;
+	cmp_par = MAX_IMA_GOLOMB_PAR;
+	spillover_par = MIN_IMA_SPILL -1 ;
 	error = cmp_cfg_icu_imagette(&cfg, cmp_par, spillover_par);
 	TEST_ASSERT_TRUE(error);
 	/* ignore in RAW MODE */

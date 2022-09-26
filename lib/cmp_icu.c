@@ -79,7 +79,6 @@ struct encoder_setupt {
 struct cmp_cfg cmp_cfg_icu_create(enum cmp_data_type data_type, enum cmp_mode cmp_mode,
 				  uint32_t model_value, uint32_t lossy_par)
 {
-	int cfg_valid;
 	struct cmp_cfg cfg;
 
 	memset(&cfg, 0, sizeof(cfg));
@@ -89,8 +88,7 @@ struct cmp_cfg cmp_cfg_icu_create(enum cmp_data_type data_type, enum cmp_mode cm
 	cfg.model_value = model_value;
 	cfg.round = lossy_par;
 
-	cfg_valid = cmp_cfg_icu_gen_par_is_valid(&cfg);
-	if (!cfg_valid)
+	if (cmp_cfg_icu_gen_par_is_invalid(&cfg))
 		cfg.data_type = DATA_TYPE_UNKNOWN;
 
 	return cfg;
@@ -138,7 +136,7 @@ uint32_t cmp_cfg_icu_buffers(struct cmp_cfg *cfg, void *data_to_compress,
 	cfg->icu_output_buf = compressed_data;
 	cfg->buffer_length = compressed_data_len_samples;
 
-	if (!cmp_cfg_icu_buffers_is_valid(cfg))
+	if (cmp_cfg_icu_buffers_is_invalid(cfg))
 		return 0;
 
 	data_size = cmp_cal_size_of_data(compressed_data_len_samples, cfg->data_type);
@@ -173,7 +171,7 @@ int cmp_cfg_icu_imagette(struct cmp_cfg *cfg, uint32_t cmp_par,
 	cfg->golomb_par = cmp_par;
 	cfg->spill = spillover_par;
 
-	if (!cmp_cfg_imagette_is_valid(cfg))
+	if (cmp_cfg_imagette_is_invalid(cfg, ICU_CHECK))
 		return -1;
 
 	return 0;
@@ -227,7 +225,7 @@ int cmp_cfg_fx_cob(struct cmp_cfg *cfg,
 	cfg->spill_ecob = spillover_ecob;
 	cfg->spill_fx_cob_variance = spillover_fx_cob_variance;
 
-	if (!cmp_cfg_fx_cob_is_valid(cfg))
+	if (cmp_cfg_fx_cob_is_invalid(cfg))
 		return -1;
 
 	return 0;
@@ -268,7 +266,7 @@ int cmp_cfg_aux(struct cmp_cfg *cfg,
 	cfg->spill_variance = spillover_variance;
 	cfg->spill_pixels_error = spillover_pixels_error;
 
-	if (!cmp_cfg_aux_is_valid(cfg))
+	if (cmp_cfg_aux_is_invalid(cfg))
 		return -1;
 
 	return 0;
@@ -2250,7 +2248,10 @@ static int pad_bitstream(const struct cmp_cfg *cfg, int cmp_size)
 	if (cmp_size < 0)
 		return cmp_size;
 
-	/* no padding in RAW mode; DIFFERENCE ENDIANNESS */
+	if (!cfg->icu_output_buf)
+		return cmp_size;
+
+	/* no padding in RAW mode; ALWAYS BIG-ENDIAN */
 	if (cfg->cmp_mode == CMP_MODE_RAW)
 		return cmp_size;
 
@@ -2286,6 +2287,9 @@ static int cmp_data_to_big_endian(const struct cmp_cfg *cfg, int cmp_size)
 	uint32_t s = (uint32_t)cmp_size;
 
 	if (cmp_size < 0)
+		return cmp_size;
+
+	if (!cfg->icu_output_buf)
 		return cmp_size;
 
 	if (cfg->cmp_mode == CMP_MODE_RAW) {
@@ -2343,7 +2347,7 @@ int icu_compress_data(const struct cmp_cfg *cfg)
 		if (cfg->samples > cfg->buffer_length)
 			return CMP_ERROR_SMALL_BUF;
 
-	if (!cmp_cfg_is_valid(cfg))
+	if (cmp_cfg_is_invalid(cfg))
 		return -1;
 
 	if (raw_mode_is_used(cfg->cmp_mode)) {
@@ -2425,10 +2429,8 @@ int icu_compress_data(const struct cmp_cfg *cfg)
 		/* LCOV_EXCL_STOP */
 	}
 
-	if (cfg->icu_output_buf) {
-		cmp_size = pad_bitstream(cfg, cmp_size);
-		cmp_size = cmp_data_to_big_endian(cfg, cmp_size);
-	}
+	cmp_size = pad_bitstream(cfg, cmp_size);
+	cmp_size = cmp_data_to_big_endian(cfg, cmp_size);
 
 	return cmp_size;
 }

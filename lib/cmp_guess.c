@@ -83,7 +83,7 @@ uint16_t cmp_guess_model_value(int n_model_updates)
 
 uint32_t cmp_rdcu_get_good_spill(unsigned int golomb_par, enum cmp_mode cmp_mode)
 {
-	const uint32_t LUT_RDCU_MULIT[MAX_RDCU_GOLOMB_PAR+1] = {0, 8, 16, 23,
+	const uint32_t LUT_IMA_MULIT[MAX_IMA_GOLOMB_PAR+1] = {0, 8, 16, 23,
 		30, 36, 44, 51, 58, 64, 71, 77, 84, 90, 97, 108, 115, 121, 128,
 		135, 141, 148, 155, 161, 168, 175, 181, 188, 194, 201, 207, 214,
 		229, 236, 242, 250, 256, 263, 269, 276, 283, 290, 296, 303, 310,
@@ -91,13 +91,13 @@ uint32_t cmp_rdcu_get_good_spill(unsigned int golomb_par, enum cmp_mode cmp_mode
 		405, 411, 418, 424, 431, 452 };
 
 	if (zero_escape_mech_is_used(cmp_mode))
-		return cmp_rdcu_max_spill(golomb_par);
+		return cmp_ima_max_spill(golomb_par);
 
 	if (cmp_mode == CMP_MODE_MODEL_MULTI) {
-		if (golomb_par > MAX_RDCU_GOLOMB_PAR)
+		if (golomb_par > MAX_IMA_GOLOMB_PAR)
 			return 0;
 		else
-			return LUT_RDCU_MULIT[golomb_par];
+			return LUT_IMA_MULIT[golomb_par];
 	}
 
 	if (cmp_mode == CMP_MODE_DIFF_MULTI)
@@ -123,7 +123,7 @@ static uint32_t pre_cal_method(struct cmp_cfg *cfg)
 	uint32_t golomb_par_best = 0;
 	uint32_t spill_best = 0;
 
-	for (g = MIN_RDCU_GOLOMB_PAR; g < MAX_RDCU_GOLOMB_PAR; g++) {
+	for (g = MIN_IMA_GOLOMB_PAR; g < MAX_IMA_GOLOMB_PAR; g++) {
 		uint32_t s = cmp_rdcu_get_good_spill(g, cfg->cmp_mode);
 
 		cfg->golomb_par = g;
@@ -171,8 +171,8 @@ static uint32_t brute_force(struct cmp_cfg *cfg)
 	printf("0%%... ");
 	fflush(stdout);
 
-	for (g = MIN_RDCU_GOLOMB_PAR; g < MAX_RDCU_GOLOMB_PAR; g++) {
-		for (s = MIN_RDCU_SPILL; s < cmp_rdcu_max_spill(g); s++) {
+	for (g = MIN_IMA_GOLOMB_PAR; g < MAX_IMA_GOLOMB_PAR; g++) {
+		for (s = MIN_IMA_SPILL; s < cmp_ima_max_spill(g); s++) {
 			cfg->golomb_par = g;
 			cfg->spill = s;
 
@@ -211,11 +211,11 @@ static uint32_t brute_force(struct cmp_cfg *cfg)
 
 static void add_rdcu_pars_internal(struct cmp_cfg *cfg)
 {
-	if (cfg->golomb_par == MIN_RDCU_GOLOMB_PAR) {
+	if (cfg->golomb_par == MIN_IMA_GOLOMB_PAR) {
 		cfg->ap1_golomb_par = cfg->golomb_par + 1;
 		cfg->ap2_golomb_par = cfg->golomb_par + 2;
 
-	} else if (cfg->golomb_par == MAX_RDCU_GOLOMB_PAR) {
+	} else if (cfg->golomb_par == MAX_IMA_GOLOMB_PAR) {
 		cfg->ap1_golomb_par = cfg->golomb_par - 2;
 		cfg->ap2_golomb_par = cfg->golomb_par - 1;
 	} else {

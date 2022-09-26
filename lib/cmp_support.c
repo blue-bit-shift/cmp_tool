@@ -389,8 +389,8 @@ unsigned int cmp_up_model(unsigned int data, unsigned int model,
 
 
 /**
- * @brief get the maximum valid spill threshold value for a RDCU HW compression
- *	in diff or model mode
+ * @brief get the maximum valid spill threshold value for a RDCU HW imagette
+ *	compression in diff or model mode
  *
  * @param golomb_par	Golomb parameter
  *
@@ -398,10 +398,10 @@ unsigned int cmp_up_model(unsigned int data, unsigned int model,
  *	 mode compression; 0 if golomb_par is invalid
  */
 
-uint32_t cmp_rdcu_max_spill(unsigned int golomb_par)
+uint32_t cmp_ima_max_spill(unsigned int golomb_par)
 {
 	/* the RDCU can only generate 16 bit long code words -> lower max spill needed */
-	const uint32_t LUT_MAX_RDCU[MAX_RDCU_GOLOMB_PAR+1] = { 0, 8, 22, 35, 48,
+	const uint32_t LUT_MAX_RDCU[MAX_IMA_GOLOMB_PAR+1] = { 0, 8, 22, 35, 48,
 		60, 72, 84, 96, 107, 118, 129, 140, 151, 162, 173, 184, 194,
 		204, 214, 224, 234, 244, 254, 264, 274, 284, 294, 304, 314, 324,
 		334, 344, 353, 362, 371, 380, 389, 398, 407, 416, 425, 434, 443,
@@ -409,7 +409,7 @@ uint32_t cmp_rdcu_max_spill(unsigned int golomb_par)
 		569, 578, 587, 596, 605, 614, 623 };
 
 
-	if (golomb_par > MAX_RDCU_GOLOMB_PAR)
+	if (golomb_par > MAX_IMA_GOLOMB_PAR)
 		return 0;
 
 	return LUT_MAX_RDCU[golomb_par];
@@ -458,14 +458,14 @@ unsigned int cmp_bit_to_4byte(unsigned int cmp_size_bit)
 
 /**
  * @brief check if the compression data type, compression mode, model value and
- *	the lossy rounding parameters are valid for a ICU compression
+ *	the lossy rounding parameters are invalid for a ICU compression
  *
  * @param cfg	pointer to the compressor configuration
  *
- * @returns 1 if generic compression parameters are valid, otherwise 0
+ * @returns 0 if generic compression parameters are valid, otherwise invalid
  */
 
-int cmp_cfg_icu_gen_par_is_valid(const struct cmp_cfg *cfg)
+int cmp_cfg_icu_gen_par_is_invalid(const struct cmp_cfg *cfg)
 {
 	int cfg_invalid = 0;
 
@@ -496,22 +496,19 @@ int cmp_cfg_icu_gen_par_is_valid(const struct cmp_cfg *cfg)
 		cfg_invalid++;
 	}
 
-	if (cfg_invalid)
-		return 0;
-
-	return 1;
+	return cfg_invalid;
 }
 
 
 /**
- * @brief check if the buffer parameters are valid
+ * @brief check if the buffer parameters are invalid
  *
  * @param cfg	pointer to the compressor configuration
  *
- * @returns 1 if the buffer parameters are valid, otherwise 0
+ * @returns 0 if the buffer parameters are valid, otherwise invalid
  */
 
-int cmp_cfg_icu_buffers_is_valid(const struct cmp_cfg *cfg)
+int cmp_cfg_icu_buffers_is_invalid(const struct cmp_cfg *cfg)
 {
 	int cfg_invalid = 0;
 
@@ -572,36 +569,74 @@ int cmp_cfg_icu_buffers_is_valid(const struct cmp_cfg *cfg)
 		}
 	}
 
-	if (cfg_invalid)
-		return 0;
-
-	return 1;
+	return cfg_invalid;
 }
 
 
 /**
- * @brief check if the combination of the different compression parameters is valid
+ * @brief check if the combination of the different compression parameters is invalid
  *
  * @param cmp_par	compression parameter
  * @param spill		spillover threshold parameter
  * @param cmp_mode	compression mode
+ * @param data_type	compression data type
  * @param par_name	string describing the use of the compression par. for
  *			debug messages (can be NULL)
  *
- * @returns 1 if the parameter combination is valid, otherwise 0
+ * @returns 0 if the parameter combination is valid, otherwise the combination is invalid
  */
 
-static int cmp_pars_are_valid(uint32_t cmp_par, uint32_t spill, enum cmp_mode cmp_mode,
-			      char *par_name)
+static int cmp_pars_are_invalid(uint32_t cmp_par, uint32_t spill, enum cmp_mode cmp_mode,
+				enum cmp_data_type data_type, char *par_name)
 {
 	int cfg_invalid = 0;
+	uint32_t min_golomb_par;
+	uint32_t max_golomb_par;
+	uint32_t min_spill;
+	uint32_t max_spill;
 
 	if (!par_name)
 		par_name = "";
 
+	/* The maximum compression parameter for imagette data are smaller to
+	 * fit into the imagette compression entity header */
+	if (cmp_imagette_data_type_is_used(data_type)) {
+		min_golomb_par = MIN_IMA_GOLOMB_PAR;
+		max_golomb_par = MAX_IMA_GOLOMB_PAR;
+		min_spill = MIN_IMA_SPILL;
+		max_spill = cmp_ima_max_spill(cmp_par);
+	} else {
+		min_golomb_par = MIN_ICU_GOLOMB_PAR;
+		max_golomb_par = MAX_ICU_GOLOMB_PAR;
+		min_spill = MIN_ICU_SPILL;
+		max_spill = cmp_icu_max_spill(cmp_par);
+	}
+
+
 	switch (cmp_mode) {
 	case CMP_MODE_RAW:
 		/* no checks needed */
+		break;
+	case CMP_MODE_DIFF_ZERO:
+	case CMP_MODE_DIFF_MULTI:
+	case CMP_MODE_MODEL_ZERO:
+	case CMP_MODE_MODEL_MULTI:
+		if (cmp_par < min_golomb_par || cmp_par > max_golomb_par) {
+			debug_print("Error: The selected %s compression parameter: %u is not supported. The compression parameter has to be between [%u, %u].\n",
+				    par_name, cmp_par, min_golomb_par, max_golomb_par);
+			cfg_invalid++;
+		}
+		if (spill < min_spill) {
+			debug_print("Error: The selected %s spillover threshold value: %u is too small. Smallest possible spillover value is: %u.\n",
+				    par_name, spill, min_spill);
+			cfg_invalid++;
+		}
+		if (spill > max_spill) {
+			debug_print("Error: The selected %s spillover threshold value: %u is too large for the selected %s compression parameter: %u, the largest possible spillover value in the selected compression mode is: %u.\n",
+				    par_name, spill, par_name, cmp_par, max_spill);
+			cfg_invalid++;
+		}
+
 		break;
 	case CMP_MODE_STUFF:
 		if (cmp_par > MAX_STUFF_CMP_PAR) {
@@ -610,52 +645,30 @@ static int cmp_pars_are_valid(uint32_t cmp_par, uint32_t spill, enum cmp_mode cm
 			cfg_invalid++;
 		}
 		break;
-	case CMP_MODE_DIFF_ZERO:
-	case CMP_MODE_DIFF_MULTI:
-	case CMP_MODE_MODEL_ZERO:
-	case CMP_MODE_MODEL_MULTI:
-		if (cmp_par < MIN_ICU_GOLOMB_PAR ||
-		    cmp_par > MAX_ICU_GOLOMB_PAR) {
-			debug_print("Error: The selected %s compression parameter: %u is not supported. The compression parameter has to be between [%u, %u].\n",
-				    par_name, cmp_par, MIN_ICU_GOLOMB_PAR, MAX_ICU_GOLOMB_PAR);
-			cfg_invalid++;
-		}
-		if (spill < MIN_ICU_SPILL) {
-			debug_print("Error: The selected %s spillover threshold value: %u is too small. Smallest possible spillover value is: %u.\n",
-				    par_name, spill, MIN_ICU_SPILL);
-			cfg_invalid++;
-		}
-		if (spill > cmp_icu_max_spill(cmp_par)) {
-			debug_print("Error: The selected %s spillover threshold value: %u is too large for the selected %s compression parameter: %u, the largest possible spillover value in the selected compression mode is: %u.\n",
-				    par_name, spill, par_name, cmp_par, cmp_icu_max_spill(cmp_par));
-			cfg_invalid++;
-		}
-
-		break;
 	default:
 		debug_print("Error: The compression mode is not supported.\n");
 		cfg_invalid++;
 		break;
 	}
 
-	if (cfg_invalid)
-		return 0;
-
-	return 1;
+	return cfg_invalid;
 }
 
 
 /**
- * @brief check if the imagette specific compression parameters are valid
+ * @brief check if the imagette specific compression parameters are invalid
  *
- * @param cfg	pointer to the compressor configuration
+ * @param cfg		pointer to the compressor configuration
+ * @param rdcu_check	set to non-zero if a check for a imagette RDCU compression
+ *			should be done; zero for imagette ICU compression
  *
- * @returns 1 if the imagette specific parameters are valid, otherwise 0
+ * @returns 0 if the imagette specific parameters are valid, otherwise invalid
  */
 
-int cmp_cfg_imagette_is_valid(const struct cmp_cfg *cfg)
+int cmp_cfg_imagette_is_invalid(const struct cmp_cfg *cfg, int rdcu_check)
 {
 	int cfg_invalid = 0;
+	enum cmp_mode cmp_mode;
 
 	if (!cfg)
 		return 0;
@@ -665,35 +678,37 @@ int cmp_cfg_imagette_is_valid(const struct cmp_cfg *cfg)
 		cfg_invalid++;
 	}
 
-	if (!cmp_pars_are_valid(cfg->golomb_par, cfg->spill, cfg->cmp_mode,
-				"imagette"))
-		cfg_invalid++;
+	/* The RDCU needs valid compression parameters also in RAW_MODE */
+	if (rdcu_check && cfg->cmp_mode == CMP_MODE_RAW)
+		cmp_mode = CMP_MODE_MODEL_ZERO;
+	else
+		cmp_mode = cfg->cmp_mode;
 
-	if (cmp_ap_imagette_data_type_is_used(cfg->data_type)) {
-		if (!cmp_pars_are_valid(cfg->ap1_golomb_par, cfg->ap1_spill,
-					cfg->cmp_mode, "adaptive 1 imagette"))
-			cfg_invalid++;
-		if (!cmp_pars_are_valid(cfg->ap2_golomb_par, cfg->ap2_spill,
-					cfg->cmp_mode, "adaptive 2 imagette"))
-			cfg_invalid++;
+	cfg_invalid += cmp_pars_are_invalid(cfg->golomb_par, cfg->spill, cmp_mode,
+					    cfg->data_type, "imagette");
+
+	/* for the RDCU the adaptive parameters have to be always valid */
+	if (rdcu_check || cmp_ap_imagette_data_type_is_used(cfg->data_type)) {
+		cfg_invalid += cmp_pars_are_invalid(cfg->ap1_golomb_par, cfg->ap1_spill,
+				cmp_mode, cfg->data_type, "adaptive 1 imagette");
+		cfg_invalid += cmp_pars_are_invalid(cfg->ap2_golomb_par, cfg->ap2_spill,
+				cmp_mode, cfg->data_type, "adaptive 2 imagette");
 	}
 
-	if (cfg_invalid)
-		return 0;
-
-	return 1;
+	return cfg_invalid;
 }
 
 
 /**
- * @brief check if the flux/center of brightness specific compression parameters are valid
+ * @brief check if the flux/center of brightness specific compression parameters
+ *	are invalid
  *
  * @param cfg	pointer to the compressor configuration
  *
- * @returns 1 if the flux/center of brightness specific parameters are valid, otherwise 0
+ * @returns 0 if the flux/center of brightness specific parameters are valid, otherwise invalid
  */
 
-int cmp_cfg_fx_cob_is_valid(const struct cmp_cfg *cfg)
+int cmp_cfg_fx_cob_is_invalid(const struct cmp_cfg *cfg)
 {
 	int cfg_invalid = 0;
 	int check_exp_flags = 0, check_ncob = 0, check_efx = 0, check_ecob = 0, check_var = 0;
@@ -706,8 +721,8 @@ int cmp_cfg_fx_cob_is_valid(const struct cmp_cfg *cfg)
 		cfg_invalid++;
 	}
 	/* flux parameter is needed for every fx_cob data_type */
-	if (!cmp_pars_are_valid(cfg->cmp_par_fx, cfg->spill_fx, cfg->cmp_mode, "flux"))
-		cfg_invalid++;
+	cfg_invalid += cmp_pars_are_invalid(cfg->cmp_par_fx, cfg->spill_fx,
+					    cfg->cmp_mode, cfg->data_type, "flux");
 
 	switch (cfg->data_type) {
 	case DATA_TYPE_S_FX:
@@ -766,39 +781,37 @@ int cmp_cfg_fx_cob_is_valid(const struct cmp_cfg *cfg)
 		break;
 	}
 
-	if (check_exp_flags && !cmp_pars_are_valid(cfg->cmp_par_exp_flags,
-			cfg->spill_exp_flags, cfg->cmp_mode, "exposure flags"))
-		cfg_invalid++;
-	if (check_ncob && !cmp_pars_are_valid(cfg->cmp_par_ncob, cfg->spill_ncob,
-			cfg->cmp_mode, "center of brightness"))
-		cfg_invalid++;
-	if (check_efx && !cmp_pars_are_valid(cfg->cmp_par_efx, cfg->spill_efx,
-			cfg->cmp_mode, "extended flux"))
-		cfg_invalid++;
-	if (check_ecob && !cmp_pars_are_valid(cfg->cmp_par_ecob, cfg->spill_ecob,
-			cfg->cmp_mode, "extended center of brightness"))
-		cfg_invalid++;
-	if (check_var && !cmp_pars_are_valid(cfg->cmp_par_fx_cob_variance,
-			cfg->spill_fx_cob_variance, cfg->cmp_mode, "flux COB varianc"))
-		cfg_invalid++;
+	if (check_exp_flags)
+		cfg_invalid += cmp_pars_are_invalid(cfg->cmp_par_exp_flags, cfg->spill_exp_flags,
+			cfg->cmp_mode, cfg->data_type, "exposure flags");
+	if (check_ncob)
+		cfg_invalid += cmp_pars_are_invalid(cfg->cmp_par_ncob, cfg->spill_ncob,
+			cfg->cmp_mode, cfg->data_type, "center of brightness");
+	if (check_efx)
+		cfg_invalid += cmp_pars_are_invalid(cfg->cmp_par_efx, cfg->spill_efx,
+			cfg->cmp_mode, cfg->data_type, "extended flux");
+	if (check_ecob)
+		cfg_invalid += cmp_pars_are_invalid(cfg->cmp_par_ecob, cfg->spill_ecob,
+			cfg->cmp_mode, cfg->data_type, "extended center of brightness");
+	if (check_var)
+		cfg_invalid += cmp_pars_are_invalid(cfg->cmp_par_fx_cob_variance,
+			cfg->spill_fx_cob_variance, cfg->cmp_mode, cfg->data_type, "flux COB varianc");
 
-	if (cfg_invalid)
-		return 0;
-
-	return 1;
+	return cfg_invalid;
 }
 
 
 /**
- * @brief check if the auxiliary science specific compression parameters are valid
+ * @brief check if the auxiliary science specific compression parameters are invalid
  *
  * @param cfg	pointer to the compressor configuration
  *
- * @returns 1 if the auxiliary science specific parameters are valid, otherwise 0
+ * @returns 0 if the auxiliary science specific parameters are valid, otherwise
+ *	invalid
  * TODO: implemented DATA_TYPE_F_CAM_OFFSET and DATA_TYPE_F_CAM_BACKGROUND
  */
 
-int cmp_cfg_aux_is_valid(const struct cmp_cfg *cfg)
+int cmp_cfg_aux_is_invalid(const struct cmp_cfg *cfg)
 {
 	int cfg_invalid = 0;
 
@@ -810,63 +823,49 @@ int cmp_cfg_aux_is_valid(const struct cmp_cfg *cfg)
 		cfg_invalid++;
 	}
 
-	if (!cmp_pars_are_valid(cfg->cmp_par_mean, cfg->spill_mean,
-				cfg->cmp_mode, "mean"))
-		cfg_invalid++;
-	if (!cmp_pars_are_valid(cfg->cmp_par_variance, cfg->spill_variance,
-				cfg->cmp_mode, "variance"))
-		cfg_invalid++;
+	cfg_invalid += cmp_pars_are_invalid(cfg->cmp_par_mean, cfg->spill_mean,
+					    cfg->cmp_mode, cfg->data_type, "mean");
+	cfg_invalid += cmp_pars_are_invalid(cfg->cmp_par_variance, cfg->spill_variance,
+					    cfg->cmp_mode, cfg->data_type, "variance");
+
 	/* if (cfg->data_type != DATA_TYPE_OFFSET && cfg->data_type != DATA_TYPE_F_CAM_OFFSET) */
 	if (cfg->data_type != DATA_TYPE_OFFSET)
-		if (!cmp_pars_are_valid(cfg->cmp_par_pixels_error, cfg->spill_pixels_error,
-					cfg->cmp_mode, "outlier pixls num"))
-			cfg_invalid++;
+		cfg_invalid += cmp_pars_are_invalid(cfg->cmp_par_pixels_error, cfg->spill_pixels_error,
+						    cfg->cmp_mode, cfg->data_type, "outlier pixls num");
 
-	if (cfg_invalid)
-		return 0;
-
-	return 1;
+	return cfg_invalid;
 }
 
 
 /**
- * @brief check if a compression configuration is valid
+ * @brief check if a compression configuration is invalid
  *
  * @param cfg	pointer to the compressor configuration
  *
- * @returns 1 if the compression configuration is valid, otherwise 0
+ * @returns 0 if the compression configuration is valid, otherwise invalid
  */
 
-int cmp_cfg_is_valid(const struct cmp_cfg *cfg)
+int cmp_cfg_is_invalid(const struct cmp_cfg *cfg)
 {
 	int cfg_invalid = 0;
 
 	if (!cfg)
 		return 0;
 
-	if (!cmp_cfg_icu_gen_par_is_valid(cfg))
+	cfg_invalid += cmp_cfg_icu_gen_par_is_invalid(cfg);
+
+	cfg_invalid += cmp_cfg_icu_buffers_is_invalid(cfg);
+
+	if (cmp_imagette_data_type_is_used(cfg->data_type))
+		cfg_invalid += cmp_cfg_imagette_is_invalid(cfg, ICU_CHECK);
+	else if (cmp_fx_cob_data_type_is_used(cfg->data_type))
+		cfg_invalid += cmp_cfg_fx_cob_is_invalid(cfg);
+	else if (cmp_aux_data_type_is_used(cfg->data_type))
+		cfg_invalid += cmp_cfg_aux_is_invalid(cfg);
+	else
 		cfg_invalid++;
 
-	if (!cmp_cfg_icu_buffers_is_valid(cfg))
-		cfg_invalid++;
-
-	if (cmp_imagette_data_type_is_used(cfg->data_type)) {
-		if (!cmp_cfg_imagette_is_valid(cfg))
-			cfg_invalid++;
-	} else if (cmp_fx_cob_data_type_is_used(cfg->data_type)) {
-		if (!cmp_cfg_fx_cob_is_valid(cfg))
-			cfg_invalid++;
-	} else if (cmp_aux_data_type_is_used(cfg->data_type)) {
-		if (!cmp_cfg_aux_is_valid(cfg))
-			cfg_invalid++;
-	} else {
-		cfg_invalid++;
-	}
-
-	if (cfg_invalid)
-		return 0;
-
-	return 1;
+	return cfg_invalid;
 }
 
 

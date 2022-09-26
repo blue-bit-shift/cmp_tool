@@ -49,9 +49,8 @@ size_t icu_compress_data_entity(struct cmp_entity *ent, const struct cmp_cfg *cf
 	if (cmp_size_bits < 0)
 		return 0;
 
-	/* XXX overwrite the size of the compression entity with the size of the
-	 * actual size of the compressed data */
-	/* not all allocated memory is normally needed */
+	/* XXX overwrite the size of the compression entity with the size of the actual
+	 * size of the compressed data; not all allocated memory is normally used */
 	s = cmp_ent_create(ent, cfg->data_type, cfg->cmp_mode == CMP_MODE_RAW,
 			   cmp_bit_to_4byte(cmp_size_bits));
 
@@ -161,9 +160,28 @@ void test_re_map_to_pos(void)
 }
 
 
+void test_rice_decoder(void)
+{
+	int cw_len;
+	uint32_t code_word;
+	unsigned int m = ~0;/* we don't need this value */
+	unsigned int log2_m;
+	unsigned int decoded_cw;
+
+	/* test log_2 to big */
+	code_word = 0xE0000000;
+	log2_m = 33;
+	cw_len = rice_decoder(code_word, m, log2_m, &decoded_cw);
+	TEST_ASSERT_EQUAL(0, cw_len);
+	log2_m = UINT_MAX;
+	cw_len = rice_decoder(code_word, m, log2_m, &decoded_cw);
+	TEST_ASSERT_EQUAL(0, cw_len);
+}
+
+
 void test_decode_normal(void)
 {
-	uint32_t decoded_value;
+	uint32_t decoded_value = ~0;
 	int stream_pos, sample;
 	 /* compressed data from 0 to 6; */
 	uint32_t cmp_data[] = {0x5BBDF7E0};
@@ -176,7 +194,6 @@ void test_decode_normal(void)
 	setup.encoder_par2 = ilog_2(setup.encoder_par1);
 	setup.bitstream_adr = cmp_data;
 	setup.max_stream_len = 32;
-	setup.max_cw_len = 16;
 
 	stream_pos = 0;
 	for (sample = 0; sample < 7; sample++) {
@@ -190,7 +207,7 @@ void test_decode_normal(void)
 
 void test_decode_zero(void)
 {
-	uint32_t decoded_value;
+	uint32_t decoded_value = ~0;
 	int stream_pos;
 	uint32_t cmp_data[] = {0x88449FE0};
 	struct decoder_setup setup = {0};
@@ -221,7 +238,7 @@ void test_decode_zero(void)
 
 void test_decode_multi(void)
 {
-	uint32_t decoded_value;
+	uint32_t decoded_value = ~0;
 	int stream_pos;
 	uint32_t cmp_data[] = {0x16B66DF8, 0x84360000};
 	struct decoder_setup setup = {0};
@@ -297,7 +314,6 @@ void test_decompress_imagette_model(void)
 
 
 
-#define CMP_PAR_UNUSED 0 /*TODO: remove this*/
 #define DATA_SAMPLES 5
 void test_cmp_decmp_s_fx_diff(void)
 {
@@ -471,8 +487,8 @@ void test_imagette_random(void)
 					    NULL, compressed_data_len_samples);
 	TEST_ASSERT_TRUE(cmp_data_size);
 
-	uint32_t golomb_par = my_random(MIN_RDCU_GOLOMB_PAR, MAX_RDCU_GOLOMB_PAR);
-	uint32_t max_spill = cmp_icu_max_spill(golomb_par);
+	uint32_t golomb_par = my_random(MIN_IMA_GOLOMB_PAR, MAX_IMA_GOLOMB_PAR);
+	uint32_t max_spill = cmp_ima_max_spill(golomb_par);
 	TEST_ASSERT(max_spill > 1);
 	uint32_t spill = my_random(2, max_spill);
 
@@ -663,9 +679,9 @@ void test_random_compression_decompression(void)
 		/* cfg.round = my_random(0,3); /1* XXX *1/ */
 		cfg.round = 0;
 
-		cfg.golomb_par = my_random(MIN_RDCU_GOLOMB_PAR, MAX_RDCU_GOLOMB_PAR);
-		cfg.ap1_golomb_par = my_random(MIN_RDCU_GOLOMB_PAR, MAX_RDCU_GOLOMB_PAR);
-		cfg.ap2_golomb_par = my_random(MIN_RDCU_GOLOMB_PAR, MAX_RDCU_GOLOMB_PAR);
+		cfg.golomb_par = my_random(MIN_IMA_GOLOMB_PAR, MAX_IMA_GOLOMB_PAR);
+		cfg.ap1_golomb_par = my_random(MIN_IMA_GOLOMB_PAR, MAX_IMA_GOLOMB_PAR);
+		cfg.ap2_golomb_par = my_random(MIN_IMA_GOLOMB_PAR, MAX_IMA_GOLOMB_PAR);
 		cfg.cmp_par_exp_flags = my_random(MIN_ICU_GOLOMB_PAR, MAX_ICU_GOLOMB_PAR);
 		cfg.cmp_par_fx = my_random(MIN_ICU_GOLOMB_PAR, MAX_ICU_GOLOMB_PAR);
 		cfg.cmp_par_ncob = my_random(MIN_ICU_GOLOMB_PAR, MAX_ICU_GOLOMB_PAR);
@@ -676,9 +692,9 @@ void test_random_compression_decompression(void)
 		cfg.cmp_par_variance = my_random(MIN_ICU_GOLOMB_PAR, MAX_ICU_GOLOMB_PAR);
 		cfg.cmp_par_pixels_error = my_random(MIN_ICU_GOLOMB_PAR, MAX_ICU_GOLOMB_PAR);
 
-		cfg.spill = my_random(MIN_RDCU_SPILL, cmp_icu_max_spill(cfg.golomb_par));
-		cfg.ap1_spill = my_random(MIN_RDCU_SPILL, cmp_icu_max_spill(cfg.ap1_golomb_par));
-		cfg.ap2_spill = my_random(MIN_RDCU_SPILL, cmp_icu_max_spill(cfg.ap2_golomb_par));
+		cfg.spill = my_random(MIN_IMA_SPILL, cmp_ima_max_spill(cfg.golomb_par));
+		cfg.ap1_spill = my_random(MIN_IMA_SPILL, cmp_ima_max_spill(cfg.ap1_golomb_par));
+		cfg.ap2_spill = my_random(MIN_IMA_SPILL, cmp_ima_max_spill(cfg.ap2_golomb_par));
 		if (!rdcu_supported_data_type_is_used(cfg.data_type)) {
 			cfg.spill_exp_flags = my_random(MIN_ICU_SPILL, cmp_icu_max_spill(cfg.cmp_par_exp_flags));
 			cfg.spill_fx = my_random(MIN_ICU_SPILL, cmp_icu_max_spill(cfg.cmp_par_fx));
@@ -733,4 +749,10 @@ void test_random_compression_decompression(void)
 		decompressed_up_model = NULL;
 
 	}
+}
+
+void test_decompression_error_cases(void)
+{
+	/* error cases model decompression without a model Buffer */
+	/* error cases wrong cmp parameter; model value; usw */
 }

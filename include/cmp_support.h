@@ -38,11 +38,11 @@
 #define MAX_MODEL_VALUE                                                        \
 	16U /* the maximal model values used in the update equation for the new model */
 
-/* valid compression parameter ranges for RDCU compression according to PLATO-UVIE-PL-UM-0001 */
+/* valid compression parameter ranges for RDCU/ICU imagette compression according to PLATO-UVIE-PL-UM-0001 */
 #define MAX_RDCU_CMP_MODE	4U
-#define MIN_RDCU_GOLOMB_PAR	1U
-#define MAX_RDCU_GOLOMB_PAR	63U
-#define MIN_RDCU_SPILL		2U
+#define MIN_IMA_GOLOMB_PAR	1U
+#define MAX_IMA_GOLOMB_PAR	63U
+#define MIN_IMA_SPILL		2U
 #define MAX_RDCU_ROUND		2U
 /* for maximum spill value look at cmp_rdcu_max_spill function */
 
@@ -90,6 +90,8 @@
 #define CMP_DEF_IMA_DIFF_RDCU_MODEL_ADR		0x000000 /* not needed for 1d-differencing cmp_mode */
 #define CMP_DEF_IMA_DIFF_RDCU_UP_MODEL_ADR	0x000000 /* not needed for 1d-differencing cmp_mode */
 #define CMP_DEF_IMA_DIFF_RDCU_BUFFER_ADR	0x600000
+
+enum {ICU_CHECK, RDCU_CHECK}; /* option for the cmp_cfg_imagette_is_invalid() function */
 
 
 /* defined compression data product types */
@@ -237,13 +239,13 @@ int ilog_2(uint32_t x);
 
 unsigned int cmp_bit_to_4byte(unsigned int cmp_size_bit);
 
-int cmp_cfg_is_valid(const struct cmp_cfg *cfg);
-int cmp_cfg_icu_gen_par_is_valid(const struct cmp_cfg *cfg);
-int cmp_cfg_icu_buffers_is_valid(const struct cmp_cfg *cfg);
-int cmp_cfg_imagette_is_valid(const struct cmp_cfg *cfg);
-int cmp_cfg_fx_cob_is_valid(const struct cmp_cfg *cfg);
-int cmp_cfg_aux_is_valid(const struct cmp_cfg *cfg);
-uint32_t cmp_rdcu_max_spill(unsigned int golomb_par);
+int cmp_cfg_is_invalid(const struct cmp_cfg *cfg);
+int cmp_cfg_icu_gen_par_is_invalid(const struct cmp_cfg *cfg);
+int cmp_cfg_icu_buffers_is_invalid(const struct cmp_cfg *cfg);
+int cmp_cfg_imagette_is_invalid(const struct cmp_cfg *cfg, int rdcu_check);
+int cmp_cfg_fx_cob_is_invalid(const struct cmp_cfg *cfg);
+int cmp_cfg_aux_is_invalid(const struct cmp_cfg *cfg);
+uint32_t cmp_ima_max_spill(unsigned int golomb_par);
 uint32_t cmp_icu_max_spill(unsigned int cmp_par);
 
 int cmp_data_type_valid(enum cmp_data_type data_type);
