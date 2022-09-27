@@ -110,7 +110,69 @@ void test_cmp_decmp_n_imagette_raw(void)
 }
 
 
-/*
+/**
+ * @test count_leading_ones
+ */
+
+void test_count_leading_ones(void)
+{
+	unsigned int n_leading_bit;
+	uint32_t value;
+
+	value = 0;
+	n_leading_bit = count_leading_ones(value);
+	TEST_ASSERT_EQUAL_INT(0, n_leading_bit);
+
+	value = 0x7FFFFFFF;
+	n_leading_bit = count_leading_ones(value);
+	TEST_ASSERT_EQUAL_INT(0, n_leading_bit);
+
+	value = 0x80000000;
+	n_leading_bit = count_leading_ones(value);
+	TEST_ASSERT_EQUAL_INT(1, n_leading_bit);
+
+	value = 0xBFFFFFFF;
+	n_leading_bit = count_leading_ones(value);
+	TEST_ASSERT_EQUAL_INT(1, n_leading_bit);
+
+	value = 0xFFFF0000;
+	n_leading_bit = count_leading_ones(value);
+	TEST_ASSERT_EQUAL_INT(16, n_leading_bit);
+
+	value = 0xFFFF7FFF;
+	n_leading_bit = count_leading_ones(value);
+	TEST_ASSERT_EQUAL_INT(16, n_leading_bit);
+
+	value = 0xFFFFFFFF;
+	n_leading_bit = count_leading_ones(value);
+	TEST_ASSERT_EQUAL_INT(32, n_leading_bit);
+}
+
+
+/**
+ * @test rice_decoder
+ */
+
+void test_rice_decoder(void)
+{
+	int cw_len;
+	uint32_t code_word;
+	unsigned int m = ~0;  /* we don't need this value */
+	unsigned int log2_m;
+	unsigned int decoded_cw;
+
+	/* test log_2 to big */
+	code_word = 0xE0000000;
+	log2_m = 33;
+	cw_len = rice_decoder(code_word, m, log2_m, &decoded_cw);
+	TEST_ASSERT_EQUAL(0, cw_len);
+	log2_m = UINT_MAX;
+	cw_len = rice_decoder(code_word, m, log2_m, &decoded_cw);
+	TEST_ASSERT_EQUAL(0, cw_len);
+}
+
+
+/**
  * @test re_map_to_pos
  */
 
@@ -157,25 +219,6 @@ void test_re_map_to_pos(void)
 		TEST_ASSERT_EQUAL_INT32(j, result);
 	}
 #endif
-}
-
-
-void test_rice_decoder(void)
-{
-	int cw_len;
-	uint32_t code_word;
-	unsigned int m = ~0;/* we don't need this value */
-	unsigned int log2_m;
-	unsigned int decoded_cw;
-
-	/* test log_2 to big */
-	code_word = 0xE0000000;
-	log2_m = 33;
-	cw_len = rice_decoder(code_word, m, log2_m, &decoded_cw);
-	TEST_ASSERT_EQUAL(0, cw_len);
-	log2_m = UINT_MAX;
-	cw_len = rice_decoder(code_word, m, log2_m, &decoded_cw);
-	TEST_ASSERT_EQUAL(0, cw_len);
 }
 
 

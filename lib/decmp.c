@@ -16,7 +16,8 @@
  * @brief software decompression library
  * @see Data Compression User Manual PLATO-UVIE-PL-UM-0001
  *
- * TODO: how to decomprss?
+ * To decompress a compression entity (consisting of a compression entity header
+ * and the compressed data) use the decompress_cmp_entiy() function.
  */
 
 #include <stdint.h>
@@ -33,6 +34,7 @@
 
 
 #define MAX_CW_LEN 32 /* maximum Golomb code word bit length */
+
 
 /* maximum used bits registry */
 extern struct cmp_max_used_bits max_used_bits;
@@ -59,7 +61,7 @@ struct decoder_setup {
 /**
  * @brief count leading 1-bits
  *
- * @param value	input vale
+ * @param value	input vale to count
  *
  * @returns the number of leading 1-bits in value, starting at the most
  *	significant bit position
@@ -67,18 +69,10 @@ struct decoder_setup {
 
 static unsigned int count_leading_ones(uint32_t value)
 {
-	unsigned int n_ones = 0; /* number of leading 1s */
+	if (value == 0xFFFFFFFF)
+		return 32;
 
-	while (1) {
-		uint32_t leading_bit = value & 0x80000000;
-
-		if (!leading_bit)
-			break;
-
-		n_ones++;
-		value <<= 1;
-	}
-	return n_ones;
+	return __builtin_clz(~value);
 }
 
 
@@ -100,18 +94,16 @@ static int rice_decoder(uint32_t code_word, unsigned int m, unsigned int log2_m,
 	unsigned int q; /* quotient code */
 	unsigned int ql; /* length of the quotient code */
 	unsigned int r; /* remainder code */
-	unsigned int rl; /* length of the remainder code */
+	unsigned int rl = log2_m; /* length of the remainder code */
 	unsigned int cw_len; /* length of the decoded code word in bits */
 
 	(void)m; /* we don't need the Golomb parameter */
 
-	if (log2_m > 32)
+	if (log2_m > 32) /* because m has 32 bits log2_m can not be bigger than 32 */
 		return 0;
 
 	q = count_leading_ones(code_word); /* decode unary coding */
 	ql = q + 1; /* Number of 1's + following 0 */
-
-	rl = log2_m;
 
 	cw_len = rl + ql;
 
@@ -121,8 +113,7 @@ static int rice_decoder(uint32_t code_word, unsigned int m, unsigned int log2_m,
 	code_word = code_word << ql;  /* shift quotient code out */
 
 	/* Right shifting an integer by a number of bits equal or greater than
-	 * its size is undefined behavior
-	 */
+	 * its size is undefined behavior */
 	if (rl == 0)
 		r = 0;
 	else
@@ -308,7 +299,7 @@ static int decode_normal(uint32_t *decoded_value, int stream_pos,
 	unsigned int n_read_bits;
 	int stream_pos_read, cw_len;
 
-	/* check if we can read max_cw_len or less; we do not now how long the
+	/* check if we can read max_cw_len or less; we do not know how long the
 	 * code word actually is so we try to read the maximum cw length */
 	if ((unsigned int)stream_pos + 32 > setup->max_stream_len)
 		n_read_bits = setup->max_stream_len - (unsigned int)stream_pos;
@@ -327,7 +318,7 @@ static int decode_normal(uint32_t *decoded_value, int stream_pos,
 				    setup->encoder_par2, decoded_value);
 	if (cw_len <= 0)
 		return -1;
-	/* consistency check: code word length can not be bigger than read bits */
+	/* consistency check: code word length can not be bigger than the read bits */
 	if (cw_len > (int)n_read_bits)
 		return -1;
 
@@ -400,6 +391,8 @@ static int decode_multi(uint32_t *decoded_value, int stream_pos,
 			const struct decoder_setup *setup)
 {
 	stream_pos = decode_normal(decoded_value, stream_pos, setup);
+	if (stream_pos < 0)
+		return stream_pos;
 
 	if (*decoded_value >= setup->outlier_par) {
 		/* escape symbol mechanism was used; read unencoded value */
@@ -442,7 +435,7 @@ static int decode_none(uint32_t *decoded_value, int stream_pos,
 
 
 /**
- * @brief remap a unsigned value back to a signed value
+ * @brief remap an unsigned value back to a signed value
  * @note this is the reverse function of map_to_pos()
  *
  * @param value_to_unmap	unsigned value to remap
@@ -481,27 +474,46 @@ static int decode_value(uint32_t *decoded_value, uint32_t model,
 {
 	uint32_t mask = (~0U >> (32 - setup->max_data_bits)); /* mask the used bits */
 
+	/* decode the next value from the bitstream */
 	stream_pos = setup->decode_method_f(decoded_value, stream_pos, setup);
 	if (stream_pos <= 0)
 		return stream_pos;
 
-	if (setup->decode_method_f == decode_none) /* we are done here in stuff mode */
+	if (setup->decode_method_f == decode_none)
+		/* we are done here in stuff mode */
 		return stream_pos;
 
+	/* map the unsigned decode value back to a signed value */
 	*decoded_value = re_map_to_pos(*decoded_value);
 
+	/* decorate data the data with the model */
 	*decoded_value += round_fwd(model, setup->lossy_par);
 
-	*decoded_value &= mask; /* TODO: why?? */
+	/* we mask only the used bits in case there is an overflow when adding the model */
+	*decoded_value &= mask;
 
+	/* inverse step of the lossy compression */
 	*decoded_value = round_inv(*decoded_value, setup->lossy_par);
 
 	return stream_pos;
 }
 
 
+/**
+ * @brief configure a decoder setup structure to have a setup to decode a vale
+ *
+ * @param setup		pointer to the decoder setup
+ * @param cmp_par	compression parameter
+ * @param spillover	spillover_par parameter
+ * @param lossy_par	lossy compression parameter
+ * @param max_data_bits	how many bits are needed to represent the highest possible value
+ * @param cfg		pointer to the compression configuration structure
+ *
+ * @returns 0 on success; otherwise error
+ */
+
 static int configure_decoder_setup(struct decoder_setup *setup,
-				   uint32_t cmp_par, uint32_t spill,
+				   uint32_t cmp_par, uint32_t spillover,
 				   uint32_t lossy_par, uint32_t max_data_bits,
 				   const struct cmp_cfg *cfg)
 {
@@ -527,7 +539,7 @@ static int configure_decoder_setup(struct decoder_setup *setup,
 	if (ilog_2(cmp_par) < 0)
 		return -1;
 	setup->encoder_par2 = ilog_2(cmp_par); /* encoding parameter 2 */
-	setup->outlier_par = spill; /* outlier parameter */
+	setup->outlier_par = spillover; /* outlier parameter */
 	setup->lossy_par = lossy_par; /* lossy compression parameter */
 	setup->model_value = cfg->model_value; /* model value parameter */
 	setup->max_data_bits = max_data_bits; /* how many bits are needed to represent the highest possible value */
@@ -536,6 +548,16 @@ static int configure_decoder_setup(struct decoder_setup *setup,
 	return 0;
 }
 
+
+/**
+ * @brief decompress imagette data
+ *
+ * @param cfg	pointer to the compression configuration structure
+ *
+ * @returns bit position of the last read bit in the bitstream on success;
+ *	returns negative on error, returns CMP_ERROR_SMALL_BUF if the bitstream
+ *	buffer is too small to read the value from the bitstream
+ */
 
 static int decompress_imagette(struct cmp_cfg *cfg)
 {
@@ -577,7 +599,7 @@ static int decompress_imagette(struct cmp_cfg *cfg)
 
 
 /**
- * @brief TODO: decompress the multi-entry packet header structure and sets the data,
+ * @brief decompress the multi-entry packet header structure and sets the data,
  *	model and up_model pointers to the data after the header
  *
  * @param data		pointer to a pointer pointing to the data to be compressed
@@ -585,7 +607,7 @@ static int decompress_imagette(struct cmp_cfg *cfg)
  * @param up_model	pointer to a pointer pointing to the updated model buffer
  * @param cfg		pointer to the compression configuration structure
  *
- * @returns the bit length of the bitstream on success; negative on error,
+ * @returns the bit length of the bitstream on success
  *
  * @note the (void **) cast relies on all pointer types having the same internal
  *	representation which is common, but not universal; http://www.c-faq.com/ptrs/genericpp.html
@@ -624,9 +646,9 @@ static int decompress_multi_entry_hdr(void **data, void **model, void **up_model
  *
  * @param cfg	pointer to the compression configuration structure
  *
- * @returns the bit length of the bitstream on success; negative on error,
- *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
- *	value in the bitstream
+ * @returns bit position of the last read bit in the bitstream on success;
+ *	returns negative on error, returns CMP_ERROR_SMALL_BUF if the bitstream
+ *	buffer is too small to read the value from the bitstream
  */
 
 static int decompress_s_fx(const struct cmp_cfg *cfg)
@@ -696,9 +718,9 @@ static int decompress_s_fx(const struct cmp_cfg *cfg)
  *
  * @param cfg	pointer to the compression configuration structure
  *
- * @returns the bit length of the bitstream on success; negative on error,
- *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
- *	value in the bitstream
+ * @returns bit position of the last read bit in the bitstream on success;
+ *	returns negative on error, returns CMP_ERROR_SMALL_BUF if the bitstream
+ *	buffer is too small to read the value from the bitstream
  */
 
 static int decompress_s_fx_efx(const struct cmp_cfg *cfg)
@@ -779,9 +801,9 @@ static int decompress_s_fx_efx(const struct cmp_cfg *cfg)
  *
  * @param cfg	pointer to the compression configuration structure
  *
- * @returns the bit length of the bitstream on success; negative on error,
- *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
- *	value in the bitstream
+ * @returns bit position of the last read bit in the bitstream on success;
+ *	returns negative on error, returns CMP_ERROR_SMALL_BUF if the bitstream
+ *	buffer is too small to read the value from the bitstream
  */
 
 static int decompress_s_fx_ncob(const struct cmp_cfg *cfg)
@@ -870,9 +892,9 @@ static int decompress_s_fx_ncob(const struct cmp_cfg *cfg)
  *
  * @param cfg	pointer to the compression configuration structure
  *
- * @returns the bit length of the bitstream on success; negative on error,
- *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
- *	value in the bitstream
+ * @returns bit position of the last read bit in the bitstream on success;
+ *	returns negative on error, returns CMP_ERROR_SMALL_BUF if the bitstream
+ *	buffer is too small to read the value from the bitstream
  */
 
 static int decompress_s_fx_efx_ncob_ecob(const struct cmp_cfg *cfg)
@@ -991,9 +1013,9 @@ static int decompress_s_fx_efx_ncob_ecob(const struct cmp_cfg *cfg)
  *
  * @param cfg	pointer to the compression configuration structure
  *
- * @returns the bit length of the bitstream on success; negative on error,
- *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
- *	value in the bitstream
+ * @returns bit position of the last read bit in the bitstream on success;
+ *	returns negative on error, returns CMP_ERROR_SMALL_BUF if the bitstream
+ *	buffer is too small to read the value from the bitstream
  */
 
 static int decompress_f_fx(const struct cmp_cfg *cfg)
@@ -1051,9 +1073,9 @@ static int decompress_f_fx(const struct cmp_cfg *cfg)
  *
  * @param cfg	pointer to the compression configuration structure
  *
- * @returns the bit length of the bitstream on success; negative on error,
- *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
- *	value in the bitstream
+ * @returns bit position of the last read bit in the bitstream on success;
+ *	returns negative on error, returns CMP_ERROR_SMALL_BUF if the bitstream
+ *	buffer is too small to read the value from the bitstream
  */
 
 static int decompress_f_fx_efx(const struct cmp_cfg *cfg)
@@ -1123,9 +1145,9 @@ static int decompress_f_fx_efx(const struct cmp_cfg *cfg)
  *
  * @param cfg	pointer to the compression configuration structure
  *
- * @returns the bit length of the bitstream on success; negative on error,
- *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
- *	value in the bitstream
+ * @returns bit position of the last read bit in the bitstream on success;
+ *	returns negative on error, returns CMP_ERROR_SMALL_BUF if the bitstream
+ *	buffer is too small to read the value from the bitstream
  */
 
 static int decompress_f_fx_ncob(const struct cmp_cfg *cfg)
@@ -1203,9 +1225,9 @@ static int decompress_f_fx_ncob(const struct cmp_cfg *cfg)
  *
  * @param cfg	pointer to the compression configuration structure
  *
- * @returns the bit length of the bitstream on success; negative on error,
- *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
- *	value in the bitstream
+ * @returns bit position of the last read bit in the bitstream on success;
+ *	returns negative on error, returns CMP_ERROR_SMALL_BUF if the bitstream
+ *	buffer is too small to read the value from the bitstream
  */
 
 static int decompress_f_fx_efx_ncob_ecob(const struct cmp_cfg *cfg)
@@ -1313,9 +1335,9 @@ static int decompress_f_fx_efx_ncob_ecob(const struct cmp_cfg *cfg)
  *
  * @param cfg	pointer to the compression configuration structure
  *
- * @returns the bit length of the bitstream on success; negative on error,
- *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
- *	value in the bitstream
+ * @returns bit position of the last read bit in the bitstream on success;
+ *	returns negative on error, returns CMP_ERROR_SMALL_BUF if the bitstream
+ *	buffer is too small to read the value from the bitstream
  */
 
 static int decompress_l_fx(const struct cmp_cfg *cfg)
@@ -1396,9 +1418,9 @@ static int decompress_l_fx(const struct cmp_cfg *cfg)
  *
  * @param cfg	pointer to the compression configuration structure
  *
- * @returns the bit length of the bitstream on success; negative on error,
- *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
- *	value in the bitstream
+ * @returns bit position of the last read bit in the bitstream on success;
+ *	returns negative on error, returns CMP_ERROR_SMALL_BUF if the bitstream
+ *	buffer is too small to read the value from the bitstream
  */
 
 static int decompress_l_fx_efx(const struct cmp_cfg *cfg)
@@ -1490,9 +1512,9 @@ static int decompress_l_fx_efx(const struct cmp_cfg *cfg)
  *
  * @param cfg	pointer to the compression configuration structure
  *
- * @returns the bit length of the bitstream on success; negative on error,
- *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
- *	value in the bitstream
+ * @returns bit position of the last read bit in the bitstream on success;
+ *	returns negative on error, returns CMP_ERROR_SMALL_BUF if the bitstream
+ *	buffer is too small to read the value from the bitstream
  */
 
 static int decompress_l_fx_ncob(const struct cmp_cfg *cfg)
@@ -1612,9 +1634,9 @@ static int decompress_l_fx_ncob(const struct cmp_cfg *cfg)
  *
  * @param cfg	pointer to the compression configuration structure
  *
- * @returns the bit length of the bitstream on success; negative on error,
- *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
- *	value in the bitstream
+ * @returns bit position of the last read bit in the bitstream on success;
+ *	returns negative on error, returns CMP_ERROR_SMALL_BUF if the bitstream
+ *	buffer is too small to read the value from the bitstream
  */
 
 static int decompress_l_fx_efx_ncob_ecob(const struct cmp_cfg *cfg)
@@ -1764,9 +1786,9 @@ static int decompress_l_fx_efx_ncob_ecob(const struct cmp_cfg *cfg)
  *
  * @param cfg	pointer to the compression configuration structure
  *
- * @returns the bit length of the bitstream on success; negative on error,
- *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
- *	value in the bitstream
+ * @returns bit position of the last read bit in the bitstream on success;
+ *	returns negative on error, returns CMP_ERROR_SMALL_BUF if the bitstream
+ *	buffer is too small to read the value from the bitstream
  */
 
 static int decompress_nc_offset(const struct cmp_cfg *cfg)
@@ -1836,9 +1858,9 @@ static int decompress_nc_offset(const struct cmp_cfg *cfg)
  *
  * @param cfg	pointer to the compression configuration structure
  *
- * @returns the bit length of the bitstream on success; negative on error,
- *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
- *	value in the bitstream
+ * @returns bit position of the last read bit in the bitstream on success;
+ *	returns negative on error, returns CMP_ERROR_SMALL_BUF if the bitstream
+ *	buffer is too small to read the value from the bitstream
  */
 
 static int decompress_nc_background(const struct cmp_cfg *cfg)
@@ -1919,9 +1941,9 @@ static int decompress_nc_background(const struct cmp_cfg *cfg)
  *
  * @param cfg	pointer to the compression configuration structure
  *
- * @returns the bit length of the bitstream on success; negative on error,
- *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
- *	value in the bitstream
+ * @returns bit position of the last read bit in the bitstream on success;
+ *	returns negative on error, returns CMP_ERROR_SMALL_BUF if the bitstream
+ *	buffer is too small to read the value from the bitstream
  */
 
 static int decompress_smearing(const struct cmp_cfg *cfg)
@@ -1996,6 +2018,17 @@ static int decompress_smearing(const struct cmp_cfg *cfg)
 	return stream_pos;
 }
 
+
+/**
+ * @brief decompress the data based on a compression configuration
+ *
+ * @param cfg	pointer to a compression configuration
+ *
+ * @note cfg->buffer_length is measured in bytes (instead of samples as by the
+ *	compression)
+ *
+ * @returns the size of the decompressed data on success; returns negative on failure
+ */
 
 static int decompressed_data_internal(struct cmp_cfg *cfg)
 {
@@ -2094,9 +2127,7 @@ static int decompressed_data_internal(struct cmp_cfg *cfg)
 			debug_print("Error: Compressed data type not supported.\n");
 			break;
 		}
-
 	}
-	/* TODO: is this usefull? if (strem_len_bit != data_size * CHAR_BIT) { */
 	if (strem_len_bit <= 0)
 		return -1;
 
@@ -2104,13 +2135,27 @@ static int decompressed_data_internal(struct cmp_cfg *cfg)
 }
 
 
-int decompress_cmp_entiy(struct cmp_entity *ent, void *model_buf,
+/**
+ * @brief decompress a compression entity
+ *
+ * @param ent			pointer to the compression entity to be decompressed
+ * @param model_of_data		pointer to model data buffer (can be NULL if no
+ *				model compression mode is used)
+ * @param updated_model		pointer to store the updated model for the next model
+ *				mode compression (can be the same as the model_of_data
+ *				buffer for in-place update or NULL if updated model is not needed)
+ * @param decompressed_data	pointer to the decompressed data buffer (can be NULL)
+ *
+ * @returns the size of the decompressed data on success; returns negative on failure
+ */
+
+int decompress_cmp_entiy(struct cmp_entity *ent, void *model_of_data,
 			 void *up_model_buf, void *decompressed_data)
 {
 	int err;
 	struct cmp_cfg cfg = {0};
 
-	cfg.model_buf = model_buf;
+	cfg.model_buf = model_of_data;
 	cfg.icu_new_model_buf = up_model_buf;
 	cfg.input_buf = decompressed_data;
 
@@ -2125,12 +2170,26 @@ int decompress_cmp_entiy(struct cmp_entity *ent, void *model_buf,
 }
 
 
-/* model buffer is overwritten with updated model */
+/**
+ * @brief decompress RDCU compressed data without a compression entity header
+ *
+ * @param compressed_data	pointer to the RDCU compressed data (without a
+ *				compression entity header)
+ * @param model_of_data		pointer to model data buffer (can be NULL if no
+ *				model compression mode is used)
+ * @param updated_model		pointer to store the updated model for the next model
+ *				mode compression (can be the same as the model_of_data
+ *				buffer for in-place update or NULL if updated model is not needed)
+ * @param decompressed_data	pointer to the decompressed data buffer (can be NULL)
+ *
+ * @returns the size of the decompressed data on success; returns negative on failure
+ */
 
-int decompress_data(uint32_t *compressed_data, void *de_model_buf,
-		    const struct cmp_info *info, void *decompressed_data)
+int decompress_rdcu_data(uint32_t *compressed_data, const struct cmp_info *info,
+			 uint16_t *model_of_data, uint16_t *up_model_buf,
+			 uint16_t *decompressed_data)
+
 {
-	int size_decomp_data;
 	struct cmp_cfg cfg = {0};
 
 	if (!compressed_data)
@@ -2142,15 +2201,11 @@ int decompress_data(uint32_t *compressed_data, void *de_model_buf,
 	if (info->cmp_err)
 		return -1;
 
-	if (model_mode_is_used(info->cmp_mode_used))
-		if (!de_model_buf)
-			return -1;
-	/* TODO: add ohter modes */
+	cfg.data_type = DATA_TYPE_IMAGETTE;
+	cfg.model_buf = model_of_data;
+	cfg.icu_new_model_buf = up_model_buf;
+	cfg.input_buf = decompressed_data;
 
-	if (!decompressed_data)
-		return -1;
-
-	/* cfg.data_type = info->data_type_used; */
 	cfg.cmp_mode = info->cmp_mode_used;
 	cfg.model_value = info->model_value_used;
 	cfg.round = info->round_used;
@@ -2159,11 +2214,6 @@ int decompress_data(uint32_t *compressed_data, void *de_model_buf,
 	cfg.samples = info->samples_used;
 	cfg.icu_output_buf = compressed_data;
 	cfg.buffer_length = cmp_bit_to_4byte(info->cmp_size);
-	cfg.input_buf = decompressed_data;
-	cfg.model_buf = de_model_buf;
-	size_decomp_data = decompressed_data_internal(&cfg);
-	if (size_decomp_data <= 0)
-		return -1;
-	else
-		return 0;
+
+	return decompressed_data_internal(&cfg);
 }
