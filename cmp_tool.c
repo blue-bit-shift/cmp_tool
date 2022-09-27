@@ -90,7 +90,7 @@ static const char *output_prefix = DEFAULT_OUTPUT_PREFIX;
 
 /* if non zero additional RDCU parameters are included in the compression
  * configuration and decompression information files */
-static int print_rdcu_cfg;
+static int add_rdcu_pars;
 
 /* if non zero generate RDCU setup packets */
 static int rdcu_pkt_mode;
@@ -160,7 +160,7 @@ int main(int argc, char **argv)
 				  NULL)) != -1) {
 		switch (opt) {
 		case 'a': /* --rdcu_par */
-			print_rdcu_cfg = 1;
+			add_rdcu_pars = 1;
 			break;
 		case 'c':
 			cmp_operation = 1;
@@ -271,7 +271,7 @@ int main(int argc, char **argv)
 				  CMP_DEF_IMA_MODEL_GOLOMB_PAR, CMP_DEF_IMA_MODEL_SPILL_PAR,
 				  CMP_DEF_IMA_MODEL_AP1_GOLOMB_PAR, CMP_DEF_IMA_MODEL_AP1_SPILL_PAR,
 				  CMP_DEF_IMA_MODEL_AP2_GOLOMB_PAR, CMP_DEF_IMA_MODEL_AP2_SPILL_PAR);
-		print_cfg(&cfg, print_rdcu_cfg);
+		print_cfg(&cfg, add_rdcu_pars);
 		exit(EXIT_SUCCESS);
 	}
 
@@ -285,7 +285,7 @@ int main(int argc, char **argv)
 				  CMP_DEF_IMA_DIFF_GOLOMB_PAR, CMP_DEF_IMA_DIFF_SPILL_PAR,
 				  CMP_DEF_IMA_DIFF_AP1_GOLOMB_PAR, CMP_DEF_IMA_DIFF_AP1_SPILL_PAR,
 				   CMP_DEF_IMA_DIFF_AP2_GOLOMB_PAR, CMP_DEF_IMA_DIFF_AP2_SPILL_PAR);
-		print_cfg(&cfg, print_rdcu_cfg);
+		print_cfg(&cfg, add_rdcu_pars);
 		exit(EXIT_SUCCESS);
 	}
 
@@ -369,7 +369,7 @@ int main(int argc, char **argv)
 
 			ent_size = cmp_ent_create(NULL, DATA_TYPE_IMAGETTE, info.cmp_mode_used == CMP_MODE_RAW,
 						  cmp_size_byte);
-			if (ent_size <= 0)
+			if (!ent_size)
 				goto fail;
 			decomp_entity = malloc(ent_size);
 			if (!decomp_entity) {
@@ -378,7 +378,7 @@ int main(int argc, char **argv)
 			}
 			ent_size = cmp_ent_create(decomp_entity, DATA_TYPE_IMAGETTE, info.cmp_mode_used == CMP_MODE_RAW,
 						  cmp_size_byte);
-			if (ent_size <= 0)
+			if (!ent_size)
 				goto fail;
 
 			if (info.cmp_mode_used == CMP_MODE_RAW)
@@ -531,7 +531,7 @@ static int guess_cmp_pars(struct cmp_cfg *cfg, const char *guess_cmp_mode,
 
 	printf("Search for a good set of compression parameters (level: %d) ... ", guess_level);
 	if (!strcmp(guess_cmp_mode, "RDCU")) {
-		if (print_rdcu_cfg)
+		if (add_rdcu_pars)
 			cfg->data_type = DATA_TYPE_IMAGETTE_ADAPTIVE;
 		else
 			cfg->data_type = DATA_TYPE_IMAGETTE;
@@ -563,7 +563,7 @@ static int guess_cmp_pars(struct cmp_cfg *cfg, const char *guess_cmp_mode,
 	printf("DONE\n");
 
 	printf("Write the guessed compression configuration to file %s.cfg ... ", output_prefix);
-	error = write_cfg(cfg, output_prefix, print_rdcu_cfg, verbose_en);
+	error = write_cfg(cfg, output_prefix, add_rdcu_pars, verbose_en);
 	if (error)
 		return -1;
 	printf("DONE\n");
@@ -624,10 +624,11 @@ static int gen_rdcu_write_pkts(struct cmp_cfg *cfg)
  * @note set cmp_size, ap1_cmp_size, ap2_cmp_size will be set to 0
  *
  * @returns 0 on success, error otherwise
- * TODO: set cmp_err in error case
+ * TODO: set cmp_mode_err, set model_value_err, etc, in error case
  */
 
-static int cmp_gernate_rdcu_info(const struct cmp_cfg *cfg, int cmp_size_bit, struct cmp_info *info)
+static int cmp_gernate_rdcu_info(const struct cmp_cfg *cfg, int cmp_size_bit,
+				 struct cmp_info *info)
 {
 	if (!cfg)
 		return -1;
@@ -649,21 +650,39 @@ static int cmp_gernate_rdcu_info(const struct cmp_cfg *cfg, int cmp_size_bit, st
 		info->spill_used = cfg->spill;
 		info->golomb_par_used = cfg->golomb_par;
 		info->samples_used = cfg->samples;
-		info->cmp_size = 0;
-		info->ap1_cmp_size = 0;
-		info->ap2_cmp_size = 0;
 		info->rdcu_new_model_adr_used = cfg->rdcu_new_model_adr;
 		info->rdcu_cmp_adr_used = cfg->rdcu_buffer_adr;
 
 		if (cmp_size_bit == CMP_ERROR_SMALL_BUF)
 			/* the icu_output_buf is to small to store the whole bitstream */
 			info->cmp_err |= 1UL << SMALL_BUFFER_ERR_BIT; /* set small buffer error */
-		if (cmp_size_bit < 0)
+		if (cmp_size_bit < 0) {
 			info->cmp_size = 0;
-		else
+			info->ap1_cmp_size = 0;
+			info->ap2_cmp_size = 0;
+		} else {
 			info->cmp_size = (uint32_t)cmp_size_bit;
-	}
 
+			if (add_rdcu_pars) {
+				struct cmp_cfg cfg_cpy = *cfg;
+
+				cfg_cpy.icu_output_buf = NULL;
+				cfg_cpy.icu_new_model_buf = NULL;
+
+				cfg_cpy.golomb_par = cfg_cpy.ap1_golomb_par;
+				cfg_cpy.spill = cfg_cpy.ap1_spill;
+				info->ap1_cmp_size = icu_compress_data(&cfg_cpy);
+				if ((int)info->ap1_cmp_size < 0)
+					info->ap1_cmp_size = 0;
+
+				cfg_cpy.golomb_par = cfg_cpy.ap2_golomb_par;
+				cfg_cpy.spill = cfg_cpy.ap2_spill;
+				info->ap2_cmp_size = icu_compress_data(&cfg_cpy);
+				if ((int)info->ap2_cmp_size < 0)
+					info->ap2_cmp_size = 0;
+			}
+		}
+	}
 	return 0;
 }
 
@@ -711,15 +730,8 @@ static int compression(struct cmp_cfg *cfg, struct cmp_info *info)
 	cfg->icu_output_buf = cmp_ent_get_data_buf(cmp_entity);
 
 	cmp_size = icu_compress_data(cfg);
-	cmp_gernate_rdcu_info(cfg, cmp_size, info);
-	if (cmp_size < 0 || info->cmp_err != 0) {
-		if (info->cmp_err)
-			printf("\nCompression error 0x%02X\n... ", info->cmp_err);
-		/* TODO: add a parse cmp error function */
-		/* if ((info->cmp_err >> SMALL_BUFFER_ERR_BIT) & 1U) */
-		/*	fprintf(stderr, "%s: the buffer for the compressed data is too small. Try a larger buffer_length parameter.\n", PROGRAM_NAME); */
+	if (cmp_size < 0)
 		goto error_cleanup;
-	}
 
 	if (model_id_str) {
 		uint32_t red_val;
@@ -750,6 +762,8 @@ static int compression(struct cmp_cfg *cfg, struct cmp_info *info)
 		data_to_write_to_file = cmp_entity;
 		cmp_size_byte = cmp_ent_get_size(cmp_entity);
 	} else {
+		if (cmp_gernate_rdcu_info(cfg, cmp_size, info))
+			goto error_cleanup;
 		data_to_write_to_file = cmp_ent_get_data_buf(cmp_entity);
 		if (cfg->cmp_mode == CMP_MODE_RAW)
 			cmp_size_byte = info->cmp_size/CHAR_BIT;
@@ -777,16 +791,16 @@ static int compression(struct cmp_cfg *cfg, struct cmp_info *info)
 	if (!include_cmp_header) {
 		printf("Write decompression information to file %s.info ... ",
 		       output_prefix);
-		error = write_info(info, output_prefix, print_rdcu_cfg);
+		error = write_info(info, output_prefix, add_rdcu_pars);
 		if (error)
 			goto error_cleanup;
 		printf("DONE\n");
-	}
 
-	if (verbose_en) {
-		printf("\n");
-		print_cmp_info(info);
-		printf("\n");
+		if (verbose_en) {
+			printf("\n");
+			print_cmp_info(info);
+			printf("\n");
+		}
 	}
 
 	free(cmp_entity);

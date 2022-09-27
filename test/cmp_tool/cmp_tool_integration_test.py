@@ -831,9 +831,7 @@ def test_small_buf_err():
         assert(stdout == CMP_START_STR_CMP +
                "Importing configuration file %s ... DONE\n" % (cfg_file_name) +
                "Importing data file %s ... DONE\n" % (data_file_name) +
-               "Compress data ... \n"
-               "Compression error 0x01\n"
-               "... FAILED\n")
+               "Compress data ... FAILED\n")
         # assert(stderr == "cmp_tool: the buffer for the compressed data is too small. Try a larger buffer_length parameter.\n")
         assert(stderr == "Error: The buffer for the compressed data is too small to hold the compressed data. Try a larger buffer_length parameter.\n")
         assert(returncode == EXIT_FAILURE)
