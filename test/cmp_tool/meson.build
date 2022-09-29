@@ -8,5 +8,5 @@ if pytest.found()
     depends : cmp_tool_exe,
     workdir : meson.project_build_root())
 else
-  message('Pytest framework not found! Skipping integration tests.')
+  message('Pytest framework not found! Skipping integration tests. Run pip install pytest.')
 endif

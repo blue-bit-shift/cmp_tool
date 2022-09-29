@@ -7,7 +7,8 @@ project('cmp_tool', 'c',
 
 add_project_arguments('-DDEBUGLEVEL=1', language : 'c')
 
-if host_machine.system() == 'windows' and meson.get_compiler('c').get_id() == 'gcc'
+if (host_machine.system() == 'windows' or host_machine.system() == 'cygwin')
+    and meson.get_compiler('c').get_id() == 'gcc'
   # by default, MinGW on win32 behaves as if it ignores __attribute__((packed)),
   # you need to add -mno-ms-bitfields to make it work as expected.
   # See: https://wintermade.it/blog/posts/__attribute__packed-on-windows-is-ignored-with-mingw.html
