@@ -41,7 +41,7 @@
 #define IMAX_BITS(m) ((m)/((m)%255+1) / 255%255*8 + 7-86/((m)%255+12))
 #define RAND_MAX_WIDTH IMAX_BITS(RAND_MAX)
 
-#define set_n_bits(n)  (~(~0UL << (n)))
+#define set_n_bits(n)  (n!=32?~(~0UL << (n)):0xFFFFFFFF)
 
 
 /**
@@ -588,7 +588,7 @@ void test_random_compression_decompression(void)
 		void *data_to_compress2 = generate_random_test_data(samples, data_type);
 		void *updated_model = calloc(1, cmp_cal_size_of_data(samples, data_type));
 		/* for (cmp_mode = CMP_MODE_RAW; cmp_mode <= CMP_MODE_STUFF; cmp_mode++) { */
-		for (cmp_mode = CMP_MODE_RAW; cmp_mode < CMP_MODE_STUFF; cmp_mode++) {
+		for (cmp_mode = CMP_MODE_RAW; cmp_mode <= CMP_MODE_DIFF_MULTI; cmp_mode++) {
 			/* printf("cmp_mode: %i\n", cmp_mode); */
 			cfg = cmp_cfg_icu_create(data_type, cmp_mode, model_value,
 						 CMP_LOSSLESS);
@@ -611,4 +611,53 @@ void test_random_compression_decompression(void)
 		free(data_to_compress2);
 		free(updated_model);
 	}
+}
+
+#define N_SAMPLES 5
+
+void test_random_compression_decompression2(void)
+{
+	struct cmp_cfg cfg;
+	struct cmp_info info = {0};
+	uint32_t cmp_buffer_size;
+	int s, i, cmp_size_bits;
+	void *compressed_data;
+	uint16_t *decompressed_data;
+	uint16_t data[N_SAMPLES] = {0, UINT16_MAX, INT16_MAX, 42, 23};
+
+	cfg = cmp_cfg_icu_create(DATA_TYPE_IMAGETTE, CMP_MODE_RAW, 8, CMP_LOSSLESS);
+	TEST_ASSERT_NOT_EQUAL_INT(cfg.data_type, DATA_TYPE_UNKNOWN);
+
+	cmp_buffer_size = cmp_cfg_icu_buffers(&cfg, data, N_SAMPLES, NULL, NULL,
+					      NULL, N_SAMPLES*CMP_BUFFER_FAKTOR);
+	compressed_data = malloc(cmp_buffer_size);
+	cmp_buffer_size = cmp_cfg_icu_buffers(&cfg, data, N_SAMPLES, NULL, NULL,
+					      compressed_data, N_SAMPLES*CMP_BUFFER_FAKTOR);
+	TEST_ASSERT_EQUAL_INT(cmp_buffer_size, cmp_cal_size_of_data(CMP_BUFFER_FAKTOR*N_SAMPLES, DATA_TYPE_IMAGETTE));
+
+	cmp_size_bits = icu_compress_data(&cfg);
+	TEST_ASSERT(cmp_size_bits > 0);
+	info.cmp_size = cmp_size_bits;
+	info.cmp_mode_used = (uint8_t)cfg.cmp_mode;
+	info.model_value_used = (uint8_t)cfg.model_value;
+	info.round_used = (uint8_t)cfg.round;
+	info.spill_used = cfg.spill;
+	info.golomb_par_used = cfg.golomb_par;
+	info.samples_used = cfg.samples;
+	info.rdcu_new_model_adr_used = cfg.rdcu_new_model_adr;
+	info.rdcu_cmp_adr_used = cfg.rdcu_buffer_adr;
+
+	s = decompress_rdcu_data(compressed_data, &info, NULL, NULL, NULL);
+	TEST_ASSERT(s > 0);
+	decompressed_data = malloc(s);
+	s = decompress_rdcu_data(compressed_data, &info, NULL, NULL, decompressed_data);
+	TEST_ASSERT(s > 0);
+
+	for (i = 0; i < N_SAMPLES; i++) {
+		TEST_ASSERT_EQUAL_HEX16(data[i], decompressed_data[i]);
+	}
+
+
+	free(compressed_data);
+	free(decompressed_data);
 }

@@ -40,7 +40,7 @@
 extern struct cmp_max_used_bits max_used_bits;
 
 /* function pointer to a code word decoder function */
-typedef int (*decoder_ptr)(unsigned int, unsigned int, unsigned int, unsigned int *);
+typedef int (*decoder_ptr)(uint32_t, unsigned int, unsigned int, uint32_t *);
 
 /* structure to hold a setup to encode a value */
 struct decoder_setup {
@@ -89,7 +89,7 @@ static unsigned int count_leading_ones(uint32_t value)
  */
 
 static int rice_decoder(uint32_t code_word, unsigned int m, unsigned int log2_m,
-			unsigned int *decoded_cw)
+			uint32_t *decoded_cw)
 {
 	unsigned int q; /* quotient code */
 	unsigned int ql; /* length of the quotient code */
@@ -138,8 +138,8 @@ static int rice_decoder(uint32_t code_word, unsigned int m, unsigned int log2_m,
  *	0 on failure
  */
 
-static int golomb_decoder(unsigned int code_word, unsigned int m,
-			  unsigned int log2_m, unsigned int *decoded_cw)
+static int golomb_decoder(uint32_t code_word, unsigned int m,
+			  unsigned int log2_m, uint32_t *decoded_cw)
 {
 	unsigned int q; /* quotient code */
 	unsigned int r1; /* remainder code group 1 */
@@ -219,7 +219,7 @@ static decoder_ptr select_decoder(unsigned int golomb_par)
 static int get_n_bits32(uint32_t *p_value, unsigned int n_bits, int bit_offset,
 			uint32_t *bitstream_adr, unsigned int max_stream_len)
 {
-	const unsigned int *local_adr;
+	uint32_t *local_adr;
 	unsigned int bitsLeft, bitsRight, localEndPos;
 	unsigned int mask;
 	int stream_len = (int)(n_bits + (unsigned int)bit_offset); /* overflow results in a negative return value */

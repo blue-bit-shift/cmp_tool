@@ -1334,7 +1334,7 @@ ssize_t read_file8(const char *file_name, uint8_t *buf, uint32_t buf_size, int v
 		fclose(fp);
 		return 0;
 	}
-	if (file_size < buf_size) {
+	if ((unsigned long)file_size < buf_size) {
 		fprintf(stderr, "%s: %s: Error: The files do not contain enough data as requested.\n", PROGRAM_NAME, file_name);
 		goto fail;
 	}

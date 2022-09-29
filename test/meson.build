@@ -8,7 +8,7 @@ if checkpatch.found()
     '--ignore', 'SPDX_LICENSE_TAG,PREFER_DEFINED_ATTRIBUTE_MACRO,EMBEDDED_FILENAME,BLOCK_COMMENT_STYLE,EMBEDDED_FUNCTION_NAME',
   ]
   run_target('syntax-check',
-   command : [checkpatch, checkpatch_args, main, cmplib_sources])
+  command : [checkpatch, checkpatch_args, main, cmplib_sources])
 endif
 
 # add cppcheck inspector target

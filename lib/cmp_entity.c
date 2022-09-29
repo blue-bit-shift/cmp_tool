@@ -1692,7 +1692,7 @@ void *cmp_ent_get_data_buf(struct cmp_entity *ent)
  *	compressed data is copied to (can be NULL)
  * @param data_buf_size	size of the destination data buffer
  *
- * @returns the size in bytes to store the compressed data; negative on error
+ * @returns the size in bytes to store the compressed data; -1 on error
  *
  * @note the destination and source buffer can overlap
  * @note converts the data to the correct endianness
