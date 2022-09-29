@@ -10,6 +10,30 @@
 #include "../../lib/decmp.c" /* .c file included to test static functions */
 
 
+#define IMAX_BITS(m) ((m)/((m)%255+1) / 255%255*8 + 7-86/((m)%255+12))
+#define RAND_MAX_WIDTH IMAX_BITS(RAND_MAX)
+
+
+/**
+ * @brief generate a uint32_t random number
+ *
+ * @return a "random" uint32_t value
+ * @see https://stackoverflow.com/a/33021408
+ */
+
+uint32_t rand32(void)
+{
+	int i;
+	uint32_t r = 0;
+
+	for (i = 0; i < 32; i += RAND_MAX_WIDTH) {
+		r <<= RAND_MAX_WIDTH;
+		r ^= (unsigned int) rand();
+	}
+	return r;
+}
+
+
 /**
  * returns the needed size of the compression entry header plus the max size of the
  * compressed data if ent ==  NULL if ent is set the size of the compression
@@ -419,11 +443,12 @@ void test_cmp_decmp_s_fx_diff(void)
 
 int my_random(unsigned int min, unsigned int max)
 {
-	if (min > max)
-		TEST_ASSERT(0);
-	if (max-min > RAND_MAX)
-		TEST_ASSERT(0);
-	return min + rand() / (RAND_MAX / (max - min + 1) + 1);
+	TEST_ASSERT(min < max);
+	if (max-min < RAND_MAX)
+		return min + rand() / (RAND_MAX / (max - min + 1ULL) + 1);
+	else
+		return min + rand32() / (UINT32_MAX / (max - min + 1ULL) + 1);
+
 }
 
 /* #include <cmp_io.h> */
