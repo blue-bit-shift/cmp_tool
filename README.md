@@ -2,7 +2,7 @@
 
 If you find a bug or have a feature request please file an [issue][1] or send
 me an [email][2].  
-Compiled executables can be found [here][3].
+Compiled executables can be found [here][3]. The building instructions can be found [here](INSTALL.md).
 
 ## Usage
 
@@ -86,7 +86,7 @@ You can find the user manual [here](doc).
 A simple example to show how the compression tool works.
 Instructions on how to perform compression without headers can be found [here](how_to_no_header.md).
 
-0. Download the [tool][3] or run `make` to build the tool
+0. Download the [tool][3] or [build the tool](INSTALL.md) yourself
 
 1. Create a configuration file
 * Create a cfg directory  

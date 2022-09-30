@@ -17,7 +17,7 @@
  *
  * This library provided a rmap_rx and rmap_tx function for the rdcu_rmap
  * library to write generated packets into text files.
- *
+ * @warning this part of the software is not intended to run on-board on the ICU.
  */
 
 #include <stdint.h>
@@ -28,11 +28,11 @@
 #include <errno.h>
 #include <sys/stat.h>
 
-#include "../include/rdcu_pkt_to_file.h"
-#include "../include/cmp_rdcu_extended.h"
-#include "../include/rdcu_rmap.h"
-#include "../include/rdcu_ctrl.h"
-#include "../include/rdcu_cmd.h"
+#include <rdcu_pkt_to_file.h>
+#include <cmp_rdcu_extended.h>
+#include <rdcu_rmap.h>
+#include <rdcu_ctrl.h>
+#include <rdcu_cmd.h>
 
 /* Name of directory were the RMAP packages are stored */
 static char tc_folder_dir[MAX_TC_FOLDER_DIR_LEN] = "TC_FILES";
@@ -52,7 +52,6 @@ void set_tc_folder_dir(const char *dir_name)
 	strncpy(tc_folder_dir, dir_name, sizeof(tc_folder_dir));
 	/*  Ensure null-termination. */
 	tc_folder_dir[sizeof(tc_folder_dir) - 1] = '\0';
-	return;
 }
 
 
@@ -292,8 +291,7 @@ static int read_rdcu_pkt_mode_cfg(uint8_t *icu_addr, uint8_t *rdcu_addr,
 	if (read_all < 0x7)
 		return -1;
 
-	printf("Use ICU_ADDR = %#02X, RDCU_ADDR = %#02X and MTU = %d for the "
-	       "RAMP packets.\n", *icu_addr, *rdcu_addr, *mtu);
+	printf("Use ICU_ADDR = %#02X, RDCU_ADDR = %#02X and MTU = %d for the RAMP packets.\n", *icu_addr, *rdcu_addr, *mtu);
 
 	return 0;
 }
@@ -313,8 +311,11 @@ int init_rmap_pkt_to_file(void)
 	uint8_t icu_addr, rdcu_addr;
 	int mtu;
 
-	if (read_rdcu_pkt_mode_cfg(&icu_addr, &rdcu_addr, &mtu))
-		return -1;
+	if (read_rdcu_pkt_mode_cfg(&icu_addr, &rdcu_addr, &mtu)) {
+		icu_addr = DEF_ICU_ADDR;
+		rdcu_addr = DEF_RDCU_ADDR;
+		mtu = DEF_MTU;
+	}
 	rdcu_ctrl_init();
 	rdcu_set_source_logical_address(icu_addr);
 	rdcu_set_destination_logical_address(rdcu_addr);
@@ -325,7 +326,7 @@ int init_rmap_pkt_to_file(void)
 
 
 /**
- * @brief generate the rmap packets to set up a RDCU compression
+ * @brief generate the rmap packets to set up an RDCU compression
  * @note note that the initialization function init_rmap_pkt_to_file() must be
  *	executed before
  * @note the configuration of the ICU_ADDR, RDCU_ADDR, MTU settings are in the
@@ -365,7 +366,7 @@ int gen_write_rdcu_pkts(const struct cmp_cfg *cfg)
 
 
 /**
- * @brief generate the rmap packets to read the result of a RDCU compression
+ * @brief generate the rmap packets to read the result of an RDCU compression
  * @note note that the initialization function init_rmap_pkt_to_file() must be
  *	executed before
  * @note the configuration of the ICU_ADDR, RDCU_ADDR, MTU settings are in the
@@ -436,7 +437,7 @@ int gen_read_rdcu_pkts(const struct cmp_info *info)
 
 
 /**
- * @brief generate the rmap packets to set up a RDCU compression, read the
+ * @brief generate the rmap packets to set up an RDCU compression, read the
  *	bitstream and the updated model in parallel to write the data to compressed
  *	and the model and start the compression
  * @note the compressed data are read from cfg->rdcu_buffer_adr with the length

@@ -15,1144 +15,355 @@
  *
  * @brief software compression library
  * @see Data Compression User Manual PLATO-UVIE-PL-UM-0001
+ *
+ * To compress data, first create a compression configuration with the
+ * cmp_cfg_icu_create() function.
+ * Then set the different data buffers with the data to compressed, the model
+ * data and the compressed data with the cmp_cfg_icu_buffers() function.
+ * Then set the compression data type specific compression parameters. For
+ * imagette data use the cmp_cfg_icu_imagette() function. For flux and center of
+ * brightness data use the cmp_cfg_fx_cob() function. And for background, offset
+ * and smearing data use the cmp_cfg_aux() function.
+ * Finally, you can compress the data with the icu_compress_data() function.
  */
 
 
-#include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <limits.h>
 
-#include "../include/cmp_support.h"
-#include "../include/cmp_data_types.h"
-#include "../include/cmp_icu.h"
-#include "../include/byteorder.h"
-#include "../include/cmp_debug.h"
+#include <byteorder.h>
+#include <cmp_debug.h>
+#include <cmp_data_types.h>
+#include <cmp_support.h>
+#include <cmp_icu.h>
+#include <cmp_entity.h>
+
+
+/* maximum used bits registry */
+extern struct cmp_max_used_bits max_used_bits;
+
+
+/* pointer to a code word generation function */
+typedef uint32_t (*generate_cw_f_pt)(uint32_t value, uint32_t encoder_par1,
+				     uint32_t encoder_par2, uint32_t *cw);
+
+
+/* structure to hold a setup to encode a value */
+struct encoder_setupt {
+	generate_cw_f_pt generate_cw_f; /* pointer to the code word encoder */
+	int (*encode_method_f)(uint32_t data, uint32_t model, int stream_len,
+			       const struct encoder_setupt *setup); /* pointer to the encoding function */
+	uint32_t *bitstream_adr; /* start address of the compressed data bitstream */
+	uint32_t max_stream_len; /* maximum length of the bitstream/icu_output_buf in bits */
+	uint32_t encoder_par1; /* encoding parameter 1 */
+	uint32_t encoder_par2; /* encoding parameter 2 */
+	uint32_t spillover_par; /* outlier parameter */
+	uint32_t lossy_par; /* lossy compression parameter */
+	uint32_t max_data_bits; /* how many bits are needed to represent the highest possible value */
+};
 
 
 /**
- * @brief check if the compressor configuration is valid for a SW compression,
- *	see the user manual for more information (PLATO-UVIE-PL-UM-0001).
+ * @brief create an ICU compression configuration
  *
- * @param cfg	configuration contains all parameters required for compression
- * @param info	compressor information contains information of an executed
- *		compression (can be NULL)
+ * @param data_type	compression data product type
+ * @param cmp_mode	compression mode
+ * @param model_value	model weighting parameter (only needed for model compression mode)
+ * @param lossy_par	lossy rounding parameter (use CMP_LOSSLESS for lossless compression)
  *
- * @returns 0 when configuration is valid, invalid configuration otherwise
+ * @returns a compression configuration containing the chosen parameters;
+ *	on error the data_type record is set to DATA_TYPE_UNKNOWN
  */
 
-int icu_cmp_cfg_valid(const struct cmp_cfg *cfg, struct cmp_info *info)
+struct cmp_cfg cmp_cfg_icu_create(enum cmp_data_type data_type, enum cmp_mode cmp_mode,
+				  uint32_t model_value, uint32_t lossy_par)
 {
-	int cfg_invalid = 0;
+	struct cmp_cfg cfg;
+
+	memset(&cfg, 0, sizeof(cfg));
+
+	cfg.data_type = data_type;
+	cfg.cmp_mode = cmp_mode;
+	cfg.model_value = model_value;
+	cfg.round = lossy_par;
+
+	if (cmp_cfg_icu_gen_par_is_invalid(&cfg))
+		cfg.data_type = DATA_TYPE_UNKNOWN;
+
+	return cfg;
+}
+
+
+/**
+ * @brief setup the different data buffers for an ICU compression
+ *
+ * @param cfg			pointer to a compression configuration (created
+ *				with the cmp_cfg_icu_create() function)
+ * @param data_to_compress	pointer to the data to be compressed
+ * @param data_samples		length of the data to be compressed measured in
+ *				data samples/entitys (collection header not
+ *				included by imagette data)
+ * @param model_of_data		pointer to model data buffer (can be NULL if no
+ *				model compression mode is used)
+ * @param updated_model		pointer to store the updated model for the next
+ *				model mode compression (can be the same as the model_of_data
+ *				buffer for in-place update or NULL if updated model is not needed)
+ * @param compressed_data	pointer to the compressed data buffer (can be NULL)
+ * @param compressed_data_len_samples	length of the compressed_data buffer in
+ *					measured in the same units as the data_samples
+ *
+ * @returns the size of the compressed_data buffer on success; 0 if the
+ *	parameters are invalid
+ */
+
+uint32_t cmp_cfg_icu_buffers(struct cmp_cfg *cfg, void *data_to_compress,
+			     uint32_t data_samples, void *model_of_data,
+			     void *updated_model, uint32_t *compressed_data,
+			     uint32_t compressed_data_len_samples)
+{
+	uint32_t data_size, hdr_size;
 
 	if (!cfg) {
-		debug_print("Error: compression configuration structure is NULL.\n");
+		debug_print("Error: pointer to the compression configuration structure is NULL.\n");
+		return 0;
+	}
+
+	cfg->input_buf = data_to_compress;
+	cfg->model_buf = model_of_data;
+	cfg->samples = data_samples;
+	cfg->icu_new_model_buf = updated_model;
+	cfg->icu_output_buf = compressed_data;
+	cfg->buffer_length = compressed_data_len_samples;
+
+	if (cmp_cfg_icu_buffers_is_invalid(cfg))
+		return 0;
+
+	data_size = cmp_cal_size_of_data(compressed_data_len_samples, cfg->data_type);
+	hdr_size = cmp_ent_cal_hdr_size(cfg->data_type, cfg->cmp_mode == CMP_MODE_RAW);
+
+	if ((data_size + hdr_size) > CMP_ENTITY_MAX_SIZE) {
+		debug_print("Error: The buffer for the compressed data is too large to fit in a compression entity.\n");
+		return 0;
+	}
+
+	return data_size;
+}
+
+
+/**
+ * @brief set up the configuration parameters for an ICU imagette compression
+ *
+ * @param cfg			pointer to a compression configuration (created
+ *				by the cmp_cfg_icu_create() function)
+ * @param cmp_par		imagette compression parameter (Golomb parameter)
+ * @param spillover_par		imagette spillover threshold parameter
+ *
+ * @returns 0 if parameters are valid, non-zero if parameters are invalid
+ */
+
+int cmp_cfg_icu_imagette(struct cmp_cfg *cfg, uint32_t cmp_par,
+			 uint32_t spillover_par)
+{
+	if (!cfg)
 		return -1;
-	}
 
-	if (!info)
-		debug_print("Warning: compressor information structure is NULL.\n");
+	cfg->golomb_par = cmp_par;
+	cfg->spill = spillover_par;
 
-	if (info)
-		info->cmp_err = 0;  /* reset errors */
+	if (cmp_cfg_imagette_is_invalid(cfg, ICU_CHECK))
+		return -1;
 
-	if (cfg->input_buf == NULL) {
-		debug_print("Error: The input_buf buffer for the data to be compressed is NULL.\n");
-		cfg_invalid++;
-	}
+	return 0;
+}
 
-	if (cfg->samples == 0)
-		debug_print("Warning: The samples parameter is 0. No data are compressed. This behavior may not be intended.\n");
 
-	/* icu_output_buf can be NULL if rdcu compression is used */
-	if (cfg->icu_output_buf == NULL) {
-		debug_print("Error: The icu_output_buf buffer for the compressed data is NULL.\n");
-		cfg_invalid++;
-	}
+/**
+ * @brief set up the configuration parameters for a flux/COB compression
+ * @note not all parameters are needed for every flux/COB compression data type
+ *
+ * @param cfg			pointer to a compression configuration (created
+ *				by the cmp_cfg_icu_create() function)
+ * @param cmp_par_exp_flags	exposure flags compression parameter
+ * @param spillover_exp_flags	exposure flags spillover threshold parameter
+ * @param cmp_par_fx		normal flux compression parameter
+ * @param spillover_fx		normal flux spillover threshold parameter
+ * @param cmp_par_ncob		normal center of brightness compression parameter
+ * @param spillover_ncob	normal center of brightness spillover threshold parameter
+ * @param cmp_par_efx		extended flux compression parameter
+ * @param spillover_efx		extended flux spillover threshold parameter
+ * @param cmp_par_ecob		extended center of brightness compression parameter
+ * @param spillover_ecob	extended center of brightness spillover threshold parameter
+ * @param cmp_par_fx_cob_variance	flux/COB variance compression parameter
+ * @param spillover_fx_cob_variance	flux/COB variance spillover threshold parameter
+ *
+ * @returns 0 if parameters are valid, non-zero if parameters are invalid
+ */
 
-	if (cfg->buffer_length == 0 && cfg->samples != 0) {
-		debug_print("Error: The buffer_length is set to 0. There is no space to store the compressed data.\n");
-		cfg_invalid++;
-	}
+int cmp_cfg_fx_cob(struct cmp_cfg *cfg,
+		   uint32_t cmp_par_exp_flags, uint32_t spillover_exp_flags,
+		   uint32_t cmp_par_fx, uint32_t spillover_fx,
+		   uint32_t cmp_par_ncob, uint32_t spillover_ncob,
+		   uint32_t cmp_par_efx, uint32_t spillover_efx,
+		   uint32_t cmp_par_ecob, uint32_t spillover_ecob,
+		   uint32_t cmp_par_fx_cob_variance, uint32_t spillover_fx_cob_variance)
+{
+	if (!cfg)
+		return -1;
 
-	if (cfg->icu_output_buf == cfg->input_buf) {
-		debug_print("Error: The icu_output_buf buffer is the same as the input_buf buffer.\n");
-		cfg_invalid++;
-	}
+	cfg->cmp_par_exp_flags = cmp_par_exp_flags;
+	cfg->cmp_par_fx = cmp_par_fx;
+	cfg->cmp_par_ncob = cmp_par_ncob;
+	cfg->cmp_par_efx = cmp_par_efx;
+	cfg->cmp_par_ecob = cmp_par_ecob;
+	cfg->cmp_par_fx_cob_variance = cmp_par_fx_cob_variance;
 
-	if (model_mode_is_used(cfg->cmp_mode)) {
-		if (cfg->model_buf == NULL) {
-			debug_print("Error: The model_buf buffer for the model data is NULL.\n");
-			cfg_invalid++;
-		}
+	cfg->spill_exp_flags = spillover_exp_flags;
+	cfg->spill_fx = spillover_fx;
+	cfg->spill_ncob = spillover_ncob;
+	cfg->spill_efx = spillover_efx;
+	cfg->spill_ecob = spillover_ecob;
+	cfg->spill_fx_cob_variance = spillover_fx_cob_variance;
 
-		if (cfg->model_buf == cfg->input_buf) {
-			debug_print("Error: The model_buf buffer is the same as the input_buf buffer.\n");
-			cfg_invalid++;
-		}
+	if (cmp_cfg_fx_cob_is_invalid(cfg))
+		return -1;
 
-		if (cfg->model_buf == cfg->icu_output_buf) {
-			debug_print("Error: The model_buf buffer is the same as the icu_output_buf buffer.\n");
-			cfg_invalid++;
-		}
+	return 0;
+}
 
-		if (cfg->icu_new_model_buf == cfg->input_buf) {
-			debug_print("Error: The icu_new_model_buf buffer is the same as the input_buf buffer.\n");
-			cfg_invalid++;
-		}
 
-		if (cfg->icu_new_model_buf == cfg->icu_output_buf) {
-			debug_print("Error: The icu_output_buf buffer is the same as the icu_output_buf buffer.\n");
-			cfg_invalid++;
-		}
-	}
+/**
+ * @brief set up the configuration parameters for an auxiliary science data compression
+ * @note auxiliary compression data types are: DATA_TYPE_OFFSET, DATA_TYPE_BACKGROUND,
+	DATA_TYPE_SMEARING, DATA_TYPE_F_CAM_OFFSET, DATA_TYPE_F_CAM_BACKGROUND
+ * @note not all parameters are needed for the every auxiliary compression data type
+ *
+ * @param cfg				pointer to a compression configuration (created
+ *					with the cmp_cfg_icu_create() function)
+ * @param cmp_par_mean			mean compression parameter
+ * @param spillover_mean		mean spillover threshold parameter
+ * @param cmp_par_variance		variance compression parameter
+ * @param spillover_variance		variance spillover threshold parameter
+ * @param cmp_par_pixels_error		outlier pixels number compression parameter
+ * @param spillover_pixels_error	outlier pixels number spillover threshold parameter
+ *
+ * @returns 0 if parameters are valid, non-zero if parameters are invalid
+ */
 
-	if (raw_mode_is_used(cfg->cmp_mode)) {
-		if (cfg->samples > cfg->buffer_length) {
-			debug_print("Error: The buffer_length is to small to hold the data form the input_buf.\n");
-			cfg_invalid++;
-		}
+int cmp_cfg_aux(struct cmp_cfg *cfg,
+		uint32_t cmp_par_mean, uint32_t spillover_mean,
+		uint32_t cmp_par_variance, uint32_t spillover_variance,
+		uint32_t cmp_par_pixels_error, uint32_t spillover_pixels_error)
+{
+	if (!cfg)
+		return -1;
+
+	cfg->cmp_par_mean = cmp_par_mean;
+	cfg->cmp_par_variance = cmp_par_variance;
+	cfg->cmp_par_pixels_error = cmp_par_pixels_error;
+
+	cfg->spill_mean = spillover_mean;
+	cfg->spill_variance = spillover_variance;
+	cfg->spill_pixels_error = spillover_pixels_error;
+
+	if (cmp_cfg_aux_is_invalid(cfg))
+		return -1;
+
+	return 0;
+}
+
+
+/**
+ * @brief map a signed value into a positive value range
+ *
+ * @param value_to_map	signed value to map
+ * @param max_data_bits	how many bits are needed to represent the
+ *			highest possible value
+ *
+ * @returns the positive mapped value
+ */
+
+static uint32_t map_to_pos(uint32_t value_to_map, unsigned int max_data_bits)
+{
+	uint32_t result;
+	uint32_t mask = (~0U >> (32 - max_data_bits)); /* mask the used bits */
+
+	value_to_map &= mask;
+	if (value_to_map >> (max_data_bits - 1)) { /* check the leading signed bit */
+		value_to_map |= ~mask; /* convert to 32-bit signed integer */
+		/* map negative values to uneven numbers */
+		result = (-value_to_map) * 2 - 1; /* possible integer overflow is intended */
 	} else {
-		if (cfg->samples*size_of_a_sample(cfg->cmp_mode) <
-		    cfg->buffer_length*sizeof(uint16_t)/3) /* TODO: have samples and buffer_lengt the same unit */
-			debug_print("Warning: The size of the icu_output_buf is 3 times smaller than the input_buf. This is probably unintentional.\n");
+		/* map positive values to even numbers */
+		result = value_to_map * 2; /* possible integer overflow is intended */
 	}
 
-
-	if (!(diff_mode_is_used(cfg->cmp_mode)
-	     || model_mode_is_used(cfg->cmp_mode)
-	     || raw_mode_is_used(cfg->cmp_mode))) {
-		debug_print("Error: selected cmp_mode: %u is not supported\n.",
-			    cfg->cmp_mode);
-		if (info)
-			info->cmp_err |= 1UL << CMP_MODE_ERR_BIT;
-		cfg_invalid++;
-	}
-
-	if (raw_mode_is_used(cfg->cmp_mode)) /* additional checks are not needed for the raw mode */
-		return -cfg_invalid;
-
-	if (model_mode_is_used(cfg->cmp_mode)) {
-		if (cfg->model_value > MAX_MODEL_VALUE) {
-			debug_print("Error: selected model_value: %u is invalid. Largest supported value is: %lu.\n",
-				    cfg->model_value, MAX_MODEL_VALUE);
-			if (info)
-				info->cmp_err |= 1UL << MODEL_VALUE_ERR_BIT;
-			cfg_invalid++;
-		}
-	}
-
-	if (cfg->golomb_par < MIN_ICU_GOLOMB_PAR ||
-	    cfg->golomb_par > MAX_ICU_GOLOMB_PAR) {
-		debug_print("Error: The selected Golomb parameter: %u is not supported. The Golomb parameter has to  be between [%lu, %u].\n",
-			    cfg->golomb_par, MIN_ICU_GOLOMB_PAR, MAX_ICU_GOLOMB_PAR);
-		if (info)
-			info->cmp_err |= 1UL << CMP_PAR_ERR_BIT;
-		cfg_invalid++;
-	}
-
-	if (cfg->spill < MIN_ICU_SPILL) {
-		debug_print("Error: The selected spillover threshold value: %u is too small. Smallest possible spillover value is: %lu.\n",
-			    cfg->spill, MIN_ICU_SPILL);
-		if (info)
-			info->cmp_err |= 1UL << CMP_PAR_ERR_BIT;
-		cfg_invalid++;
-	}
-
-	if (cfg->spill > get_max_spill(cfg->golomb_par, cfg->cmp_mode)) {
-		debug_print("Error: The selected spillover threshold value: %u is too large for the selected Golomb parameter: %u, the largest possible spillover value in the selected compression mode is: %u.\n",
-			    cfg->spill, cfg->golomb_par,
-			    get_max_spill(cfg->golomb_par, cfg->cmp_mode));
-		if (info)
-			info->cmp_err |= 1UL << CMP_PAR_ERR_BIT;
-		cfg_invalid++;
-	}
-
-#ifdef ADAPTIVE_CHECK_ENA
-	/*
-	 * ap1_spill and ap2_spill are not used for the icu_compression
-	 */
-
-	if (cfg->ap1_spill > get_max_spill(cfg->ap1_golomb_par, cfg->cmp_mode)) {
-		if (info)
-			info->cmp_err |= 1UL << AP1_CMP_PAR_ERR_BIT;
-		cfg_invalid++;
-	}
-
-	if (cfg->ap2_spill > get_max_spill(cfg->ap2_golomb_par, cfg->cmp_mode)) {
-		if (info)
-			info->cmp_err |= 1UL << AP2_CMP_PAR_ERR_BIT;
-		cfg_invalid++;
-	}
-#endif
-
-	if (cfg->round > MAX_ICU_ROUND) {
-		debug_print("Error: selected round parameter: %u is not supported. Largest supported value is: %lu.\n",
-			    cfg->round, MAX_ICU_ROUND);
-		cfg_invalid++;
-	}
-
-	return -(cfg_invalid);
+	return result;
 }
 
 
 /**
- * @brief sets the compression information used based on the compression
- *	configuration
+ * @brief put the value of up to 32 bits into a bitstream
  *
- * @param cfg	compression configuration struct
- * @param info	compressor information struct to set the used compression
- *	parameters (can be NULL)
+ * @param value			the value to put
+ * @param n_bits		number of bits to put in the bitstream
+ * @param bit_offset		bit index where the bits will be put, seen from
+ *				the very beginning of the bitstream
+ * @param bitstream_adr		this is the pointer to the beginning of the
+ *				bitstream (can be NULL)
+ * @param max_stream_len	maximum length of the bitstream in bits; is
+ *				ignored if bitstream_adr is NULL
  *
- * @note set cmp_size, ap1_cmp_size, ap2_cmp_size will be set to 0
- *
- * @returns 0 on success, error otherwise
+ * @returns length in bits of the generated bitstream on success; returns
+ *          negative in case of erroneous input; returns CMP_ERROR_SMALL_BUF if
+ *          the bitstream buffer is too small to put the value in the bitstream
  */
 
-
-static int set_info(struct cmp_cfg *cfg, struct cmp_info *info)
+static int put_n_bits32(uint32_t value, unsigned int n_bits, int bit_offset,
+			uint32_t *bitstream_adr, unsigned int max_stream_len)
 {
-	if (!cfg)
+	uint32_t *local_adr;
+	uint32_t mask;
+	unsigned int shiftRight, shiftLeft, bitsLeft, bitsRight;
+	int stream_len = (int)(n_bits + (unsigned int)bit_offset); /* overflow results in a negative return value */
+
+	/* Leave in case of erroneous input */
+	if (bit_offset < 0)
 		return -1;
 
-	if (cfg->cmp_mode > UINT8_MAX)
+	if (n_bits == 0)
+		return stream_len;
+
+	if (n_bits > 32)
 		return -1;
 
-	if (cfg->round > UINT8_MAX)
-		return -1;
-
-	if (cfg->model_value > UINT8_MAX)
-		return -1;
-
-	if (info) {
-		info->cmp_err = 0;
-		info->cmp_mode_used = (uint8_t)cfg->cmp_mode;
-		info->model_value_used = (uint8_t)cfg->model_value;
-		info->round_used = (uint8_t)cfg->round;
-		info->spill_used = cfg->spill;
-		info->golomb_par_used = cfg->golomb_par;
-		info->samples_used = cfg->samples;
-		info->cmp_size = 0;
-		info->ap1_cmp_size = 0;
-		info->ap2_cmp_size = 0;
-		info->rdcu_new_model_adr_used = cfg->rdcu_new_model_adr;
-		info->rdcu_cmp_adr_used = cfg->rdcu_buffer_adr;
-	}
-	return 0;
-}
-
-
-/**
- * @brief 1d-differentiating pre-processing and rounding of a uint16_t data buffer
- *
- * @note change the data_buf in-place
- * @note output is I[0] = I[0], I[i] = I[i] - I[i-1], where i is 1,2,..samples-1
- *
- * @param data_buf	pointer to the uint16_t formatted data buffer to process
- * @param samples	amount of data samples in the data buffer
- * @param round		number of bits to round; if zero no rounding takes place
- *
- * @returns 0 on success, error otherwise
- */
-
-static int diff_16(uint16_t *data_buf, unsigned int samples, unsigned int round)
-{
-	size_t i;
-
-	if (!data_buf)
-		return -1;
-
-	lossy_rounding_16(data_buf, samples, round);
-
-	for (i = samples - 1; i > 0; i--) {
-		/* possible underflow is intended */
-		data_buf[i] = data_buf[i] - data_buf[i-1];
-	}
-	return 0;
-}
-
-
-/**
- * @brief 1d-differentiating pre-processing and rounding of a uint32_t data buffer
- *
- * @note change the data_buf in-place
- * @note output is I_0 = I_0, I_i = I_i - I_i-1, where i is the array index
- *
- * @param data_buf	pointer to the uint32_t formatted data buffer to process
- * @param samples	amount of data samples in the data_buf buffer
- * @param round		number of bits to round; if zero no rounding takes place
- *
- * @returns 0 on success, error otherwise
- */
-
-static int diff_32(uint32_t *data_buf, unsigned int samples, unsigned int round)
-{
-	size_t i;
-
-	if (!data_buf)
-		return -1;
-
-	lossy_rounding_32(data_buf, samples, round);
-
-	for (i = samples - 1; i > 0; i--) {
-		/* possible underflow is intended */
-		data_buf[i] = data_buf[i] - data_buf[i-1];
-	}
-	return 0;
-}
-
-
-/**
- * @brief 1d-differentiating pre-processing and round of a S_FX data buffer
- *
- * @note change the data_buf in-place
- * @note output is I_0 = I_0, I_i = I_i - I_i-1, where i is the array index
- *
- * @param data		pointer to a S_FX data buffer
- * @param samples	amount of data samples in the data buffer
- * @param round		number of bits to round; if zero no rounding takes place
- *
- * @returns 0 on success, error otherwise
- */
-
-static int diff_S_FX(struct S_FX *data, unsigned int samples, unsigned int
-		     round)
-{
-	size_t i;
-	int err;
-
-	if (!data)
-		return -1;
-
-	err = lossy_rounding_S_FX(data, samples, round);
-	if (err)
-		return err;
-
-	for (i = samples - 1; i > 0; i--) {
-		/* possible underflow is intended */
-		data[i] = sub_S_FX(data[i], data[i-1]);
-	}
-	return 0;
-}
-
-
-/**
- * @brief 1d-differentiating pre-processing and rounding of a S_FX_EFX data buffer
- *
- * @note change the data_buf in-place
- * @note output is I_0 = I_0, I_i = I_i - I_i-1, where i is the array index
- *
- * @param data		pointer to a S_FX_EFX data buffer
- * @param samples	amount of data samples in the data buffer
- * @param round		number of bits to round; if zero no rounding takes place
- *
- * @returns 0 on success, error otherwise
- */
-
-static int diff_S_FX_EFX(struct S_FX_EFX *data, unsigned int samples, unsigned
-			 int round)
-{
-	size_t i;
-	int err;
-
-	if (!data)
-		return -1;
-
-	err = lossy_rounding_S_FX_EFX(data, samples, round);
-	if (err)
-		return err;
-
-	for (i = samples - 1; i > 0; i--) {
-		/* possible underflow is intended */
-		data[i] = sub_S_FX_EFX(data[i], data[i-1]);
-	}
-	return 0;
-}
-
-
-/**
- * @brief 1d-differentiating pre-processing and rounding of a S_FX_NCOB data buffer
- *
- * @note change the data_buf in-place
- * @note output is I_0 = I_0, I_i = I_i - I_i-1, where i is the array index
- *
- * @param data		pointer to a S_FX_NCOB data buffer
- * @param samples	amount of data samples in the data buffer
- * @param round		number of bits to round; if zero no rounding takes place
- *
- * @returns 0 on success, error otherwise
- */
-
-static int diff_S_FX_NCOB(struct S_FX_NCOB *data, unsigned int samples, unsigned
-			  int round)
-{
-	size_t i;
-	int err;
-
-	if (!data)
-		return -1;
-
-	err = lossy_rounding_S_FX_NCOB(data, samples, round);
-	if (err)
-		return err;
-
-	for (i = samples - 1; i > 0; i--) {
-		/* possible underflow is intended */
-		data[i] = sub_S_FX_NCOB(data[i], data[i-1]);
-	}
-	return 0;
-}
-
-
-/**
- * @brief 1d-differentiating pre-processing and rounding of a S_FX_EFX_NCOB_ECOB data buffer
- *
- * @note change the data_buf in-place
- * @note output is I_0 = I_0, I_i = I_i - I_i-1, where i is the array index
- *
- * @param data		pointer to a S_FX_EFX_NCOB_ECOB data buffer
- * @param samples	amount of data samples in the data buffer
- * @param round		number of bits to round; if zero no rounding takes place
- *
- * @returns 0 on success, error otherwise
- */
-
-static int diff_S_FX_EFX_NCOB_ECOB(struct S_FX_EFX_NCOB_ECOB *data, unsigned int
-				   samples, unsigned int round)
-{
-	size_t i;
-	int err;
-
-	if (!data)
-		return -1;
-
-	err = lossy_rounding_S_FX_EFX_NCOB_ECOB(data, samples, round);
-	if (err)
-		return err;
-
-	for (i = samples - 1; i > 0; i--) {
-		/* possible underflow is intended */
-		data[i] = sub_S_FX_EFX_NCOB_ECOB(data[i], data[i-1]);
-	}
-
-	return 0;
-}
-
-
-/**
- * @brief model pre-processing and rounding of a uint16_t data buffer
- *
- * @note overwrite the data_buf in-place with the result
- * @note update the model_buf in-place if up_model_buf = NULL
- *
- * @param data_buf	pointer to the uint16_t data buffer to process
- * @param model_buf	pointer to the model buffer of the data to process
- * @param up_model_buf	pointer to the updated model buffer can be NULL
- * @param samples	amount of data samples in the data_buf and model_buf buffer
- * @param model_value	model weighting parameter
- * @param round		number of bits to round; if zero no rounding takes place
- *
- * @returns 0 on success, error otherwise
- */
-
-static int model_16(uint16_t *data_buf, uint16_t *model_buf, uint16_t *up_model_buf,
-		    unsigned int samples, unsigned int model_value, unsigned int round)
-{
-	size_t i;
-
-	if (!data_buf)
-		return -1;
-
-	if (!model_buf)
-		return -1;
-
-	if (model_value > MAX_MODEL_VALUE)
-		return -1;
-
-	if (!up_model_buf)
-		up_model_buf = model_buf;
-
-	for (i = 0; i < samples; i++) {
-		uint16_t round_input = (uint16_t)round_fwd(data_buf[i], round);
-		uint16_t round_model = (uint16_t)round_fwd(model_buf[i], round);
-		/* possible underflow is intended */
-		data_buf[i] = round_input - round_model; /* TDOO: check if this is the right order */
-		/* round back input because for decompression the accurate data
-		 * are not available
-		 */
-		up_model_buf[i] = (uint16_t)cal_up_model(round_inv(round_input, round),
-							 model_buf[i], model_value);
-	}
-	return 0;
-}
-
-
-/**
- * @brief model pre-processing and round_input of a uint32_t data buffer
- *
- * @note overwrite the data_buf in-place with the result
- * @note update the model_buf in-place if up_model_buf = NULL
- *
- * @param data_buf	pointer to the uint32_t data buffer to process
- * @param model_buf	pointer to the model buffer of the data to process
- * @param samples	amount of data samples in the data_buf and model_buf buffer
- * @param model_value	model weighting parameter
- * @param round		number of bits to round; if zero no rounding takes place
- *
- * @returns 0 on success, error otherwise
- */
-
-static int model_32(uint32_t *data_buf, uint32_t *model_buf, unsigned int samples,
-		    unsigned int model_value, unsigned int round)
-{
-	size_t i;
-
-	if (!data_buf)
-		return -1;
-
-	if (!model_buf)
-		return -1;
-
-	if (model_value > MAX_MODEL_VALUE)
-		return -1;
-
-	for (i = 0; i < samples; i++) {
-		uint32_t round_input = round_fwd(data_buf[i], round);
-		uint32_t round_model = round_fwd(model_buf[i], round);
-		/* possible underflow is intended */
-		data_buf[i] = round_input - round_model;
-		/* round back input because for decompression the accurate data
-		 * are not available
-		 */
-		model_buf[i] = cal_up_model(round_inv(round_input, round),
-					    model_buf[i], model_value);
-	}
-	return 0;
-}
-
-
-/**
- * @brief model pre-processing and round_input of a S_FX data buffer
- *
- * @note overwrite the data_buf in-place with the result
- * @note update the model_buf in-place if up_model_buf = NULL
- *
- * @param data_buf	pointer to the S_FX data buffer to process
- * @param model_buf	pointer to the updated model buffer (if NULL model_buf
- *	will be overwrite with the updated model)
- * @param samples	amount of data samples in the data_buf and model_buf buffer
- * @param model_value	model weighting parameter
- * @param round		number of bits to round; if zero no rounding takes place
- *
- * @returns 0 on success, error otherwise
- */
-
-int model_S_FX(struct S_FX *data_buf, struct S_FX *model_buf,
-		      struct S_FX *up_model_buf, unsigned int samples,
-		      unsigned int model_value, unsigned int round)
-{
-	size_t i;
-
-	if (!samples)
-		return 0;
-
-	if (!model_buf)
-		return -1;
-
-	if (model_value > MAX_MODEL_VALUE)
-		return -1;
-
-	if (!up_model_buf)  /* overwrite the model buffer if no up_model_buf is set */
-		up_model_buf = model_buf;
-
-
-	for (i = 0; i < samples; i++) {
-		struct S_FX round_data = data_buf[i];
-		struct S_FX round_model = model_buf[i];
-		int err;
-
-		err = lossy_rounding_S_FX(&round_data, 1, round);
-		if (err)
-			return err;
-
-		err = lossy_rounding_S_FX(&round_model, 1, round);
-		if (err)
-			return err;
-
-		/* possible underflow is intended */
-		data_buf[i] = sub_S_FX(round_data, round_model);
-
-		/* round back input because for decompression the accurate data
-		 * are not available
-		 */
-		err = de_lossy_rounding_S_FX(&round_data, 1, round);
-		if (err)
-			return err;
-		up_model_buf[i] = cal_up_model_S_FX(round_data, model_buf[i],
-						    model_value);
-	}
-
-	return 0;
-}
-
-
-/**
- * @brief data pre-processing to decorrelate the data
- *
- * @param cfg	configuration contains all parameters required for compression
- *
- * @returns 0 on success, error otherwise
- */
-
-int cmp_pre_process(struct cmp_cfg *cfg)
-{
-	if (!cfg)
-		return -1;
-
-	if (cfg->samples == 0)
-		return 0;
-
-	if (!cfg->input_buf)
-		return -1;
-
-	switch (cfg->cmp_mode) {
-	case MODE_RAW:
-	case MODE_RAW_S_FX:
-		return 0; /* in raw mode no pre-processing is necessary */
-		break;
-	case MODE_MODEL_ZERO:
-	case MODE_MODEL_MULTI:
-		return model_16((uint16_t *)cfg->input_buf, (uint16_t *)cfg->model_buf,
-				(uint16_t *)cfg->icu_new_model_buf, cfg->samples,
-				cfg->model_value, cfg->round);
-		break;
-	case MODE_DIFF_ZERO:
-	case MODE_DIFF_MULTI:
-		return diff_16((uint16_t *)cfg->input_buf, cfg->samples,
-			       cfg->round);
-		break;
-	case MODE_MODEL_ZERO_S_FX:
-	case MODE_MODEL_MULTI_S_FX:
-		return model_S_FX((struct S_FX *)cfg->input_buf, (struct S_FX *)cfg->model_buf,
-				  (struct S_FX *)cfg->icu_new_model_buf, cfg->samples,
-				  cfg->model_value, cfg->round);
-		break;
-	case MODE_DIFF_ZERO_S_FX:
-	case MODE_DIFF_MULTI_S_FX:
-		return diff_S_FX((struct S_FX *)cfg->input_buf, cfg->samples, cfg->round);
-		break;
-	case MODE_DIFF_ZERO_S_FX_EFX:
-	case MODE_DIFF_MULTI_S_FX_EFX:
-		return diff_S_FX_EFX((struct S_FX_EFX *)cfg->input_buf,
-				     cfg->samples, cfg->round);
-		break;
-	case MODE_DIFF_ZERO_S_FX_NCOB:
-	case MODE_DIFF_MULTI_S_FX_NCOB:
-		return diff_S_FX_NCOB((struct S_FX_NCOB *)cfg->input_buf,
-				      cfg->samples, cfg->round);
-		break;
-	case MODE_DIFF_ZERO_S_FX_EFX_NCOB_ECOB:
-	case MODE_DIFF_MULTI_S_FX_EFX_NCOB_ECOB:
-		return diff_S_FX_EFX_NCOB_ECOB((struct S_FX_EFX_NCOB_ECOB *)cfg->input_buf,
-					       cfg->samples, cfg->round);
-		break;
-	case MODE_MODEL_ZERO_32:
-	case MODE_MODEL_MULTI_32:
-	case MODE_MODEL_ZERO_F_FX:
-	case MODE_MODEL_MULTI_F_FX:
-		return model_32((uint32_t *)cfg->input_buf, (uint32_t *)cfg->model_buf,
-				cfg->samples, cfg->model_value, cfg->round);
-		break;
-	case MODE_DIFF_ZERO_32:
-	case MODE_DIFF_MULTI_32:
-	case MODE_DIFF_ZERO_F_FX:
-	case MODE_DIFF_MULTI_F_FX:
-		return diff_32((uint32_t *)cfg->input_buf, cfg->samples, cfg->round);
-		break;
-	default:
-		debug_print("Error: Compression mode not supported.\n");
-	}
-
-	return -1;
-}
-
-
-static uint8_t map_to_pos_alg_8(int8_t value_to_map)
-{
-	if (value_to_map < 0)
-		/* NOTE: possible integer overflow is intended */
-		return (uint8_t)((-value_to_map) * 2 - 1);
-	else
-		/* NOTE: possible integer overflow is intended */
-		return (uint8_t)(value_to_map * 2);
-}
-
-
-static uint16_t map_to_pos_alg_16(int16_t value_to_map)
-{
-	if (value_to_map < 0)
-		/* NOTE: possible integer overflow is intended */
-		return (uint16_t)((-value_to_map) * 2 - 1);
-	else
-		/* NOTE: possible integer overflow is intended */
-		return (uint16_t)(value_to_map * 2);
-}
-
-
-static uint32_t map_to_pos_alg_32(int32_t value_to_map)
-{
-	if (value_to_map < 0)
-		/* NOTE: possible integer overflow is intended */
-		return (uint32_t)((-value_to_map) * 2 - 1);
-	else
-		/* NOTE: possible integer overflow is intended */
-		return (uint32_t)(value_to_map * 2);
-}
-
-
-/**
- * @brief map the signed output of the pre-processing stage to a unsigned value
- *	range for a 16 bit buffer
- *
- * @note overwrite the data_buf in-place with the result
- *
- * @param data_buf	pointer to the uint16_t data buffer to process
- * @param samples	amount of data samples in the data_buf
- * @param zero_mode_used needs to be set if the zero escape symbol mechanism is used
- *
- * @returns 0 on success, error otherwise
- */
-
-static int map_to_pos_16(uint16_t *data_buf, uint32_t samples, int zero_mode_used)
-{
-	size_t i;
-
-	if (!data_buf)
-		return -1;
-
-	for (i = 0; i < samples; i++) {
-		data_buf[i] = map_to_pos_alg_16(data_buf[i]);
-		if (zero_mode_used)
-			data_buf[i] += 1;
-	}
-	return 0;
-}
-
-
-/**
- * @brief map the signed output of the pre-processing stage to a unsigned value
- *	range for a 32 bit buffer
- *
- * @note overwrite the data_buf in-place with the result
- *
- * @param data_buf	pointer to the uint32_t data buffer to process
- * @param samples	amount of data samples in the data_buf
- * @param zero_mode_used needs to be set if the zero escape symbol mechanism is used
- *
- * @returns 0 on success, error otherwise
- */
-
-static int map_to_pos_32(uint32_t *data_buf, uint32_t samples, int
-			 zero_mode_used)
-{
-	size_t i;
-
-	if (!data_buf)
-		return -1;
-
-	for (i = 0; i < samples; i++) {
-		data_buf[i] = map_to_pos_alg_32(data_buf[i]);
-		if (zero_mode_used)
-			data_buf[i] += 1;
-	}
-	return 0;
-}
-
-
-/**
- * @brief map the signed output of the pre-processing stage to a unsigned value
- *	range for a S_FX buffer
- *
- * @note overwrite the data_buf in-place with the result
- *
- * @param data_buf	pointer to the S_FX data buffer to process
- * @param samples	amount of data samples in the data_buf
- * @param zero_mode_used needs to be set if the zero escape symbol mechanism is used
- *
- * @returns 0 on success, error otherwise
- */
-
-int map_to_pos_S_FX(struct S_FX *data_buf, uint32_t samples, int
-			   zero_mode_used)
-{
-	size_t i;
-
-	if (!data_buf)
-		return -1;
-
-	for (i = 0; i < samples; i++) {
-		data_buf[i].EXPOSURE_FLAGS =
-			map_to_pos_alg_8(data_buf[i].EXPOSURE_FLAGS);
-		data_buf[i].FX = map_to_pos_alg_32(data_buf[i].FX);
-
-		if (zero_mode_used) {
-			/* data_buf[i].EXPOSURE_FLAGS += 1; */
-			data_buf[i].FX += 1;
-		}
-	}
-	return 0;
-}
-
-
-/**
- * @brief map the signed output of the pre-processing stage to a unsigned value
- *	range for a S_FX_EFX buffer
- *
- * @note overwrite the data_buf in-place with the result
- *
- * @param data_buf	pointer to the S_FX_EFX data buffer to process
- * @param samples	amount of data samples in the data_buf
- * @param zero_mode_used needs to be set if the zero escape symbol mechanism is used
- *
- * @returns 0 on success, error otherwise
- */
-
-static int map_to_pos_S_FX_EFX(struct S_FX_EFX *data_buf, uint32_t samples, int
-			       zero_mode_used)
-{
-	size_t i;
-
-	if (!data_buf)
-		return -1;
-
-	for (i = 0; i < samples; i++) {
-		data_buf[i].EXPOSURE_FLAGS =
-			map_to_pos_alg_8(data_buf[i].EXPOSURE_FLAGS);
-		data_buf[i].FX = map_to_pos_alg_32(data_buf[i].FX);
-		data_buf[i].EFX = map_to_pos_alg_32(data_buf[i].EFX);
-
-		if (zero_mode_used) {
-			/* data_buf[i].EXPOSURE_FLAGS += 1; */
-			data_buf[i].FX += 1;
-			data_buf[i].EFX += 1;
-		}
-	}
-	return 0;
-}
-
-
-/**
- * @brief map the signed output of the pre-processing stage to a unsigned value
- *	range for a S_FX_NCOB buffer
- *
- * @note overwrite the data_buf in-place with the result
- *
- * @param data_buf	pointer to the S_FX_NCOB data buffer to process
- * @param samples	amount of data samples in the data_buf
- * @param zero_mode_used needs to be set if the zero escape symbol mechanism is used
- *
- * @returns 0 on success, error otherwise
- */
-
-static int map_to_pos_S_FX_NCOB(struct S_FX_NCOB *data_buf, uint32_t samples,
-				int zero_mode_used)
-{
-	size_t i;
-
-	if (!data_buf)
-		return -1;
-
-	for (i = 0; i < samples; i++) {
-		data_buf[i].EXPOSURE_FLAGS =
-			map_to_pos_alg_8(data_buf[i].EXPOSURE_FLAGS);
-		data_buf[i].FX = map_to_pos_alg_32(data_buf[i].FX);
-		data_buf[i].NCOB_X = map_to_pos_alg_32(data_buf[i].NCOB_X);
-		data_buf[i].NCOB_Y = map_to_pos_alg_32(data_buf[i].NCOB_Y);
-
-		if (zero_mode_used) {
-			/* data_buf[i].EXPOSURE_FLAGS += 1; */
-			data_buf[i].FX += 1;
-			data_buf[i].NCOB_X += 1;
-			data_buf[i].NCOB_Y += 1;
-		}
-	}
-	return 0;
-}
-
-
-/**
- * @brief map the signed output of the pre-processing stage to a unsigned value
- *	range for a S_FX_EFX_NCOB_ECOB buffer
- *
- * @note overwrite the data_buf in-place with the result
- *
- * @param data_buf	pointer to the S_FX_EFX_NCOB_ECOB data buffer to process
- * @param samples	amount of data samples in the data_buf
- * @param zero_mode_used needs to be set if the zero escape symbol mechanism is used
- *
- * @returns 0 on success, error otherwise
- */
-
-static int map_to_pos_S_FX_EFX_NCOB_ECOB(struct S_FX_EFX_NCOB_ECOB *data_buf,
-					 uint32_t samples, int zero_mode_used)
-{
-	size_t i;
-
-	if (!data_buf)
-		return -1;
-
-	for (i = 0; i < samples; i++) {
-		data_buf[i].EXPOSURE_FLAGS =
-			map_to_pos_alg_8(data_buf[i].EXPOSURE_FLAGS);
-		data_buf[i].FX = map_to_pos_alg_32(data_buf[i].FX);
-		data_buf[i].NCOB_X = map_to_pos_alg_32(data_buf[i].NCOB_X);
-		data_buf[i].NCOB_Y = map_to_pos_alg_32(data_buf[i].NCOB_Y);
-		data_buf[i].EFX = map_to_pos_alg_32(data_buf[i].EFX);
-		data_buf[i].ECOB_X = map_to_pos_alg_32(data_buf[i].ECOB_X);
-		data_buf[i].ECOB_Y = map_to_pos_alg_32(data_buf[i].ECOB_Y);
-
-		if (zero_mode_used) {
-			/* data_buf[i].EXPOSURE_FLAGS += 1; */
-			data_buf[i].FX += 1;
-			data_buf[i].NCOB_X += 1;
-			data_buf[i].NCOB_Y += 1;
-			data_buf[i].EFX += 1;
-			data_buf[i].ECOB_X += 1;
-			data_buf[i].ECOB_Y += 1;
-		}
-	}
-	return 0;
-}
-
-
-/**
- * @brief map the signed output of the pre-processing stage to a unsigned value
- *	range
- *
- * @note change the data_buf in-place
- *
- * @param cfg	configuration contains all parameters required for compression
- *
- * @returns 0 on success, error otherwise
- */
-
-int cmp_map_to_pos(struct cmp_cfg *cfg)
-{
-	int zero_mode_used;
-
-	if (!cfg)
-		return -1;
-
-	if (cfg->samples == 0)
-		return 0;
-
-	if (!cfg->input_buf)
-		return -1;
-
-	zero_mode_used = zero_escape_mech_is_used(cfg->cmp_mode);
-
-	switch (cfg->cmp_mode) {
-	case MODE_RAW:
-	case MODE_RAW_S_FX:
-		return 0; /* in raw mode no mapping is necessary */
-		break;
-	case MODE_MODEL_ZERO:
-	case MODE_MODEL_MULTI:
-	case MODE_DIFF_ZERO:
-	case MODE_DIFF_MULTI:
-		return map_to_pos_16((uint16_t *)cfg->input_buf, cfg->samples,
-				     zero_mode_used);
-		break;
-	case MODE_MODEL_ZERO_S_FX:
-	case MODE_MODEL_MULTI_S_FX:
-	case MODE_DIFF_ZERO_S_FX:
-	case MODE_DIFF_MULTI_S_FX:
-		return map_to_pos_S_FX((struct S_FX *)cfg->input_buf,
-				       cfg->samples, zero_mode_used);
-		break;
-	case MODE_MODEL_ZERO_S_FX_EFX:
-	case MODE_MODEL_MULTI_S_FX_EFX:
-	case MODE_DIFF_ZERO_S_FX_EFX:
-	case MODE_DIFF_MULTI_S_FX_EFX:
-		return map_to_pos_S_FX_EFX((struct S_FX_EFX *)cfg->input_buf,
-					   cfg->samples, zero_mode_used);
-		break;
-	case MODE_MODEL_ZERO_S_FX_NCOB:
-	case MODE_MODEL_MULTI_S_FX_NCOB:
-	case MODE_DIFF_ZERO_S_FX_NCOB:
-	case MODE_DIFF_MULTI_S_FX_NCOB:
-		return map_to_pos_S_FX_NCOB((struct S_FX_NCOB *)cfg->input_buf,
-					    cfg->samples, zero_mode_used);
-		break;
-	case MODE_MODEL_ZERO_S_FX_EFX_NCOB_ECOB:
-	case MODE_MODEL_MULTI_S_FX_EFX_NCOB_ECOB:
-	case MODE_DIFF_ZERO_S_FX_EFX_NCOB_ECOB:
-	case MODE_DIFF_MULTI_S_FX_EFX_NCOB_ECOB:
-		return map_to_pos_S_FX_EFX_NCOB_ECOB((struct S_FX_EFX_NCOB_ECOB *)cfg->input_buf,
-						     cfg->samples, zero_mode_used);
-		break;
-	case MODE_MODEL_ZERO_32:
-	case MODE_MODEL_MULTI_32:
-	case MODE_DIFF_ZERO_32:
-	case MODE_DIFF_MULTI_32:
-	case MODE_MODEL_ZERO_F_FX:
-	case MODE_MODEL_MULTI_F_FX:
-	case MODE_DIFF_ZERO_F_FX:
-	case MODE_DIFF_MULTI_F_FX:
-		return map_to_pos_32((uint32_t *)cfg->input_buf, cfg->samples,
-				     zero_mode_used);
-		break;
-	default:
-		debug_print("Error: Compression mode not supported.\n");
-		break;
-
-	}
-
-	return -1;
-}
-
-
-/**
- * @brief forms the codeword accurate to the Rice code and returns its length
- *
- * @param m		Golomb parameter, only m's which are power of 2 and >0
- *			are allowed!
- * @param log2_m	Rice parameter, is log_2(m) calculate outside function
- *			for better performance
- * @param value		value to be encoded
- * @param cw		address were the encode code word is stored
- *
- * @returns length of the encoded code word in bits
- */
-
-static unsigned int Rice_encoder(unsigned int value, unsigned int m,
-				 unsigned int log2_m, unsigned int *cw)
-{
-	unsigned int g;  /* quotient of value/m */
-	unsigned int q;  /* quotient code without ending zero */
-	unsigned int r;  /* remainder of value/m */
-	unsigned int rl; /* remainder length */
-
-	g = value >> log2_m; /* quotient, number of leading bits */
-	q = (1U << g) - 1;    /* prepare the quotient code without ending zero */
-
-	r = value & (m-1);   /* calculate the remainder */
-	rl = log2_m + 1;     /* length of the remainder (+1 for the 0 in the
-			      * quotient code)
-			      */
-	*cw = (q << rl) | r; /* put the quotient and remainder code together */
-
-	return rl + g;	      /* calculate the length of the code word */
-}
-
-
-/**
- * @brief forms the codeword accurate to the Golomb code and returns its length
- *
- * @param m		Golomb parameter, only m's which are power of 2 and >0
- *			are allowed!
- * @param log2_m	is log_2(m) calculate outside function for better
- *			performance
- * @param value		value to be encoded
- * @param cw		address were the encode code word is stored
- *
- * @returns length of the encoded code word in bits
- */
-
-static unsigned int Golomb_encoder(unsigned int value, unsigned int m,
-				   unsigned int log2_m, unsigned int *cw)
-{
-	unsigned int len0, b, g, q, lg;
-	unsigned int len;
-	unsigned int cutoff;
-
-	len0 = log2_m + 1; /* codeword length in group 0 */
-	cutoff = (1U << (log2_m+1)) - m; /* members in group 0 */
-	if (cutoff == 0) /* for powers of two we fix cutoff = m */
-		cutoff = m;
-
-	if (value < cutoff) { /* group 0 */
-		*cw = value;
-		len = len0;
-	} else { /* other groups */
-		b = (cutoff << 1); /* form the base codeword */
-		g = (value-cutoff)/m; /* this group is which one  */
-		lg = len0 + g; /* it has lg remainder bits */
-		q = (1U << g) - 1; /* prepare the left side in unary */
-		*cw = (q << (len0+1)) + b + (value-cutoff)-g*m; /* composed codeword */
-		len = lg + 1; /* length of the codeword */
-	}
-	return len;
-}
-
-
-typedef unsigned int (*encoder_ptr)(unsigned int, unsigned int, unsigned int,
-				    unsigned int*);
-
-static encoder_ptr select_encoder(unsigned int golomb_par)
-{
-	if (!golomb_par)
-		return NULL;
-
-	if (is_a_pow_of_2(golomb_par))
-		return &Rice_encoder;
-	else
-		return &Golomb_encoder;
-}
-
-
-/**
- * @brief    safe (but slow) way to put the value of up to 32 bits into a
- *           bitstream accessed as 32-bit RAM in big endian
- * @param    value      the value to put, it will be masked
- * @param    bitOffset  bit index where the bits will be put, seen from the very
- *			beginning of the bitstream
- * @param    nBits      number of bits to put in the bitstream
- * @param    destAddr   this is the pointer to the beginning of the bitstream
- * @param    dest_len   length of the bitstream buffer (starting at destAddr)
- * @returns  TODO number of bits written, 0 if the number was too big, -2 if the
- *	     destAddr buffer is to small to store the bitstream
- * @note     works in SRAM2
- */
-
-static unsigned int put_n_bits32(unsigned int value, unsigned int bitOffset,
-				 unsigned int nBits, unsigned int *destAddr,
-				 unsigned int dest_len)
-{
-	unsigned int *localAddr;
-	unsigned int bitsLeft, shiftRight, shiftLeft, localEndPos;
-	unsigned int mask;
-
-	if (!destAddr)
-		return nBits;
-
-	/* check if destination buffer is large enough */
-	/* TODO: adapt that to the other science products */
-	if ((bitOffset + nBits) > ((dest_len&~0x1U)*16)) {
+	/* Do we need to write data to the bitstream? */
+	if (!bitstream_adr)
+		return stream_len;
+
+	/* Check if bitstream buffer is large enough */
+	if ((unsigned int)stream_len > max_stream_len) {
 		debug_print("Error: The buffer for the compressed data is too small to hold the compressed data. Try a larger buffer_length parameter.\n");
-		return -2U;
+		return CMP_ERROR_SMALL_BUF;
 	}
 
-	/* leave in case of erroneous input */
-	if (nBits == 0)
-		return 0;
-	if (nBits > 32)
-		return 0;
-
-	/* separate the bitOffset into word offset (set localAddr pointer) and local bit offset (bitsLeft) */
-	localAddr = destAddr + (bitOffset >> 5);
-	bitsLeft = bitOffset & 0x1f;
-
-	/* (M) we mask the value first to match its size in nBits */
-	/* the calculations can be re-used in the unsegmented code, so we have no overhead */
-	shiftRight = 32 - nBits;
-	mask = 0xffffffff >> shiftRight;
+	/* (M) is the n_bits parameter large enough to cover all value bits; the
+	 * calculations can be re-used in the unsegmented code, so we have no overhead
+	 */
+	shiftRight = 32 - n_bits;
+	mask = 0xFFFFFFFFU >> shiftRight;
 	value &= mask;
 
-	/* to see if we need to split the value over two words we need the right end position */
-	localEndPos = bitsLeft + nBits;
+	/* Separate the bit_offset into word offset (set local_adr pointer) and local bit offset (bitsLeft) */
+	local_adr = bitstream_adr + (bit_offset >> 5);
+	bitsLeft = bit_offset & 0x1F;
 
-	if (localEndPos <= 32) {
+	/* Calculate the bitsRight for the unsegmented case. If bitsRight is
+	 * negative we need to split the value over two words
+	 */
+	bitsRight = shiftRight - bitsLeft;
+
+	if ((int)bitsRight >= 0) {
 		/*         UNSEGMENTED
 		 *
 		 *|-----------|XXXXX|----------------|
@@ -1160,22 +371,23 @@ static unsigned int put_n_bits32(unsigned int value, unsigned int bitOffset,
 		 *
 		 *  -> to get the mask:
 		 *  shiftRight = bitsLeft + bitsRight = 32 - n
-		 *  shiftLeft = bitsRight
-		 *
+		 *  shiftLeft = bitsRight = 32 - n - bitsLeft = shiftRight - bitsLeft
 		 */
 
-		/* shiftRight = 32 - nBits; */ /* see (M) above! */
-		shiftLeft = shiftRight - bitsLeft;
+		shiftLeft = bitsRight;
 
-		/* generate the mask, the bits for the values will be true */
-		/* mask = (0xffffffff >> shiftRight) << shiftLeft; */ /* see (M) above! */
+		/* generate the mask, the bits for the values will be true
+		 * shiftRight = 32 - n_bits; see (M) above!
+		 * mask = (0XFFFFFFFF >> shiftRight) << shiftLeft; see (M) above!
+		 */
 		mask <<= shiftLeft;
+		value <<= shiftLeft;
 
 		/* clear the destination with inverse mask */
-		*(localAddr) &= ~mask;
+		*(local_adr) &= ~mask;
 
 		/* assign the value */
-		*(localAddr) |= (value << (32 - localEndPos)); /* NOTE: 32-localEndPos = shiftLeft can be simplified */
+		*(local_adr) |= value;
 
 	} else {
 		/*                             SEGMENTED
@@ -1184,592 +396,2041 @@ static unsigned int put_n_bits32(unsigned int value, unsigned int bitOffset,
 		 *          bitsLeft              n1   n2          bitsRight
 		 *
 		 *  -> to get the mask part 1:
-		 *  shiftright = bitsleft
-		 *  n1 = n - (bitsleft + n - 32) = 32 - bitsleft
+		 *  shiftRight = bitsLeft
+		 *  n1 = n - (bitsLeft + n - 32) = 32 - bitsLeft
 		 *
 		 *  -> to get the mask part 2:
-		 *  n2 = bitsleft + n - 32
-		 *  shiftleft = 32 - n2 = 32 - (bitsleft + n - 32) = 64 - bitsleft - n
+		 *  n2 = bitsLeft + n - 32 = -(32 - n - bitsLeft) = -(bitsRight_UNSEGMENTED)
+		 *  shiftLeft = 32 - n2 = 32 - (bitsLeft + n - 32) = 64 - bitsLeft - n
 		 *
 		 */
 
-		unsigned int n2 = bitsLeft + nBits - 32;
+		unsigned int n2 = -bitsRight;
 
 		/* part 1: */
 		shiftRight = bitsLeft;
-		mask = 0xffffffff >> shiftRight;
+		mask = 0XFFFFFFFFU >> shiftRight;
 
 		/* clear the destination with inverse mask */
-		*(localAddr) &= ~mask;
+		*(local_adr) &= ~mask;
 
 		/* assign the value part 1 */
-		*(localAddr) |= (value >> n2);
+		*(local_adr) |= (value >> n2);
 
 		/* part 2: */
 		/* adjust address */
-		localAddr += 1;
-		shiftLeft = 64 - bitsLeft - nBits;
-		mask = 0xffffffff << shiftLeft;
+		local_adr += 1;
+		shiftLeft = 32 - n2;
+		mask = 0XFFFFFFFFU >> n2;
 
-		/* clear the destination with inverse mask */
-		*(localAddr) &= ~mask;
+		/* clear the destination */
+		*(local_adr) &= mask;
 
 		/* assign the value part 2 */
-		*(localAddr) |= (value << (32 - n2));
+		*(local_adr) |= (value << shiftLeft);
 	}
-	return nBits;
-}
-
-
-struct encoder_struct {
-	encoder_ptr encoder;
-	unsigned int log2_golomb_par; /* pre-calculated for performance increase */
-	uint32_t cmp_size; /* Compressed data size; measured in bits */
-};
-
-
-static int encode_raw(struct cmp_cfg *cfg, struct encoder_struct *enc)
-{
-	size_t cmp_size_in_bytes;
-
-	if (!cfg)
-		return -1;
-
-	if (!cfg->icu_output_buf)
-		return -1;
-
-	if (!cfg->input_buf)
-		return -1;
-
-	cmp_size_in_bytes = cfg->samples * size_of_a_sample(cfg->cmp_mode);
-
-	enc->cmp_size = cmp_size_in_bytes * CHAR_BIT; /* cmp_size is measured in bits */
-
-	if (cmp_size_in_bytes > cfg->buffer_length * sizeof(uint16_t))
-		return -1;
-
-	memcpy(cfg->icu_output_buf, cfg->input_buf, cmp_size_in_bytes);
-
-	return 0;
-}
-
-
-static int encode_raw_16(struct cmp_cfg *cfg, struct encoder_struct *enc)
-{
-	int err;
-	size_t i;
-
-	enc->cmp_size = 0;
-
-	for (i = 0; i < cfg->samples; i++) {
-		uint16_t *p = cfg->input_buf;
-		err = put_n_bits32(p[i], enc->cmp_size, 16, cfg->icu_output_buf,
-				   cfg->buffer_length);
-		if (err <= 0)
-			return err;
-		enc->cmp_size += 16;
-	}
-
-	return 0;
-}
-
-
-static int encode_raw_S_FX(struct cmp_cfg *cfg, struct encoder_struct *enc)
-{
-	int err;
-
-	err = encode_raw(cfg, enc);
-	if (err)
-		return err;
-
-#if defined(__LITTLE_ENDIAN)
-	{
-		size_t i;
-		for (i = 0; i < cfg->samples; i++) {
-			struct S_FX *output_buf = (void *)cfg->icu_output_buf;
-			output_buf[i].FX = cpu_to_be32(output_buf[i].FX);
-		}
-	}
-#endif
-	return 0;
-}
-
-
-static int encode_normal(uint32_t value_to_encode, struct cmp_cfg *cfg,
-			 struct encoder_struct *enc)
-{
-	unsigned int code_word;
-	unsigned int cw_len;
-	int err;
-
-	if (!enc->encoder)
-		return -1;
-
-	cw_len = enc->encoder(value_to_encode, cfg->golomb_par,
-			      enc->log2_golomb_par, &code_word);
-
-	err = put_n_bits32(code_word, enc->cmp_size, cw_len,
-			   cfg->icu_output_buf, cfg->buffer_length);
-	if (err <= 0)
-		return err;
-
-	enc->cmp_size += cw_len;
-
-	return 0;
-}
-
-
-static int encode_outlier_zero(uint32_t value_to_encode, int max_bits,
-			       struct cmp_cfg *cfg, struct encoder_struct *enc)
-{
-	int err;
-
-	if (max_bits > 32)
-		return -1;
-
-	/* use zero as escape symbol */
-	err = encode_normal(0, cfg, enc);
-	if (err)
-		return err;
-
-	/* put the data unencoded in the bitstream */
-	err = put_n_bits32(value_to_encode, enc->cmp_size, max_bits,
-			   cfg->icu_output_buf, cfg->buffer_length);
-	if (err <= 0)
-		return err;
-
-	enc->cmp_size += max_bits;
-
-	return 0;
-}
-
-
-static int cal_multi_offset(unsigned int unencoded_data)
-{
-	if (unencoded_data <= 0x3)
-		return 0;
-	if (unencoded_data <= 0xF)
-		return 1;
-	if (unencoded_data <= 0x3F)
-		return 2;
-	if (unencoded_data <= 0xFF)
-		return 3;
-	if (unencoded_data <= 0x3FF)
-		return 4;
-	if (unencoded_data <= 0xFFF)
-		return 5;
-	if (unencoded_data <= 0x3FFF)
-		return 6;
-	if (unencoded_data <= 0xFFFF)
-		return 7;
-	if (unencoded_data <= 0x3FFFF)
-		return 8;
-	if (unencoded_data <= 0xFFFFF)
-		return 9;
-	if (unencoded_data <= 0x3FFFFF)
-		return 10;
-	if (unencoded_data <= 0xFFFFFF)
-		return 11;
-	if (unencoded_data <= 0x3FFFFFF)
-		return 12;
-	if (unencoded_data <= 0xFFFFFFF)
-		return 13;
-	if (unencoded_data <= 0x3FFFFFFF)
-		return 14;
-	else
-		return 15;
-}
-
-
-static int encode_outlier_multi(uint32_t value_to_encode, struct cmp_cfg *cfg,
-				struct encoder_struct *enc)
-{
-	uint32_t unencoded_data;
-	unsigned int unencoded_data_len;
-	uint32_t escape_sym;
-	int escape_sym_offset;
-	int err;
-
-	/*
-	 * In this mode we put the difference between the data and the spillover
-	 * threshold value (unencoded_data) after a encoded escape symbol, which
-	 * indicate that the next codeword is unencoded.
-	 * We use different escape symbol depended on the size the needed bit of
-	 * unencoded data:
-	 * 0, 1, 2 bits needed for unencoded data -> escape symbol is spill + 0
-	 * 3, 4 bits needed for unencoded data -> escape symbol is spill + 1
-	 * ..
-	 */
-
-	unencoded_data = value_to_encode - cfg->spill;
-	escape_sym_offset = cal_multi_offset(unencoded_data);
-	escape_sym  = cfg->spill + escape_sym_offset;
-	unencoded_data_len = (escape_sym_offset + 1) * 2;
-
-	/* put the escape symbol in the bitstream */
-	err = encode_normal(escape_sym, cfg, enc);
-	if (err)
-		return err;
-
-	/* put the unencoded data in the bitstream */
-	err = put_n_bits32(unencoded_data, enc->cmp_size, unencoded_data_len,
-			   cfg->icu_output_buf, cfg->buffer_length);
-	if (err <= 0)
-		return err;
-
-	enc->cmp_size += unencoded_data_len;
-
-	return 0;
-}
-
-static int encode_outlier(uint32_t value_to_encode, int bit_len, struct cmp_cfg
-			  *cfg, struct encoder_struct *enc)
-{
-	if (multi_escape_mech_is_used(cfg->cmp_mode))
-		return encode_outlier_multi(value_to_encode, cfg, enc);
-
-	if (zero_escape_mech_is_used(cfg->cmp_mode))
-		return encode_outlier_zero(value_to_encode, bit_len, cfg, enc);
-
-	return -1;
-}
-
-
-int encode_value(uint32_t value_to_encode, int bit_len, struct cmp_cfg *cfg,
-		 struct encoder_struct *enc)
-{
-	/* 0 is an outlier in case of a zero-escape mechanism, because an
-	 * overflow can occur by incrementing by one
-	 */
-	if (value_to_encode >= cfg->spill ||
-	    (zero_escape_mech_is_used(cfg->cmp_mode) && value_to_encode == 0))
-		return encode_outlier(value_to_encode, bit_len, cfg, enc);
-	else
-		return encode_normal(value_to_encode, cfg, enc);
-}
-
-
-static int encode_16(struct cmp_cfg *cfg, struct encoder_struct *enc)
-{
-	size_t i;
-	uint16_t *data_to_encode;
-
-	if (!cfg)
-		return -1;
-
-	if (!enc)
-		return -1;
-
-	data_to_encode = cfg->input_buf;
-
-	for (i = 0; i < cfg->samples; i++) {
-		int err = encode_value(data_to_encode[i], 16, cfg, enc);
-		if (err)
-			return err;
-	}
-	return 0;
-}
-
-
-static int encode_32(struct cmp_cfg *cfg, struct encoder_struct *enc)
-{
-	uint32_t *data_to_encode = cfg->input_buf;
-	size_t i;
-
-	for (i = 0; i < cfg->samples; i++) {
-		int err = encode_value(data_to_encode[i], 32, cfg, enc);
-		if (err)
-			return err;
-	}
-	return 0;
-}
-
-
-static int encode_S_FX(struct cmp_cfg *cfg, struct encoder_struct *enc)
-{
-	struct S_FX *data_to_encode = cfg->input_buf;
-	size_t i;
-	struct cmp_cfg cfg_exp_flag = *cfg;
-	struct encoder_struct enc_exp_flag = *enc;
-
-	cfg_exp_flag.golomb_par = GOLOMB_PAR_EXPOSURE_FLAGS;
-	enc_exp_flag.log2_golomb_par = ilog_2(GOLOMB_PAR_EXPOSURE_FLAGS);
-
-	for (i = 0; i < cfg->samples; i++) {
-		int err;
-
-		/* err = encode_value(data_to_encode[i].EXPOSURE_FLAGS, 8, &cfg_exp_flag, enc); */
-		err = encode_normal(data_to_encode[i].EXPOSURE_FLAGS, &cfg_exp_flag, &enc_exp_flag);
-		if (err)
-			return err;
-		enc->cmp_size = enc_exp_flag.cmp_size;
-
-		enc->log2_golomb_par = ilog_2(cfg->golomb_par);
-		err = encode_value(data_to_encode[i].FX, 32, cfg, enc);
-		if (err)
-			return err;
-
-		enc_exp_flag.cmp_size = enc->cmp_size;
-	}
-
-	return 0;
-}
-
-
-static int encode_S_FX_EFX(struct cmp_cfg *cfg, struct encoder_struct *enc)
-{
-	struct S_FX_EFX *data_to_encode = cfg->input_buf;
-	size_t i;
-
-	for (i = 0; i < cfg->samples; i++) {
-		int err;
-
-		err = encode_value(data_to_encode[i].EXPOSURE_FLAGS, 8, cfg, enc);
-		if (err)
-			return err;
-
-		err = encode_value(data_to_encode[i].FX, 32, cfg, enc);
-		if (err)
-			return err;
-
-		err = encode_value(data_to_encode[i].EFX, 32, cfg, enc);
-		if (err)
-			return err;
-	}
-	return 0;
-}
-
-
-static int encode_S_FX_NCOB(struct cmp_cfg *cfg, struct encoder_struct *enc)
-{
-	struct S_FX_NCOB *data_to_encode = cfg->input_buf;
-	size_t i;
-
-	for (i = 0; i < cfg->samples; i++) {
-		int err;
-
-		err = encode_value(data_to_encode[i].EXPOSURE_FLAGS, 8, cfg, enc);
-		if (err)
-			return err;
-
-		err = encode_value(data_to_encode[i].FX, 32, cfg, enc);
-		if (err)
-			return err;
-
-		err = encode_value(data_to_encode[i].NCOB_X, 32, cfg, enc);
-		if (err)
-			return err;
-
-		err = encode_value(data_to_encode[i].NCOB_Y, 32, cfg, enc);
-		if (err)
-			return err;
-	}
-	return 0;
-}
-
-
-static int encode_S_FX_EFX_NCOB_ECOB(struct cmp_cfg *cfg, struct encoder_struct
-				     *enc)
-{
-	struct S_FX_EFX_NCOB_ECOB *data_to_encode = cfg->input_buf;
-	size_t i;
-
-	for (i = 0; i < cfg->samples; i++) {
-		int err;
-
-		err = encode_value(data_to_encode[i].EXPOSURE_FLAGS, 8, cfg, enc);
-		if (err)
-			return err;
-
-		err = encode_value(data_to_encode[i].FX, 32, cfg, enc);
-		if (err)
-			return err;
-
-		err = encode_value(data_to_encode[i].NCOB_X, 32, cfg, enc);
-		if (err)
-			return err;
-
-		err = encode_value(data_to_encode[i].NCOB_Y, 32, cfg, enc);
-		if (err)
-			return err;
-
-		err = encode_value(data_to_encode[i].EFX, 32, cfg, enc);
-		if (err)
-			return err;
-
-		err = encode_value(data_to_encode[i].ECOB_X, 32, cfg, enc);
-		if (err)
-			return err;
-
-		err = encode_value(data_to_encode[i].ECOB_Y, 32, cfg, enc);
-		if (err)
-			return err;
-	}
-	return 0;
-}
-
-
-/* pad the bitstream with zeros */
-int pad_bitstream(struct cmp_cfg *cfg, uint32_t cmp_size)
-{
-	int n_bits = 0;
-
-	if (!cfg)
-		return -1;
-
-	/* is padding needed */
-	if (cmp_size) {
-		int n_pad_bits = 32U - (cmp_size & 0x1f);
-		if (n_pad_bits < 32) {
-			 n_bits = put_n_bits32(0, cmp_size, n_pad_bits,
-					       cfg->icu_output_buf,
-					       cfg->buffer_length);
-			if (n_bits <= 0)
-				return -2;
-		}
-	}
-	return n_bits;
-}
-
-
-uint32_t cmp_encode_data(struct cmp_cfg *cfg)
-{
-	struct encoder_struct enc;
-	int err, n_bits;
-
-	enc.encoder = select_encoder(cfg->golomb_par);
-	enc.log2_golomb_par = ilog_2(cfg->golomb_par);
-	enc.cmp_size = 0;
-
-	switch (cfg->cmp_mode) {
-	case MODE_RAW:
-		err = encode_raw_16(cfg, &enc);
-		break;
-	case MODE_MODEL_ZERO:
-	case MODE_MODEL_MULTI:
-	case MODE_DIFF_ZERO:
-	case MODE_DIFF_MULTI:
-		err = encode_16(cfg, &enc);
-		break;
-	case MODE_RAW_S_FX:
-		err = encode_raw_S_FX(cfg, &enc);
-		break;
-	case MODE_MODEL_ZERO_S_FX:
-	case MODE_MODEL_MULTI_S_FX:
-	case MODE_DIFF_ZERO_S_FX:
-	case MODE_DIFF_MULTI_S_FX:
-		err = encode_S_FX(cfg, &enc);
-		break;
-	case MODE_MODEL_ZERO_S_FX_EFX:
-	case MODE_MODEL_MULTI_S_FX_EFX:
-	case MODE_DIFF_ZERO_S_FX_EFX:
-	case MODE_DIFF_MULTI_S_FX_EFX:
-		err = encode_S_FX_EFX(cfg, &enc);
-		break;
-	case MODE_MODEL_ZERO_S_FX_NCOB:
-	case MODE_MODEL_MULTI_S_FX_NCOB:
-	case MODE_DIFF_ZERO_S_FX_NCOB:
-	case MODE_DIFF_MULTI_S_FX_NCOB:
-		err = encode_S_FX_NCOB(cfg, &enc);
-		break;
-	case MODE_MODEL_ZERO_S_FX_EFX_NCOB_ECOB:
-	case MODE_MODEL_MULTI_S_FX_EFX_NCOB_ECOB:
-	case MODE_DIFF_ZERO_S_FX_EFX_NCOB_ECOB:
-	case MODE_DIFF_MULTI_S_FX_EFX_NCOB_ECOB:
-		err = encode_S_FX_EFX_NCOB_ECOB(cfg, &enc);
-		break;
-	case MODE_MODEL_ZERO_32:
-	case MODE_MODEL_MULTI_32:
-	case MODE_DIFF_ZERO_32:
-	case MODE_DIFF_MULTI_32:
-	case MODE_MODEL_ZERO_F_FX:
-	case MODE_MODEL_MULTI_F_FX:
-	case MODE_DIFF_ZERO_F_FX:
-	case MODE_DIFF_MULTI_F_FX:
-		err = encode_32(cfg, &enc);
-		break;
-	default:
-		debug_print("Error: Compression mode not supported.\n");
-		return -1;
-		break;
-	}
-
-	n_bits = pad_bitstream(cfg, enc.cmp_size);
-	if (n_bits < 0)
-		return n_bits;
-
-#if (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
-	{
-		size_t i;
-		uint32_t *p = (uint32_t *)cfg->icu_output_buf;
-
-		if (p) {
-			for (i = 0; i < cmp_bit_to_4byte(enc.cmp_size)/sizeof(uint32_t); i++)
-				cpu_to_be32s(&p[i]);
-		}
-	}
-#endif /*__BYTE_ORDER__ */
-
-	if (err)
-		return err;
-	else
-		return enc.cmp_size;
+	return stream_len;
 }
 
 
 /**
- * @brief	compress data on the ICU
+ * @brief forms the codeword according to the Rice code
  *
- * @param cfg	compressor configuration contains all parameters required for
- *		compression
- * @param info	compressor information contains information of the executed
- *		compression
+ * @param value		value to be encoded
+ * @param m		Golomb parameter, only m's which are power of 2 are allowed
+ * @param log2_m	Rice parameter, is log_2(m) calculate outside function
+ *			for better performance
+ * @param cw		address were the encode code word is stored
  *
- * @note this function violates the input_buf in place
- * @note if icu_new_model_buf = model_buf or NULL, the model will be updated in place
- * @note the validity of the cfg structure is checked before the compression is
- *	 started
- * @note when using the 1d-differencing mode or the raw mode (cmp_mode = 0,2,4),
- *      the model parameters (model_value, model_buf, rdcu_model_adr) are ignored
- * @note the rdcu_***_adr configuration parameters are ignored for icu
- *	 compression
- * @note semi adaptive compression not supported; configuration parameters
- *	 ap1\_golomb\_par, ap2\_golomb\_par, ap1\_spill ap2\_spill will be
- *	 ignored; information parameters ap1_cmp_size, ap2_cmp_size will always
- *	 be 0
- *
- * @returns 0 on success, error otherwise
+ * @returns the length of the formed code word in bits
+ * @note no check if the generated code word is not longer than 32 bits!
  */
 
-int icu_compress_data(struct cmp_cfg *cfg, struct cmp_info *info)
+static uint32_t rice_encoder(uint32_t value, uint32_t m, uint32_t log2_m,
+			     uint32_t *cw)
 {
-	int err;
-	int cmp_size = 0;
+	uint32_t g;  /* quotient of value/m */
+	uint32_t q;  /* quotient code without ending zero */
+	uint32_t r;  /* remainder of value/m */
+	uint32_t rl; /* remainder length */
 
-	err = set_info(cfg, info);
-	if (err)
-		return err;
+	g = value >> log2_m; /* quotient, number of leading bits */
+	q = (1U << g) - 1;   /* prepare the quotient code without ending zero */
 
-	err = icu_cmp_cfg_valid(cfg, info);
-	if (err)
-		return err;
+	r = value & (m-1);   /* calculate the remainder */
+	rl = log2_m + 1;     /* length of the remainder (+1 for the 0 in the quotient code) */
+	*cw = (q << rl) | r; /* put the quotient and remainder code together */
+	/*
+	 * NOTE: If log2_m = 31 -> rl = 32, (q << rl) leads to an undefined
+	 * behavior. However, in this case, a valid code with a maximum of 32
+	 * bits can only be formed if q = 0. Any shift with 0 << x always
+	 * results in 0, which forms the correct codeword in this case. For
+	 * performance reasons, this undefined behaviour is not caught.
+	 */
 
-	err = cmp_pre_process(cfg);
-	if (err)
-		return err;
+	return rl + g;	      /* calculate the length of the code word */
+}
 
-	err = cmp_map_to_pos(cfg);
-	if (err)
-		return err;
 
-	cmp_size = cmp_encode_data(cfg);
-	if (cmp_size == -2 && info)
-		/* the icu_output_buf is to small to store the whole bitstream */
-		info->cmp_err |= 1UL << SMALL_BUFFER_ERR_BIT; /* set small buffer error */
-	if (cmp_size < 0)
-		return cmp_size;
-	if (info)
-		info->cmp_size = cmp_size;
+/**
+ * @brief forms a codeword according to the Golomb code
+ *
+ * @param value		value to be encoded
+ * @param m		Golomb parameter (have to be bigger than 0)
+ * @param log2_m	is log_2(m) calculate outside function for better
+ *			performance
+ * @param cw		address were the formed code word is stored
+ *
+ * @returns the length of the formed code word in bits
+ * @note no check if the generated code word is not longer than 32 bits!
+ */
+
+static uint32_t golomb_encoder(uint32_t value, uint32_t m, uint32_t log2_m,
+			       uint32_t *cw)
+{
+	uint32_t len0, b, g, q, lg;
+	uint32_t len;
+	uint32_t cutoff;
+
+	len0 = log2_m + 1;                 /* codeword length in group 0 */
+	cutoff = (1U << (log2_m + 1)) - m; /* members in group 0 */
+
+	if (value < cutoff) { /* group 0 */
+		*cw = value;
+		len = len0;
+	} else { /* other groups */
+		g = (value-cutoff) / m; /* this group is which one */
+		b = cutoff << 1;        /* form the base codeword */
+		lg = len0 + g;          /* it has lg remainder bits */
+		q = (1U << g) - 1;      /* prepare the left side in unary */
+		*cw = (q << (len0+1)) + b + (value-cutoff) - g*m; /* composed codeword */
+		len = lg + 1;           /* length of the codeword */
+	}
+	return len;
+}
+
+
+/**
+ * @brief generate a code word without an outlier mechanism and put in the
+ *	bitstream
+ *
+ * @param value		value to encode in the bitstream
+ * @param stream_len	length of the bitstream in bits
+ * @param setup		pointer to the encoder setup
+ *
+ * @returns the bit length of the bitstream with the added encoded value on
+ *	success; negative on error, CMP_ERROR_SMALL_BUF if the bitstream buffer
+ *	is too small to put the value in the bitstream
+ */
+
+static int encode_normal(uint32_t value, int stream_len,
+			 const struct encoder_setupt *setup)
+{
+	uint32_t code_word, cw_len;
+
+	cw_len = setup->generate_cw_f(value, setup->encoder_par1,
+				      setup->encoder_par2, &code_word);
+
+	return put_n_bits32(code_word, cw_len, stream_len, setup->bitstream_adr,
+			    setup->max_stream_len);
+}
+
+
+/**
+ * @brief subtract the model from the data, encode the result and put it into
+ *	bitstream, for encoding outlier use the zero escape symbol mechanism
+ *
+ * @param data		data to encode
+ * @param model		model of the data (0 if not used)
+ * @param stream_len	length of the bitstream in bits
+ * @param setup		pointer to the encoder setup
+ *
+ * @returns the bit length of the bitstream with the added encoded value on
+ *	success; negative on error, CMP_ERROR_SMALL_BUF if the bitstream buffer
+ *	is too small to put the value in the bitstream
+ *
+ * @note no check if the data or model are in the allowed range
+ * @note no check if the setup->spillover_par is in the allowed range
+ */
+
+static int encode_value_zero(uint32_t data, uint32_t model, int stream_len,
+			     const struct encoder_setupt *setup)
+{
+	data -= model; /* possible underflow is intended */
+
+	data = map_to_pos(data, setup->max_data_bits);
+
+	/* For performance reasons, we check to see if there is an outlier
+	 * before adding one, rather than the other way around:
+	 * data++;
+	 * if (data < setup->spillover_par && data != 0)
+	 *	return ...
+	 */
+	if (data < (setup->spillover_par - 1)) { /* detect non-outlier */
+		data++; /* add 1 to every value so we can use 0 as escape symbol */
+		return encode_normal(data, stream_len, setup);
+	}
+
+	data++; /* add 1 to every value so we can use 0 as escape symbol */
+
+	/* use zero as escape symbol */
+	stream_len = encode_normal(0, stream_len, setup);
+	if (stream_len <= 0)
+		return stream_len;
+
+	/* put the data unencoded in the bitstream */
+	stream_len = put_n_bits32(data, setup->max_data_bits, stream_len,
+				  setup->bitstream_adr, setup->max_stream_len);
+
+	return stream_len;
+}
+
+
+/**
+ * @brief subtract the model from the data, encode the result and put it into
+ *	bitstream, for encoding outlier use the multi escape symbol mechanism
+ *
+ * @param data		data to encode
+ * @param model		model of the data (0 if not used)
+ * @param stream_len	length of the bitstream in bits
+ * @param setup		pointer to the encoder setup
+ *
+ * @returns the bit length of the bitstream with the added encoded value on
+ *	success; negative on error, CMP_ERROR_SMALL_BUF if the bitstream buffer
+ *	is too small to put the value in the bitstream
+ *
+ * @note no check if the data or model are in the allowed range
+ * @note no check if the setup->spillover_par is in the allowed range
+ */
+
+static int encode_value_multi(uint32_t data, uint32_t model, int stream_len,
+			      const struct encoder_setupt *setup)
+{
+	uint32_t unencoded_data;
+	unsigned int unencoded_data_len;
+	uint32_t escape_sym, escape_sym_offset;
+
+	data -= model; /* possible underflow is intended */
+
+	data = map_to_pos(data, setup->max_data_bits);
+
+	if (data < setup->spillover_par) /* detect non-outlier */
+		return  encode_normal(data, stream_len, setup);
+
+	/*
+	 * In this mode we put the difference between the data and the spillover
+	 * threshold value (unencoded_data) after an encoded escape symbol, which
+	 * indicate that the next codeword is unencoded.
+	 * We use different escape symbol depended on the size the needed bit of
+	 * unencoded data:
+	 * 0, 1, 2 bits needed for unencoded data -> escape symbol is spillover_par + 0
+	 * 3, 4 bits needed for unencoded data -> escape symbol is spillover_par + 1
+	 * 5, 6 bits needed for unencoded data -> escape symbol is spillover_par + 2
+	 * and so on
+	 */
+	unencoded_data = data - setup->spillover_par;
+
+	if (!unencoded_data) /* catch __builtin_clz(0) because the result is undefined.*/
+		escape_sym_offset = 0;
+	else
+		escape_sym_offset = (31U - (uint32_t)__builtin_clz(unencoded_data)) >> 1;
+
+	escape_sym = setup->spillover_par + escape_sym_offset;
+	unencoded_data_len = (escape_sym_offset + 1U) << 1;
+
+	/* put the escape symbol in the bitstream */
+	stream_len = encode_normal(escape_sym, stream_len, setup);
+	if (stream_len <= 0)
+		return stream_len;
+
+	/* put the unencoded data in the bitstream */
+	stream_len = put_n_bits32(unencoded_data, unencoded_data_len, stream_len,
+				  setup->bitstream_adr, setup->max_stream_len);
+
+	return stream_len;
+}
+
+
+/**
+ * @brief put the value unencoded with setup->cmp_par_1 bits without any changes
+ *	in the bitstream
+ *
+ * @param value		value to put unchanged in the bitstream
+ *	(setup->cmp_par_1 how many bits of the value are used)
+ * @param unused	this parameter is ignored
+ * @param stream_len	length of the bitstream in bits
+ * @param setup		pointer to the encoder setup
+ *
+ * @returns the bit length of the bitstream with the added unencoded value on
+ *	success; negative on error, CMP_ERROR_SMALL_BUF if the bitstream buffer
+ *	is too small to put the value in the bitstream
+ *
+ */
+
+static int encode_value_none(uint32_t value, uint32_t unused, int stream_len,
+			     const struct encoder_setupt *setup)
+{
+	(void)(unused);
+
+	return put_n_bits32(value, setup->encoder_par1, stream_len,
+			    setup->bitstream_adr, setup->max_stream_len);
+}
+
+
+/**
+ * @brief encodes the data with the model and the given setup and put it into
+ *	the bitstream
+ *
+ * @param data		data to encode
+ * @param model		model of the data (0 if not used)
+ * @param stream_len	length of the bitstream in bits
+ * @param setup		pointer to the encoder setup
+ *
+ * @returns the bit length of the bitstream with the added encoded value on
+ *	success; negative on error, CMP_ERROR_SMALL_BUF if the bitstream buffer
+ *	is too small to put the value in the bitstream, CMP_ERROR_HIGH_VALUE if
+ *	the value or the model is bigger than the max_used_bits parameter allows
+ */
+
+static int encode_value(uint32_t data, uint32_t model, int stream_len,
+			const struct encoder_setupt *setup)
+{
+	uint32_t mask = ~(0xFFFFFFFFU >> (32-setup->max_data_bits));
+
+	/* lossy rounding of the data if lossy_par > 0 */
+	data = round_fwd(data, setup->lossy_par);
+	model = round_fwd(model, setup->lossy_par);
+
+	if (data & mask || model & mask) {
+		debug_print("Error: The data or the model of the data are bigger than expected.\n");
+		return CMP_ERROR_HIGH_VALUE;
+	}
+
+	return setup->encode_method_f(data, model, stream_len, setup);
+}
+
+
+/**
+ * @brief calculate the maximum length of the bitstream/icu_output_buf in bits
+ * @note we round down to the next 4-byte allied address because we access the
+ *	cmp_buffer in uint32_t words
+ *
+ * @param buffer_length	length of the icu_output_buf in samples
+ * @param data_type	used compression data type
+ *
+ * @returns buffer size in bits
+ *
+ */
+
+static uint32_t cmp_buffer_length_to_bits(uint32_t buffer_length, enum cmp_data_type data_type)
+{
+	return (cmp_cal_size_of_data(buffer_length, data_type) & ~0x3U) * CHAR_BIT;
+}
+
+
+/**
+ * @brief configure an encoder setup structure to have a setup to encode a vale
+ *
+ * @param setup		pointer to the encoder setup
+ * @param cmp_par	compression parameter
+ * @param spillover	spillover_par parameter
+ * @param lossy_par	lossy compression parameter
+ * @param max_data_bits	how many bits are needed to represent the highest possible value
+ * @param cfg		pointer to the compression configuration structure
+ *
+ * @returns 0 on success; otherwise error
+ */
+
+static int configure_encoder_setup(struct encoder_setupt *setup,
+				   uint32_t cmp_par, uint32_t spillover,
+				   uint32_t lossy_par, uint32_t max_data_bits,
+				   const struct cmp_cfg *cfg)
+{
+	if (!setup)
+		return -1;
+
+	if (!cfg)
+		return -1;
+
+	if (max_data_bits > 32) {
+		debug_print("Error: max_data_bits parameter is bigger than 32 bits.\n");
+		return -1;
+	}
+
+	memset(setup, 0, sizeof(*setup));
+
+	setup->encoder_par1 = cmp_par;
+	setup->max_data_bits = max_data_bits;
+	setup->lossy_par = lossy_par;
+	setup->bitstream_adr = cfg->icu_output_buf;
+	setup->max_stream_len = cmp_buffer_length_to_bits(cfg->buffer_length, cfg->data_type);
+
+	if (cfg->cmp_mode != CMP_MODE_STUFF) {
+		if (ilog_2(cmp_par) < 0)
+			return -1;
+		setup->encoder_par2 = (uint32_t)ilog_2(cmp_par);
+
+		setup->spillover_par = spillover;
+
+		/* for encoder_par1 which are a power of two we can use the faster rice_encoder */
+		if (is_a_pow_of_2(setup->encoder_par1))
+			setup->generate_cw_f = &rice_encoder;
+		else
+			setup->generate_cw_f = &golomb_encoder;
+	}
+
+	switch (cfg->cmp_mode) {
+	case CMP_MODE_MODEL_ZERO:
+	case CMP_MODE_DIFF_ZERO:
+		setup->encode_method_f = &encode_value_zero;
+		break;
+	case CMP_MODE_MODEL_MULTI:
+	case CMP_MODE_DIFF_MULTI:
+		setup->encode_method_f = &encode_value_multi;
+		break;
+	case CMP_MODE_STUFF:
+		setup->encode_method_f = &encode_value_none;
+		setup->max_data_bits = cmp_par;
+		break;
+	case CMP_MODE_RAW:
+	default:
+		return -1;
+	}
+
 
 	return 0;
+}
+
+
+/**
+ * @brief compress imagette data
+ *
+ * @param cfg	pointer to the compression configuration structure
+ *
+ * @returns the bit length of the bitstream on success; negative on error,
+ *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
+ *	value in the bitstream, CMP_ERROR_HIGH_VALUE if the value or the model is
+ *	bigger than the max_used_bits parameter allows
+ */
+
+static int compress_imagette(const struct cmp_cfg *cfg)
+{
+	int err;
+	int stream_len = 0;
+	size_t i;
+	struct encoder_setupt setup;
+
+	uint16_t *data_buf = cfg->input_buf;
+	uint16_t *model_buf = cfg->model_buf;
+	uint16_t model = 0;
+	uint16_t *next_model_p = data_buf;
+	uint16_t *up_model_buf = NULL;
+
+	if (model_mode_is_used(cfg->cmp_mode)) {
+		model = model_buf[0];
+		next_model_p = &model_buf[1];
+		up_model_buf = cfg->icu_new_model_buf;
+	}
+
+	err = configure_encoder_setup(&setup, cfg->golomb_par, cfg->spill,
+				      cfg->round, max_used_bits.nc_imagette, cfg);
+	if (err)
+		return -1;
+
+	for (i = 0;; i++) {
+		stream_len = encode_value(data_buf[i], model, stream_len, &setup);
+		if (stream_len <= 0)
+			break;
+
+		if (up_model_buf)
+			up_model_buf[i] = cmp_up_model(data_buf[i], model, cfg->model_value,
+						       setup.lossy_par);
+		if (i >= cfg->samples-1)
+			break;
+
+		model = next_model_p[i];
+	}
+	return stream_len;
+}
+
+
+/**
+ * @brief compress the multi-entry packet header structure and sets the data,
+ *	model and up_model pointers to the data after the header
+ *
+ * @param data			pointer to a pointer pointing to the data to be compressed
+ * @param model			pointer to a pointer pointing to the model of the data
+ * @param up_model		pointer to a pointer pointing to the updated model buffer
+ * @param compressed_data	pointer to the compressed data buffer
+ *
+ * @returns the bit length of the bitstream on success; negative on error,
+ *
+ * @note the (void **) cast relies on all pointer types having the same internal
+ *	representation which is common, but not universal; http://www.c-faq.com/ptrs/genericpp.html
+ */
+
+static int compress_multi_entry_hdr(void **data, void **model, void **up_model,
+				    void *compressed_data)
+{
+	if (*up_model) {
+		if (*data)
+			memcpy(*up_model, *data, MULTI_ENTRY_HDR_SIZE);
+		*up_model = (uint8_t *)*up_model + MULTI_ENTRY_HDR_SIZE;
+	}
+
+	if (*data) {
+		if (compressed_data)
+			memcpy(compressed_data, *data, MULTI_ENTRY_HDR_SIZE);
+		*data = (uint8_t *)*data + MULTI_ENTRY_HDR_SIZE;
+	}
+
+	if (*model)
+		*model = (uint8_t *)*model + MULTI_ENTRY_HDR_SIZE;
+
+	return MULTI_ENTRY_HDR_SIZE * CHAR_BIT;
+}
+
+
+/**
+ * @brief compress short normal light flux (S_FX) data
+ *
+ * @param cfg	pointer to the compression configuration structure
+ *
+ * @returns the bit length of the bitstream on success; negative on error,
+ *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
+ *	value in the bitstream
+ */
+
+static int compress_s_fx(const struct cmp_cfg *cfg)
+{
+	int err;
+	int stream_len = 0;
+	size_t i;
+
+	struct s_fx *data_buf = cfg->input_buf;
+	struct s_fx *model_buf = cfg->model_buf;
+	struct s_fx *up_model_buf = NULL;
+	struct s_fx *next_model_p;
+	struct s_fx model;
+	struct encoder_setupt setup_exp_flag, setup_fx;
+
+	if (model_mode_is_used(cfg->cmp_mode))
+		up_model_buf = cfg->icu_new_model_buf;
+
+	stream_len = compress_multi_entry_hdr((void **)&data_buf, (void **)&model_buf,
+					      (void **)&up_model_buf, cfg->icu_output_buf);
+
+	if (model_mode_is_used(cfg->cmp_mode)) {
+		model = model_buf[0];
+		next_model_p = &model_buf[1];
+	} else {
+		memset(&model, 0, sizeof(model));
+		next_model_p = data_buf;
+	}
+
+	err = configure_encoder_setup(&setup_exp_flag, cfg->cmp_par_exp_flags, cfg->spill_exp_flags,
+				      cfg->round, max_used_bits.s_exp_flags, cfg);
+	if (err)
+		return -1;
+	err = configure_encoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
+				      cfg->round, max_used_bits.s_fx, cfg);
+	if (err)
+		return -1;
+
+	for (i = 0;; i++) {
+		stream_len = encode_value(data_buf[i].exp_flags, model.exp_flags,
+					  stream_len, &setup_exp_flag);
+		if (stream_len <= 0)
+			return stream_len;
+		stream_len = encode_value(data_buf[i].fx, model.fx, stream_len,
+					  &setup_fx);
+		if (stream_len <= 0)
+			return stream_len;
+
+		if (up_model_buf) {
+			up_model_buf[i].exp_flags = cmp_up_model(data_buf[i].exp_flags, model.exp_flags,
+								 cfg->model_value, setup_exp_flag.lossy_par);
+			up_model_buf[i].fx = cmp_up_model(data_buf[i].fx, model.fx,
+							  cfg->model_value, setup_fx.lossy_par);
+		}
+
+		if (i >= cfg->samples-1)
+			break;
+
+		model = next_model_p[i];
+	}
+	return stream_len;
+}
+
+
+/**
+ * @brief compress S_FX_EFX data
+ *
+ * @param cfg	pointer to the compression configuration structure
+ *
+ * @returns the bit length of the bitstream on success; negative on error,
+ *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
+ *	value in the bitstream
+ */
+
+static int compress_s_fx_efx(const struct cmp_cfg *cfg)
+{
+	int err;
+	int stream_len = 0;
+	size_t i;
+
+	struct s_fx_efx *data_buf = cfg->input_buf;
+	struct s_fx_efx *model_buf = cfg->model_buf;
+	struct s_fx_efx *up_model_buf = NULL;
+	struct s_fx_efx *next_model_p;
+	struct s_fx_efx model;
+	struct encoder_setupt setup_exp_flag, setup_fx, setup_efx;
+
+	if (model_mode_is_used(cfg->cmp_mode))
+		up_model_buf = cfg->icu_new_model_buf;
+
+	stream_len = compress_multi_entry_hdr((void **)&data_buf, (void **)&model_buf,
+					      (void **)&up_model_buf, cfg->icu_output_buf);
+
+	if (model_mode_is_used(cfg->cmp_mode)) {
+		model = model_buf[0];
+		next_model_p = &model_buf[1];
+	} else {
+		memset(&model, 0, sizeof(model));
+		next_model_p = data_buf;
+	}
+
+	err = configure_encoder_setup(&setup_exp_flag, cfg->cmp_par_exp_flags, cfg->spill_exp_flags,
+				      cfg->round, max_used_bits.s_exp_flags, cfg);
+	if (err)
+		return -1;
+	err = configure_encoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
+				      cfg->round, max_used_bits.s_fx, cfg);
+	if (err)
+		return -1;
+	err = configure_encoder_setup(&setup_efx, cfg->cmp_par_efx, cfg->spill_efx,
+				      cfg->round, max_used_bits.s_efx, cfg);
+	if (err)
+		return -1;
+
+	for (i = 0;; i++) {
+		stream_len = encode_value(data_buf[i].exp_flags, model.exp_flags,
+					  stream_len, &setup_exp_flag);
+		if (stream_len <= 0)
+			return stream_len;
+		stream_len = encode_value(data_buf[i].fx, model.fx, stream_len,
+					  &setup_fx);
+		if (stream_len <= 0)
+			return stream_len;
+		stream_len = encode_value(data_buf[i].efx, model.efx,
+					  stream_len, &setup_efx);
+		if (stream_len <= 0)
+			return stream_len;
+
+		if (up_model_buf) {
+			up_model_buf[i].exp_flags = cmp_up_model(data_buf[i].exp_flags, model.exp_flags,
+				cfg->model_value, setup_exp_flag.lossy_par);
+			up_model_buf[i].fx = cmp_up_model(data_buf[i].fx, model.fx,
+				cfg->model_value, setup_fx.lossy_par);
+			up_model_buf[i].efx = cmp_up_model(data_buf[i].efx, model.efx,
+				cfg->model_value, setup_efx.lossy_par);
+		}
+
+		if (i >= cfg->samples-1)
+			break;
+
+		model = next_model_p[i];
+	}
+	return stream_len;
+}
+
+
+/**
+ * @brief compress S_FX_NCOB data
+ *
+ * @param cfg	pointer to the compression configuration structure
+ *
+ * @returns the bit length of the bitstream on success; negative on error,
+ *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
+ *	value in the bitstream
+ */
+
+static int compress_s_fx_ncob(const struct cmp_cfg *cfg)
+{
+	int err;
+	int stream_len = 0;
+	size_t i;
+
+	struct s_fx_ncob *data_buf = cfg->input_buf;
+	struct s_fx_ncob *model_buf = cfg->model_buf;
+	struct s_fx_ncob *up_model_buf = NULL;
+	struct s_fx_ncob *next_model_p;
+	struct s_fx_ncob model;
+	struct encoder_setupt setup_exp_flag, setup_fx, setup_ncob;
+
+	if (model_mode_is_used(cfg->cmp_mode))
+		up_model_buf = cfg->icu_new_model_buf;
+
+	stream_len = compress_multi_entry_hdr((void **)&data_buf, (void **)&model_buf,
+					      (void **)&up_model_buf, cfg->icu_output_buf);
+
+	if (model_mode_is_used(cfg->cmp_mode)) {
+		model = model_buf[0];
+		next_model_p = &model_buf[1];
+	} else {
+		memset(&model, 0, sizeof(model));
+		next_model_p = data_buf;
+	}
+
+	err = configure_encoder_setup(&setup_exp_flag, cfg->cmp_par_exp_flags, cfg->spill_exp_flags,
+				      cfg->round, max_used_bits.s_exp_flags, cfg);
+	if (err)
+		return -1;
+	err = configure_encoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
+				      cfg->round, max_used_bits.s_fx, cfg);
+	if (err)
+		return -1;
+	err = configure_encoder_setup(&setup_ncob, cfg->cmp_par_ncob, cfg->spill_ncob,
+				      cfg->round, max_used_bits.s_ncob, cfg);
+	if (err)
+		return -1;
+
+	for (i = 0;; i++) {
+		stream_len = encode_value(data_buf[i].exp_flags, model.exp_flags,
+					  stream_len, &setup_exp_flag);
+		if (stream_len <= 0)
+			return stream_len;
+		stream_len = encode_value(data_buf[i].fx, model.fx, stream_len,
+					  &setup_fx);
+		if (stream_len <= 0)
+			return stream_len;
+		stream_len = encode_value(data_buf[i].ncob_x, model.ncob_x,
+					  stream_len, &setup_ncob);
+		if (stream_len <= 0)
+			return stream_len;
+		stream_len = encode_value(data_buf[i].ncob_y, model.ncob_y,
+					  stream_len, &setup_ncob);
+		if (stream_len <= 0)
+			return stream_len;
+
+		if (up_model_buf) {
+			up_model_buf[i].exp_flags = cmp_up_model(data_buf[i].exp_flags, model.exp_flags,
+				cfg->model_value, setup_exp_flag.lossy_par);
+			up_model_buf[i].fx = cmp_up_model(data_buf[i].fx, model.fx,
+				cfg->model_value, setup_fx.lossy_par);
+			up_model_buf[i].ncob_x = cmp_up_model(data_buf[i].ncob_x, model.ncob_x,
+				cfg->model_value, setup_ncob.lossy_par);
+			up_model_buf[i].ncob_y = cmp_up_model(data_buf[i].ncob_y, model.ncob_y,
+				cfg->model_value, setup_ncob.lossy_par);
+		}
+
+		if (i >= cfg->samples-1)
+			break;
+
+		model = next_model_p[i];
+	}
+	return stream_len;
+}
+
+
+/**
+ * @brief compress S_FX_EFX_NCOB_ECOB data
+ *
+ * @param cfg	pointer to the compression configuration structure
+ *
+ * @returns the bit length of the bitstream on success; negative on error,
+ *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
+ *	value in the bitstream
+ */
+
+static int compress_s_fx_efx_ncob_ecob(const struct cmp_cfg *cfg)
+{
+	int err;
+	int stream_len = 0;
+	size_t i;
+
+	struct s_fx_efx_ncob_ecob *data_buf = cfg->input_buf;
+	struct s_fx_efx_ncob_ecob *model_buf = cfg->model_buf;
+	struct s_fx_efx_ncob_ecob *up_model_buf = NULL;
+	struct s_fx_efx_ncob_ecob *next_model_p;
+	struct s_fx_efx_ncob_ecob model;
+	struct encoder_setupt setup_exp_flag, setup_fx, setup_ncob, setup_efx,
+			      setup_ecob;
+
+	if (model_mode_is_used(cfg->cmp_mode))
+		up_model_buf = cfg->icu_new_model_buf;
+
+	stream_len = compress_multi_entry_hdr((void **)&data_buf, (void **)&model_buf,
+					      (void **)&up_model_buf, cfg->icu_output_buf);
+
+	if (model_mode_is_used(cfg->cmp_mode)) {
+		model = model_buf[0];
+		next_model_p = &model_buf[1];
+	} else {
+		memset(&model, 0, sizeof(model));
+		next_model_p = data_buf;
+	}
+
+	err = configure_encoder_setup(&setup_exp_flag, cfg->cmp_par_exp_flags, cfg->spill_exp_flags,
+				      cfg->round, max_used_bits.s_exp_flags, cfg);
+	if (err)
+		return -1;
+	err = configure_encoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
+				      cfg->round, max_used_bits.s_fx, cfg);
+	if (err)
+		return -1;
+	err = configure_encoder_setup(&setup_ncob, cfg->cmp_par_ncob, cfg->spill_ncob,
+				      cfg->round, max_used_bits.s_ncob, cfg);
+	if (err)
+		return -1;
+	err = configure_encoder_setup(&setup_efx, cfg->cmp_par_efx, cfg->spill_efx,
+				      cfg->round, max_used_bits.s_efx, cfg);
+	if (err)
+		return -1;
+	err = configure_encoder_setup(&setup_ecob, cfg->cmp_par_ecob, cfg->spill_ecob,
+				      cfg->round, max_used_bits.s_ecob, cfg);
+	if (err)
+		return -1;
+
+	for (i = 0;; i++) {
+		stream_len = encode_value(data_buf[i].exp_flags, model.exp_flags,
+					  stream_len, &setup_exp_flag);
+		if (stream_len <= 0)
+			return stream_len;
+		stream_len = encode_value(data_buf[i].fx, model.fx, stream_len,
+					  &setup_fx);
+		if (stream_len <= 0)
+			return stream_len;
+		stream_len = encode_value(data_buf[i].ncob_x, model.ncob_x,
+					  stream_len, &setup_ncob);
+		if (stream_len <= 0)
+			return stream_len;
+		stream_len = encode_value(data_buf[i].ncob_y, model.ncob_y,
+					  stream_len, &setup_ncob);
+		if (stream_len <= 0)
+			return stream_len;
+		stream_len = encode_value(data_buf[i].efx, model.efx,
+					  stream_len, &setup_efx);
+		if (stream_len <= 0)
+			return stream_len;
+		stream_len = encode_value(data_buf[i].ecob_x, model.ecob_x,
+					  stream_len, &setup_ecob);
+		if (stream_len <= 0)
+			return stream_len;
+		stream_len = encode_value(data_buf[i].ecob_y, model.ecob_y,
+					  stream_len, &setup_ecob);
+		if (stream_len <= 0)
+			return stream_len;
+
+		if (up_model_buf) {
+			up_model_buf[i].exp_flags = cmp_up_model(data_buf[i].exp_flags, model.exp_flags,
+				cfg->model_value, setup_exp_flag.lossy_par);
+			up_model_buf[i].fx = cmp_up_model(data_buf[i].fx, model.fx,
+				cfg->model_value, setup_fx.lossy_par);
+			up_model_buf[i].ncob_x = cmp_up_model(data_buf[i].ncob_x, model.ncob_x,
+				cfg->model_value, setup_ncob.lossy_par);
+			up_model_buf[i].ncob_y = cmp_up_model(data_buf[i].ncob_y, model.ncob_y,
+				cfg->model_value, setup_ncob.lossy_par);
+			up_model_buf[i].efx = cmp_up_model(data_buf[i].efx, model.efx,
+				cfg->model_value, setup_efx.lossy_par);
+			up_model_buf[i].ecob_x = cmp_up_model(data_buf[i].ecob_x, model.ecob_x,
+				cfg->model_value, setup_ecob.lossy_par);
+			up_model_buf[i].ecob_y = cmp_up_model(data_buf[i].ecob_y, model.ecob_y,
+				cfg->model_value, setup_ecob.lossy_par);
+		}
+
+		if (i >= cfg->samples-1)
+			break;
+
+		model = next_model_p[i];
+	}
+	return stream_len;
+}
+
+
+/**
+ * @brief compress F_FX data
+ *
+ * @param cfg	pointer to the compression configuration structure
+ *
+ * @returns the bit length of the bitstream on success; negative on error,
+ *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
+ *	value in the bitstream
+ */
+
+static int compress_f_fx(const struct cmp_cfg *cfg)
+{
+	int err;
+	int stream_len = 0;
+	size_t i;
+
+	struct f_fx *data_buf = cfg->input_buf;
+	struct f_fx *model_buf = cfg->model_buf;
+	struct f_fx *up_model_buf = NULL;
+	struct f_fx *next_model_p;
+	struct f_fx model;
+	struct encoder_setupt setup_fx;
+
+	if (model_mode_is_used(cfg->cmp_mode))
+		up_model_buf = cfg->icu_new_model_buf;
+
+	stream_len = compress_multi_entry_hdr((void **)&data_buf, (void **)&model_buf,
+					      (void **)&up_model_buf, cfg->icu_output_buf);
+
+	if (model_mode_is_used(cfg->cmp_mode)) {
+		model = model_buf[0];
+		next_model_p = &model_buf[1];
+	} else {
+		memset(&model, 0, sizeof(model));
+		next_model_p = data_buf;
+	}
+
+	err = configure_encoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
+				      cfg->round, max_used_bits.f_fx, cfg);
+	if (err)
+		return -1;
+
+	for (i = 0;; i++) {
+		stream_len = encode_value(data_buf[i].fx, model.fx, stream_len,
+					  &setup_fx);
+		if (stream_len <= 0)
+			return stream_len;
+
+		if (up_model_buf) {
+			up_model_buf[i].fx = cmp_up_model(data_buf[i].fx, model.fx,
+				cfg->model_value, setup_fx.lossy_par);
+		}
+
+		if (i >= cfg->samples-1)
+			break;
+
+		model = next_model_p[i];
+	}
+	return stream_len;
+}
+
+
+/**
+ * @brief compress F_FX_EFX data
+ *
+ * @param cfg	pointer to the compression configuration structure
+ *
+ * @returns the bit length of the bitstream on success; negative on error,
+ *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
+ *	value in the bitstream
+ */
+
+static int compress_f_fx_efx(const struct cmp_cfg *cfg)
+{
+	int err;
+	int stream_len = 0;
+	size_t i;
+
+	struct f_fx_efx *data_buf = cfg->input_buf;
+	struct f_fx_efx *model_buf = cfg->model_buf;
+	struct f_fx_efx *up_model_buf = NULL;
+	struct f_fx_efx *next_model_p;
+	struct f_fx_efx model;
+	struct encoder_setupt setup_fx, setup_efx;
+
+	if (model_mode_is_used(cfg->cmp_mode))
+		up_model_buf = cfg->icu_new_model_buf;
+
+	stream_len = compress_multi_entry_hdr((void **)&data_buf, (void **)&model_buf,
+					      (void **)&up_model_buf, cfg->icu_output_buf);
+
+	if (model_mode_is_used(cfg->cmp_mode)) {
+		model = model_buf[0];
+		next_model_p = &model_buf[1];
+	} else {
+		memset(&model, 0, sizeof(model));
+		next_model_p = data_buf;
+	}
+
+	err = configure_encoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
+				      cfg->round, max_used_bits.f_fx, cfg);
+	if (err)
+		return -1;
+	err = configure_encoder_setup(&setup_efx, cfg->cmp_par_efx, cfg->spill_efx,
+				      cfg->round, max_used_bits.f_efx, cfg);
+	if (err)
+		return -1;
+
+	for (i = 0;; i++) {
+		stream_len = encode_value(data_buf[i].fx, model.fx, stream_len,
+					  &setup_fx);
+		if (stream_len <= 0)
+			return stream_len;
+		stream_len = encode_value(data_buf[i].efx, model.efx,
+					  stream_len, &setup_efx);
+		if (stream_len <= 0)
+			return stream_len;
+
+		if (up_model_buf) {
+			up_model_buf[i].fx = cmp_up_model(data_buf[i].fx, model.fx,
+				cfg->model_value, setup_fx.lossy_par);
+			up_model_buf[i].efx = cmp_up_model(data_buf[i].efx, model.efx,
+				cfg->model_value, setup_efx.lossy_par);
+		}
+
+		if (i >= cfg->samples-1)
+			break;
+
+		model = next_model_p[i];
+	}
+	return stream_len;
+}
+
+
+/**
+ * @brief compress F_FX_NCOB data
+ *
+ * @param cfg	pointer to the compression configuration structure
+ *
+ * @returns the bit length of the bitstream on success; negative on error,
+ *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
+ *	value in the bitstream
+ */
+
+static int compress_f_fx_ncob(const struct cmp_cfg *cfg)
+{
+	int err;
+	int stream_len = 0;
+	size_t i;
+
+	struct f_fx_ncob *data_buf = cfg->input_buf;
+	struct f_fx_ncob *model_buf = cfg->model_buf;
+	struct f_fx_ncob *up_model_buf = NULL;
+	struct f_fx_ncob *next_model_p;
+	struct f_fx_ncob model;
+	struct encoder_setupt setup_fx, setup_ncob;
+
+	if (model_mode_is_used(cfg->cmp_mode))
+		up_model_buf = cfg->icu_new_model_buf;
+
+	stream_len = compress_multi_entry_hdr((void **)&data_buf, (void **)&model_buf,
+					      (void **)&up_model_buf, cfg->icu_output_buf);
+
+	if (model_mode_is_used(cfg->cmp_mode)) {
+		model = model_buf[0];
+		next_model_p = &model_buf[1];
+	} else {
+		memset(&model, 0, sizeof(model));
+		next_model_p = data_buf;
+	}
+
+	err = configure_encoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
+				      cfg->round, max_used_bits.f_fx, cfg);
+	if (err)
+		return -1;
+	err = configure_encoder_setup(&setup_ncob, cfg->cmp_par_ncob, cfg->spill_ncob,
+				      cfg->round, max_used_bits.f_ncob, cfg);
+	if (err)
+		return -1;
+
+	for (i = 0;; i++) {
+		stream_len = encode_value(data_buf[i].fx, model.fx, stream_len,
+					  &setup_fx);
+		if (stream_len <= 0)
+			return stream_len;
+		stream_len = encode_value(data_buf[i].ncob_x, model.ncob_x,
+					  stream_len, &setup_ncob);
+		if (stream_len <= 0)
+			return stream_len;
+		stream_len = encode_value(data_buf[i].ncob_y, model.ncob_y,
+					  stream_len, &setup_ncob);
+		if (stream_len <= 0)
+			return stream_len;
+
+		if (up_model_buf) {
+			up_model_buf[i].fx = cmp_up_model(data_buf[i].fx, model.fx,
+				cfg->model_value, setup_fx.lossy_par);
+			up_model_buf[i].ncob_x = cmp_up_model(data_buf[i].ncob_x, model.ncob_x,
+				cfg->model_value, setup_ncob.lossy_par);
+			up_model_buf[i].ncob_y = cmp_up_model(data_buf[i].ncob_y, model.ncob_y,
+				cfg->model_value, setup_ncob.lossy_par);
+		}
+
+		if (i >= cfg->samples-1)
+			break;
+
+		model = next_model_p[i];
+	}
+	return stream_len;
+}
+
+
+/**
+ * @brief compress F_FX_EFX_NCOB_ECOB data
+ *
+ * @param cfg	pointer to the compression configuration structure
+ *
+ * @returns the bit length of the bitstream on success; negative on error,
+ *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
+ *	value in the bitstream
+ */
+
+static int compress_f_fx_efx_ncob_ecob(const struct cmp_cfg *cfg)
+{
+	int err;
+	int stream_len = 0;
+	size_t i;
+
+	struct f_fx_efx_ncob_ecob *data_buf = cfg->input_buf;
+	struct f_fx_efx_ncob_ecob *model_buf = cfg->model_buf;
+	struct f_fx_efx_ncob_ecob *up_model_buf = NULL;
+	struct f_fx_efx_ncob_ecob *next_model_p;
+	struct f_fx_efx_ncob_ecob model;
+	struct encoder_setupt setup_fx, setup_ncob, setup_efx, setup_ecob;
+
+	if (model_mode_is_used(cfg->cmp_mode))
+		up_model_buf = cfg->icu_new_model_buf;
+
+	stream_len = compress_multi_entry_hdr((void **)&data_buf, (void **)&model_buf,
+					      (void **)&up_model_buf, cfg->icu_output_buf);
+
+	if (model_mode_is_used(cfg->cmp_mode)) {
+		model = model_buf[0];
+		next_model_p = &model_buf[1];
+	} else {
+		memset(&model, 0, sizeof(model));
+		next_model_p = data_buf;
+	}
+
+	err = configure_encoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
+				      cfg->round, max_used_bits.f_fx, cfg);
+	if (err)
+		return -1;
+	err = configure_encoder_setup(&setup_ncob, cfg->cmp_par_ncob, cfg->spill_ncob,
+				      cfg->round, max_used_bits.f_ncob, cfg);
+	if (err)
+		return -1;
+	err = configure_encoder_setup(&setup_efx, cfg->cmp_par_efx, cfg->spill_efx,
+				      cfg->round, max_used_bits.f_efx, cfg);
+	if (err)
+		return -1;
+	err = configure_encoder_setup(&setup_ecob, cfg->cmp_par_ecob, cfg->spill_ecob,
+				      cfg->round, max_used_bits.f_ecob, cfg);
+	if (err)
+		return -1;
+
+	for (i = 0;; i++) {
+		stream_len = encode_value(data_buf[i].fx, model.fx, stream_len,
+					  &setup_fx);
+		if (stream_len <= 0)
+			return stream_len;
+		stream_len = encode_value(data_buf[i].ncob_x, model.ncob_x,
+					  stream_len, &setup_ncob);
+		if (stream_len <= 0)
+			return stream_len;
+		stream_len = encode_value(data_buf[i].ncob_y, model.ncob_y,
+					  stream_len, &setup_ncob);
+		if (stream_len <= 0)
+			return stream_len;
+		stream_len = encode_value(data_buf[i].efx, model.efx,
+					  stream_len, &setup_efx);
+		if (stream_len <= 0)
+			return stream_len;
+		stream_len = encode_value(data_buf[i].ecob_x, model.ecob_x,
+					  stream_len, &setup_ecob);
+		if (stream_len <= 0)
+			return stream_len;
+		stream_len = encode_value(data_buf[i].ecob_y, model.ecob_y,
+					  stream_len, &setup_ecob);
+		if (stream_len <= 0)
+			return stream_len;
+
+		if (up_model_buf) {
+			up_model_buf[i].fx = cmp_up_model(data_buf[i].fx, model.fx,
+				cfg->model_value, setup_fx.lossy_par);
+			up_model_buf[i].ncob_x = cmp_up_model(data_buf[i].ncob_x, model.ncob_x,
+				cfg->model_value, setup_ncob.lossy_par);
+			up_model_buf[i].ncob_y = cmp_up_model(data_buf[i].ncob_y, model.ncob_y,
+				cfg->model_value, setup_ncob.lossy_par);
+			up_model_buf[i].efx = cmp_up_model(data_buf[i].efx, model.efx,
+				cfg->model_value, setup_efx.lossy_par);
+			up_model_buf[i].ecob_x = cmp_up_model(data_buf[i].ecob_x, model.ecob_x,
+				cfg->model_value, setup_ecob.lossy_par);
+			up_model_buf[i].ecob_y = cmp_up_model(data_buf[i].ecob_y, model.ecob_y,
+				cfg->model_value, setup_ecob.lossy_par);
+		}
+
+		if (i >= cfg->samples-1)
+			break;
+
+		model = next_model_p[i];
+	}
+	return stream_len;
+}
+
+
+/**
+ * @brief compress L_FX data
+ *
+ * @param cfg	pointer to the compression configuration structure
+ *
+ * @returns the bit length of the bitstream on success; negative on error,
+ *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
+ *	value in the bitstream
+ */
+
+static int compress_l_fx(const struct cmp_cfg *cfg)
+{
+	int err;
+	int stream_len = 0;
+	size_t i;
+
+	struct l_fx *data_buf = cfg->input_buf;
+	struct l_fx *model_buf = cfg->model_buf;
+	struct l_fx *up_model_buf = NULL;
+	struct l_fx *next_model_p;
+	struct l_fx model;
+	struct encoder_setupt setup_exp_flag, setup_fx, setup_fx_var;
+
+	if (model_mode_is_used(cfg->cmp_mode))
+		up_model_buf = cfg->icu_new_model_buf;
+
+	stream_len = compress_multi_entry_hdr((void **)&data_buf, (void **)&model_buf,
+					      (void **)&up_model_buf, cfg->icu_output_buf);
+
+	if (model_mode_is_used(cfg->cmp_mode)) {
+		model = model_buf[0];
+		next_model_p = &model_buf[1];
+	} else {
+		memset(&model, 0, sizeof(model));
+		next_model_p = data_buf;
+	}
+
+	err = configure_encoder_setup(&setup_exp_flag, cfg->cmp_par_exp_flags, cfg->spill_exp_flags,
+				      cfg->round, max_used_bits.l_exp_flags, cfg);
+	if (err)
+		return -1;
+	err = configure_encoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
+				      cfg->round, max_used_bits.l_fx, cfg);
+	if (err)
+		return -1;
+	err = configure_encoder_setup(&setup_fx_var, cfg->cmp_par_fx_cob_variance, cfg->spill_fx_cob_variance,
+				      cfg->round, max_used_bits.l_fx_variance, cfg);
+	if (err)
+		return -1;
+
+	for (i = 0;; i++) {
+		stream_len = encode_value(data_buf[i].exp_flags, model.exp_flags,
+					  stream_len, &setup_exp_flag);
+		if (stream_len <= 0)
+			return stream_len;
+		stream_len = encode_value(data_buf[i].fx, model.fx, stream_len,
+					  &setup_fx);
+		if (stream_len <= 0)
+			return stream_len;
+		stream_len = encode_value(data_buf[i].fx_variance, model.fx_variance,
+					  stream_len, &setup_fx_var);
+		if (stream_len <= 0)
+			return stream_len;
+
+		if (up_model_buf) {
+			up_model_buf[i].exp_flags = cmp_up_model(data_buf[i].exp_flags, model.exp_flags,
+				cfg->model_value, setup_exp_flag.lossy_par);
+			up_model_buf[i].fx = cmp_up_model(data_buf[i].fx, model.fx,
+				cfg->model_value, setup_fx.lossy_par);
+			up_model_buf[i].fx_variance = cmp_up_model(data_buf[i].fx_variance, model.fx_variance,
+				cfg->model_value, setup_fx_var.lossy_par);
+		}
+
+		if (i >= cfg->samples-1)
+			break;
+
+		model = next_model_p[i];
+	}
+	return stream_len;
+}
+
+
+/**
+ * @brief compress L_FX_EFX data
+ *
+ * @param cfg	pointer to the compression configuration structure
+ *
+ * @returns the bit length of the bitstream on success; negative on error,
+ *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
+ *	value in the bitstream
+ */
+
+static int compress_l_fx_efx(const struct cmp_cfg *cfg)
+{
+	int err;
+	int stream_len = 0;
+	size_t i;
+
+	struct l_fx_efx *data_buf = cfg->input_buf;
+	struct l_fx_efx *model_buf = cfg->model_buf;
+	struct l_fx_efx *up_model_buf = NULL;
+	struct l_fx_efx *next_model_p;
+	struct l_fx_efx model;
+	struct encoder_setupt setup_exp_flag, setup_fx, setup_efx, setup_fx_var;
+
+	if (model_mode_is_used(cfg->cmp_mode))
+		up_model_buf = cfg->icu_new_model_buf;
+
+	stream_len = compress_multi_entry_hdr((void **)&data_buf, (void **)&model_buf,
+					      (void **)&up_model_buf, cfg->icu_output_buf);
+
+	if (model_mode_is_used(cfg->cmp_mode)) {
+		model = model_buf[0];
+		next_model_p = &model_buf[1];
+	} else {
+		memset(&model, 0, sizeof(model));
+		next_model_p = data_buf;
+	}
+
+	err = configure_encoder_setup(&setup_exp_flag, cfg->cmp_par_exp_flags, cfg->spill_exp_flags,
+				      cfg->round, max_used_bits.l_exp_flags, cfg);
+	if (err)
+		return -1;
+	err = configure_encoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
+				      cfg->round, max_used_bits.l_fx, cfg);
+	if (err)
+		return -1;
+	err = configure_encoder_setup(&setup_efx, cfg->cmp_par_efx, cfg->spill_efx,
+				      cfg->round, max_used_bits.l_efx, cfg);
+	if (err)
+		return -1;
+	err = configure_encoder_setup(&setup_fx_var, cfg->cmp_par_fx_cob_variance, cfg->spill_fx_cob_variance,
+				      cfg->round, max_used_bits.l_fx_variance, cfg);
+	if (err)
+		return -1;
+
+	for (i = 0;; i++) {
+		stream_len = encode_value(data_buf[i].exp_flags, model.exp_flags,
+					  stream_len, &setup_exp_flag);
+		if (stream_len <= 0)
+			return stream_len;
+		stream_len = encode_value(data_buf[i].fx, model.fx, stream_len,
+					  &setup_fx);
+		if (stream_len <= 0)
+			return stream_len;
+		stream_len = encode_value(data_buf[i].efx, model.efx,
+					  stream_len, &setup_efx);
+		if (stream_len <= 0)
+			return stream_len;
+		stream_len = encode_value(data_buf[i].fx_variance, model.fx_variance,
+					  stream_len, &setup_fx_var);
+		if (stream_len <= 0)
+			return stream_len;
+
+		if (up_model_buf) {
+			up_model_buf[i].exp_flags = cmp_up_model(data_buf[i].exp_flags, model.exp_flags,
+				cfg->model_value, setup_exp_flag.lossy_par);
+			up_model_buf[i].fx = cmp_up_model(data_buf[i].fx, model.fx,
+				cfg->model_value, setup_fx.lossy_par);
+			up_model_buf[i].efx = cmp_up_model(data_buf[i].efx, model.efx,
+				cfg->model_value, setup_efx.lossy_par);
+			up_model_buf[i].fx_variance = cmp_up_model(data_buf[i].fx_variance, model.fx_variance,
+				cfg->model_value, setup_fx_var.lossy_par);
+		}
+
+		if (i >= cfg->samples-1)
+			break;
+
+		model = next_model_p[i];
+	}
+	return stream_len;
+}
+
+
+/**
+ * @brief compress L_FX_NCOB data
+ *
+ * @param cfg	pointer to the compression configuration structure
+ *
+ * @returns the bit length of the bitstream on success; negative on error,
+ *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
+ *	value in the bitstream
+ */
+
+static int compress_l_fx_ncob(const struct cmp_cfg *cfg)
+{
+	int err;
+	int stream_len = 0;
+	size_t i;
+
+	struct l_fx_ncob *data_buf = cfg->input_buf;
+	struct l_fx_ncob *model_buf = cfg->model_buf;
+	struct l_fx_ncob *up_model_buf = NULL;
+	struct l_fx_ncob *next_model_p;
+	struct l_fx_ncob model;
+	struct encoder_setupt setup_exp_flag, setup_fx, setup_ncob,
+			      setup_fx_var, setup_cob_var;
+
+	if (model_mode_is_used(cfg->cmp_mode))
+		up_model_buf = cfg->icu_new_model_buf;
+
+	stream_len = compress_multi_entry_hdr((void **)&data_buf, (void **)&model_buf,
+					      (void **)&up_model_buf, cfg->icu_output_buf);
+
+	if (model_mode_is_used(cfg->cmp_mode)) {
+		model = model_buf[0];
+		next_model_p = &model_buf[1];
+	} else {
+		memset(&model, 0, sizeof(model));
+		next_model_p = data_buf;
+	}
+
+	err = configure_encoder_setup(&setup_exp_flag, cfg->cmp_par_exp_flags, cfg->spill_exp_flags,
+				      cfg->round, max_used_bits.l_exp_flags, cfg);
+	if (err)
+		return -1;
+	err = configure_encoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
+				      cfg->round, max_used_bits.l_fx, cfg);
+	if (err)
+		return -1;
+	err = configure_encoder_setup(&setup_ncob, cfg->cmp_par_ncob, cfg->spill_ncob,
+				      cfg->round, max_used_bits.l_ncob, cfg);
+	if (err)
+		return -1;
+	/* we use compression parameter for both variance data fields */
+	err = configure_encoder_setup(&setup_fx_var, cfg->cmp_par_fx_cob_variance, cfg->spill_fx_cob_variance,
+				      cfg->round, max_used_bits.l_fx_variance, cfg);
+	if (err)
+		return -1;
+	err = configure_encoder_setup(&setup_cob_var, cfg->cmp_par_fx_cob_variance, cfg->spill_fx_cob_variance,
+				      cfg->round, max_used_bits.l_cob_variance, cfg);
+	if (err)
+		return -1;
+
+	for (i = 0;; i++) {
+		stream_len = encode_value(data_buf[i].exp_flags, model.exp_flags,
+					  stream_len, &setup_exp_flag);
+		if (stream_len <= 0)
+			return stream_len;
+		stream_len = encode_value(data_buf[i].fx, model.fx, stream_len,
+					  &setup_fx);
+		if (stream_len <= 0)
+			return stream_len;
+		stream_len = encode_value(data_buf[i].ncob_x, model.ncob_x,
+					  stream_len, &setup_ncob);
+		if (stream_len <= 0)
+			return stream_len;
+		stream_len = encode_value(data_buf[i].ncob_y, model.ncob_y,
+					  stream_len, &setup_ncob);
+		if (stream_len <= 0)
+			return stream_len;
+		stream_len = encode_value(data_buf[i].fx_variance, model.fx_variance,
+					  stream_len, &setup_fx_var);
+		if (stream_len <= 0)
+			return stream_len;
+		stream_len = encode_value(data_buf[i].cob_x_variance, model.cob_x_variance,
+					  stream_len, &setup_cob_var);
+		if (stream_len <= 0)
+			return stream_len;
+		stream_len = encode_value(data_buf[i].cob_y_variance, model.cob_y_variance,
+					  stream_len, &setup_cob_var);
+		if (stream_len <= 0)
+			return stream_len;
+
+		if (up_model_buf) {
+			up_model_buf[i].exp_flags = cmp_up_model(data_buf[i].exp_flags, model.exp_flags,
+				cfg->model_value, setup_exp_flag.lossy_par);
+			up_model_buf[i].fx = cmp_up_model(data_buf[i].fx, model.fx,
+				cfg->model_value, setup_fx.lossy_par);
+			up_model_buf[i].ncob_x = cmp_up_model(data_buf[i].ncob_x, model.ncob_x,
+				cfg->model_value, setup_ncob.lossy_par);
+			up_model_buf[i].ncob_y = cmp_up_model(data_buf[i].ncob_y, model.ncob_y,
+				cfg->model_value, setup_ncob.lossy_par);
+			up_model_buf[i].fx_variance = cmp_up_model(data_buf[i].fx_variance, model.fx_variance,
+				cfg->model_value, setup_fx_var.lossy_par);
+			up_model_buf[i].cob_x_variance = cmp_up_model(data_buf[i].cob_x_variance, model.cob_x_variance,
+				cfg->model_value, setup_cob_var.lossy_par);
+			up_model_buf[i].cob_y_variance = cmp_up_model(data_buf[i].cob_y_variance, model.cob_y_variance,
+				cfg->model_value, setup_cob_var.lossy_par);
+		}
+
+		if (i >= cfg->samples-1)
+			break;
+
+		model = next_model_p[i];
+	}
+	return stream_len;
+}
+
+
+/**
+ * @brief compress L_FX_EFX_NCOB_ECOB data
+ *
+ * @param cfg	pointer to the compression configuration structure
+ *
+ * @returns the bit length of the bitstream on success; negative on error,
+ *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
+ *	value in the bitstream
+ */
+
+static int compress_l_fx_efx_ncob_ecob(const struct cmp_cfg *cfg)
+{
+	int err;
+	int stream_len = 0;
+	size_t i;
+
+	struct l_fx_efx_ncob_ecob *data_buf = cfg->input_buf;
+	struct l_fx_efx_ncob_ecob *model_buf = cfg->model_buf;
+	struct l_fx_efx_ncob_ecob *up_model_buf = NULL;
+	struct l_fx_efx_ncob_ecob *next_model_p;
+	struct l_fx_efx_ncob_ecob model;
+	struct encoder_setupt setup_exp_flag, setup_fx, setup_ncob, setup_efx,
+			      setup_ecob, setup_fx_var, setup_cob_var;
+
+	if (model_mode_is_used(cfg->cmp_mode))
+		up_model_buf = cfg->icu_new_model_buf;
+
+	stream_len = compress_multi_entry_hdr((void **)&data_buf, (void **)&model_buf,
+					      (void **)&up_model_buf, cfg->icu_output_buf);
+
+	if (model_mode_is_used(cfg->cmp_mode)) {
+		model = model_buf[0];
+		next_model_p = &model_buf[1];
+	} else {
+		memset(&model, 0, sizeof(model));
+		next_model_p = data_buf;
+	}
+
+	err = configure_encoder_setup(&setup_exp_flag, cfg->cmp_par_exp_flags, cfg->spill_exp_flags,
+				      cfg->round, max_used_bits.l_exp_flags, cfg);
+	if (err)
+		return -1;
+	err = configure_encoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
+				      cfg->round, max_used_bits.l_fx, cfg);
+	if (err)
+		return -1;
+	err = configure_encoder_setup(&setup_ncob, cfg->cmp_par_ncob, cfg->spill_ncob,
+				      cfg->round, max_used_bits.l_ncob, cfg);
+	if (err)
+		return -1;
+	err = configure_encoder_setup(&setup_efx, cfg->cmp_par_efx, cfg->spill_efx,
+				      cfg->round, max_used_bits.l_efx, cfg);
+	if (err)
+		return -1;
+	err = configure_encoder_setup(&setup_ecob, cfg->cmp_par_ecob, cfg->spill_ecob,
+				      cfg->round, max_used_bits.l_ecob, cfg);
+	if (err)
+		return -1;
+	/* we use compression parameter for both variance data fields */
+	err = configure_encoder_setup(&setup_fx_var, cfg->cmp_par_fx_cob_variance, cfg->spill_fx_cob_variance,
+				      cfg->round, max_used_bits.l_fx_variance, cfg);
+	if (err)
+		return -1;
+	err = configure_encoder_setup(&setup_cob_var, cfg->cmp_par_fx_cob_variance, cfg->spill_fx_cob_variance,
+				      cfg->round, max_used_bits.l_cob_variance, cfg);
+	if (err)
+		return -1;
+
+	for (i = 0;; i++) {
+		stream_len = encode_value(data_buf[i].exp_flags, model.exp_flags,
+					  stream_len, &setup_exp_flag);
+		if (stream_len <= 0)
+			return stream_len;
+		stream_len = encode_value(data_buf[i].fx, model.fx, stream_len,
+					  &setup_fx);
+		if (stream_len <= 0)
+			return stream_len;
+		stream_len = encode_value(data_buf[i].ncob_x, model.ncob_x,
+					  stream_len, &setup_ncob);
+		if (stream_len <= 0)
+			return stream_len;
+		stream_len = encode_value(data_buf[i].ncob_y, model.ncob_y,
+					  stream_len, &setup_ncob);
+		if (stream_len <= 0)
+			return stream_len;
+		stream_len = encode_value(data_buf[i].efx, model.efx,
+					  stream_len, &setup_efx);
+		if (stream_len <= 0)
+			return stream_len;
+		stream_len = encode_value(data_buf[i].ecob_x, model.ecob_x,
+					  stream_len, &setup_ecob);
+		if (stream_len <= 0)
+			return stream_len;
+		stream_len = encode_value(data_buf[i].ecob_y, model.ecob_y,
+					  stream_len, &setup_ecob);
+		if (stream_len <= 0)
+			return stream_len;
+		stream_len = encode_value(data_buf[i].fx_variance, model.fx_variance,
+					  stream_len, &setup_fx_var);
+		if (stream_len <= 0)
+			return stream_len;
+		stream_len = encode_value(data_buf[i].cob_x_variance, model.cob_x_variance,
+					  stream_len, &setup_cob_var);
+		if (stream_len <= 0)
+			return stream_len;
+		stream_len = encode_value(data_buf[i].cob_y_variance, model.cob_y_variance,
+					  stream_len, &setup_cob_var);
+		if (stream_len <= 0)
+			return stream_len;
+
+		if (up_model_buf) {
+			up_model_buf[i].exp_flags = cmp_up_model(data_buf[i].exp_flags, model.exp_flags,
+				cfg->model_value, setup_exp_flag.lossy_par);
+			up_model_buf[i].fx = cmp_up_model(data_buf[i].fx, model.fx,
+				cfg->model_value, setup_fx.lossy_par);
+			up_model_buf[i].ncob_x = cmp_up_model(data_buf[i].ncob_x, model.ncob_x,
+				cfg->model_value, setup_ncob.lossy_par);
+			up_model_buf[i].ncob_y = cmp_up_model(data_buf[i].ncob_y, model.ncob_y,
+				cfg->model_value, setup_ncob.lossy_par);
+			up_model_buf[i].efx = cmp_up_model(data_buf[i].efx, model.efx,
+				cfg->model_value, setup_efx.lossy_par);
+			up_model_buf[i].ecob_x = cmp_up_model(data_buf[i].ecob_x, model.ecob_x,
+				cfg->model_value, setup_ecob.lossy_par);
+			up_model_buf[i].ecob_y = cmp_up_model(data_buf[i].ecob_y, model.ecob_y,
+				cfg->model_value, setup_ecob.lossy_par);
+			up_model_buf[i].fx_variance = cmp_up_model(data_buf[i].fx_variance, model.fx_variance,
+				cfg->model_value, setup_fx_var.lossy_par);
+			up_model_buf[i].cob_x_variance = cmp_up_model(data_buf[i].cob_x_variance, model.cob_x_variance,
+				cfg->model_value, setup_cob_var.lossy_par);
+			up_model_buf[i].cob_y_variance = cmp_up_model(data_buf[i].cob_y_variance, model.cob_y_variance,
+				cfg->model_value, setup_cob_var.lossy_par);
+		}
+
+		if (i >= cfg->samples-1)
+			break;
+
+		model = next_model_p[i];
+	}
+	return stream_len;
+}
+
+
+/**
+ * @brief compress offset data from the normal cameras
+ *
+ * @param cfg	pointer to the compression configuration structure
+ * @returns the bit length of the bitstream on success; negative on error,
+ *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
+ *	value in the bitstream
+ */
+
+static int compress_nc_offset(const struct cmp_cfg *cfg)
+{
+	int err;
+	int stream_len = 0;
+	size_t i;
+
+	struct nc_offset *data_buf = cfg->input_buf;
+	struct nc_offset *model_buf = cfg->model_buf;
+	struct nc_offset *up_model_buf = NULL;
+	struct nc_offset *next_model_p;
+	struct nc_offset model;
+	struct encoder_setupt setup_mean, setup_var;
+
+	if (model_mode_is_used(cfg->cmp_mode))
+		up_model_buf = cfg->icu_new_model_buf;
+
+	stream_len = compress_multi_entry_hdr((void **)&data_buf, (void **)&model_buf,
+					      (void **)&up_model_buf, cfg->icu_output_buf);
+
+	if (model_mode_is_used(cfg->cmp_mode)) {
+		model = model_buf[0];
+		next_model_p = &model_buf[1];
+	} else {
+		memset(&model, 0, sizeof(model));
+		next_model_p = data_buf;
+	}
+
+	err = configure_encoder_setup(&setup_mean, cfg->cmp_par_mean, cfg->spill_mean,
+				      cfg->round, max_used_bits.nc_offset_mean, cfg);
+	if (err)
+		return -1;
+	err = configure_encoder_setup(&setup_var, cfg->cmp_par_variance, cfg->spill_variance,
+				      cfg->round, max_used_bits.nc_offset_variance, cfg);
+	if (err)
+		return -1;
+
+	for (i = 0;; i++) {
+		stream_len = encode_value(data_buf[i].mean, model.mean,
+					  stream_len, &setup_mean);
+		if (stream_len <= 0)
+			return stream_len;
+		stream_len = encode_value(data_buf[i].variance, model.variance,
+					  stream_len, &setup_var);
+		if (stream_len <= 0)
+			return stream_len;
+
+		if (up_model_buf) {
+			up_model_buf[i].mean = cmp_up_model(data_buf[i].mean, model.mean,
+				cfg->model_value, setup_mean.lossy_par);
+			up_model_buf[i].variance = cmp_up_model(data_buf[i].variance, model.variance,
+				cfg->model_value, setup_var.lossy_par);
+		}
+
+		if (i >= cfg->samples-1)
+			break;
+
+		model = next_model_p[i];
+	}
+	return stream_len;
+}
+
+
+/**
+ * @brief compress background data from the normal cameras
+ *
+ * @param cfg	pointer to the compression configuration structure
+ * @returns the bit length of the bitstream on success; negative on error,
+ *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
+ *	value in the bitstream
+ */
+
+static int compress_nc_background(const struct cmp_cfg *cfg)
+{
+	int err;
+	int stream_len = 0;
+	size_t i;
+
+	struct nc_background *data_buf = cfg->input_buf;
+	struct nc_background *model_buf = cfg->model_buf;
+	struct nc_background *up_model_buf = NULL;
+	struct nc_background *next_model_p;
+	struct nc_background model;
+	struct encoder_setupt setup_mean, setup_var, setup_pix;
+
+	if (model_mode_is_used(cfg->cmp_mode))
+		up_model_buf = cfg->icu_new_model_buf;
+
+	stream_len = compress_multi_entry_hdr((void **)&data_buf, (void **)&model_buf,
+					      (void **)&up_model_buf, cfg->icu_output_buf);
+
+	if (model_mode_is_used(cfg->cmp_mode)) {
+		model = model_buf[0];
+		next_model_p = &model_buf[1];
+	} else {
+		memset(&model, 0, sizeof(model));
+		next_model_p = data_buf;
+	}
+
+	err = configure_encoder_setup(&setup_mean, cfg->cmp_par_mean, cfg->spill_mean,
+				      cfg->round, max_used_bits.nc_background_mean, cfg);
+	if (err)
+		return -1;
+	err = configure_encoder_setup(&setup_var, cfg->cmp_par_variance, cfg->spill_variance,
+				      cfg->round, max_used_bits.nc_background_variance, cfg);
+	if (err)
+		return -1;
+	err = configure_encoder_setup(&setup_pix, cfg->cmp_par_pixels_error, cfg->spill_pixels_error,
+				      cfg->round, max_used_bits.nc_background_outlier_pixels, cfg);
+	if (err)
+		return -1;
+
+	for (i = 0;; i++) {
+		stream_len = encode_value(data_buf[i].mean, model.mean,
+					  stream_len, &setup_mean);
+		if (stream_len <= 0)
+			return stream_len;
+		stream_len = encode_value(data_buf[i].variance, model.variance,
+					  stream_len, &setup_var);
+		if (stream_len <= 0)
+			return stream_len;
+		stream_len = encode_value(data_buf[i].outlier_pixels, model.outlier_pixels,
+					  stream_len, &setup_pix);
+		if (stream_len <= 0)
+			return stream_len;
+
+		if (up_model_buf) {
+			up_model_buf[i].mean = cmp_up_model(data_buf[i].mean, model.mean,
+				cfg->model_value, setup_mean.lossy_par);
+			up_model_buf[i].variance = cmp_up_model(data_buf[i].variance, model.variance,
+				cfg->model_value, setup_var.lossy_par);
+			up_model_buf[i].outlier_pixels = cmp_up_model(data_buf[i].outlier_pixels, model.outlier_pixels,
+				cfg->model_value, setup_pix.lossy_par);
+		}
+
+		if (i >= cfg->samples-1)
+			break;
+
+		model = next_model_p[i];
+	}
+	return stream_len;
+}
+
+
+/**
+ * @brief compress smearing data from the normal cameras
+ *
+ * @param cfg	pointer to the compression configuration structure
+ *
+ * @returns the bit length of the bitstream on success; negative on error,
+ *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
+ *	value in the bitstream
+ */
+
+static int compress_smearing(const struct cmp_cfg *cfg)
+{
+	int err;
+	int stream_len = 0;
+	size_t i;
+
+	struct smearing *data_buf = cfg->input_buf;
+	struct smearing *model_buf = cfg->model_buf;
+	struct smearing *up_model_buf = NULL;
+	struct smearing *next_model_p;
+	struct smearing model;
+	struct encoder_setupt setup_mean, setup_var_mean, setup_pix;
+
+	if (model_mode_is_used(cfg->cmp_mode))
+		up_model_buf = cfg->icu_new_model_buf;
+
+	stream_len = compress_multi_entry_hdr((void **)&data_buf, (void **)&model_buf,
+					      (void **)&up_model_buf, cfg->icu_output_buf);
+
+	if (model_mode_is_used(cfg->cmp_mode)) {
+		model = model_buf[0];
+		next_model_p = &model_buf[1];
+	} else {
+		memset(&model, 0, sizeof(model));
+		next_model_p = data_buf;
+	}
+
+	err = configure_encoder_setup(&setup_mean, cfg->cmp_par_mean, cfg->spill_mean,
+				      cfg->round, max_used_bits.smearing_mean, cfg);
+	if (err)
+		return -1;
+	err = configure_encoder_setup(&setup_var_mean, cfg->cmp_par_variance, cfg->spill_variance,
+				      cfg->round, max_used_bits.smearing_variance_mean, cfg);
+	if (err)
+		return -1;
+	err = configure_encoder_setup(&setup_pix, cfg->cmp_par_pixels_error, cfg->spill_pixels_error,
+				      cfg->round, max_used_bits.smearing_outlier_pixels, cfg);
+	if (err)
+		return -1;
+
+	for (i = 0;; i++) {
+		stream_len = encode_value(data_buf[i].mean, model.mean,
+					  stream_len, &setup_mean);
+		if (stream_len <= 0)
+			return stream_len;
+		stream_len = encode_value(data_buf[i].variance_mean, model.variance_mean,
+					  stream_len, &setup_var_mean);
+		if (stream_len <= 0)
+			return stream_len;
+		stream_len = encode_value(data_buf[i].outlier_pixels, model.outlier_pixels,
+					  stream_len, &setup_pix);
+		if (stream_len <= 0)
+			return stream_len;
+
+		if (up_model_buf) {
+			up_model_buf[i].mean = cmp_up_model(data_buf[i].mean, model.mean,
+				cfg->model_value, setup_mean.lossy_par);
+			up_model_buf[i].variance_mean = cmp_up_model(data_buf[i].variance_mean, model.variance_mean,
+				cfg->model_value, setup_var_mean.lossy_par);
+			up_model_buf[i].outlier_pixels = cmp_up_model(data_buf[i].outlier_pixels, model.outlier_pixels,
+				cfg->model_value, setup_pix.lossy_par);
+		}
+
+		if (i >= cfg->samples-1)
+			break;
+
+		model = next_model_p[i];
+	}
+	return stream_len;
+}
+
+
+/**
+ * @brief fill the last part of the bitstream with zeros
+ *
+ * @param cfg		pointer to the compression configuration structure
+ * @param cmp_size	length of the bitstream in bits
+ *
+ * @returns the bit length of the bitstream on success; negative on error,
+ *	CMP_ERROR_SMALL_BUF if the bitstream buffer is too small to put the
+ *	value in the bitstream
+ */
+
+static int pad_bitstream(const struct cmp_cfg *cfg, int cmp_size)
+{
+	unsigned int output_buf_len_bits, n_pad_bits;
+
+	if (cmp_size < 0)
+		return cmp_size;
+
+	if (!cfg->icu_output_buf)
+		return cmp_size;
+
+	/* no padding in RAW mode; ALWAYS BIG-ENDIAN */
+	if (cfg->cmp_mode == CMP_MODE_RAW)
+		return cmp_size;
+
+	/* maximum length of the bitstream/icu_output_buf in bits */
+	output_buf_len_bits = cmp_buffer_length_to_bits(cfg->buffer_length, cfg->data_type);
+
+	n_pad_bits = 32 - ((unsigned int)cmp_size & 0x1FU);
+	if (n_pad_bits < 32) {
+		int n_bits = put_n_bits32(0, n_pad_bits, cmp_size, cfg->icu_output_buf,
+					  output_buf_len_bits);
+		if (n_bits < 0)
+			return n_bits;
+	}
+
+	return cmp_size;
+}
+
+
+/**
+ * @brief change the endianness of the compressed data to big-endian
+ *
+ * @param cfg		pointer to the compression configuration structure
+ * @param cmp_size	length of the bitstream in bits
+ *
+ * @returns 0 on success; non-zero on failure
+ */
+
+static int cmp_data_to_big_endian(const struct cmp_cfg *cfg, int cmp_size)
+{
+#if (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
+	size_t i;
+	uint32_t *p;
+	uint32_t s = (uint32_t)cmp_size;
+
+	if (cmp_size < 0)
+		return cmp_size;
+
+	if (!cfg->icu_output_buf)
+		return cmp_size;
+
+	if (cfg->cmp_mode == CMP_MODE_RAW) {
+		if (s & 0x7) /* size must be a multiple of 8 in RAW mode */
+			return -1;
+		if (cmp_input_big_to_cpu_endianness(cfg->icu_output_buf,
+						    s/CHAR_BIT, cfg->data_type))
+			cmp_size = -1;
+	} else {
+		if (rdcu_supported_data_type_is_used(cfg->data_type)) {
+			p = cfg->icu_output_buf;
+		} else {
+			p = &cfg->icu_output_buf[MULTI_ENTRY_HDR_SIZE/sizeof(uint32_t)];
+			s -= MULTI_ENTRY_HDR_SIZE * CHAR_BIT;
+		}
+
+		for (i = 0; i < cmp_bit_to_4byte(s)/sizeof(uint32_t); i++)
+			cpu_to_be32s(&p[i]);
+	}
+#else
+	/* do nothing data are already in big-endian */
+	(void)cfg;
+#endif /*__BYTE_ORDER__ */
+	return cmp_size;
+}
+
+
+/**
+ * @brief compress data on the ICU in software
+ *
+ * @param cfg	pointer to a compression configuration (created with the
+ *		cmp_cfg_icu_create() function, setup with the cmp_cfg_xxx() functions)
+ *
+ * @note the validity of the cfg structure is checked before the compression is
+ *	 started
+ *
+ * @returns the bit length of the bitstream on success; negative on error,
+ *	CMP_ERROR_SMALL_BUF (-2) if the compressed data buffer is too small to
+ *	hold the whole compressed data, CMP_ERROR_HIGH_VALUE (-3) if a data or
+ *	model value is bigger than the max_used_bits parameter allows (set with
+ *	the cmp_set_max_used_bits() function)
+ */
+
+int icu_compress_data(const struct cmp_cfg *cfg)
+{
+	int cmp_size = 0;
+
+	if (!cfg)
+		return -1;
+
+	if (cfg->samples == 0) /* nothing to compress we are done*/
+		return 0;
+
+	if (raw_mode_is_used(cfg->cmp_mode))
+		if (cfg->samples > cfg->buffer_length)
+			return CMP_ERROR_SMALL_BUF;
+
+	if (cmp_cfg_is_invalid(cfg))
+		return -1;
+
+	if (raw_mode_is_used(cfg->cmp_mode)) {
+		cmp_size = cmp_cal_size_of_data(cfg->samples, cfg->data_type);
+		if (cfg->icu_output_buf)
+			memcpy(cfg->icu_output_buf, cfg->input_buf, cmp_size);
+		cmp_size *= CHAR_BIT; /* convert to bits */
+	} else {
+		if (cfg->icu_output_buf && cfg->samples/3 > cfg->buffer_length)
+			debug_print("Warning: The size of the compressed_data buffer is 3 times smaller than the data_to_compress. This is probably unintended.\n");
+
+		switch (cfg->data_type) {
+		case DATA_TYPE_IMAGETTE:
+		case DATA_TYPE_IMAGETTE_ADAPTIVE:
+		case DATA_TYPE_SAT_IMAGETTE:
+		case DATA_TYPE_SAT_IMAGETTE_ADAPTIVE:
+		case DATA_TYPE_F_CAM_IMAGETTE:
+		case DATA_TYPE_F_CAM_IMAGETTE_ADAPTIVE:
+			cmp_size = compress_imagette(cfg);
+			break;
+
+		case DATA_TYPE_S_FX:
+			cmp_size = compress_s_fx(cfg);
+			break;
+		case DATA_TYPE_S_FX_EFX:
+			cmp_size = compress_s_fx_efx(cfg);
+			break;
+		case DATA_TYPE_S_FX_NCOB:
+			cmp_size = compress_s_fx_ncob(cfg);
+			break;
+		case DATA_TYPE_S_FX_EFX_NCOB_ECOB:
+			cmp_size = compress_s_fx_efx_ncob_ecob(cfg);
+			break;
+
+		case DATA_TYPE_F_FX:
+			cmp_size = compress_f_fx(cfg);
+			break;
+		case DATA_TYPE_F_FX_EFX:
+			cmp_size = compress_f_fx_efx(cfg);
+			break;
+		case DATA_TYPE_F_FX_NCOB:
+			cmp_size = compress_f_fx_ncob(cfg);
+			break;
+		case DATA_TYPE_F_FX_EFX_NCOB_ECOB:
+			cmp_size = compress_f_fx_efx_ncob_ecob(cfg);
+			break;
+
+		case DATA_TYPE_L_FX:
+			cmp_size = compress_l_fx(cfg);
+			break;
+		case DATA_TYPE_L_FX_EFX:
+			cmp_size = compress_l_fx_efx(cfg);
+			break;
+		case DATA_TYPE_L_FX_NCOB:
+			cmp_size = compress_l_fx_ncob(cfg);
+			break;
+		case DATA_TYPE_L_FX_EFX_NCOB_ECOB:
+			cmp_size = compress_l_fx_efx_ncob_ecob(cfg);
+			break;
+
+		case DATA_TYPE_OFFSET:
+			cmp_size = compress_nc_offset(cfg);
+			break;
+		case DATA_TYPE_BACKGROUND:
+			cmp_size = compress_nc_background(cfg);
+			break;
+		case DATA_TYPE_SMEARING:
+			cmp_size = compress_smearing(cfg);
+			break;
+
+		case DATA_TYPE_F_CAM_OFFSET:
+		case DATA_TYPE_F_CAM_BACKGROUND:
+		/* LCOV_EXCL_START */
+		case DATA_TYPE_UNKNOWN:
+		default:
+			debug_print("Error: Data type not supported.\n");
+			cmp_size = -1;
+		}
+		/* LCOV_EXCL_STOP */
+	}
+
+	cmp_size = pad_bitstream(cfg, cmp_size);
+	cmp_size = cmp_data_to_big_endian(cfg, cmp_size);
+
+	return cmp_size;
 }

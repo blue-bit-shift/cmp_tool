@@ -25,21 +25,32 @@
 #include <getopt.h>
 #include <time.h>
 
-#include "include/cmp_io.h"
-#include "include/cmp_icu.h"
-#include "include/decmp.h"
-#include "include/cmp_guess.h"
-#include "include/cmp_entity.h"
-#include "include/rdcu_pkt_to_file.h"
+#include "cmp_tool-config.h"
+#include "cmp_io.h"
+#include "cmp_icu.h"
+#include "cmp_rdcu.h" /*TODO: shift setup to support */
+#include "decmp.h"
+#include "cmp_guess.h"
+#include "cmp_entity.h"
+#include "rdcu_pkt_to_file.h"
+#include "cmp_data_types.h"
 
-
-#define VERSION "0.08"
 
 #define BUFFER_LENGTH_DEF_FAKTOR 2
 
-
 #define DEFAULT_MODEL_ID 53264  /* random default id */
 #define DEFAULT_MODEL_COUNTER 0
+
+
+/* find a good set of compression parameters for a given dataset */
+static int guess_cmp_pars(struct cmp_cfg *cfg, const char *guess_cmp_mode,
+			  int guess_level);
+
+/* compress the data and write the results to files */
+static int compression(struct cmp_cfg *cfg, struct cmp_info *info);
+
+/* decompress the data and write the results in file(s)*/
+static int decompression(struct cmp_entity *ent, uint16_t *input_model_buf);
 
 
 /*
@@ -79,7 +90,7 @@ static const char *output_prefix = DEFAULT_OUTPUT_PREFIX;
 
 /* if non zero additional RDCU parameters are included in the compression
  * configuration and decompression information files */
-static int print_rdcu_cfg;
+static int add_rdcu_pars;
 
 /* if non zero generate RDCU setup packets */
 static int rdcu_pkt_mode;
@@ -93,17 +104,6 @@ static int verbose_en;
 
 /* if non zero add a compression entity header in front of the compressed data */
 static int include_cmp_header = 1;
-
-/* find a good set of compression parameters for a given dataset */
-static int guess_cmp_pars(struct cmp_cfg *cfg, const char *guess_cmp_mode,
-			  int guess_level);
-
-/* compress the data and write the results to files */
-static int compression(struct cmp_cfg *cfg, struct cmp_info *info);
-
-/* decompress the data and write the results in file(s)*/
-static int decompression(uint32_t *cmp_data_adr, uint16_t *input_model_buf,
-			 struct cmp_info *info);
 
 /* model ID string set by the --model_id option */
 static const char *model_id_str;
@@ -140,15 +140,15 @@ int main(int argc, char **argv)
 	int guess_level = DEFAULT_GUESS_LEVEL;
 	int print_diff_cfg = 0;
 
-	struct cmp_cfg cfg = {0}; /* compressor configuration struct */
-	struct cmp_info info = {0}; /* decompression information struct */
-
-	/* buffer containing all read in compressed data for decompression (including header if used) */
-	void *decomp_input_buf = NULL;
-	/* address to the compressed data for the decompression */
-	uint32_t *cmp_data_adr = NULL;
+	/* buffer containing all read in compressed data for decompression */
+	struct cmp_entity *decomp_entity = NULL;
 	/* buffer containing the read in model */
 	uint16_t *input_model_buf = NULL;
+
+	struct cmp_info info = {0}; /* decompression information struct */
+	struct cmp_cfg cfg = {0}; /* compressor configuration struct */
+
+	cfg.data_type = DATA_TYPE_IMAGETTE; /* use imagette as default data type */
 
 	/* show help if no arguments are provided */
 	if (argc < 2) {
@@ -160,7 +160,7 @@ int main(int argc, char **argv)
 				  NULL)) != -1) {
 		switch (opt) {
 		case 'a': /* --rdcu_par */
-			print_rdcu_cfg = 1;
+			add_rdcu_pars = 1;
 			break;
 		case 'c':
 			cmp_operation = 1;
@@ -190,7 +190,7 @@ int main(int argc, char **argv)
 			verbose_en = 1;
 			break;
 		case 'V': /* --version */
-			printf("%s version %s\n", PROGRAM_NAME, VERSION);
+			printf("%s version %s\n", PROGRAM_NAME, CMP_TOOL_VERSION);
 			exit(EXIT_SUCCESS);
 			break;
 		case DIFF_CFG_OPTION:
@@ -262,20 +262,38 @@ int main(int argc, char **argv)
 #endif
 
 	if (print_model_cfg == 1) {
-		print_cfg(&DEFAULT_CFG_MODEL, print_rdcu_cfg);
+		cfg = rdcu_cfg_create(CMP_DEF_IMA_MODEL_DATA_TYPE, CMP_DEF_IMA_MODEL_CMP_MODE,
+				      CMP_DEF_IMA_MODEL_MODEL_VALUE, CMP_DEF_IMA_MODEL_LOSSY_PAR);
+		rdcu_cfg_buffers(&cfg, NULL, 0, NULL, CMP_DEF_IMA_MODEL_RDCU_DATA_ADR,
+				 CMP_DEF_IMA_MODEL_RDCU_MODEL_ADR, CMP_DEF_IMA_MODEL_RDCU_UP_MODEL_ADR,
+				 CMP_DEF_IMA_MODEL_RDCU_BUFFER_ADR, 0);
+		rdcu_cfg_imagette(&cfg,
+				  CMP_DEF_IMA_MODEL_GOLOMB_PAR, CMP_DEF_IMA_MODEL_SPILL_PAR,
+				  CMP_DEF_IMA_MODEL_AP1_GOLOMB_PAR, CMP_DEF_IMA_MODEL_AP1_SPILL_PAR,
+				  CMP_DEF_IMA_MODEL_AP2_GOLOMB_PAR, CMP_DEF_IMA_MODEL_AP2_SPILL_PAR);
+		print_cfg(&cfg, add_rdcu_pars);
 		exit(EXIT_SUCCESS);
 	}
 
 	if (print_diff_cfg == 1) {
-		print_cfg(&DEFAULT_CFG_DIFF, print_rdcu_cfg);
+		cfg = rdcu_cfg_create(CMP_DEF_IMA_DIFF_DATA_TYPE, CMP_DEF_IMA_DIFF_CMP_MODE,
+				      CMP_DEF_IMA_DIFF_MODEL_VALUE, CMP_DEF_IMA_DIFF_LOSSY_PAR);
+		rdcu_cfg_buffers(&cfg, NULL, 0, NULL, CMP_DEF_IMA_DIFF_RDCU_DATA_ADR,
+				 CMP_DEF_IMA_DIFF_RDCU_MODEL_ADR, CMP_DEF_IMA_DIFF_RDCU_UP_MODEL_ADR,
+				 CMP_DEF_IMA_DIFF_RDCU_BUFFER_ADR, 0);
+		rdcu_cfg_imagette(&cfg,
+				  CMP_DEF_IMA_DIFF_GOLOMB_PAR, CMP_DEF_IMA_DIFF_SPILL_PAR,
+				  CMP_DEF_IMA_DIFF_AP1_GOLOMB_PAR, CMP_DEF_IMA_DIFF_AP1_SPILL_PAR,
+				   CMP_DEF_IMA_DIFF_AP2_GOLOMB_PAR, CMP_DEF_IMA_DIFF_AP2_SPILL_PAR);
+		print_cfg(&cfg, add_rdcu_pars);
 		exit(EXIT_SUCCESS);
 	}
 
 	printf("#########################################################\n");
 	printf("### PLATO Compression/Decompression Tool Version %s ###\n",
-	       VERSION);
+	       CMP_TOOL_VERSION);
 	printf("#########################################################\n");
-	if (!strcmp(VERSION, "0.07") || !strcmp(VERSION, "0.08"))
+	if (!strcmp(CMP_TOOL_VERSION, "0.07") || !strcmp(CMP_TOOL_VERSION, "0.08"))
 		printf("Info: Note that the behaviour of the cmp_tool has changed. From now on, the compressed data will be preceded by a header by default. The old behaviour can be achieved with the --no_header option.\n\n");
 
 	if (!data_file_name) {
@@ -293,6 +311,7 @@ int main(int argc, char **argv)
 
 	if (cmp_operation || guess_operation) {
 		ssize_t size;
+		uint32_t input_size;
 
 		if (cmp_operation) {
 			printf("## Starting the compression ##\n");
@@ -308,21 +327,26 @@ int main(int argc, char **argv)
 		printf("Importing data file %s ... ", data_file_name);
 		/* count the samples in the data file when samples == 0 */
 		if (cfg.samples == 0) {
-			size = read_file16(data_file_name, NULL, 0, 0);
-			if (size <= 0) /* empty file is treated as an error */
+			int samples;
+			size = read_file_data(data_file_name, cfg.data_type, NULL, 0, 0);
+			if (size <= 0 || size > UINT32_MAX) /* empty file is treated as an error */
 				goto fail;
-			cfg.samples = size/size_of_a_sample(cfg.cmp_mode);
+			samples = cmp_input_size_to_samples(size, cfg.data_type);
+			if (samples < 0)
+				goto fail;
+			cfg.samples = (uint32_t)samples;
 			printf("\nNo samples parameter set. Use samples = %u.\n... ", cfg.samples);
 		}
 
-		cfg.input_buf = malloc(cmp_cal_size_of_data(cfg.samples, cfg.cmp_mode));
+		input_size = cmp_cal_size_of_data(cfg.samples, cfg.data_type);
+		cfg.input_buf = malloc(input_size);
 		if (!cfg.input_buf) {
 			fprintf(stderr, "%s: Error allocating memory for input data buffer.\n", PROGRAM_NAME);
 			goto fail;
 		}
 
-		size = read_file16(data_file_name, cfg.input_buf, cfg.samples,
-				   verbose_en);
+		size = read_file_data(data_file_name, cfg.data_type, cfg.input_buf,
+				      input_size, verbose_en);
 		if (size < 0)
 			goto fail;
 		printf("DONE\n");
@@ -330,7 +354,8 @@ int main(int argc, char **argv)
 	} else { /* decompression mode*/
 		printf("## Starting the decompression ##\n");
 		if (info_file_name) {
-			ssize_t size;
+			ssize_t f_size;
+			size_t ent_size;
 			uint32_t cmp_size_byte;
 
 			printf("Importing decompression information file %s ... ", info_file_name);
@@ -341,75 +366,76 @@ int main(int argc, char **argv)
 
 			printf("Importing compressed data file %s ... ", data_file_name);
 			cmp_size_byte = cmp_bit_to_4byte(info.cmp_size);
-			cmp_data_adr = decomp_input_buf = malloc(cmp_size_byte);
-			if (!decomp_input_buf) {
+
+			ent_size = cmp_ent_create(NULL, DATA_TYPE_IMAGETTE, info.cmp_mode_used == CMP_MODE_RAW,
+						  cmp_size_byte);
+			if (!ent_size)
+				goto fail;
+			decomp_entity = malloc(ent_size);
+			if (!decomp_entity) {
 				fprintf(stderr, "%s: Error allocating memory for decompression input buffer.\n", PROGRAM_NAME);
 				goto fail;
 			}
+			ent_size = cmp_ent_create(decomp_entity, DATA_TYPE_IMAGETTE, info.cmp_mode_used == CMP_MODE_RAW,
+						  cmp_size_byte);
+			if (!ent_size)
+				goto fail;
 
-			size = read_file32(data_file_name, decomp_input_buf,
-					   cmp_size_byte/4, verbose_en);
-			if (size < 0)
+			if (info.cmp_mode_used == CMP_MODE_RAW)
+				/* the raw data does not have to be a multiple of 4 bytes */
+				cmp_size_byte = (info.cmp_size+7)/CHAR_BIT;
+
+			f_size = read_file8(data_file_name, cmp_ent_get_data_buf(decomp_entity),
+					    cmp_size_byte, verbose_en);
+			if (f_size < 0)
+				goto fail;
+
+			error = cmp_ent_write_rdcu_cmp_pars(decomp_entity, &info, NULL);
+			if (error)
 				goto fail;
 		} else { /* read in compressed data with header */
 			ssize_t size;
 			size_t buf_size;
-			struct cmp_entity *ent;
 
 			printf("Importing compressed data file %s ... ", data_file_name);
 			buf_size = size = read_file_cmp_entity(data_file_name,
 							       NULL, 0, 0);
-			if (size < 0)
+			if (size < 0 || size > UINT32_MAX)
 				goto fail;
 			/* to be save allocate at least the size of the cmp_entity struct */
 			if (buf_size < sizeof(struct cmp_entity))
 				buf_size = sizeof(struct cmp_entity);
 
-			decomp_input_buf = ent = malloc(buf_size);
-			if (!ent) {
+			decomp_entity = malloc(buf_size);
+			if (!decomp_entity) {
 				fprintf(stderr, "%s: Error allocating memory for the compression entity buffer.\n", PROGRAM_NAME);
 				goto fail;
 			}
-			size = read_file_cmp_entity(data_file_name, ent, size,
-						  verbose_en);
-			if (size < 0)
-				goto fail;
-			printf("DONE\n");
-
-			printf("Parse the compression entity header ... ");
-			error = cmp_ent_read_imagette_header(ent, &info);
-			if (error)
-				goto fail;
-			if (verbose_en)
-				print_cmp_info(&info);
-
-			/* we reuse the entity buffer for the compressed data */
-			cmp_data_adr = (uint32_t *)decomp_input_buf;
-			size = cmp_ent_get_cmp_data(ent, cmp_data_adr, buf_size);
-			ent = NULL;
+			size = read_file_cmp_entity(data_file_name, decomp_entity,
+						    size, verbose_en);
 			if (size < 0)
 				goto fail;
 
 			if (verbose_en) {
-				size_t i;
-				printf("\ncompressed data:\n");
-				for (i = 0; i < size/sizeof(uint32_t); i++) {
-					printf("%08X ", cmp_data_adr[i]);
-					if (i && !((i+1) % 4))
-						printf("\n");
-				}
+				cmp_ent_print(decomp_entity);
 				printf("\n");
 			}
 		}
 		printf("DONE\n");
 	}
 
+	if (model_file_name && !guess_operation &&
+	    ((cmp_operation && !model_mode_is_used(cfg.cmp_mode)) ||
+	     (!cmp_operation && !model_mode_is_used(cmp_ent_get_cmp_mode(decomp_entity)))))
+		printf("Warring: Model file (-m option) specified but no model is used.\n");
+
 	/* read in model */
 	if ((cmp_operation && model_mode_is_used(cfg.cmp_mode)) ||
-	    (!cmp_operation && model_mode_is_used(info.cmp_mode_used)) ||
+	    (!cmp_operation && model_mode_is_used(cmp_ent_get_cmp_mode(decomp_entity))) ||
 	    (guess_operation && model_file_name)) {
 		ssize_t size;
-		uint32_t model_length;
+		uint32_t model_size;
+		enum cmp_data_type data_type;
 
 		printf("Importing model file %s ... ", model_file_name ? model_file_name : "");
 		if (!model_file_name) {
@@ -417,24 +443,28 @@ int main(int argc, char **argv)
 			goto fail;
 		}
 
-		if (cmp_operation || guess_operation)
-			model_length = cfg.samples;
-		else
-			model_length = info.samples_used;
+		if (cmp_operation || guess_operation) {
+			data_type = cfg.data_type;
+			model_size = cmp_cal_size_of_data(cfg.samples, cfg.data_type);
+		} else {
+			data_type = cmp_ent_get_data_type(decomp_entity);
+			model_size = cmp_ent_get_original_size(decomp_entity);
+		}
 
-		input_model_buf = malloc(model_length * size_of_a_sample(cfg.cmp_mode));
+		input_model_buf = malloc(model_size);
 		if (!input_model_buf) {
 			fprintf(stderr, "%s: Error allocating memory for model buffer.\n", PROGRAM_NAME);
 			goto fail;
 		}
 
-		size = read_file16(model_file_name, input_model_buf,
-				   model_length, verbose_en);
+		size = read_file_data(model_file_name, data_type, input_model_buf,
+				      model_size, verbose_en);
 		if (size < 0)
 			goto fail;
 		printf("DONE\n");
 
 		cfg.model_buf = input_model_buf;
+		cfg.icu_new_model_buf = input_model_buf; /* in-place model update */
 	}
 
 	if (guess_operation) {
@@ -446,7 +476,7 @@ int main(int argc, char **argv)
 		if (error)
 			goto fail;
 	} else {
-		error = decompression(cmp_data_adr, input_model_buf, &info);
+		error = decompression(decomp_entity, input_model_buf);
 		if (error)
 			goto fail;
 	}
@@ -454,17 +484,28 @@ int main(int argc, char **argv)
 	/* write our the updated model for compressed or decompression */
 	if (!guess_operation &&
 	    ((cmp_operation && model_mode_is_used(cfg.cmp_mode)) ||
-	    (!cmp_operation && model_mode_is_used(info.cmp_mode_used)))) {
+	    (!cmp_operation && model_mode_is_used(cmp_ent_get_cmp_mode(decomp_entity))))) {
+		enum cmp_data_type data_type = DATA_TYPE_UNKNOWN;
+		uint32_t model_size;
+
 		printf("Write updated model to file %s_upmodel.dat ... ", output_prefix);
-		error = write_to_file16(input_model_buf, info.samples_used,
-					output_prefix, "_upmodel.dat", verbose_en);
+		if (cmp_operation) {
+			data_type = cfg.data_type;
+			model_size = cmp_cal_size_of_data(cfg.samples, data_type);
+		} else {
+			data_type = cmp_ent_get_data_type(decomp_entity);
+			model_size = cmp_ent_get_original_size(decomp_entity);
+		}
+
+		error = write_input_data_to_file(input_model_buf, model_size, data_type,
+						 output_prefix, "_upmodel.dat", verbose_en);
 		if (error)
 			goto fail;
 		printf("DONE\n");
 	}
 
 	free(cfg.input_buf);
-	free(decomp_input_buf);
+	free(decomp_entity);
 	free(input_model_buf);
 
 	exit(EXIT_SUCCESS);
@@ -473,38 +514,10 @@ fail:
 	printf("FAILED\n");
 
 	free(cfg.input_buf);
-	free(decomp_input_buf);
+	free(decomp_entity);
 	free(input_model_buf);
 
 	exit(EXIT_FAILURE);
-}
-
-
-static enum cmp_ent_data_type cmp_ent_map_cmp_mode_data_type(uint32_t cmp_mode)
-{
-	enum cmp_ent_data_type data_type;
-
-	switch (cmp_mode) {
-	case MODE_RAW:
-	case MODE_MODEL_ZERO:
-	case MODE_DIFF_ZERO:
-	case MODE_MODEL_MULTI:
-	case MODE_DIFF_MULTI:
-		if (print_rdcu_cfg)
-			data_type = DATA_TYPE_IMAGETTE_ADAPTIVE;
-		else
-			data_type = DATA_TYPE_IMAGETTE;
-		break;
-	default:
-		printf("No mapping between compression mode and header data type\n!");
-		return DATA_TYPE_UNKOWN;
-	}
-
-	/* set raw bit if needed */
-	if (raw_mode_is_used(cmp_mode))
-		data_type |= 1UL << RAW_BIT_DATA_TYPE_POS;
-
-	return data_type;
 }
 
 
@@ -514,15 +527,20 @@ static int guess_cmp_pars(struct cmp_cfg *cfg, const char *guess_cmp_mode,
 {
 	int error;
 	uint32_t cmp_size_bit;
-	float cr;
+	double cr;
 
 	printf("Search for a good set of compression parameters (level: %d) ... ", guess_level);
 	if (!strcmp(guess_cmp_mode, "RDCU")) {
+		if (add_rdcu_pars)
+			cfg->data_type = DATA_TYPE_IMAGETTE_ADAPTIVE;
+		else
+			cfg->data_type = DATA_TYPE_IMAGETTE;
 		if (cfg->model_buf)
 			cfg->cmp_mode = CMP_GUESS_DEF_MODE_MODEL;
 		else
 			cfg->cmp_mode = CMP_GUESS_DEF_MODE_DIFF;
 	} else {
+		cfg->data_type = DATA_TYPE_IMAGETTE; /* TODO*/
 		error = cmp_mode_parse(guess_cmp_mode, &cfg->cmp_mode);
 		if (error) {
 			fprintf(stderr, "%s: Error: unknown compression mode: %s\n", PROGRAM_NAME, guess_cmp_mode);
@@ -540,24 +558,24 @@ static int guess_cmp_pars(struct cmp_cfg *cfg, const char *guess_cmp_mode,
 
 	if (include_cmp_header)
 		cmp_size_bit = CHAR_BIT * (cmp_bit_to_4byte(cmp_size_bit) +
-			cmp_ent_cal_hdr_size(cmp_ent_map_cmp_mode_data_type(cfg->cmp_mode)));
+			cmp_ent_cal_hdr_size(cfg->data_type, cfg->cmp_mode == CMP_MODE_RAW));
 
 	printf("DONE\n");
 
 	printf("Write the guessed compression configuration to file %s.cfg ... ", output_prefix);
-	error = write_cfg(cfg, output_prefix, print_rdcu_cfg, verbose_en);
+	error = write_cfg(cfg, output_prefix, add_rdcu_pars, verbose_en);
 	if (error)
 		return -1;
 	printf("DONE\n");
 
-	cr = (8.0 * cfg->samples * size_of_a_sample(cfg->cmp_mode))/cmp_size_bit;
+	cr = (8.0 * cmp_cal_size_of_data(cfg->samples, cfg->data_type))/cmp_size_bit;
 	printf("Guessed parameters can compress the data with a CR of %.2f.\n", cr);
 
 	return 0;
 }
 
 
-/* generate packets to setup a RDCU compression */
+/* generate packets to setup an RDCU compression */
 static int gen_rdcu_write_pkts(struct cmp_cfg *cfg)
 {
 	int error;
@@ -594,47 +612,76 @@ static int gen_rdcu_write_pkts(struct cmp_cfg *cfg)
 }
 
 
-/* add a compression entity header in front of the data */
-static int add_cmp_ent_hdr(struct cmp_cfg *cfg, struct cmp_info *info,
-			   uint64_t start_time)
+/**
+ * @brief generate the compression information used based on the compression
+ *	configuration, to emulate the RDCU behaviour
+ *
+ * @param cfg		compression configuration struct
+ * @param cmp_size_bit	length of the bitstream in bits
+ * @param info		compressor information struct to set the used compression
+ *	parameters (can be NULL)
+ *
+ * @note set cmp_size, ap1_cmp_size, ap2_cmp_size will be set to 0
+ *
+ * @returns 0 on success, error otherwise
+ * TODO: set cmp_mode_err, set model_value_err, etc, in error case
+ */
+
+static int cmp_gernate_rdcu_info(const struct cmp_cfg *cfg, int cmp_size_bit,
+				 struct cmp_info *info)
 {
-	int error;
-	uint32_t red_val;
-	uint8_t model_counter = DEFAULT_MODEL_COUNTER;
-	uint16_t model_id = DEFAULT_MODEL_ID;
-	size_t s, cmp_hdr_size;
-	struct cmp_entity *ent;
-	enum cmp_ent_data_type data_type = cmp_ent_map_cmp_mode_data_type(cfg->cmp_mode);
-
-	if (model_id_str) {
-		error = atoui32("model_id", model_id_str, &red_val);
-		if (error || red_val > UINT16_MAX)
-			return -1;
-		model_id = red_val;
-	}
-	if (model_counter_str) {
-		error = atoui32("model_counter", model_counter_str, &red_val);
-		if (error || red_val > UINT8_MAX)
-			return -1;
-		model_counter = red_val;
-	} else {
-		if (model_mode_is_used(cfg->cmp_mode))
-			model_counter = DEFAULT_MODEL_COUNTER + 1;
-	}
-
-	cmp_hdr_size = cmp_ent_cal_hdr_size(data_type);
-	if (!cmp_hdr_size)
+	if (!cfg)
 		return -1;
-	memmove((uint8_t *)cfg->icu_output_buf+cmp_hdr_size, cfg->icu_output_buf,
-		cmp_bit_to_4byte(info->cmp_size));
 
-	ent = (struct cmp_entity *)cfg->icu_output_buf;
-	s = cmp_ent_build(ent, data_type, cmp_tool_gen_version_id(VERSION),
-			  start_time, cmp_ent_create_timestamp(NULL), model_id,
-			  model_counter, info, cfg);
-	if (!s) {
-		fprintf(stderr, "%s: error occurred while creating the compression entity header.\n", PROGRAM_NAME);
+	if (cfg->cmp_mode > UINT8_MAX)
 		return -1;
+
+	if (cfg->round > UINT8_MAX)
+		return -1;
+
+	if (cfg->model_value > UINT8_MAX)
+		return -1;
+
+	if (info) {
+		info->cmp_err = 0;
+		info->cmp_mode_used = (uint8_t)cfg->cmp_mode;
+		info->model_value_used = (uint8_t)cfg->model_value;
+		info->round_used = (uint8_t)cfg->round;
+		info->spill_used = cfg->spill;
+		info->golomb_par_used = cfg->golomb_par;
+		info->samples_used = cfg->samples;
+		info->rdcu_new_model_adr_used = cfg->rdcu_new_model_adr;
+		info->rdcu_cmp_adr_used = cfg->rdcu_buffer_adr;
+
+		if (cmp_size_bit == CMP_ERROR_SMALL_BUF)
+			/* the icu_output_buf is to small to store the whole bitstream */
+			info->cmp_err |= 1UL << SMALL_BUFFER_ERR_BIT; /* set small buffer error */
+		if (cmp_size_bit < 0) {
+			info->cmp_size = 0;
+			info->ap1_cmp_size = 0;
+			info->ap2_cmp_size = 0;
+		} else {
+			info->cmp_size = (uint32_t)cmp_size_bit;
+
+			if (add_rdcu_pars) {
+				struct cmp_cfg cfg_cpy = *cfg;
+
+				cfg_cpy.icu_output_buf = NULL;
+				cfg_cpy.icu_new_model_buf = NULL;
+
+				cfg_cpy.golomb_par = cfg_cpy.ap1_golomb_par;
+				cfg_cpy.spill = cfg_cpy.ap1_spill;
+				info->ap1_cmp_size = icu_compress_data(&cfg_cpy);
+				if ((int)info->ap1_cmp_size < 0)
+					info->ap1_cmp_size = 0;
+
+				cfg_cpy.golomb_par = cfg_cpy.ap2_golomb_par;
+				cfg_cpy.spill = cfg_cpy.ap2_spill;
+				info->ap2_cmp_size = icu_compress_data(&cfg_cpy);
+				if ((int)info->ap2_cmp_size < 0)
+					info->ap2_cmp_size = 0;
+			}
+		}
 	}
 	return 0;
 }
@@ -643,12 +690,14 @@ static int add_cmp_ent_hdr(struct cmp_cfg *cfg, struct cmp_info *info,
 /* compress the data and write the results to files */
 static int compression(struct cmp_cfg *cfg, struct cmp_info *info)
 {
-	int error;
-	uint32_t cmp_size_byte;
-	size_t out_buf_size;
+	int cmp_size, error;
+	uint32_t cmp_size_byte, out_buf_size;
+	size_t s;
 	uint64_t start_time = cmp_ent_create_timestamp(NULL);
-
-	cfg->icu_output_buf = NULL;
+	struct cmp_entity *cmp_entity = NULL;
+	uint8_t model_counter = DEFAULT_MODEL_COUNTER;
+	uint16_t model_id = DEFAULT_MODEL_ID;
+	void *data_to_write_to_file;
 
 	if (cfg->buffer_length == 0) {
 		cfg->buffer_length = (cfg->samples+1) * BUFFER_LENGTH_DEF_FAKTOR; /* +1 to prevent malloc(0)*/
@@ -666,30 +715,60 @@ static int compression(struct cmp_cfg *cfg, struct cmp_info *info)
 
 	printf("Compress data ... ");
 	/* round up to a multiple of 4 */
-	out_buf_size = (cmp_cal_size_of_data(cfg->buffer_length, cfg->cmp_mode) + 3) & ~0x3U;
+	out_buf_size = (cmp_cal_size_of_data(cfg->buffer_length, cfg->data_type) + 3) & ~0x3U;
 
-	cfg->icu_output_buf = malloc(out_buf_size + sizeof(struct cmp_entity));
-	if (cfg->icu_output_buf == NULL) {
+	cmp_entity = calloc(1, out_buf_size + sizeof(struct cmp_entity));
+	if (cmp_entity == NULL) {
 		fprintf(stderr, "%s: Error allocating memory for output buffer.\n", PROGRAM_NAME);
 		goto error_cleanup;
 	}
-
-	error = icu_compress_data(cfg, info);
-	if (error || info->cmp_err != 0) {
-		printf("\nCompression error 0x%02X\n... ", info->cmp_err);
-		/* TODO: add a parse cmp error function */
-		/* if ((info->cmp_err >> SMALL_BUFFER_ERR_BIT) & 1U) */
-		/*	fprintf(stderr, "%s: the buffer for the compressed data is too small. Try a larger buffer_length parameter.\n", PROGRAM_NAME); */
+	s = cmp_ent_create(cmp_entity, cfg->data_type, cfg->cmp_mode == CMP_MODE_RAW, out_buf_size);
+	if (!s) {
+		fprintf(stderr, "%s: error occurred while creating the compression entity header.\n", PROGRAM_NAME);
 		goto error_cleanup;
 	}
+	cfg->icu_output_buf = cmp_ent_get_data_buf(cmp_entity);
 
-	if (include_cmp_header) {
-		error = add_cmp_ent_hdr(cfg, info, start_time);
-		if (error)
-			goto error_cleanup;
-		cmp_size_byte = cmp_ent_get_size((struct cmp_entity *)cfg->icu_output_buf);
+	cmp_size = icu_compress_data(cfg);
+	if (cmp_size < 0)
+		goto error_cleanup;
+
+	if (model_id_str) {
+		uint32_t red_val;
+		error = atoui32("model_id", model_id_str, &red_val);
+		if (error || red_val > UINT16_MAX)
+			return -1;
+		model_id = (uint16_t)red_val;
+	}
+	if (model_counter_str) {
+		uint32_t red_val;
+		error = atoui32("model_counter", model_counter_str, &red_val);
+		if (error || red_val > UINT8_MAX)
+			return -1;
+		model_counter = (uint8_t)red_val;
 	} else {
-		cmp_size_byte = cmp_bit_to_4byte(info->cmp_size);
+		if (model_mode_is_used(cfg->cmp_mode))
+			model_counter = DEFAULT_MODEL_COUNTER + 1;
+	}
+
+	s = cmp_ent_build(cmp_entity,  cmp_tool_gen_version_id(CMP_TOOL_VERSION),
+			  start_time, cmp_ent_create_timestamp(NULL), model_id,
+			  model_counter, cfg, cmp_size);
+	if (!s) {
+		fprintf(stderr, "%s: error occurred while creating the compression entity header.\n", PROGRAM_NAME);
+		goto error_cleanup;
+	}
+	if (include_cmp_header) {
+		data_to_write_to_file = cmp_entity;
+		cmp_size_byte = cmp_ent_get_size(cmp_entity);
+	} else {
+		if (cmp_gernate_rdcu_info(cfg, cmp_size, info))
+			goto error_cleanup;
+		data_to_write_to_file = cmp_ent_get_data_buf(cmp_entity);
+		if (cfg->cmp_mode == CMP_MODE_RAW)
+			cmp_size_byte = info->cmp_size/CHAR_BIT;
+		else
+			cmp_size_byte = cmp_bit_to_4byte(info->cmp_size);
 	}
 
 	printf("DONE\n");
@@ -703,7 +782,7 @@ static int compression(struct cmp_cfg *cfg, struct cmp_info *info)
 	}
 
 	printf("Write compressed data to file %s.cmp ... ", output_prefix);
-	error = write_cmp_data_file(cfg->icu_output_buf, cmp_size_byte,
+	error = write_cmp_data_file(data_to_write_to_file, cmp_size_byte,
 				    output_prefix, ".cmp", verbose_en);
 	if (error)
 		goto error_cleanup;
@@ -712,64 +791,68 @@ static int compression(struct cmp_cfg *cfg, struct cmp_info *info)
 	if (!include_cmp_header) {
 		printf("Write decompression information to file %s.info ... ",
 		       output_prefix);
-		error = write_info(info, output_prefix, print_rdcu_cfg);
+		error = write_info(info, output_prefix, add_rdcu_pars);
 		if (error)
 			goto error_cleanup;
 		printf("DONE\n");
+
+		if (verbose_en) {
+			printf("\n");
+			print_cmp_info(info);
+			printf("\n");
+		}
 	}
 
-	if (verbose_en) {
-		printf("\n");
-		print_cmp_info(info);
-		printf("\n");
-	}
-
-	free(cfg->icu_output_buf);
+	free(cmp_entity);
 	cfg->icu_output_buf = NULL;
 
 	return 0;
 
 error_cleanup:
-	free(cfg->icu_output_buf);
+	free(cmp_entity);
 	cfg->icu_output_buf = NULL;
+
 	return -1;
 }
 
 
 /* decompress the data and write the results in file(s)*/
-static int decompression(uint32_t *cmp_data_adr, uint16_t *input_model_buf,
-			 struct cmp_info *info)
+static int decompression(struct cmp_entity *ent, uint16_t *input_model_buf)
 {
 	int error;
+	int decomp_size;
 	uint16_t *decomp_output;
 
 	printf("Decompress data ... ");
 
-	if (info->samples_used == 0) {
+	decomp_size = decompress_cmp_entiy(ent, input_model_buf, input_model_buf, NULL);
+	if (decomp_size < 0)
+		return -1;
+	if (decomp_size == 0) {
 		printf("\nWarring: No data are decompressed.\n... ");
 		printf("DONE\n");
 		return 0;
 	}
 
-	decomp_output = malloc(cmp_cal_size_of_data(info->samples_used,
-						    info->cmp_mode_used));
+	decomp_output = malloc((size_t)decomp_size);
 	if (decomp_output == NULL) {
 		fprintf(stderr, "%s: Error allocating memory for decompressed data.\n", PROGRAM_NAME);
 		return -1;
 	}
 
-	error = decompress_data(cmp_data_adr, input_model_buf, info,
-				decomp_output);
-	if (error) {
+	decomp_size = decompress_cmp_entiy(ent, input_model_buf, input_model_buf, decomp_output);
+	if (decomp_size <= 0) {
 		free(decomp_output);
 		return -1;
 	}
+
 	printf("DONE\n");
 
 	printf("Write decompressed data to file %s.dat ... ", output_prefix);
 
-	error = write_to_file16(decomp_output, info->samples_used,
-				output_prefix, ".dat", verbose_en);
+	error = write_input_data_to_file(decomp_output, (uint32_t)decomp_size, cmp_ent_get_data_type(ent),
+					 output_prefix, ".dat", verbose_en);
+
 	free(decomp_output);
 	if (error)
 		return -1;

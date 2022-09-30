@@ -18,7 +18,7 @@
 #ifndef _RDCU_PKT_TO_FILE_H_
 #define _RDCU_PKT_TO_FILE_H_
 
-#include "cmp_support.h"
+#include <cmp_support.h>
 
 /* directory where the tc files are stored, when --rdcu_pkt option is set */
 #define TC_DIR "TC_FILES"
@@ -26,6 +26,11 @@
 #define RDCU_DEST_KEY	0x0
 
 #define MAX_TC_FOLDER_DIR_LEN 256
+
+/* default values when no .rdcu_pkt_mode_cfg file is available */
+#define DEF_ICU_ADDR 0xA7
+#define DEF_RDCU_ADDR 0xFE
+#define DEF_MTU 4224
 
 int init_rmap_pkt_to_file(void);
 

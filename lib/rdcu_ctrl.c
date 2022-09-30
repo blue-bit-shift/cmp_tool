@@ -1305,41 +1305,94 @@ uint32_t rdcu_get_compr_data_start_addr(void)
 
 
 /**
- * @brief get compressed data size
+ * @brief get the need bytes for the given bits
+ *
+ * @param cmp_size_bit compressed data size, measured in bits
+ *
+ * @returns the size in bytes to store the compressed data
+ */
+
+static uint32_t rdcu_bit_to_byte(unsigned int cmp_size_bit)
+{
+	return ((cmp_size_bit + 7) / 8);
+}
+
+
+/**
+ * @brief get compressed data size in bits
  * @see RDCU-FRS-FN-0922
  *
  * @returns the compressed data size in bits
  */
 
-uint32_t rdcu_get_compr_data_size(void)
+uint32_t rdcu_get_compr_data_size_bit(void)
 {
 	return rdcu->compr_data_size;
 }
 
 
 /**
- * @brief get compressed data adaptive 1 size
+ * @brief get compressed data size in bytes
+ * @see RDCU-FRS-FN-0922
+ *
+ * @returns the compressed data size in bytes
+ */
+
+uint32_t rdcu_get_compr_data_size_byte(void)
+{
+	return rdcu_bit_to_byte(rdcu_get_compr_data_size_bit());
+}
+
+
+/**
+ * @brief get compressed data adaptive 1 size in bits
  * @see RDCU-FRS-FN-0932
  *
  * @returns the adaptive 1 compressed data size in bits
  */
 
-uint32_t rdcu_get_compr_data_adaptive_1_size(void)
+uint32_t rdcu_get_compr_data_adaptive_1_size_bit(void)
 {
 	return rdcu->compr_data_adaptive_1_size;
 }
 
 
 /**
- * @brief get compressed data adaptive 2 size
+ * @brief get compressed data adaptive 1 size in bytes
+ * @see RDCU-FRS-FN-0932
+ *
+ * @returns the adaptive 1 compressed data size in bytes
+ */
+
+uint32_t rdcu_get_compr_data_adaptive_1_size_byte(void)
+{
+	return rdcu_bit_to_byte(rdcu_get_compr_data_adaptive_1_size_bit());
+}
+
+
+/**
+ * @brief get compressed data adaptive 2 size in bits
  * @see RDCU-FRS-FN-0942
  *
  * @returns the adaptive 2 compressed data size in bits
  */
 
-uint32_t rdcu_get_compr_data_adaptive_2_size(void)
+uint32_t rdcu_get_compr_data_adaptive_2_size_bit(void)
 {
 	return rdcu->compr_data_adaptive_2_size;
+}
+
+
+/**
+ * @brief get compressed data adaptive 2 size in bytes
+ * @see RDCU-FRS-FN-0942
+ *
+ * @returns the adaptive 2 compressed data size in bytes
+ */
+
+uint32_t rdcu_get_compr_data_adaptive_2_size_byte(void)
+{
+	return rdcu_bit_to_byte(rdcu_get_compr_data_adaptive_2_size_bit());
 }
 
 
@@ -1606,7 +1659,7 @@ int rdcu_write_sram_16(uint16_t *buf, uint32_t addr, uint32_t size)
 	{
 		uint32_t i;
 
-		for (i = 0; i < size/sizeof(uint16_t); i++){
+		for (i = 0; i < size/sizeof(uint16_t); i++) {
 			uint16_t *sram_buf = (uint16_t *)&rdcu->sram[addr];
 
 			sram_buf[i] = cpu_to_be16(buf[i]);
@@ -1652,9 +1705,9 @@ int rdcu_write_sram_32(uint32_t *buf, uint32_t addr, uint32_t size)
 	{
 		uint32_t i;
 
-	for (i = 0; i < size/sizeof(uint32_t); i++){
-		uint32_t *sram_buf = (uint32_t *)&rdcu->sram[addr];
-	
+		for (i = 0; i < size/sizeof(uint32_t); i++) {
+			uint32_t *sram_buf = (uint32_t *)&rdcu->sram[addr];
+
 			sram_buf[i] = cpu_to_be32(buf[i]);
 		}
 	}
@@ -2466,13 +2519,11 @@ int rdcu_sync_sram_mirror_parallel(uint32_t rx_addr, uint32_t rx_size,
 
 int rdcu_ctrl_init(void)
 {
-	rdcu = (struct rdcu_mirror *) malloc(sizeof(struct rdcu_mirror));
-	if (!rdcu){
+	rdcu = (struct rdcu_mirror *) calloc(1, sizeof(struct rdcu_mirror));
+	if (!rdcu) {
 		printf("Error allocating memory for the RDCU mirror\n");
 		return -1;
 	}
-
-	memset(rdcu, 0, sizeof(struct rdcu_mirror));
 
 #if (__sparc__)
 	rdcu->sram =  (uint8_t *) 0x60000000;
@@ -2485,7 +2536,7 @@ int rdcu_ctrl_init(void)
 	}
 #endif
 
-	memset(rdcu->sram, 0, RDCU_SRAM_SIZE);
-	
+	memset(rdcu->sram, 0, RDCU_SRAM_SIZE);  /* clear sram buffer */
+
 	return 0;
 }

@@ -18,75 +18,15 @@
  */
 
 
-#include "../include/cmp_support.h"
-#include "../include/cmp_data_types.h"
-#include "../include/cmp_debug.h"
-
-
-/**
- * @brief Default configuration of the Compressor in model imagette mode.
- * @warning All ICU buffers are set to NULL. Samples and buffer_length are set to 0
- * @note see PLATO-IWF-PL-RS-0005 V1.1
- */
-
-
-const struct cmp_cfg DEFAULT_CFG_MODEL = {
-	MODE_MODEL_MULTI, /* cmp_mode */
-	4, /* golomb_par */
-	48, /* spill */
-	8, /* model_value */
-	0, /* round */
-	3, /* ap1_golomb_par */
-	35, /* ap1_spill */
-	5, /* ap2_golomb_par */
-	60, /* ap2_spill */
-	NULL, /* *input_buf */
-	0x000000, /* rdcu_data_adr */
-	NULL, /* *model_buf */
-	0x200000, /* rdcu_model_adr */
-	NULL, /* *icu_new_model_buf */
-	0x400000, /* rdcu_up_model_adr */
-	0, /* samples */
-	NULL, /* *icu_output_buf */
-	0x600000, /* rdcu_buffer_adr */
-	0x0 /* buffer_length */
-};
-
-
-/**
- * @brief Default configuration of the Compressor in 1d-differencing imagette mode.
- * @warning All ICU buffers are set to NULL. Samples and buffer_length are set to 0
- * @note see PLATO-IWF-PL-RS-0005 V1.1
- */
-
-const struct cmp_cfg DEFAULT_CFG_DIFF = {
-	MODE_DIFF_ZERO, /* cmp_mode */
-	7, /* golomb_par */
-	60, /* spill */
-	8, /* model_value */
-	0, /* round */
-	6, /* ap1_golomb_par */
-	48, /* ap1_spill */
-	8, /* ap2_golomb_par */
-	72, /* ap2_spill */
-	NULL, /* *input_buf */
-	0x000000, /* rdcu_data_adr */
-	NULL, /* *model_buf */
-	0x000000, /* rdcu_model_adr */
-	NULL, /* *icu_new_model_buf */
-	0x000000, /* rdcu_up_model_adr */
-	0, /* samples */
-	NULL, /* *icu_output_buf */
-	0x600000, /* rdcu_buffer_adr */
-	0x0 /* buffer_length */
-};
+#include <cmp_support.h>
+#include <cmp_debug.h>
 
 
 /**
  * @brief implementation of the logarithm base of floor(log2(x)) for integers
  * @note ilog_2(0) = -1 defined
  *
- * @param x input parameter
+ * @param x	input parameter
  *
  * @returns the result of floor(log2(x))
  */
@@ -101,10 +41,10 @@ int ilog_2(uint32_t x)
 
 
 /**
- * @brief Determining if an integer is a power of 2
+ * @brief determining if an integer is a power of 2
  * @note 0 is incorrectly considered a power of 2 here
  *
- * @param v we want to see if v is a power of 2
+ * @param v	we want to see if v is a power of 2
  *
  * @returns 1 if v is a power of 2, otherwise 0
  *
@@ -118,230 +58,273 @@ int is_a_pow_of_2(unsigned int v)
 
 
 /**
- * @brief check if a model mode is selected
+ * @brief check if the compression entity data product type is supported
  *
- * @param cmp_mode compression mode
+ * @param data_type	compression entity data product type to check
  *
- * @returns 1 when model mode is set, otherwise 0
+ * @returns zero if data_type is invalid; non-zero if data_type is valid
  */
 
-int model_mode_is_used(unsigned int cmp_mode)
+int cmp_data_type_valid(enum cmp_data_type data_type)
 {
-	switch (cmp_mode) {
-	case MODE_MODEL_ZERO:
-	case MODE_MODEL_ZERO_S_FX:
-	case MODE_MODEL_ZERO_S_FX_EFX:
-	case MODE_MODEL_ZERO_S_FX_NCOB:
-	case MODE_MODEL_ZERO_S_FX_EFX_NCOB_ECOB:
-	case MODE_MODEL_ZERO_F_FX:
-	case MODE_MODEL_ZERO_F_FX_EFX:
-	case MODE_MODEL_ZERO_F_FX_NCOB:
-	case MODE_MODEL_ZERO_F_FX_EFX_NCOB_ECOB:
-	case MODE_MODEL_MULTI:
-	case MODE_MODEL_MULTI_S_FX:
-	case MODE_MODEL_MULTI_S_FX_EFX:
-	case MODE_MODEL_MULTI_S_FX_NCOB:
-	case MODE_MODEL_MULTI_S_FX_EFX_NCOB_ECOB:
-	case MODE_MODEL_MULTI_F_FX:
-	case MODE_MODEL_MULTI_F_FX_EFX:
-	case MODE_MODEL_MULTI_F_FX_NCOB:
-	case MODE_MODEL_MULTI_F_FX_EFX_NCOB_ECOB:
-	case MODE_MODEL_ZERO_32:
-	case MODE_MODEL_MULTI_32:
-		return 1;
-		break;
-	default:
+	if (data_type == DATA_TYPE_F_CAM_OFFSET)
+		debug_print("Error: DATA_TYPE_F_CAM_OFFSET is TBD and not implemented yet.\n");
+	if (data_type == DATA_TYPE_F_CAM_BACKGROUND)
+		debug_print("Error: DATA_TYPE_F_CAM_BACKGROUND is TBD  and not implemented yet.\n");
+
+	if (data_type <= DATA_TYPE_UNKNOWN || data_type > DATA_TYPE_F_CAM_IMAGETTE_ADAPTIVE)
 		return 0;
-		break;
-	}
+
+	return 1;
+}
+
+
+/**
+ * @brief check if a model mode is selected
+ *
+ * @param cmp_mode	compression mode
+ *
+ * @returns 1 when the model mode is used, otherwise 0
+ */
+
+int model_mode_is_used(enum cmp_mode cmp_mode)
+{
+	if (cmp_mode == CMP_MODE_MODEL_ZERO ||
+	    cmp_mode == CMP_MODE_MODEL_MULTI)
+		return 1;
+
+	return 0;
 }
 
 
 /**
  * @brief check if a 1d-differencing mode is selected
  *
- * @param cmp_mode compression mode
+ * @param cmp_mode	compression mode
  *
- * @returns 1 when 1d-differencing mode is set, otherwise 0
+ * @returns 1 when the 1d-differencing mode is used, otherwise 0
  */
 
-int diff_mode_is_used(unsigned int cmp_mode)
+int diff_mode_is_used(enum cmp_mode cmp_mode)
 {
-	switch (cmp_mode) {
-	case MODE_DIFF_ZERO:
-	case MODE_DIFF_ZERO_S_FX:
-	case MODE_DIFF_ZERO_S_FX_EFX:
-	case MODE_DIFF_ZERO_S_FX_NCOB:
-	case MODE_DIFF_ZERO_S_FX_EFX_NCOB_ECOB:
-	case MODE_DIFF_ZERO_F_FX:
-	case MODE_DIFF_ZERO_F_FX_EFX:
-	case MODE_DIFF_ZERO_F_FX_NCOB:
-	case MODE_DIFF_ZERO_F_FX_EFX_NCOB_ECOB:
-	case MODE_DIFF_MULTI:
-	case MODE_DIFF_MULTI_S_FX:
-	case MODE_DIFF_MULTI_S_FX_EFX:
-	case MODE_DIFF_MULTI_S_FX_NCOB:
-	case MODE_DIFF_MULTI_S_FX_EFX_NCOB_ECOB:
-	case MODE_DIFF_MULTI_F_FX:
-	case MODE_DIFF_MULTI_F_FX_EFX:
-	case MODE_DIFF_MULTI_F_FX_NCOB:
-	case MODE_DIFF_MULTI_F_FX_EFX_NCOB_ECOB:
-	case MODE_DIFF_ZERO_32:
-	case MODE_DIFF_MULTI_32:
+	if (cmp_mode == CMP_MODE_DIFF_ZERO ||
+	    cmp_mode == CMP_MODE_DIFF_MULTI)
 		return 1;
-		break;
-	default:
-		return 0;
-		break;
-	}
+
+	return 0;
 }
 
 
 /**
  * @brief check if the raw mode is selected
  *
- * @param cmp_mode compression mode
+ * @param cmp_mode	compression mode
  *
- * @returns 1 when raw mode is set, otherwise 0
+ * @returns 1 when the raw mode is used, otherwise 0
  */
 
-int raw_mode_is_used(unsigned int cmp_mode)
+int raw_mode_is_used(enum cmp_mode cmp_mode)
+{
+	if (cmp_mode == CMP_MODE_RAW)
+		return 1;
+
+	return 0;
+}
+
+
+/**
+ * @brief check if the compression mode is supported by the RDCU compressor
+ *
+ * @param cmp_mode	compression mode
+ *
+ * @returns 1 when the compression mode is supported by the RDCU, otherwise 0
+ */
+
+int rdcu_supported_cmp_mode_is_used(enum cmp_mode cmp_mode)
 {
 	switch (cmp_mode) {
-	case MODE_RAW:
-	case MODE_RAW_S_FX:
-	case MODE_RAW_32:
+	case CMP_MODE_RAW:
+	case CMP_MODE_MODEL_ZERO:
+	case CMP_MODE_DIFF_ZERO:
+	case CMP_MODE_MODEL_MULTI:
+	case CMP_MODE_DIFF_MULTI:
 		return 1;
-		break;
+	case CMP_MODE_STUFF:
 	default:
 		return 0;
-		break;
+	}
+
+}
+
+
+/**
+ * @brief check if the data product data type is supported by the RDCU compressor
+ *
+ * @param data_type	compression data product type
+ *
+ * @returns 1 when the data type is supported by the RDCU, otherwise 0
+ */
+
+int rdcu_supported_data_type_is_used(enum cmp_data_type data_type)
+{
+	switch (data_type) {
+	case DATA_TYPE_IMAGETTE:
+	case DATA_TYPE_IMAGETTE_ADAPTIVE:
+	case DATA_TYPE_SAT_IMAGETTE:
+	case DATA_TYPE_SAT_IMAGETTE_ADAPTIVE:
+	case DATA_TYPE_F_CAM_IMAGETTE:
+	case DATA_TYPE_F_CAM_IMAGETTE_ADAPTIVE:
+		return 1;
+	default:
+		return 0;
 	}
 }
 
 
 /**
- * @brief check if the mode is supported by the RDCU compressor
+ * @brief check if the compression mode is supported for an ICU compression
  *
- * @param cmp_mode compression mode
+ * @param cmp_mode	compression mode
  *
- * @returns 1 when mode is supported by the RDCU, otherwise 0
+ * @returns 1 when the compression mode is supported, otherwise 0
  */
 
-int rdcu_supported_mode_is_used(unsigned int cmp_mode)
+int cmp_mode_is_supported(enum cmp_mode cmp_mode)
 {
 	switch (cmp_mode) {
-	case MODE_RAW:
-	case MODE_MODEL_ZERO:
-	case MODE_DIFF_ZERO:
-	case MODE_MODEL_MULTI:
-	case MODE_DIFF_MULTI:
+	case CMP_MODE_RAW:
+	case CMP_MODE_MODEL_ZERO:
+	case CMP_MODE_DIFF_ZERO:
+	case CMP_MODE_MODEL_MULTI:
+	case CMP_MODE_DIFF_MULTI:
+	case CMP_MODE_STUFF:
 		return 1;
-		break;
-	default:
-		return 0;
-		break;
 	}
-}
-
-
-/**
- * @brief check if the mode is available
- *
- * @param cmp_mode compression mode
- *
- * @returns 1 when mode is available, otherwise 0
- */
-
-int cmp_mode_available(unsigned int cmp_mode)
-{
-	if (diff_mode_is_used(cmp_mode) ||
-	    model_mode_is_used(cmp_mode) ||
-	    raw_mode_is_used(cmp_mode))
-		return 1;
-	else
-		return 0;
-
+	return 0;
 }
 
 
 /**
  * @brief check if zero escape symbol mechanism mode is used
  *
- * @param cmp_mode compression mode
+ * @param cmp_mode	compression mode
  *
  * @returns 1 when zero escape symbol mechanism is set, otherwise 0
  */
 
-int zero_escape_mech_is_used(unsigned int cmp_mode)
+int zero_escape_mech_is_used(enum cmp_mode cmp_mode)
 {
-	switch (cmp_mode) {
-	case MODE_MODEL_ZERO:
-	case MODE_DIFF_ZERO:
-	case MODE_MODEL_ZERO_S_FX:
-	case MODE_DIFF_ZERO_S_FX:
-	case MODE_MODEL_ZERO_S_FX_EFX:
-	case MODE_DIFF_ZERO_S_FX_EFX:
-	case MODE_MODEL_ZERO_S_FX_NCOB:
-	case MODE_DIFF_ZERO_S_FX_NCOB:
-	case MODE_MODEL_ZERO_S_FX_EFX_NCOB_ECOB:
-	case MODE_DIFF_ZERO_S_FX_EFX_NCOB_ECOB:
-	case MODE_MODEL_ZERO_F_FX:
-	case MODE_DIFF_ZERO_F_FX:
-	case MODE_MODEL_ZERO_F_FX_EFX:
-	case MODE_DIFF_ZERO_F_FX_EFX:
-	case MODE_MODEL_ZERO_F_FX_NCOB:
-	case MODE_DIFF_ZERO_F_FX_NCOB:
-	case MODE_MODEL_ZERO_F_FX_EFX_NCOB_ECOB:
-	case MODE_DIFF_ZERO_F_FX_EFX_NCOB_ECOB:
-	case MODE_MODEL_ZERO_32:
-	case MODE_DIFF_ZERO_32:
+	if (cmp_mode == CMP_MODE_MODEL_ZERO ||
+	    cmp_mode == CMP_MODE_DIFF_ZERO)
 		return 1;
-		break;
-	default:
-		return 0;
-		break;
-	}
 
+	return 0;
 }
 
 
 /**
  * @brief check if multi escape symbol mechanism mode is used
  *
- * @param cmp_mode compression mode
+ * @param cmp_mode	compression mode
  *
  * @returns 1 when multi escape symbol mechanism is set, otherwise 0
  */
 
-int multi_escape_mech_is_used(unsigned int cmp_mode)
+int multi_escape_mech_is_used(enum cmp_mode cmp_mode)
 {
-	switch (cmp_mode) {
-	case MODE_MODEL_MULTI:
-	case MODE_DIFF_MULTI:
-	case MODE_MODEL_MULTI_S_FX:
-	case MODE_DIFF_MULTI_S_FX:
-	case MODE_MODEL_MULTI_S_FX_EFX:
-	case MODE_DIFF_MULTI_S_FX_EFX:
-	case MODE_MODEL_MULTI_S_FX_NCOB:
-	case MODE_DIFF_MULTI_S_FX_NCOB:
-	case MODE_MODEL_MULTI_S_FX_EFX_NCOB_ECOB:
-	case MODE_DIFF_MULTI_S_FX_EFX_NCOB_ECOB:
-	case MODE_MODEL_MULTI_F_FX:
-	case MODE_DIFF_MULTI_F_FX:
-	case MODE_MODEL_MULTI_F_FX_EFX:
-	case MODE_DIFF_MULTI_F_FX_EFX:
-	case MODE_MODEL_MULTI_F_FX_NCOB:
-	case MODE_DIFF_MULTI_F_FX_NCOB:
-	case MODE_MODEL_MULTI_F_FX_EFX_NCOB_ECOB:
-	case MODE_DIFF_MULTI_F_FX_EFX_NCOB_ECOB:
-	case MODE_MODEL_MULTI_32:
-	case MODE_DIFF_MULTI_32:
+	if (cmp_mode == CMP_MODE_MODEL_MULTI ||
+	    cmp_mode == CMP_MODE_DIFF_MULTI)
 		return 1;
-		break;
+
+	return 0;
+}
+
+
+/**
+ * @brief check if an imagette compression data type is used
+ * @note adaptive imagette compression data types included
+ *
+ * @param data_type	compression data type
+ *
+ * @returns 1 when data_type is an imagette data type, otherwise 0
+ */
+
+int cmp_imagette_data_type_is_used(enum cmp_data_type data_type)
+{
+	return rdcu_supported_data_type_is_used(data_type);
+}
+
+
+/**
+ * @brief check if an adaptive imagette compression data type is used
+ *
+ * @param data_type	compression data type
+ *
+ * @returns 1 when data_type is an adaptive imagette data type, otherwise 0
+ */
+
+int cmp_ap_imagette_data_type_is_used(enum cmp_data_type data_type)
+{
+	switch (data_type) {
+	case DATA_TYPE_IMAGETTE_ADAPTIVE:
+	case DATA_TYPE_SAT_IMAGETTE_ADAPTIVE:
+	case DATA_TYPE_F_CAM_IMAGETTE_ADAPTIVE:
+		return 1;
 	default:
 		return 0;
-		break;
+	}
+}
+
+
+/**
+ * @brief check if a flux/center of brightness compression data type is used
+ *
+ * @param data_type	compression data type
+ *
+ * @returns 1 when data_type is a flux/center of brightness data type, otherwise 0
+ */
+
+int cmp_fx_cob_data_type_is_used(enum cmp_data_type data_type)
+{
+	switch (data_type) {
+	case DATA_TYPE_S_FX:
+	case DATA_TYPE_S_FX_EFX:
+	case DATA_TYPE_S_FX_NCOB:
+	case DATA_TYPE_S_FX_EFX_NCOB_ECOB:
+	case DATA_TYPE_L_FX:
+	case DATA_TYPE_L_FX_EFX:
+	case DATA_TYPE_L_FX_NCOB:
+	case DATA_TYPE_L_FX_EFX_NCOB_ECOB:
+	case DATA_TYPE_F_FX:
+	case DATA_TYPE_F_FX_EFX:
+	case DATA_TYPE_F_FX_NCOB:
+	case DATA_TYPE_F_FX_EFX_NCOB_ECOB:
+		return 1;
+	default:
+		return 0;
+	}
+}
+
+
+/**
+ * @brief check if an auxiliary science compression data type is used
+ *
+ * @param data_type	compression data type
+ *
+ * @returns 1 when data_type is an auxiliary science data type, otherwise 0
+ */
+
+int cmp_aux_data_type_is_used(enum cmp_data_type data_type)
+{
+	switch (data_type) {
+	case DATA_TYPE_OFFSET:
+	case DATA_TYPE_BACKGROUND:
+	case DATA_TYPE_SMEARING:
+	case DATA_TYPE_F_CAM_OFFSET:
+	case DATA_TYPE_F_CAM_BACKGROUND:
+		return 1;
+	default:
+		return 0;
 	}
 }
 
@@ -349,8 +332,8 @@ int multi_escape_mech_is_used(unsigned int cmp_mode)
 /**
  * @brief method for lossy rounding
  *
- * @param value value to round
- * @param round round parameter
+ * @param value	the value to round
+ * @param round	rounding parameter
  *
  * @return rounded value
  */
@@ -364,8 +347,8 @@ unsigned int round_fwd(unsigned int value, unsigned int round)
 /**
  * @brief inverse method for lossy rounding
  *
- * @param value value to round back
- * @param round round parameter
+ * @param value	the value to round back
+ * @param round	rounding parameter
  *
  * @return back rounded value
  */
@@ -378,9 +361,8 @@ unsigned int round_inv(unsigned int value, unsigned int round)
 
 /**
  * @brief implantation of the model update equation
- *
  * @note check before that model_value is not greater than MAX_MODEL_VALUE
-
+ *
  * @param data		data to process
  * @param model		(current) model of the data to process
  * @param model_value	model weighting parameter
@@ -388,180 +370,81 @@ unsigned int round_inv(unsigned int value, unsigned int round)
  * @returns (new) updated model
  */
 
-unsigned int cal_up_model(unsigned int data, unsigned int model, unsigned int
-			  model_value)
+unsigned int cmp_up_model(unsigned int data, unsigned int model,
+			  unsigned int model_value, unsigned int round)
+
 {
+	uint64_t weighted_model, weighted_data;
+
+	/* round and round back input because for decompression the accurate
+	 * data values are not available
+	 */
+	data = round_inv(round_fwd(data, round), round);
 	/* cast uint64_t to prevent overflow in the multiplication */
-	uint64_t weighted_model = (uint64_t)model * model_value;
-	uint64_t weighted_data = (uint64_t)data * (MAX_MODEL_VALUE - model_value);
+	weighted_model = (uint64_t)model * model_value;
+	weighted_data = (uint64_t)data * (MAX_MODEL_VALUE - model_value);
 	/* truncation is intended */
 	return (unsigned int)((weighted_model + weighted_data) / MAX_MODEL_VALUE);
 }
 
 
 /**
- * @brief get the maximum valid spill threshold value for a given golomb_par
+ * @brief get the maximum valid spill threshold value for a RDCU HW imagette
+ *	compression in diff or model mode
  *
- * @param golomb_par Golomb parameter
- * @param cmp_mode   compression mode
+ * @param golomb_par	Golomb parameter
  *
- * @returns the highest still valid spill threshold value
+ * @returns the highest still valid spill threshold value for a diff of model
+ *	 mode compression; 0 if golomb_par is invalid
  */
 
-uint32_t get_max_spill(unsigned int golomb_par, unsigned int cmp_mode)
+uint32_t cmp_ima_max_spill(unsigned int golomb_par)
 {
-	const uint32_t LUT_MAX_RDCU[MAX_RDCU_GOLOMB_PAR+1] = { 0, 8, 22, 35, 48,
+	/* the RDCU can only generate 16 bit long code words -> lower max spill needed */
+	const uint32_t LUT_MAX_RDCU[MAX_IMA_GOLOMB_PAR+1] = { 0, 8, 22, 35, 48,
 		60, 72, 84, 96, 107, 118, 129, 140, 151, 162, 173, 184, 194,
 		204, 214, 224, 234, 244, 254, 264, 274, 284, 294, 304, 314, 324,
 		334, 344, 353, 362, 371, 380, 389, 398, 407, 416, 425, 434, 443,
 		452, 461, 470, 479, 488, 497, 506, 515, 524, 533, 542, 551, 560,
 		569, 578, 587, 596, 605, 614, 623 };
 
-	if (golomb_par == 0)
+
+	if (golomb_par > MAX_IMA_GOLOMB_PAR)
 		return 0;
 
-	if (rdcu_supported_mode_is_used(cmp_mode)) {
-		if (golomb_par > MAX_RDCU_GOLOMB_PAR)
-			return 0;
-
-		return LUT_MAX_RDCU[golomb_par];
-	} else {
-		if (golomb_par > MAX_ICU_GOLOMB_PAR) {
-			return 0;
-		} else {
-			/* the ICU compressor can generate code words with a length of
-			 * maximal 32 bits.  */
-			unsigned int max_cw_bits = 32;
-			unsigned int cutoff = (1UL << (ilog_2(golomb_par)+1)) - golomb_par;
-			unsigned int max_n_sym_offset = max_cw_bits/2 - 1;
-			return (max_cw_bits-1-ilog_2(golomb_par))*golomb_par + cutoff -
-				max_n_sym_offset - 1;
-		}
-	}
+	return LUT_MAX_RDCU[golomb_par];
 }
 
 
 /**
- * @brief get a good spill threshold parameter for the selected Golomb parameter
- *	and compression mode
+ * @brief get the maximum valid spill threshold value for a ICU SW compression
+ *	in diff or model mode
  *
- * @param golomb_par Golomb parameter
- * @param cmp_mode compression mode
+ * @param cmp_par	compression parameter
  *
- * @returns a good spill parameter (optimal for zero escape mechanism)
- * @warning icu compression not support yet!
+ * @returns the highest still valid spill threshold value for diff or model
+ *	mode compression; 0 if the cmp_par is not valid
  */
 
-uint32_t cmp_get_good_spill(unsigned int golomb_par, unsigned int cmp_mode)
+uint32_t cmp_icu_max_spill(unsigned int cmp_par)
 {
-	const uint32_t LUT_RDCU_MULIT[MAX_RDCU_GOLOMB_PAR+1] = {0, 8, 16, 23,
-		30, 36, 44, 51, 58, 64, 71, 77, 84, 90, 97, 108, 115, 121, 128,
-		135, 141, 148, 155, 161, 168, 175, 181, 188, 194, 201, 207, 214,
-		229, 236, 242, 250, 256, 263, 269, 276, 283, 290, 296, 303, 310,
-		317, 324, 330, 336, 344, 351, 358, 363, 370, 377, 383, 391, 397,
-		405, 411, 418, 424, 431, 452 };
+	/* the ICU compressor can generate code words with a length of maximal 32 bits. */
+	unsigned int max_cw_bits = 32;
+	unsigned int cutoff = (1UL << (ilog_2(cmp_par)+1)) - cmp_par;
+	unsigned int max_n_sym_offset = max_cw_bits/2 - 1;
 
-	if (zero_escape_mech_is_used(cmp_mode))
-		return get_max_spill(golomb_par, cmp_mode);
-
-	if (cmp_mode == MODE_MODEL_MULTI) {
-		if (golomb_par > MAX_RDCU_GOLOMB_PAR)
-			return 0;
-		else
-			return LUT_RDCU_MULIT[golomb_par];
-	}
-
-	if (cmp_mode == MODE_DIFF_MULTI)
-		return CMP_GOOD_SPILL_DIFF_MULTI;
-
-	return 0;
-}
-
-
-/**
- * @brief calculate the size of a sample for the different compression modes
- *
- * @param cmp_mode compression mode
- *
- * @returns the size of a data sample in bytes for the selected compression
- *	mode;
- */
-
-size_t size_of_a_sample(unsigned int cmp_mode)
-{
-	size_t sample_len;
-
-	switch (cmp_mode) {
-	case MODE_RAW:
-	case MODE_MODEL_ZERO:
-	case MODE_MODEL_MULTI:
-	case MODE_DIFF_ZERO:
-	case MODE_DIFF_MULTI:
-		sample_len = sizeof(uint16_t);
-		break;
-	case MODE_RAW_S_FX:
-	case MODE_MODEL_ZERO_S_FX:
-	case MODE_MODEL_MULTI_S_FX:
-	case MODE_DIFF_ZERO_S_FX:
-	case MODE_DIFF_MULTI_S_FX:
-		sample_len = sizeof(struct S_FX);
-		break;
-	case MODE_MODEL_ZERO_S_FX_EFX:
-	case MODE_MODEL_MULTI_S_FX_EFX:
-	case MODE_DIFF_ZERO_S_FX_EFX:
-	case MODE_DIFF_MULTI_S_FX_EFX:
-		sample_len = sizeof(struct S_FX_NCOB);
-		break;
-	case MODE_MODEL_ZERO_S_FX_EFX_NCOB_ECOB:
-	case MODE_MODEL_MULTI_S_FX_EFX_NCOB_ECOB:
-	case MODE_DIFF_ZERO_S_FX_EFX_NCOB_ECOB:
-	case MODE_DIFF_MULTI_S_FX_EFX_NCOB_ECOB:
-		sample_len = sizeof(struct S_FX_EFX_NCOB_ECOB);
-		break;
-	case MODE_MODEL_ZERO_F_FX:
-	case MODE_MODEL_MULTI_F_FX:
-	case MODE_DIFF_ZERO_F_FX:
-	case MODE_DIFF_MULTI_F_FX:
-		sample_len = sizeof(struct F_FX);
-		break;
-	case MODE_MODEL_ZERO_F_FX_EFX:
-	case MODE_MODEL_MULTI_F_FX_EFX:
-	case MODE_DIFF_ZERO_F_FX_EFX:
-	case MODE_DIFF_MULTI_F_FX_EFX:
-		sample_len = sizeof(struct F_FX_EFX);
-		break;
-	case MODE_MODEL_ZERO_F_FX_NCOB:
-	case MODE_MODEL_MULTI_F_FX_NCOB:
-	case MODE_DIFF_ZERO_F_FX_NCOB:
-	case MODE_DIFF_MULTI_F_FX_NCOB:
-		sample_len = sizeof(struct F_FX_NCOB);
-		break;
-	case MODE_MODEL_ZERO_F_FX_EFX_NCOB_ECOB:
-	case MODE_MODEL_MULTI_F_FX_EFX_NCOB_ECOB:
-	case MODE_DIFF_ZERO_F_FX_EFX_NCOB_ECOB:
-	case MODE_DIFF_MULTI_F_FX_EFX_NCOB_ECOB:
-		sample_len = sizeof(struct F_FX_EFX_NCOB_ECOB);
-		break;
-	case MODE_RAW_32:
-	case MODE_MODEL_ZERO_32:
-	case MODE_MODEL_MULTI_32:
-	case MODE_DIFF_ZERO_32:
-	case MODE_DIFF_MULTI_32:
-		sample_len = sizeof(uint32_t);
-		break;
-	default:
-		debug_print("Error: Compression mode not supported.\n");
+	if (!cmp_par || cmp_par > MAX_ICU_GOLOMB_PAR)
 		return 0;
-		break;
-	}
-	return sample_len;
+
+	return (max_cw_bits-1-ilog_2(cmp_par))*cmp_par + cutoff
+		- max_n_sym_offset - 1;
 }
 
 
 /**
  * @brief calculate the need bytes to hold a bitstream
  *
- * @param cmp_size_bit compressed data size, measured in bits
+ * @param cmp_size_bit	compressed data size, measured in bits
  *
  * @returns the size in bytes to store the hole bitstream
  * @note we round up the result to multiples of 4 bytes
@@ -574,17 +457,415 @@ unsigned int cmp_bit_to_4byte(unsigned int cmp_size_bit)
 
 
 /**
- * @brief calculate the need bytes for the data
+ * @brief check if the compression data type, compression mode, model value and
+ *	the lossy rounding parameters are invalid for a ICU compression
  *
- * @param samples number of data samples
- * @param cmp_mode used compression mode
+ * @param cfg	pointer to the compressor configuration
  *
- * @returns the size in bytes to store the data sample
+ * @returns 0 if generic compression parameters are valid, otherwise invalid
  */
 
-unsigned int cmp_cal_size_of_data(unsigned int samples, unsigned int cmp_mode)
+int cmp_cfg_icu_gen_par_is_invalid(const struct cmp_cfg *cfg)
 {
-	return samples * size_of_a_sample(cmp_mode);
+	int cfg_invalid = 0;
+
+	if (!cfg)
+		return 0;
+
+	if (!cmp_data_type_valid(cfg->data_type)) {
+		debug_print("Error: selected compression data type is not supported.\n");
+		cfg_invalid++;
+	}
+
+	if (cfg->cmp_mode > CMP_MODE_STUFF) {
+		debug_print("Error: selected cmp_mode: %i is not supported.\n", cfg->cmp_mode);
+		cfg_invalid++;
+	}
+
+	if (model_mode_is_used(cfg->cmp_mode)) {
+		if (cfg->model_value > MAX_MODEL_VALUE) {
+			debug_print("Error: selected model_value: %u is invalid. Largest supported value is: %u.\n",
+				    cfg->model_value, MAX_MODEL_VALUE);
+			cfg_invalid++;
+		}
+	}
+
+	if (cfg->round > MAX_ICU_ROUND) {
+		debug_print("Error: selected lossy parameter: %u is not supported. Largest supported value is: %u.\n",
+			    cfg->round, MAX_ICU_ROUND);
+		cfg_invalid++;
+	}
+
+	return cfg_invalid;
+}
+
+
+/**
+ * @brief check if the buffer parameters are invalid
+ *
+ * @param cfg	pointer to the compressor configuration
+ *
+ * @returns 0 if the buffer parameters are valid, otherwise invalid
+ */
+
+int cmp_cfg_icu_buffers_is_invalid(const struct cmp_cfg *cfg)
+{
+	int cfg_invalid = 0;
+
+	if (!cfg)
+		return 0;
+
+	if (cfg->input_buf == NULL) {
+		debug_print("Error: The data_to_compress buffer for the data to be compressed is NULL.\n");
+		cfg_invalid++;
+	}
+
+	if (cfg->samples == 0)
+		debug_print("Warning: The samples parameter is 0. No data are compressed. This behavior may not be intended.\n");
+
+	if (cfg->icu_output_buf) {
+		if (cfg->buffer_length == 0 && cfg->samples != 0) {
+			debug_print("Error: The buffer_length is set to 0. There is no space to store the compressed data.\n");
+			cfg_invalid++;
+		}
+
+		if (raw_mode_is_used(cfg->cmp_mode) && cfg->buffer_length < cfg->samples) {
+			debug_print("Error: The compressed_data_len_samples is to small to hold the data form the data_to_compress.\n");
+			cfg_invalid++;
+		}
+
+		if (cfg->icu_output_buf == cfg->input_buf) {
+			debug_print("Error: The compressed_data buffer is the same as the data_to_compress buffer.\n");
+			cfg_invalid++;
+		}
+	}
+
+	if (model_mode_is_used(cfg->cmp_mode)) {
+		if (cfg->model_buf == NULL) {
+			debug_print("Error: The model_of_data buffer for the model data is NULL.\n");
+			cfg_invalid++;
+		}
+
+		if (cfg->model_buf == cfg->input_buf) {
+			debug_print("Error: The model_of_data buffer is the same as the data_to_compress buffer.\n");
+			cfg_invalid++;
+		}
+
+		if (cfg->model_buf == cfg->icu_output_buf) {
+			debug_print("Error: The model_of_data buffer is the same as the compressed_data buffer.\n");
+			cfg_invalid++;
+		}
+
+		if (cfg->icu_new_model_buf) {
+			if (cfg->icu_new_model_buf == cfg->input_buf) {
+				debug_print("Error: The updated_model buffer is the same as the data_to_compress buffer.\n");
+				cfg_invalid++;
+			}
+
+			if (cfg->icu_new_model_buf == cfg->icu_output_buf) {
+				debug_print("Error: The compressed_data buffer is the same as the compressed_data buffer.\n");
+				cfg_invalid++;
+			}
+		}
+	}
+
+	return cfg_invalid;
+}
+
+
+/**
+ * @brief check if the combination of the different compression parameters is invalid
+ *
+ * @param cmp_par	compression parameter
+ * @param spill		spillover threshold parameter
+ * @param cmp_mode	compression mode
+ * @param data_type	compression data type
+ * @param par_name	string describing the use of the compression par. for
+ *			debug messages (can be NULL)
+ *
+ * @returns 0 if the parameter combination is valid, otherwise the combination is invalid
+ */
+
+static int cmp_pars_are_invalid(uint32_t cmp_par, uint32_t spill, enum cmp_mode cmp_mode,
+				enum cmp_data_type data_type, char *par_name)
+{
+	int cfg_invalid = 0;
+	uint32_t min_golomb_par;
+	uint32_t max_golomb_par;
+	uint32_t min_spill;
+	uint32_t max_spill;
+
+	if (!par_name)
+		par_name = "";
+
+	/* The maximum compression parameter for imagette data are smaller to
+	 * fit into the imagette compression entity header */
+	if (cmp_imagette_data_type_is_used(data_type)) {
+		min_golomb_par = MIN_IMA_GOLOMB_PAR;
+		max_golomb_par = MAX_IMA_GOLOMB_PAR;
+		min_spill = MIN_IMA_SPILL;
+		max_spill = cmp_ima_max_spill(cmp_par);
+	} else {
+		min_golomb_par = MIN_ICU_GOLOMB_PAR;
+		max_golomb_par = MAX_ICU_GOLOMB_PAR;
+		min_spill = MIN_ICU_SPILL;
+		max_spill = cmp_icu_max_spill(cmp_par);
+	}
+
+
+	switch (cmp_mode) {
+	case CMP_MODE_RAW:
+		/* no checks needed */
+		break;
+	case CMP_MODE_DIFF_ZERO:
+	case CMP_MODE_DIFF_MULTI:
+	case CMP_MODE_MODEL_ZERO:
+	case CMP_MODE_MODEL_MULTI:
+		if (cmp_par < min_golomb_par || cmp_par > max_golomb_par) {
+			debug_print("Error: The selected %s compression parameter: %u is not supported. The compression parameter has to be between [%u, %u].\n",
+				    par_name, cmp_par, min_golomb_par, max_golomb_par);
+			cfg_invalid++;
+		}
+		if (spill < min_spill) {
+			debug_print("Error: The selected %s spillover threshold value: %u is too small. Smallest possible spillover value is: %u.\n",
+				    par_name, spill, min_spill);
+			cfg_invalid++;
+		}
+		if (spill > max_spill) {
+			debug_print("Error: The selected %s spillover threshold value: %u is too large for the selected %s compression parameter: %u, the largest possible spillover value in the selected compression mode is: %u.\n",
+				    par_name, spill, par_name, cmp_par, max_spill);
+			cfg_invalid++;
+		}
+
+		break;
+	case CMP_MODE_STUFF:
+		if (cmp_par > MAX_STUFF_CMP_PAR) {
+			debug_print("Error: The selected %s stuff mode compression parameter: %u is too large, the largest possible value in the selected compression mode is: %u.\n",
+				    par_name, cmp_par, MAX_STUFF_CMP_PAR);
+			cfg_invalid++;
+		}
+		break;
+	default:
+		debug_print("Error: The compression mode is not supported.\n");
+		cfg_invalid++;
+		break;
+	}
+
+	return cfg_invalid;
+}
+
+
+/**
+ * @brief check if the imagette specific compression parameters are invalid
+ *
+ * @param cfg		pointer to the compressor configuration
+ * @param rdcu_check	set to non-zero if a check for a imagette RDCU compression
+ *			should be done; zero for imagette ICU compression
+ *
+ * @returns 0 if the imagette specific parameters are valid, otherwise invalid
+ */
+
+int cmp_cfg_imagette_is_invalid(const struct cmp_cfg *cfg, int rdcu_check)
+{
+	int cfg_invalid = 0;
+	enum cmp_mode cmp_mode;
+
+	if (!cfg)
+		return 0;
+
+	if (!cmp_imagette_data_type_is_used(cfg->data_type)) {
+		debug_print("Error: The compression data type is not an imagette compression data type.\n");
+		cfg_invalid++;
+	}
+
+	/* The RDCU needs valid compression parameters also in RAW_MODE */
+	if (rdcu_check && cfg->cmp_mode == CMP_MODE_RAW)
+		cmp_mode = CMP_MODE_MODEL_ZERO;
+	else
+		cmp_mode = cfg->cmp_mode;
+
+	cfg_invalid += cmp_pars_are_invalid(cfg->golomb_par, cfg->spill, cmp_mode,
+					    cfg->data_type, "imagette");
+
+	/* for the RDCU the adaptive parameters have to be always valid */
+	if (rdcu_check || cmp_ap_imagette_data_type_is_used(cfg->data_type)) {
+		cfg_invalid += cmp_pars_are_invalid(cfg->ap1_golomb_par, cfg->ap1_spill,
+				cmp_mode, cfg->data_type, "adaptive 1 imagette");
+		cfg_invalid += cmp_pars_are_invalid(cfg->ap2_golomb_par, cfg->ap2_spill,
+				cmp_mode, cfg->data_type, "adaptive 2 imagette");
+	}
+
+	return cfg_invalid;
+}
+
+
+/**
+ * @brief check if the flux/center of brightness specific compression parameters
+ *	are invalid
+ *
+ * @param cfg	pointer to the compressor configuration
+ *
+ * @returns 0 if the flux/center of brightness specific parameters are valid, otherwise invalid
+ */
+
+int cmp_cfg_fx_cob_is_invalid(const struct cmp_cfg *cfg)
+{
+	int cfg_invalid = 0;
+	int check_exp_flags = 0, check_ncob = 0, check_efx = 0, check_ecob = 0, check_var = 0;
+
+	if (!cfg)
+		return 0;
+
+	if (!cmp_fx_cob_data_type_is_used(cfg->data_type)) {
+		debug_print("Error: The compression data type is not a flux/center of brightness compression data type.\n");
+		cfg_invalid++;
+	}
+	/* flux parameter is needed for every fx_cob data_type */
+	cfg_invalid += cmp_pars_are_invalid(cfg->cmp_par_fx, cfg->spill_fx,
+					    cfg->cmp_mode, cfg->data_type, "flux");
+
+	switch (cfg->data_type) {
+	case DATA_TYPE_S_FX:
+		check_exp_flags = 1;
+		break;
+	case DATA_TYPE_S_FX_EFX:
+		check_exp_flags = 1;
+		check_efx = 1;
+		break;
+	case DATA_TYPE_S_FX_NCOB:
+		check_exp_flags = 1;
+		check_ncob = 1;
+		break;
+	case DATA_TYPE_S_FX_EFX_NCOB_ECOB:
+		check_exp_flags = 1;
+		check_ncob = 1;
+		check_efx = 1;
+		check_ecob = 1;
+		break;
+	case DATA_TYPE_L_FX:
+		check_exp_flags = 1;
+		check_var = 1;
+		break;
+	case DATA_TYPE_L_FX_EFX:
+		check_exp_flags = 1;
+		check_efx = 1;
+		check_var = 1;
+		break;
+	case DATA_TYPE_L_FX_NCOB:
+		check_exp_flags = 1;
+		check_ncob = 1;
+		check_var = 1;
+		break;
+	case DATA_TYPE_L_FX_EFX_NCOB_ECOB:
+		check_exp_flags = 1;
+		check_ncob = 1;
+		check_efx = 1;
+		check_ecob = 1;
+		check_var = 1;
+		break;
+	case DATA_TYPE_F_FX:
+		break;
+	case DATA_TYPE_F_FX_EFX:
+		check_efx = 1;
+		break;
+	case DATA_TYPE_F_FX_NCOB:
+		check_ncob = 1;
+		break;
+	case DATA_TYPE_F_FX_EFX_NCOB_ECOB:
+		check_ncob = 1;
+		check_efx = 1;
+		check_ecob = 1;
+		break;
+	default:
+		cfg_invalid++;
+		break;
+	}
+
+	if (check_exp_flags)
+		cfg_invalid += cmp_pars_are_invalid(cfg->cmp_par_exp_flags, cfg->spill_exp_flags,
+			cfg->cmp_mode, cfg->data_type, "exposure flags");
+	if (check_ncob)
+		cfg_invalid += cmp_pars_are_invalid(cfg->cmp_par_ncob, cfg->spill_ncob,
+			cfg->cmp_mode, cfg->data_type, "center of brightness");
+	if (check_efx)
+		cfg_invalid += cmp_pars_are_invalid(cfg->cmp_par_efx, cfg->spill_efx,
+			cfg->cmp_mode, cfg->data_type, "extended flux");
+	if (check_ecob)
+		cfg_invalid += cmp_pars_are_invalid(cfg->cmp_par_ecob, cfg->spill_ecob,
+			cfg->cmp_mode, cfg->data_type, "extended center of brightness");
+	if (check_var)
+		cfg_invalid += cmp_pars_are_invalid(cfg->cmp_par_fx_cob_variance,
+			cfg->spill_fx_cob_variance, cfg->cmp_mode, cfg->data_type, "flux COB varianc");
+
+	return cfg_invalid;
+}
+
+
+/**
+ * @brief check if the auxiliary science specific compression parameters are invalid
+ *
+ * @param cfg	pointer to the compressor configuration
+ *
+ * @returns 0 if the auxiliary science specific parameters are valid, otherwise
+ *	invalid
+ * TODO: implemented DATA_TYPE_F_CAM_OFFSET and DATA_TYPE_F_CAM_BACKGROUND
+ */
+
+int cmp_cfg_aux_is_invalid(const struct cmp_cfg *cfg)
+{
+	int cfg_invalid = 0;
+
+	if (!cfg)
+		return 0;
+
+	if (!cmp_aux_data_type_is_used(cfg->data_type)) {
+		debug_print("Error: The compression data type is not an auxiliary science compression data type.\n");
+		cfg_invalid++;
+	}
+
+	cfg_invalid += cmp_pars_are_invalid(cfg->cmp_par_mean, cfg->spill_mean,
+					    cfg->cmp_mode, cfg->data_type, "mean");
+	cfg_invalid += cmp_pars_are_invalid(cfg->cmp_par_variance, cfg->spill_variance,
+					    cfg->cmp_mode, cfg->data_type, "variance");
+
+	/* if (cfg->data_type != DATA_TYPE_OFFSET && cfg->data_type != DATA_TYPE_F_CAM_OFFSET) */
+	if (cfg->data_type != DATA_TYPE_OFFSET)
+		cfg_invalid += cmp_pars_are_invalid(cfg->cmp_par_pixels_error, cfg->spill_pixels_error,
+						    cfg->cmp_mode, cfg->data_type, "outlier pixls num");
+
+	return cfg_invalid;
+}
+
+
+/**
+ * @brief check if a compression configuration is invalid
+ *
+ * @param cfg	pointer to the compressor configuration
+ *
+ * @returns 0 if the compression configuration is valid, otherwise invalid
+ */
+
+int cmp_cfg_is_invalid(const struct cmp_cfg *cfg)
+{
+	int cfg_invalid = 0;
+
+	if (!cfg)
+		return 0;
+
+	cfg_invalid += cmp_cfg_icu_gen_par_is_invalid(cfg);
+
+	cfg_invalid += cmp_cfg_icu_buffers_is_invalid(cfg);
+
+	if (cmp_imagette_data_type_is_used(cfg->data_type))
+		cfg_invalid += cmp_cfg_imagette_is_invalid(cfg, ICU_CHECK);
+	else if (cmp_fx_cob_data_type_is_used(cfg->data_type))
+		cfg_invalid += cmp_cfg_fx_cob_is_invalid(cfg);
+	else if (cmp_aux_data_type_is_used(cfg->data_type))
+		cfg_invalid += cmp_cfg_aux_is_invalid(cfg);
+	else
+		cfg_invalid++;
+
+	return cfg_invalid;
 }
 
 
@@ -593,14 +874,13 @@ unsigned int cmp_cal_size_of_data(unsigned int samples, unsigned int cmp_mode)
  *
  * @param cfg	compressor configuration contains all parameters required for
  *		compression
- *
  */
 
 void print_cmp_cfg(const struct cmp_cfg *cfg)
 {
 	size_t i;
 
-	printf("cmp_mode: %u\n", cfg->cmp_mode);
+	printf("cmp_mode: %i\n", cfg->cmp_mode);
 	printf("golomb_par: %u\n", cfg->golomb_par);
 	printf("spill: %u\n", cfg->spill);
 	printf("model_value: %u\n", cfg->model_value);

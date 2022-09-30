@@ -17,10 +17,9 @@
 
 #include <string.h>
 
-#include "cmp_support.h"
-#include "cmp_entity.h"
+#include <cmp_support.h>
+#include <cmp_entity.h>
 
-#define PROGRAM_NAME "cmp_tool"
 #define MAX_CONFIG_LINE 256
 
 #define DEFAULT_OUTPUT_PREFIX "OUTPUT"
@@ -32,21 +31,21 @@ void print_help(const char *program_name);
 int read_cmp_cfg(const char *file_name, struct cmp_cfg *cfg, int verbose_en);
 int read_cmp_info(const char *file_name, struct cmp_info *info, int verbose_en);
 
-ssize_t read_file8(const char *file_name, uint8_t *buf, uint32_t n_word,
+ssize_t read_file8(const char *file_name, uint8_t *buf, uint32_t buf_size,
 		   int verbose_en);
-ssize_t read_file16(const char *file_name, uint16_t *buf, uint32_t samples,
-		    int verbose_en);
-ssize_t read_file32(const char *file_name, uint32_t *buf, uint32_t samples,
-		    int verbose_en);
+ssize_t read_file_data(const char *file_name, enum cmp_data_type data_type,
+		       void *buf, uint32_t buf_size, int verbose_en);
 ssize_t read_file_cmp_entity(const char *file_name, struct cmp_entity *ent,
-			   uint32_t ent_size, int verbose_en);
+			     uint32_t ent_size, int verbose_en);
+ssize_t read_file32(const char *file_name, uint32_t *buf, uint32_t buf_size,
+		    int verbose_en);
 
 uint32_t cmp_tool_gen_version_id(const char *version);
 
 int write_cmp_data_file(const void *buf, uint32_t buf_size, const char
 			*output_prefix, const char *name_extension, int verbose);
-int write_to_file16(const uint16_t *buf, uint32_t buf_len, const char
-		    *output_prefix, const char *name_extension, int verbose);
+int write_input_data_to_file(void *data, uint32_t data_size, enum cmp_data_type data_type,
+			     const char *output_prefix, const char *name_extension, int verbose);
 int write_info(const struct cmp_info *info, const char *output_prefix,
 	       int rdcu_cfg);
 int write_cfg(const struct cmp_cfg *cfg, const char *output_prefix, int rdcu_cfg,
@@ -55,3 +54,6 @@ void print_cfg(const struct cmp_cfg *cfg, int rdcu_cfg);
 
 int atoui32(const char *dep_str, const char *val_str, uint32_t *red_val);
 int cmp_mode_parse(const char *cmp_mode_str, uint32_t *cmp_mode);
+
+enum cmp_data_type string2data_type(const char *data_type_str);
+const char *data_type2string(enum cmp_data_type data_type);

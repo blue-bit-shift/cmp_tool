@@ -15,6 +15,7 @@
  * more details.
  *
  * @brief compression tool Input/Output library
+ * @warning this part of the software is not intended to run on-board on the ICU.
  */
 
 #include <stdio.h>
@@ -24,10 +25,44 @@
 #include <ctype.h>
 #include <sys/stat.h>
 
-#include "../include/cmp_io.h"
-#include "../include/cmp_support.h"
-#include "../include/rdcu_cmd.h"
-#include "../include/byteorder.h"
+#include <cmp_tool-config.h>
+#include <cmp_io.h>
+#include <cmp_support.h>
+#include <rdcu_cmd.h>
+#include <byteorder.h>
+#include <cmp_data_types.h>
+
+
+/* directory to convert from data_type to string */
+static const struct {
+	enum cmp_data_type data_type;
+	const char *str;
+} data_type_string_table[] = {
+	{DATA_TYPE_IMAGETTE, "DATA_TYPE_IMAGETTE"},
+	{DATA_TYPE_IMAGETTE_ADAPTIVE, "DATA_TYPE_IMAGETTE_ADAPTIVE"},
+	{DATA_TYPE_SAT_IMAGETTE, "DATA_TYPE_SAT_IMAGETTE"},
+	{DATA_TYPE_SAT_IMAGETTE_ADAPTIVE, "DATA_TYPE_SAT_IMAGETTE_ADAPTIVE"},
+	{DATA_TYPE_OFFSET, "DATA_TYPE_OFFSET"},
+	{DATA_TYPE_BACKGROUND, "DATA_TYPE_BACKGROUND"},
+	{DATA_TYPE_SMEARING, "DATA_TYPE_SMEARING"},
+	{DATA_TYPE_S_FX, "DATA_TYPE_S_FX"},
+	{DATA_TYPE_S_FX_EFX, "DATA_TYPE_S_FX_EFX"},
+	{DATA_TYPE_S_FX_NCOB, "DATA_TYPE_S_FX_NCOB"},
+	{DATA_TYPE_S_FX_EFX_NCOB_ECOB, "DATA_TYPE_S_FX_EFX_NCOB_ECOB"},
+	{DATA_TYPE_L_FX, "DATA_TYPE_L_FX"},
+	{DATA_TYPE_L_FX_EFX, "DATA_TYPE_L_FX_EFX"},
+	{DATA_TYPE_L_FX_NCOB, "DATA_TYPE_L_FX_NCOB"},
+	{DATA_TYPE_L_FX_EFX_NCOB_ECOB, "DATA_TYPE_L_FX_EFX_NCOB_ECOB"},
+	{DATA_TYPE_F_FX, "DATA_TYPE_F_FX"},
+	{DATA_TYPE_F_FX_EFX, "DATA_TYPE_F_FX_EFX"},
+	{DATA_TYPE_F_FX_NCOB, "DATA_TYPE_F_FX_NCOB"},
+	{DATA_TYPE_F_FX_EFX_NCOB_ECOB, "DATA_TYPE_F_FX_EFX_NCOB_ECOB"},
+	{DATA_TYPE_F_CAM_IMAGETTE, "DATA_TYPE_F_CAM_IMAGETTE"},
+	{DATA_TYPE_F_CAM_IMAGETTE_ADAPTIVE, "DATA_TYPE_F_CAM_IMAGETTE_ADAPTIVE"},
+	{DATA_TYPE_F_CAM_OFFSET, "DATA_TYPE_F_CAM_OFFSET"},
+	{DATA_TYPE_F_CAM_BACKGROUND, "DATA_TYPE_F_CAM_BACKGROUND"},
+	{DATA_TYPE_UNKNOWN, "DATA_TYPE_UNKNOWN"}
+};
 
 
 /**
@@ -112,30 +147,33 @@ static FILE *open_file(const char *dirname, const char *filename)
 
 
 /**
- * @brief write a uint16_t buffer to an output file
+ * @brief write uncompressed input data to an output file
  *
- * @param buf		the buffer to write a file
- * @param buf_len	length of the buffer
- *
+ * @param data		the data to write a file
+ * @param data_size	size of the data in bytes
  * @param output_prefix  file name without file extension
  * @param name_extension file extension (with leading point character)
- *
  * @param verbose	print verbose output if not zero
  *
  * @returns 0 on success, error otherwise
  */
 
-int write_to_file16(const uint16_t *buf, uint32_t buf_len, const char
-		    *output_prefix, const char *name_extension, int verbose)
+int write_input_data_to_file(void *data, uint32_t data_size, enum cmp_data_type data_type,
+			     const char *output_prefix, const char *name_extension, int verbose)
 {
-	uint32_t i;
+	uint32_t i = 0;
 	FILE *fp;
+	uint8_t *tmp_buf;
+	size_t sample_size = size_of_a_sample(data_type);
 
-	if (!buf)
+	if (!data)
 		abort();
 
-	if (buf_len == 0)
+	if (data_size == 0)
 		return 0;
+
+	if (!sample_size)
+		return -1;
 
 	fp = open_file(output_prefix, name_extension);
 	if (fp == NULL) {
@@ -144,8 +182,12 @@ int write_to_file16(const uint16_t *buf, uint32_t buf_len, const char
 		return -1;
 	}
 
-	for (i = 0; i < buf_len; i++) {
-		fprintf(fp, "%02X %02X", buf[i] >> 8, buf[i] & 0xFF);
+	tmp_buf = malloc(data_size);
+	memcpy(tmp_buf, data, data_size);
+	cmp_input_big_to_cpu_endianness(tmp_buf, data_size, data_type);
+
+	for (i = 0 ; i < data_size; i++) {
+		fprintf(fp, "%02X",  tmp_buf[i]);
 		if ((i + 1) % 16 == 0)
 			fprintf(fp, "\n");
 		else
@@ -157,8 +199,8 @@ int write_to_file16(const uint16_t *buf, uint32_t buf_len, const char
 
 	if (verbose) {
 		printf("\n\n");
-			for (i = 0; i < buf_len; i++) {
-				printf("%02X %02X", buf[i] >> 8, buf[i] & 0xFF);
+			for (i = 0; i < data_size; i++) {
+				printf("%02X", tmp_buf[i]);
 			if ((i + 1) % 16 == 0)
 				printf("\n");
 			else
@@ -168,6 +210,7 @@ int write_to_file16(const uint16_t *buf, uint32_t buf_len, const char
 		printf("\n\n");
 	}
 
+	free(tmp_buf);
 	return 0;
 }
 
@@ -355,6 +398,67 @@ int atoui32(const char *dep_str, const char *val_str, uint32_t *red_val)
 
 
 /**
+ * @brief parse a compression data_type string to a data_type
+ * @note string can be either a number or the name of the compression data type
+ *
+ * @param data_type_str	string containing the compression data type to parse
+ *
+ * @returns data type on success, DATA_TYPE_UNKNOWN on error
+ */
+
+enum cmp_data_type string2data_type(const char *data_type_str)
+{
+	enum cmp_data_type data_type = DATA_TYPE_UNKNOWN;
+
+	if (data_type_str) {
+		if (isalpha(data_type_str[0])) {  /* check if mode is given as text */
+			size_t j;
+
+			for (j = 0; j < sizeof(data_type_string_table) / sizeof(data_type_string_table[0]); j++) {
+				if (!strcmp(data_type_str, data_type_string_table[j].str)) {
+					data_type = data_type_string_table[j].data_type;
+					break;
+				}
+			}
+		} else {
+			uint32_t read_val;
+
+			if (!atoui32("Compression Data Type", data_type_str, &read_val)) {
+				data_type = read_val;
+				if (!cmp_data_type_valid(data_type))
+					data_type = DATA_TYPE_UNKNOWN;
+			}
+		}
+	}
+	return data_type;
+}
+
+/**
+ * @brief parse a compression data_type string to a data_type
+ * @note string can be either a number or the name of the compression data type
+ *
+ * @param data_type compression data type to convert in string
+ *
+ * @returns data type on success, DATA_TYPE_UNKNOWN on error
+ */
+
+const char *data_type2string(enum cmp_data_type data_type)
+{
+	size_t j;
+	const char *string = "DATA_TYPE_UNKNOWN";
+
+	for (j = 0; j < sizeof(data_type_string_table) / sizeof(data_type_string_table[0]); j++) {
+		if (data_type == data_type_string_table[j].data_type) {
+			string = data_type_string_table[j].str;
+			break;
+		}
+	}
+
+	return string;
+}
+
+
+/**
  * @brief parse a compression mode vale string to an integer
  * @note string can be either a number or the name of the compression mode
  *
@@ -368,14 +472,19 @@ int cmp_mode_parse(const char *cmp_mode_str, uint32_t *cmp_mode)
 {
 	size_t j;
 	static const struct {
-		uint32_t  cmp_mode;
+		uint32_t cmp_mode;
 		const char *str;
 	} conversion[] = {
-		{MODE_RAW, "MODE_RAW"},
-		{MODE_MODEL_ZERO, "MODE_MODEL_ZERO"},
-		{MODE_DIFF_ZERO, "MODE_DIFF_ZERO"},
-		{MODE_MODEL_MULTI, "MODE_MODEL_MULTI"},
-		{MODE_DIFF_MULTI, "MODE_DIFF_MULTI"},
+		{CMP_MODE_RAW, "MODE_RAW"},
+		{CMP_MODE_MODEL_ZERO, "MODE_MODEL_ZERO"},
+		{CMP_MODE_DIFF_ZERO, "MODE_DIFF_ZERO"},
+		{CMP_MODE_MODEL_MULTI, "MODE_MODEL_MULTI"},
+		{CMP_MODE_DIFF_MULTI, "MODE_DIFF_MULTI"},
+		{CMP_MODE_RAW, "CMP_MODE_RAW"},
+		{CMP_MODE_MODEL_ZERO, "CMP_MODE_MODEL_ZERO"},
+		{CMP_MODE_DIFF_ZERO, "CMP_MODE_DIFF_ZERO"},
+		{CMP_MODE_MODEL_MULTI, "CMP_MODE_MODEL_MULTI"},
+		{CMP_MODE_DIFF_MULTI, "CMP_MODE_DIFF_MULTI"},
 	};
 
 	if (!cmp_mode_str)
@@ -384,7 +493,7 @@ int cmp_mode_parse(const char *cmp_mode_str, uint32_t *cmp_mode)
 		return -1;
 
 	if (isalpha(cmp_mode_str[0])) {  /* check if mode is given as text */
-		for (j = 0;  j < sizeof(conversion) / sizeof(conversion[0]);  ++j) {
+		for (j = 0; j < sizeof(conversion) / sizeof(conversion[0]); ++j) {
 			if (!strcmp(cmp_mode_str, conversion[j].str)) {
 				*cmp_mode = conversion[j].cmp_mode;
 				return 0;
@@ -396,7 +505,7 @@ int cmp_mode_parse(const char *cmp_mode_str, uint32_t *cmp_mode)
 			return -1;
 	}
 
-	if (!cmp_mode_available(*cmp_mode))
+	if (!cmp_mode_is_supported(*cmp_mode))
 		return -1;
 
 	return 0;
@@ -418,7 +527,7 @@ static int parse_cfg(FILE *fp, struct cmp_cfg *cfg)
 {
 	char *token1, *token2;
 	char line[MAX_CONFIG_LINE];
-	enum {CMP_MODE, GOLOMB_PAR, SPILL, SAMPLES, BUFFER_LENGTH, LAST_ITEM};
+	enum {CMP_MODE, SAMPLES, BUFFER_LENGTH, LAST_ITEM};
 	int j, must_read_items[LAST_ITEM] = {0};
 
 	if (!fp)
@@ -448,48 +557,26 @@ static int parse_cfg(FILE *fp, struct cmp_cfg *cfg)
 			continue;
 
 
+		if (!strcmp(token1, "data_type")) {
+			cfg->data_type = string2data_type(token2);
+			if (cfg->data_type == DATA_TYPE_UNKNOWN)
+				return -1;
+			continue;
+		}
 		if (!strcmp(token1, "cmp_mode")) {
 			must_read_items[CMP_MODE] = 1;
-			if (isalpha(*token2)) { /* check if mode is given as text or val*/
-				if (!strcmp(token2, "MODE_RAW")) {
-					cfg->cmp_mode = 0;
-					continue;
-				}
-				if (!strcmp(token2, "MODE_MODEL_ZERO")) {
-					cfg->cmp_mode = 1;
-					continue;
-				}
-				if (!strcmp(token2, "MODE_DIFF_ZERO")) {
-					cfg->cmp_mode = 2;
-					continue;
-				}
-				if (!strcmp(token2, "MODE_MODEL_MULTI")) {
-					cfg->cmp_mode = 3;
-					continue;
-				}
-				if (!strcmp(token2, "MODE_DIFF_MULTI")) {
-					cfg->cmp_mode = 4;
-					continue;
-				}
-				fprintf(stderr, "%s: Error read in cmp_mode.\n",
-					PROGRAM_NAME);
+			if (cmp_mode_parse(token2, &cfg->cmp_mode))
 				return -1;
-			} else {
-				if (atoui32(token1, token2, &cfg->cmp_mode))
-					return -1;
-				continue;
-			}
+			continue;
 		}
 		if (!strcmp(token1, "golomb_par")) {
 			if (atoui32(token1, token2, &cfg->golomb_par))
 				return -1;
-			must_read_items[GOLOMB_PAR] = 1;
 			continue;
 		}
 		if (!strcmp(token1, "spill")) {
 			if (atoui32(token1, token2, &cfg->spill))
 				return -1;
-			must_read_items[SPILL] = 1;
 			continue;
 		}
 		if (!strcmp(token1, "model_value")) {
@@ -519,6 +606,96 @@ static int parse_cfg(FILE *fp, struct cmp_cfg *cfg)
 		}
 		if (!strcmp(token1, "ap2_spill")) {
 			if (atoui32(token1, token2, &cfg->ap2_spill))
+				return -1;
+			continue;
+		}
+		if (!strcmp(token1, "cmp_par_exp_flags")) {
+			if (atoui32(token1, token2, &cfg->cmp_par_exp_flags))
+				return -1;
+			continue;
+		}
+		if (!strcmp(token1, "spill_exp_flags")) {
+			if (atoui32(token1, token2, &cfg->spill_exp_flags))
+				return -1;
+			continue;
+		}
+		if (!strcmp(token1, "cmp_par_fx")) {
+			if (atoui32(token1, token2, &cfg->cmp_par_fx))
+				return -1;
+			continue;
+		}
+		if (!strcmp(token1, "spill_fx")) {
+			if (atoui32(token1, token2, &cfg->spill_fx))
+				return -1;
+			continue;
+		}
+		if (!strcmp(token1, "cmp_par_ncob")) {
+			if (atoui32(token1, token2, &cfg->cmp_par_ncob))
+				return -1;
+			continue;
+		}
+		if (!strcmp(token1, "spill_ncob")) {
+			if (atoui32(token1, token2, &cfg->spill_ncob))
+				return -1;
+			continue;
+		}
+		if (!strcmp(token1, "cmp_par_efx")) {
+			if (atoui32(token1, token2, &cfg->cmp_par_efx))
+				return -1;
+			continue;
+		}
+		if (!strcmp(token1, "spill_efx")) {
+			if (atoui32(token1, token2, &cfg->spill_efx))
+				return -1;
+			continue;
+		}
+		if (!strcmp(token1, "cmp_par_ecob")) {
+			if (atoui32(token1, token2, &cfg->cmp_par_ecob))
+				return -1;
+			continue;
+		}
+		if (!strcmp(token1, "spill_ecob")) {
+			if (atoui32(token1, token2, &cfg->spill_ecob))
+				return -1;
+			continue;
+		}
+		if (!strcmp(token1, "cmp_par_fx_cob_variance")) {
+			if (atoui32(token1, token2, &cfg->cmp_par_fx_cob_variance))
+				return -1;
+			continue;
+		}
+		if (!strcmp(token1, "spill_fx_cob_variance")) {
+			if (atoui32(token1, token2, &cfg->spill_fx_cob_variance))
+				return -1;
+			continue;
+		}
+		if (!strcmp(token1, "cmp_par_mean")) {
+			if (atoui32(token1, token2, &cfg->cmp_par_mean))
+				return -1;
+			continue;
+		}
+		if (!strcmp(token1, "spill_mean")) {
+			if (atoui32(token1, token2, &cfg->spill_mean))
+				return -1;
+			continue;
+		}
+		if (!strcmp(token1, "cmp_par_variance")) {
+			if (atoui32(token1, token2, &cfg->cmp_par_variance))
+				return -1;
+			continue;
+		}
+		if (!strcmp(token1, "spill_variance")) {
+			if (atoui32(token1, token2, &cfg->spill_variance))
+				return -1;
+			continue;
+		}
+		if (!strcmp(token1, "cmp_par_pixels_error")) {
+			if (atoui32(token1, token2, &cfg->cmp_par_pixels_error))
+				return -1;
+			continue;
+		}
+		if (!strcmp(token1, "spill_pixels_error")) {
+			if (atoui32(token1, token2, &cfg->spill_pixels_error))
 				return -1;
 			continue;
 		}
@@ -643,18 +820,12 @@ int read_cmp_cfg(const char *file_name, struct cmp_cfg *cfg, int verbose_en)
 		printf("\n");
 	}
 
-	if (cfg->buffer_length < cfg->samples/2) {
-		fprintf(stderr,
-			"%s: warning: buffer_length: %u is relative small to the chosen samples parameter of %u.\n",
-			PROGRAM_NAME, cfg->buffer_length, cfg->samples);
-	}
-
 	return 0;
 }
 
 
 /**
- * @brief  parse a file containing a decompression information
+ * @brief parse a file containing a decompression information
  * @note internal use only!
  *
  * @param fp	FILE pointer
@@ -703,6 +874,7 @@ static int parse_info(FILE *fp, struct cmp_info *info)
 		if (!strcmp(token1, "cmp_mode_used")) {
 			must_read_items[CMP_MODE_USED] = 1;
 			if (isalpha(*token2)) { /* check if mode is given as text or val*/
+				/* TODO: use conversion function for this: */
 				if (!strcmp(token2, "MODE_RAW")) {
 					info->cmp_mode_used = 0;
 					continue;
@@ -1011,7 +1183,7 @@ static uint8_t str_to_uint8(const char *str, char **str_end)
 
 
 /**
- * @brief reads n_word words of a hex-encoded string to a uint8_t buffer
+ * @brief reads buf_size words of a hex-encoded string to a uint8_t buffer
  *
  * @note A whitespace (space (0x20), form feed (0x0c), line feed (0x0a), carriage
  *	return (0x0d), horizontal tab (0x09), or vertical tab (0x0b) or several in a
@@ -1024,14 +1196,14 @@ static uint8_t str_to_uint8(const char *str, char **str_end)
  *
  * @param str		pointer to the null-terminated byte string to be interpreted
  * @param data		buffer to write the interpreted content (can be NULL)
- * @param n_word	number of uint8_t data words to read in
+ * @param buf_size	number of uint8_t data words to read in
  * @param file_name	file name for better error output (can be NULL)
  * @param verbose_en	print verbose output if not zero
  *
  * @returns the size in bytes to store the string content; negative on error
  */
 
-static ssize_t str2uint8_arr(const char *str, uint8_t *data, uint32_t n_word,
+static ssize_t str2uint8_arr(const char *str, uint8_t *data, uint32_t buf_size,
 			     const char *file_name, int verbose_en)
 {
 	const char *nptr = str;
@@ -1041,12 +1213,12 @@ static ssize_t str2uint8_arr(const char *str, uint8_t *data, uint32_t n_word,
 	errno = 0;
 
 	if (!data)
-		n_word = ~0;
+		buf_size = ~0;
 
 	if (!file_name)
 		file_name = "unknown file name";
 
-	for (i = 0; i < n_word; ) {
+	for (i = 0; i < buf_size; ) {
 		uint8_t read_val;
 		unsigned char c = *nptr;
 
@@ -1116,8 +1288,7 @@ static ssize_t str2uint8_arr(const char *str, uint8_t *data, uint32_t n_word,
 
 
 /**
- * @brief reads n_word words of a hex-encoded uint8_t data form a file to a
- *	buffer
+ * @brief reads hex-encoded uint8_t data form a file to a buffer
  *
  * @note A whitespace (space (0x20), form feed (0x0c), line feed (0x0a), carriage
  *	return (0x0d), horizontal tab (0x09), or vertical tab (0x0b) or several in a
@@ -1130,13 +1301,13 @@ static ssize_t str2uint8_arr(const char *str, uint8_t *data, uint32_t n_word,
  *
  * @param file_name	data/model file name
  * @param buf		buffer to write the file content (can be NULL)
- * @param n_word	number of uint8_t data words to read in
+ * @param buf_size	number of uint8_t data words to read in
  * @param verbose_en	print verbose output if not zero
  *
  * @returns the size in bytes to store the file content; negative on error
  */
 
-ssize_t read_file8(const char *file_name, uint8_t *buf, uint32_t n_word, int verbose_en)
+ssize_t read_file8(const char *file_name, uint8_t *buf, uint32_t buf_size, int verbose_en)
 {
 	FILE *fp;
 	char *file_cpy = NULL;
@@ -1163,6 +1334,10 @@ ssize_t read_file8(const char *file_name, uint8_t *buf, uint32_t n_word, int ver
 		fclose(fp);
 		return 0;
 	}
+	if ((unsigned long)file_size < buf_size) {
+		fprintf(stderr, "%s: %s: Error: The files do not contain enough data as requested.\n", PROGRAM_NAME, file_name);
+		goto fail;
+	}
 	/* reset the file position indicator to the beginning of the file */
 	if (fseek(fp, 0L, SEEK_SET) != 0)
 		goto fail;
@@ -1186,7 +1361,7 @@ ssize_t read_file8(const char *file_name, uint8_t *buf, uint32_t n_word, int ver
 	fclose(fp);
 	fp = NULL;
 
-	size = str2uint8_arr(file_cpy, buf, n_word, file_name, verbose_en);
+	size = str2uint8_arr(file_cpy, buf, buf_size, file_name, verbose_en);
 
 	free(file_cpy);
 	file_cpy = NULL;
@@ -1204,75 +1379,38 @@ fail:
 
 
 /**
- * @brief reads the number of uint16_t samples of a hex-encoded data (or model)
- *	file into a buffer
+ * @brief reads hex-encoded data from a file into a buffer
  *
  * @param file_name	data/model file name
+ * @param data_type	compression data type used for the data
  * @param buf		buffer to write the file content (can be NULL)
- * @param samples	amount of uint16_t data samples to read in
+ * @param buf_size	size in bytes of the buffer
  * @param verbose_en	print verbose output if not zero
  *
  * @returns the size in bytes to store the file content; negative on error
  */
 
-ssize_t read_file16(const char *file_name, uint16_t *buf, uint32_t samples,
-		    int verbose_en)
+ssize_t read_file_data(const char *file_name, enum cmp_data_type data_type,
+		       void *buf, uint32_t buf_size, int verbose_en)
 {
-	ssize_t size = read_file8(file_name, (uint8_t *)buf,
-				  samples*sizeof(uint16_t), verbose_en);
+	ssize_t size;
+	int samples, err;
+
+	size = read_file8(file_name, (uint8_t *)buf, buf_size, verbose_en);
 
 	if (size < 0)
 		return size;
 
-	if (size & 0x1) {
-		fprintf(stderr, "%s: %s: Error: The data are not correct formatted. Expected multiple of 2 hex words.\n",
+	samples = cmp_input_size_to_samples(size, data_type);
+	if (samples < 0) {
+		fprintf(stderr, "%s: %s: Error: The data are not correct formatted for the used compression data type.\n",
 				PROGRAM_NAME, file_name);
 		return -1;
 	}
 
-	if (buf) {
-		size_t i;
-		for (i = 0; i < samples; i++)
-			be16_to_cpus(&buf[i]);
-	}
-
-
-	return size;
-}
-
-
-/**
- * @brief reads the number of uint32_t samples of a hex-encoded data (or model)
- *	file into a buffer
- *
- * @param file_name	data/model file name
- * @param buf		buffer to write the file content (can be NULL)
- * @param samples	amount of uint32_t data samples to read in
- * @param verbose_en	print verbose output if not zero
- *
- * @returns the size in bytes to store the file content; negative on error
- */
-
-ssize_t read_file32(const char *file_name, uint32_t *buf, uint32_t samples,
-		    int verbose_en)
-{
-	ssize_t size = read_file8(file_name, (uint8_t *)buf,
-				  samples*sizeof(uint32_t), verbose_en);
-
-	if (size < 0)
+	err = cmp_input_big_to_cpu_endianness(buf, size, data_type);
+	if (err)
 		return -1;
-
-	if (size & 0x3) {
-		fprintf(stderr, "%s: %s: Error: The data are not correct formatted. Expected multiple of 4 hex words.\n",
-				PROGRAM_NAME, file_name);
-		return -1;
-	}
-
-	if (buf) {
-		size_t i;
-		for (i = 0; i < samples; i++)
-			be32_to_cpus(&buf[i]);
-	}
 
 	return size;
 }
@@ -1290,7 +1428,7 @@ ssize_t read_file32(const char *file_name, uint32_t *buf, uint32_t samples,
  */
 
 ssize_t read_file_cmp_entity(const char *file_name, struct cmp_entity *ent,
-			   uint32_t ent_size, int verbose_en)
+			     uint32_t ent_size, int verbose_en)
 {
 	ssize_t size;
 
@@ -1305,9 +1443,9 @@ ssize_t read_file_cmp_entity(const char *file_name, struct cmp_entity *ent,
 	}
 
 	if (ent) {
-		enum cmp_ent_data_type data_type = cmp_ent_get_data_type(ent);
+		enum cmp_data_type data_type = cmp_ent_get_data_type(ent);
 
-		if (!cmp_ent_data_type_valid(data_type)) {
+		if (data_type == DATA_TYPE_UNKNOWN) {
 			fprintf(stderr, "%s: %s: Error: Compression data type is not supported.\n",
 				PROGRAM_NAME, file_name);
 			return -1;
@@ -1320,6 +1458,41 @@ ssize_t read_file_cmp_entity(const char *file_name, struct cmp_entity *ent,
 
 		if (verbose_en)
 			cmp_ent_parse(ent);
+	}
+
+	return size;
+}
+
+
+/**
+ * @brief reads hex-encoded uint32_t samples from a file into a buffer
+ *
+ * @param file_name	data/model file name
+ * @param buf		buffer to write the file content (can be NULL)
+ * @param buf_size	size of the buf buffer in bytes
+ * @param verbose_en	print verbose output if not zero
+ *
+ * @returns the size in bytes to store the file content; negative on error
+ */
+
+ssize_t read_file32(const char *file_name, uint32_t *buf, uint32_t buf_size,
+		    int verbose_en)
+{
+	ssize_t size = read_file8(file_name, (uint8_t *)buf, buf_size, verbose_en);
+
+	if (size < 0)
+		return -1;
+
+	if (size & 0x3) {
+		fprintf(stderr, "%s: %s: Error: The data are not correct formatted. Expected multiple of 4 hex words.\n",
+				PROGRAM_NAME, file_name);
+		return -1;
+	}
+
+	if (buf) {
+		size_t i;
+		for (i = 0; i < buf_size/sizeof(uint32_t); i++)
+			be32_to_cpus(&buf[i]);
 	}
 
 	return size;
@@ -1369,7 +1542,7 @@ uint32_t cmp_tool_gen_version_id(const char *version)
 
 	version_id |= n;
 
-	return version_id |= CMP_TOOL_VERSION_ID_BIT;
+	return version_id | CMP_TOOL_VERSION_ID_BIT;
 }
 
 
@@ -1387,6 +1560,10 @@ static void write_cfg_internal(FILE *fp, const struct cmp_cfg *cfg, int rdcu_cfg
 	fprintf(fp, "#-------------------------------------------------------------------------------\n");
 	fprintf(fp, "# Default Configuration File\n");
 	fprintf(fp, "#-------------------------------------------------------------------------------\n");
+	fprintf(fp, "# Selected compression data type\n");
+	fprintf(fp, "\n");
+	fprintf(fp, "data_type = %s\n", data_type2string(cfg->data_type));
+	fprintf(fp, "\n");
 	fprintf(fp, "# Selected compression mode\n");
 	fprintf(fp, "# 0: raw mode\n");
 	fprintf(fp, "# 1: model mode with zero escape symbol mechanism\n");

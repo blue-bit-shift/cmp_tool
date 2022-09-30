@@ -19,13 +19,14 @@
 #ifndef DECMP_H_
 #define DECMP_H_
 
-#include "../include/cmp_support.h"
+#include <cmp_entity.h>
+#include <cmp_support.h>
 
-void *malloc_decompressed_data(const struct cmp_info *info);
+int decompress_cmp_entiy(struct cmp_entity *ent, void *model_of_data,
+			 void *up_model_buf, void *decompressed_data);
 
-int decompress_data(const void *compressed_data, void *de_model_buf,
-		    const struct cmp_info *info, void *decompressed_data);
-
-double get_compression_ratio(const struct cmp_info *info);
+int decompress_rdcu_data(uint32_t *compressed_data, const struct cmp_info *info,
+			 uint16_t *model_of_data, uint16_t *up_model_buf,
+			 uint16_t *decompressed_data);
 
 #endif /* DECMP_H_ */
