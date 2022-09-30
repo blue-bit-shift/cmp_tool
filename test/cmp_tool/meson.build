@@ -2,7 +2,7 @@ int_test_file = files('cmp_tool_integration_test.py')
 
 pytest = find_program('pytest', required : false)
 if pytest.found()
-  test('Integration Test',
+  test('cmp_tool Interface Test',
     pytest,
     args : ['--color=yes', '-vvv', int_test_file],
     depends : cmp_tool_exe,

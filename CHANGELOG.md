@@ -2,6 +2,19 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+
+## [0.09] - 30-09-2022
+### Added
+- decompression/compression for non-imagette data
+- functions to create and configure a compression configuration
+- add max_used_bits feature
+- add max used bit version field to the compression entity
+###Changed
+- Change the build system form make to meson
+- Change DEFAULT_CFG_MODEL and DEFAULT_CFG_DIFF to CMP_DIF_XXX constats
+### Fixed
+- now the adaptive compression size (ap1_cmp_size, ap2_cmp_size) is calculate when the --rdcu_par option is used
+
 ## [0.08] - 19-01-2021
 ### Added
 - Relax the requirements on the input format
@@ -16,6 +29,9 @@ E.g. "# comment\n ABCD 1    2\n34B 12\n" are interpreted as {0xAB, 0xCD,
 ### Changed
 - update the header definition according to PLATO-UVIE-PL-UM-0001 Draft 6
     - changed version_id from 16 to 32 bit in the generic header. Add spare bits to the adaptive imagette header and the non-imagette header, so that the compressed data start address is 4 byte-aligned.
+### Fixed
+- Fix a bug in the definition in imagette header
+### Changed
 - Rename cmp_tool_lib.c to cmp_io.c
 
 ## [0.07] - 13-12-2021

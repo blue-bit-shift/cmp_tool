@@ -1,15 +1,15 @@
-## Installation Instructions
+# Installation Instructions
+## Getting started
 
-### Install git and python 3.6+
+### Install git and python 3.7+
 
 If you're on Linux, you probably already have these. On macOS and Windows, you can use the
-[official Python installer](https://www.python.org/downloads/).
+[official Python installer](https://www.python.org/downloads).
 
 ### Install meson and ninja
 
-Meson 0.56 or newer is required.
-
-You can get meson through the Python package manager or using:
+Meson 0.56 or newer is required.  
+You can get meson through your package manager or using:
 
 ```pip3 install meson```
 
@@ -21,58 +21,67 @@ binary in your PATH.
 
 ### Get the Source Code
 
-We use the version control system git to get a copy of the source code.
+We use the version control system [git](https://git-scm.com/downloads) to get a copy of the source code.
 
 ```
 git clone https://gitlab.phaidra.org/loidoltd15/cmp_tool.git  
 cd cmp_tool
 ```
+## Build the cmp\_tool
+### Build the cmp\_tool for Debugging
 
-### Build the cmp_tool for Debugging
-
-You can build the cmp_tool running:
+First, we create the `builddir` directory. Everything we build will be inside this directory.
 
 ```
-meson builddir
+meson setup builddir
 ```
 
-This will automatically create the `builddir` directory and build **everything** **inside** it.
+We change to the build directory and build the cmp_tool:
 
 ```
 cd builddir
-meson compile
+meson compile cmp_tool
 ```
 
-Now you should find the cmp_tool executable in the folder.
+Now you should find the cmp\_tool executable in the folder.
 
 ### Release Build
 
-If you want to build an optimized release build run:
+If you want to create an optimized release version, we can create a build directory for it:
 
 ```
-meson build_relase_dir --buildtype=release
+meson setup build_relase_dir --buildtype=release
 cd build_relase_dir
-meson compile
+meson compile cmp_tool
 ```
 
 You find the build executable in the `build_relase_dir` directory
 
-### Cross-compiling to native Windows
+### Build for Windows
 
-To build the cmp_tool you can use the [Mingw-w64](https://www.mingw-w64.org).
-Unfortunately, the cmp_tool does not support the Microsoft MSVC compiler. But with the Mingw-w64 GCC compiler, we can compile the cmp_tool for Windows. For this, you need the [Mingw-w64 tool chain](https://www.mingw-w64.org/downloads/). This also works on Linux and macOS. To compile for Windows, do this:
+Unfortunately, the cmp\_tool does not support the Microsoft MSVC compiler. To build the cmp\_tool for Windows you can use the Mingw-w64 GCC compiler.
+For this, you need the [Mingw-w64 toolchain](https://www.mingw-w64.org/downloads/). To compile on Windows, do this in the Cygwin64 Terminal:
 
 ```
-meson setup buiddir_win --cross-file=mingw-w64-64.txt
+meson setup buiddir_win --native-file=mingw-w64-64.txt
 cd buiddir_win
+meson compile
+```
+
+### Cross-compile for Windows
+Cross-compile for Windows is also possible with the [Mingw-w64 toolchain](https://www.mingw-w64.org/downloads/). To cross-compile for Windows use the following commands: 
+
+```
+meson setup buiddir_cross_win --cross-file=mingw-w64-64.txt
+cd buiddir_cross_win
 meson compile
 ```
 
 ## Tests
 ### External dependencies
 
-To run the unit tests you need the [c unit testing framework](https://sourceforge.net/projects/cunit/).  
-To run the integration tests you need the [pytest](https://docs.pytest.org/en/7.0.x/index.html) framework. The easiest way to install pytest is with `pip3`:
+To run the unit tests you need the [ruby interpreter](https://www.ruby-lang.org/en/documentation/installation/).  
+To run the cmp\_tool interface test you need the [pytest](https://docs.pytest.org/en/7.0.x/index.html) framework. The easiest way to install pytest is with `pip3`:
 
 ```
 pip3 install pytest
