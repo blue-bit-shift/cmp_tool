@@ -437,6 +437,8 @@ void test_cmp_decmp_s_fx_diff(void)
 	/* 		if (up_model[i] != de_up_model[i]) */
 	/* 			TEST_ASSERT(0); */
 	/* } */
+	free(ent);
+	free(decompressed_data);
 }
 #undef DATA_SAMPLES
 
@@ -629,6 +631,7 @@ void test_s_fx_diff(void)
 	for (i = 0; i < s; ++i) {
 		TEST_ASSERT_EQUAL(result_data[i], decompressed_data[i]);
 	}
+	free(decompressed_data);
 }
 
 

@@ -493,8 +493,13 @@ void compression_decompression(struct cmp_cfg *cfg)
 	int data_size, cmp_data_size;
 	struct cmp_entity *ent;
 	void *decompressed_data;
-	static void *model_of_data;
+	static void *model_of_data = NULL;
 	void *updated_model = NULL;
+
+	if (!cfg) {
+		free(model_of_data);
+		return;
+	}
 
 	TEST_ASSERT_NOT_NULL(cfg);
 
@@ -611,6 +616,7 @@ void test_random_compression_decompression(void)
 		free(data_to_compress2);
 		free(updated_model);
 	}
+	compression_decompression(NULL);
 }
 
 #define N_SAMPLES 5

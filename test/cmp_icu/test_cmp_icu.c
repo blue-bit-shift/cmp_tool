@@ -2740,6 +2740,9 @@ void test_compress_s_fx_raw(void)
 		TEST_ASSERT_EQUAL_HEX(data[i].exp_flags, p[i].exp_flags);
 		TEST_ASSERT_EQUAL_HEX(data[i].fx, cpu_to_be32(p[i].fx));
 	}
+
+	free(cfg.input_buf);
+	free(cfg.icu_output_buf);
 }
 
 
