@@ -142,7 +142,7 @@ uint32_t cmp_cfg_icu_buffers(struct cmp_cfg *cfg, void *data_to_compress,
 	data_size = cmp_cal_size_of_data(compressed_data_len_samples, cfg->data_type);
 	hdr_size = cmp_ent_cal_hdr_size(cfg->data_type, cfg->cmp_mode == CMP_MODE_RAW);
 
-	if ((data_size + hdr_size) > CMP_ENTITY_MAX_SIZE) {
+	if ((data_size + hdr_size) > CMP_ENTITY_MAX_SIZE || data_size > CMP_ENTITY_MAX_SIZE) {
 		debug_print("Error: The buffer for the compressed data is too large to fit in a compression entity.\n");
 		return 0;
 	}
