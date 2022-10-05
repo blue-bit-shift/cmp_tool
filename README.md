@@ -133,5 +133,5 @@ Instructions on how to perform compression without headers can be found [here](h
     `diff compressed/data2_upmodel.dat decompressed/test_data2_upmodel.dat`
 
 [1]: <https://gitlab.phaidra.org/loidoltd15/cmp_tool/-/issues> "issues"
-[2]: <mailto:dominik.loidolt@univie.ac.at?subject=%5BIssue%5D%20Cmd_Tool> "email"
+[2]: <mailto:dominik.loidolt@univie.ac.at?subject=%5BIssue%5D%20cmp_tool> "email"
 [3]: <https://gitlab.phaidra.org/loidoltd15/cmp_tool/-/releases> "release"
