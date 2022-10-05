@@ -233,6 +233,16 @@ struct cmp_info {
 				       */
 };
 
+/* structure containing flux/COB compression parameters pairs */
+struct fx_cob_par {
+	uint8_t exp_flags;
+	uint8_t fx;
+	uint8_t ncob;
+	uint8_t efx;
+	uint8_t ecob;
+	uint8_t fx_cob_variance;
+};
+
 
 int is_a_pow_of_2(unsigned int v);
 int ilog_2(uint32_t x);
@@ -248,16 +258,16 @@ int cmp_cfg_aux_is_invalid(const struct cmp_cfg *cfg);
 uint32_t cmp_ima_max_spill(unsigned int golomb_par);
 uint32_t cmp_icu_max_spill(unsigned int cmp_par);
 
-int cmp_data_type_valid(enum cmp_data_type data_type);
+int cmp_data_type_is_invalid(enum cmp_data_type data_type);
 int rdcu_supported_data_type_is_used(enum cmp_data_type data_type);
 int cmp_imagette_data_type_is_used(enum cmp_data_type data_type);
 int cmp_ap_imagette_data_type_is_used(enum cmp_data_type data_type);
 int cmp_fx_cob_data_type_is_used(enum cmp_data_type data_type);
+int cmp_cfg_fx_cob_get_need_pars(enum cmp_data_type data_type, struct fx_cob_par *par);
 int cmp_aux_data_type_is_used(enum cmp_data_type data_type);
 
 int cmp_mode_is_supported(enum cmp_mode cmp_mode);
 int model_mode_is_used(enum cmp_mode cmp_mode);
-int diff_mode_is_used(enum cmp_mode cmp_mode);
 int raw_mode_is_used(enum cmp_mode cmp_mode);
 int rdcu_supported_cmp_mode_is_used(enum cmp_mode cmp_mode);
 int zero_escape_mech_is_used(enum cmp_mode cmp_mode);
@@ -269,7 +279,6 @@ unsigned int cmp_up_model(unsigned int data, unsigned int model,
 			  unsigned int model_value, unsigned int round);
 
 
-void print_cmp_cfg(const struct cmp_cfg *cfg);
 void print_cmp_info(const struct cmp_info *info);
 
 #endif /* CMP_SUPPORT_H */

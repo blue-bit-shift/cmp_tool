@@ -784,7 +784,7 @@ void test_random_compression_decompression(void)
 			cmp_size = icu_compress_data_entity(cmp_ent, &cfg);
 			if (cmp_size <= 0) {
 				printf("cmp_size: %i\n", cmp_size);
-				print_cfg(&cfg, 0);
+				cmp_cfg_print(&cfg);
 			}
 			TEST_ASSERT_GREATER_THAN(0, cmp_size);
 
@@ -794,7 +794,7 @@ void test_random_compression_decompression(void)
 
 			TEST_ASSERT_EQUAL_INT(s, decompress_size);
 			if (memcmp(cfg.input_buf, decompressed_data, s)) {
-				print_cfg(&cfg, 0);
+				cmp_cfg_print(&cfg);
 				TEST_ASSERT_FALSE(memcmp(cfg.input_buf, decompressed_data, s));
 			}
 			if (model_mode_is_used(cfg.cmp_mode))

@@ -63,7 +63,7 @@ uint32_t cmp_ent_cal_hdr_size(enum cmp_data_type data_type, int raw_mode_flag)
 	uint32_t size = 0;
 
 	if (raw_mode_flag) {
-		if (cmp_data_type_valid(data_type))
+		if (!cmp_data_type_is_invalid(data_type))
 			/* for raw data we do not need a specific header */
 			size = GENERIC_HEADER_SIZE;
 	} else {
@@ -1142,7 +1142,7 @@ enum cmp_data_type cmp_ent_get_data_type(struct cmp_entity *ent)
 	data_type = be16_to_cpu(ent->data_type);
 	data_type &= (1U << RAW_BIT_DATA_TYPE_POS)-1; /* remove uncompressed data flag */
 
-	if (!cmp_data_type_valid(data_type))
+	if (cmp_data_type_is_invalid(data_type))
 		data_type = DATA_TYPE_UNKNOWN;
 
 	return data_type;
@@ -1639,7 +1639,7 @@ void *cmp_ent_get_data_buf(struct cmp_entity *ent)
 		return NULL;
 
 	data_type = cmp_ent_get_data_type(ent);
-	if (!cmp_data_type_valid(data_type)) {
+	if (cmp_data_type_is_invalid(data_type)) {
 		debug_print("Error: Compression data type not supported.\n");
 		return NULL;
 	}
@@ -2156,7 +2156,7 @@ int cmp_ent_read_header(struct cmp_entity *ent, struct cmp_cfg *cfg)
 	int samples;
 
 	cfg->data_type = cmp_ent_get_data_type(ent);
-	if (!cmp_data_type_valid(cfg->data_type)) {
+	if (cmp_data_type_is_invalid(cfg->data_type)) {
 		debug_print("Error: Compression data type not supported.\n");
 		return -1;
 	}

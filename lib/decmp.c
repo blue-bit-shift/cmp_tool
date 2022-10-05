@@ -2141,7 +2141,7 @@ static int decompressed_data_internal(struct cmp_cfg *cfg)
  * @param ent			pointer to the compression entity to be decompressed
  * @param model_of_data		pointer to model data buffer (can be NULL if no
  *				model compression mode is used)
- * @param updated_model		pointer to store the updated model for the next model
+ * @param up_model_buf		pointer to store the updated model for the next model
  *				mode compression (can be the same as the model_of_data
  *				buffer for in-place update or NULL if updated model is not needed)
  * @param decompressed_data	pointer to the decompressed data buffer (can be NULL)
@@ -2177,7 +2177,7 @@ int decompress_cmp_entiy(struct cmp_entity *ent, void *model_of_data,
  *				compression entity header)
  * @param model_of_data		pointer to model data buffer (can be NULL if no
  *				model compression mode is used)
- * @param updated_model		pointer to store the updated model for the next model
+ * @param up_model_buf		pointer to store the updated model for the next model
  *				mode compression (can be the same as the model_of_data
  *				buffer for in-place update or NULL if updated model is not needed)
  * @param decompressed_data	pointer to the decompressed data buffer (can be NULL)

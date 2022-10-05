@@ -62,10 +62,10 @@ int is_a_pow_of_2(unsigned int v)
  *
  * @param data_type	compression entity data product type to check
  *
- * @returns zero if data_type is invalid; non-zero if data_type is valid
+ * @returns non-zero if data_type is invalid; zero if data_type is valid
  */
 
-int cmp_data_type_valid(enum cmp_data_type data_type)
+int cmp_data_type_is_invalid(enum cmp_data_type data_type)
 {
 	if (data_type == DATA_TYPE_F_CAM_OFFSET)
 		debug_print("Error: DATA_TYPE_F_CAM_OFFSET is TBD and not implemented yet.\n");
@@ -73,9 +73,9 @@ int cmp_data_type_valid(enum cmp_data_type data_type)
 		debug_print("Error: DATA_TYPE_F_CAM_BACKGROUND is TBD  and not implemented yet.\n");
 
 	if (data_type <= DATA_TYPE_UNKNOWN || data_type > DATA_TYPE_F_CAM_IMAGETTE_ADAPTIVE)
-		return 0;
+		return 1;
 
-	return 1;
+	return 0;
 }
 
 
@@ -91,24 +91,6 @@ int model_mode_is_used(enum cmp_mode cmp_mode)
 {
 	if (cmp_mode == CMP_MODE_MODEL_ZERO ||
 	    cmp_mode == CMP_MODE_MODEL_MULTI)
-		return 1;
-
-	return 0;
-}
-
-
-/**
- * @brief check if a 1d-differencing mode is selected
- *
- * @param cmp_mode	compression mode
- *
- * @returns 1 when the 1d-differencing mode is used, otherwise 0
- */
-
-int diff_mode_is_used(enum cmp_mode cmp_mode)
-{
-	if (cmp_mode == CMP_MODE_DIFF_ZERO ||
-	    cmp_mode == CMP_MODE_DIFF_MULTI)
 		return 1;
 
 	return 0;
@@ -472,7 +454,7 @@ int cmp_cfg_icu_gen_par_is_invalid(const struct cmp_cfg *cfg)
 	if (!cfg)
 		return 0;
 
-	if (!cmp_data_type_valid(cfg->data_type)) {
+	if (cmp_data_type_is_invalid(cfg->data_type)) {
 		debug_print("Error: selected compression data type is not supported.\n");
 		cfg_invalid++;
 	}
@@ -700,6 +682,92 @@ int cmp_cfg_imagette_is_invalid(const struct cmp_cfg *cfg, int rdcu_check)
 
 
 /**
+ * @brief get needed compression parameter pairs for a flux/center of brightness
+ *	data type
+ *
+ * @param data_type	a flux/center of brightness data type
+ * @param par		pointer to a structure containing flux/COB compression
+ *			parameters pairs
+ *
+ * @returns 0 on success and sets the needed compression parameter pairs in the
+ *	par struct, otherwise error
+ */
+
+ int cmp_cfg_fx_cob_get_need_pars(enum cmp_data_type data_type, struct fx_cob_par *par)
+{
+	if (!par)
+		return -1;
+
+	par->exp_flags = 0;
+	par->fx = 0;
+	par->ncob = 0;
+	par->efx = 0;
+	par->ecob = 0;
+	par->fx_cob_variance = 0;
+
+	/* flux parameter is needed for every fx_cob data_type */
+	par->fx = 1;
+
+	switch (data_type) {
+	case DATA_TYPE_S_FX:
+		par->exp_flags = 1;
+		break;
+	case DATA_TYPE_S_FX_EFX:
+		par->exp_flags = 1;
+		par->efx = 1;
+		break;
+	case DATA_TYPE_S_FX_NCOB:
+		par->exp_flags = 1;
+		par->ncob = 1;
+		break;
+	case DATA_TYPE_S_FX_EFX_NCOB_ECOB:
+		par->exp_flags = 1;
+		par->ncob = 1;
+		par->efx = 1;
+		par->ecob = 1;
+		break;
+	case DATA_TYPE_L_FX:
+		par->exp_flags = 1;
+		par->fx_cob_variance = 1;
+		break;
+	case DATA_TYPE_L_FX_EFX:
+		par->exp_flags = 1;
+		par->efx = 1;
+		par->fx_cob_variance = 1;
+		break;
+	case DATA_TYPE_L_FX_NCOB:
+		par->exp_flags = 1;
+		par->ncob = 1;
+		par->fx_cob_variance = 1;
+		break;
+	case DATA_TYPE_L_FX_EFX_NCOB_ECOB:
+		par->exp_flags = 1;
+		par->ncob = 1;
+		par->efx = 1;
+		par->ecob = 1;
+		par->fx_cob_variance = 1;
+		break;
+	case DATA_TYPE_F_FX:
+		break;
+	case DATA_TYPE_F_FX_EFX:
+		par->efx = 1;
+		break;
+	case DATA_TYPE_F_FX_NCOB:
+		par->ncob = 1;
+		break;
+	case DATA_TYPE_F_FX_EFX_NCOB_ECOB:
+		par->ncob = 1;
+		par->efx = 1;
+		par->ecob = 1;
+		break;
+	default:
+		return -1;
+	}
+	return 0;
+}
+
+
+/**
  * @brief check if the flux/center of brightness specific compression parameters
  *	are invalid
  *
@@ -711,7 +779,7 @@ int cmp_cfg_imagette_is_invalid(const struct cmp_cfg *cfg, int rdcu_check)
 int cmp_cfg_fx_cob_is_invalid(const struct cmp_cfg *cfg)
 {
 	int cfg_invalid = 0;
-	int check_exp_flags = 0, check_ncob = 0, check_efx = 0, check_ecob = 0, check_var = 0;
+	struct fx_cob_par needed_pars;
 
 	if (!cfg)
 		return 0;
@@ -720,82 +788,27 @@ int cmp_cfg_fx_cob_is_invalid(const struct cmp_cfg *cfg)
 		debug_print("Error: The compression data type is not a flux/center of brightness compression data type.\n");
 		cfg_invalid++;
 	}
-	/* flux parameter is needed for every fx_cob data_type */
-	cfg_invalid += cmp_pars_are_invalid(cfg->cmp_par_fx, cfg->spill_fx,
-					    cfg->cmp_mode, cfg->data_type, "flux");
 
-	switch (cfg->data_type) {
-	case DATA_TYPE_S_FX:
-		check_exp_flags = 1;
-		break;
-	case DATA_TYPE_S_FX_EFX:
-		check_exp_flags = 1;
-		check_efx = 1;
-		break;
-	case DATA_TYPE_S_FX_NCOB:
-		check_exp_flags = 1;
-		check_ncob = 1;
-		break;
-	case DATA_TYPE_S_FX_EFX_NCOB_ECOB:
-		check_exp_flags = 1;
-		check_ncob = 1;
-		check_efx = 1;
-		check_ecob = 1;
-		break;
-	case DATA_TYPE_L_FX:
-		check_exp_flags = 1;
-		check_var = 1;
-		break;
-	case DATA_TYPE_L_FX_EFX:
-		check_exp_flags = 1;
-		check_efx = 1;
-		check_var = 1;
-		break;
-	case DATA_TYPE_L_FX_NCOB:
-		check_exp_flags = 1;
-		check_ncob = 1;
-		check_var = 1;
-		break;
-	case DATA_TYPE_L_FX_EFX_NCOB_ECOB:
-		check_exp_flags = 1;
-		check_ncob = 1;
-		check_efx = 1;
-		check_ecob = 1;
-		check_var = 1;
-		break;
-	case DATA_TYPE_F_FX:
-		break;
-	case DATA_TYPE_F_FX_EFX:
-		check_efx = 1;
-		break;
-	case DATA_TYPE_F_FX_NCOB:
-		check_ncob = 1;
-		break;
-	case DATA_TYPE_F_FX_EFX_NCOB_ECOB:
-		check_ncob = 1;
-		check_efx = 1;
-		check_ecob = 1;
-		break;
-	default:
-		cfg_invalid++;
-		break;
-	}
+	cmp_cfg_fx_cob_get_need_pars(cfg->data_type, &needed_pars);
 
-	if (check_exp_flags)
+	if (needed_pars.fx)
+		cfg_invalid += cmp_pars_are_invalid(cfg->cmp_par_fx, cfg->spill_fx,
+						    cfg->cmp_mode, cfg->data_type, "flux");
+	if (needed_pars.exp_flags)
 		cfg_invalid += cmp_pars_are_invalid(cfg->cmp_par_exp_flags, cfg->spill_exp_flags,
 			cfg->cmp_mode, cfg->data_type, "exposure flags");
-	if (check_ncob)
+	if (needed_pars.ncob)
 		cfg_invalid += cmp_pars_are_invalid(cfg->cmp_par_ncob, cfg->spill_ncob,
 			cfg->cmp_mode, cfg->data_type, "center of brightness");
-	if (check_efx)
+	if (needed_pars.efx)
 		cfg_invalid += cmp_pars_are_invalid(cfg->cmp_par_efx, cfg->spill_efx,
 			cfg->cmp_mode, cfg->data_type, "extended flux");
-	if (check_ecob)
+	if (needed_pars.ecob)
 		cfg_invalid += cmp_pars_are_invalid(cfg->cmp_par_ecob, cfg->spill_ecob,
 			cfg->cmp_mode, cfg->data_type, "extended center of brightness");
-	if (check_var)
+	if (needed_pars.fx_cob_variance)
 		cfg_invalid += cmp_pars_are_invalid(cfg->cmp_par_fx_cob_variance,
-			cfg->spill_fx_cob_variance, cfg->cmp_mode, cfg->data_type, "flux COB varianc");
+			cfg->spill_fx_cob_variance, cfg->cmp_mode, cfg->data_type, "flux/COB variance");
 
 	return cfg_invalid;
 }
@@ -870,68 +883,29 @@ int cmp_cfg_is_invalid(const struct cmp_cfg *cfg)
 
 
 /**
- * @brief print the cmp_cfg structure
- *
- * @param cfg	compressor configuration contains all parameters required for
- *		compression
- */
-
-void print_cmp_cfg(const struct cmp_cfg *cfg)
-{
-	size_t i;
-
-	printf("cmp_mode: %i\n", cfg->cmp_mode);
-	printf("golomb_par: %u\n", cfg->golomb_par);
-	printf("spill: %u\n", cfg->spill);
-	printf("model_value: %u\n", cfg->model_value);
-	printf("round: %u\n", cfg->round);
-	printf("ap1_golomb_par: %u\n", cfg->ap1_golomb_par);
-	printf("ap1_spill: %u\n", cfg->ap1_spill);
-	printf("ap2_golomb_par: %u\n", cfg->ap2_golomb_par);
-	printf("ap2_spill: %u\n", cfg->ap2_spill);
-	printf("input_buf: %p\n", (void *)cfg->input_buf);
-	if (cfg->input_buf != NULL) {
-		printf("input data:");
-		for (i = 0; i < cfg->samples; i++)
-			printf(" %04X", ((uint16_t *)cfg->input_buf)[i]);
-		printf("\n");
-	}
-	printf("rdcu_data_adr: 0x%06X\n", cfg->rdcu_data_adr);
-	printf("model_buf: %p\n", (void *)cfg->model_buf);
-	if (cfg->model_buf != NULL) {
-		printf("model data:");
-		for (i = 0; i < cfg->samples; i++)
-			printf(" %04X", ((uint16_t *)cfg->model_buf)[i]);
-		printf("\n");
-	}
-	printf("rdcu_model_adr: 0x%06X\n", cfg->rdcu_model_adr);
-	printf("rdcu_new_model_adr: 0x%06X\n", cfg->rdcu_new_model_adr);
-	printf("samples: %u\n", cfg->samples);
-	printf("icu_output_buf: %p\n", (void *)cfg->icu_output_buf);
-	printf("rdcu_buffer_adr: 0x%06X\n", cfg->rdcu_buffer_adr);
-	printf("buffer_length: %u\n", cfg->buffer_length);
-}
-
-
-/**
  * @brief print the cmp_info structure
  *
- * @param info	 compressor information contains information of an executed
- *		 compression
+ * @param info	pointer to a compressor information contains information of an
+ *		executed RDCU compression
  */
 
 void print_cmp_info(const struct cmp_info *info)
 {
-	printf("cmp_mode_used: %u\n", info->cmp_mode_used);
-	printf("model_value_used: %u\n", info->model_value_used);
-	printf("round_used: %u\n", info->round_used);
-	printf("spill_used: %u\n", info->spill_used);
-	printf("golomb_par_used: %u\n", info->golomb_par_used);
-	printf("samples_used: %u\n", info->samples_used);
-	printf("cmp_size: %u\n", info->cmp_size);
-	printf("ap1_cmp_size: %u\n", info->ap1_cmp_size);
-	printf("ap2_cmp_size: %u\n", info->ap2_cmp_size);
-	printf("rdcu_new_model_adr_used: 0x%06X\n", info->rdcu_new_model_adr_used);
-	printf("rdcu_cmp_adr_used: 0x%06X\n", info->rdcu_cmp_adr_used);
-	printf("cmp_err: %#X\n", info->cmp_err);
+	if (!info) {
+		debug_print("Pointer to the compressor information is NULL.\n");
+		return;
+	}
+
+	debug_print("cmp_mode_used: %u\n", info->cmp_mode_used);
+	debug_print("spill_used: %u\n", info->spill_used);
+	debug_print("golomb_par_used: %u\n", info->golomb_par_used);
+	debug_print("samples_used: %u\n", info->samples_used);
+	debug_print("cmp_size: %u\n", info->cmp_size);
+	debug_print("ap1_cmp_size: %u\n", info->ap1_cmp_size);
+	debug_print("ap2_cmp_size: %u\n", info->ap2_cmp_size);
+	debug_print("rdcu_new_model_adr_used: 0x%06X\n", info->rdcu_new_model_adr_used);
+	debug_print("rdcu_cmp_adr_used: 0x%06X\n", info->rdcu_cmp_adr_used);
+	debug_print("model_value_used: %u\n", info->model_value_used);
+	debug_print("round_used: %u\n", info->round_used);
+	debug_print("cmp_err: %#X\n", info->cmp_err);
 }

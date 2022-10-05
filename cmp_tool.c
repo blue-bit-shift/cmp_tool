@@ -28,7 +28,7 @@
 #include "cmp_tool-config.h"
 #include "cmp_io.h"
 #include "cmp_icu.h"
-#include "cmp_rdcu.h" /*TODO: shift setup to support */
+#include "cmp_rdcu.h"
 #include "decmp.h"
 #include "cmp_guess.h"
 #include "cmp_entity.h"
@@ -42,6 +42,9 @@
 #define DEFAULT_MODEL_COUNTER 0
 
 
+/* parse a data_type option argument */
+static enum cmp_data_type parse_data_type(const char *data_type_str);
+
 /* find a good set of compression parameters for a given dataset */
 static int guess_cmp_pars(struct cmp_cfg *cfg, const char *guess_cmp_mode,
 			  int guess_level);
@@ -51,6 +54,11 @@ static int compression(struct cmp_cfg *cfg, struct cmp_info *info);
 
 /* decompress the data and write the results in file(s)*/
 static int decompression(struct cmp_entity *ent, uint16_t *input_model_buf);
+
+/* create a default configuration for a compression data type */
+enum cfg_default_opt {DIFF_CFG, MODEL_CFG};
+int cmp_cfg_create_default(struct cmp_cfg *cfg, enum cmp_data_type data_type,
+			   enum cfg_default_opt mode);
 
 
 /*
@@ -70,12 +78,12 @@ enum {
 
 static const struct option long_options[] = {
 	{"rdcu_par", no_argument, NULL, 'a'},
-	{"model_cfg", no_argument, NULL, 'n'},
+	{"model_cfg", optional_argument, NULL, 'n'},
 	{"help", no_argument, NULL, 'h'},
 	{"verbose", no_argument, NULL, 'v'},
 	{"version", no_argument, NULL, 'V'},
 	{"rdcu_pkt", no_argument, NULL, RDCU_PKT_OPTION},
-	{"diff_cfg", no_argument, NULL, DIFF_CFG_OPTION},
+	{"diff_cfg", optional_argument, NULL, DIFF_CFG_OPTION},
 	{"guess", required_argument, NULL, GUESS_OPTION},
 	{"guess_level", required_argument, NULL, GUESS_LEVEL},
 	{"last_info", required_argument, NULL, LAST_INFO},
@@ -182,6 +190,9 @@ int main(int argc, char **argv)
 			break;
 		case 'n': /* --model_cfg */
 			print_model_cfg = 1;
+			cfg.data_type = parse_data_type(optarg);
+			if (cfg.data_type == DATA_TYPE_UNKNOWN)
+				exit(EXIT_FAILURE);
 			break;
 		case 'o':
 			output_prefix = optarg;
@@ -195,6 +206,9 @@ int main(int argc, char **argv)
 			break;
 		case DIFF_CFG_OPTION:
 			print_diff_cfg = 1;
+			cfg.data_type = parse_data_type(optarg);
+			if (cfg.data_type == DATA_TYPE_UNKNOWN)
+				exit(EXIT_FAILURE);
 			break;
 		case GUESS_OPTION:
 			guess_operation = 1;
@@ -262,30 +276,18 @@ int main(int argc, char **argv)
 #endif
 
 	if (print_model_cfg == 1) {
-		cfg = rdcu_cfg_create(CMP_DEF_IMA_MODEL_DATA_TYPE, CMP_DEF_IMA_MODEL_CMP_MODE,
-				      CMP_DEF_IMA_MODEL_MODEL_VALUE, CMP_DEF_IMA_MODEL_LOSSY_PAR);
-		rdcu_cfg_buffers(&cfg, NULL, 0, NULL, CMP_DEF_IMA_MODEL_RDCU_DATA_ADR,
-				 CMP_DEF_IMA_MODEL_RDCU_MODEL_ADR, CMP_DEF_IMA_MODEL_RDCU_UP_MODEL_ADR,
-				 CMP_DEF_IMA_MODEL_RDCU_BUFFER_ADR, 0);
-		rdcu_cfg_imagette(&cfg,
-				  CMP_DEF_IMA_MODEL_GOLOMB_PAR, CMP_DEF_IMA_MODEL_SPILL_PAR,
-				  CMP_DEF_IMA_MODEL_AP1_GOLOMB_PAR, CMP_DEF_IMA_MODEL_AP1_SPILL_PAR,
-				  CMP_DEF_IMA_MODEL_AP2_GOLOMB_PAR, CMP_DEF_IMA_MODEL_AP2_SPILL_PAR);
-		print_cfg(&cfg, add_rdcu_pars);
+		if (add_rdcu_pars)
+			cfg.data_type = DATA_TYPE_IMAGETTE_ADAPTIVE;
+		cmp_cfg_create_default(&cfg, cfg.data_type, MODEL_CFG);
+		cmp_cfg_print(&cfg);
 		exit(EXIT_SUCCESS);
 	}
 
 	if (print_diff_cfg == 1) {
-		cfg = rdcu_cfg_create(CMP_DEF_IMA_DIFF_DATA_TYPE, CMP_DEF_IMA_DIFF_CMP_MODE,
-				      CMP_DEF_IMA_DIFF_MODEL_VALUE, CMP_DEF_IMA_DIFF_LOSSY_PAR);
-		rdcu_cfg_buffers(&cfg, NULL, 0, NULL, CMP_DEF_IMA_DIFF_RDCU_DATA_ADR,
-				 CMP_DEF_IMA_DIFF_RDCU_MODEL_ADR, CMP_DEF_IMA_DIFF_RDCU_UP_MODEL_ADR,
-				 CMP_DEF_IMA_DIFF_RDCU_BUFFER_ADR, 0);
-		rdcu_cfg_imagette(&cfg,
-				  CMP_DEF_IMA_DIFF_GOLOMB_PAR, CMP_DEF_IMA_DIFF_SPILL_PAR,
-				  CMP_DEF_IMA_DIFF_AP1_GOLOMB_PAR, CMP_DEF_IMA_DIFF_AP1_SPILL_PAR,
-				   CMP_DEF_IMA_DIFF_AP2_GOLOMB_PAR, CMP_DEF_IMA_DIFF_AP2_SPILL_PAR);
-		print_cfg(&cfg, add_rdcu_pars);
+		if (add_rdcu_pars)
+			cfg.data_type = DATA_TYPE_IMAGETTE_ADAPTIVE;
+		cmp_cfg_create_default(&cfg, cfg.data_type, DIFF_CFG);
+		cmp_cfg_print(&cfg);
 		exit(EXIT_SUCCESS);
 	}
 
@@ -316,7 +318,7 @@ int main(int argc, char **argv)
 		if (cmp_operation) {
 			printf("## Starting the compression ##\n");
 			printf("Importing configuration file %s ... ", cfg_file_name);
-			error = read_cmp_cfg(cfg_file_name, &cfg, verbose_en);
+			error = cmp_cfg_read(cfg_file_name, &cfg, verbose_en);
 			if (error)
 				goto fail;
 			printf("DONE\n");
@@ -359,7 +361,7 @@ int main(int argc, char **argv)
 			uint32_t cmp_size_byte;
 
 			printf("Importing decompression information file %s ... ", info_file_name);
-			error  = read_cmp_info(info_file_name, &info, verbose_en);
+			error  = cmp_info_read(info_file_name, &info, verbose_en);
 			if (error)
 				goto fail;
 			printf("DONE\n");
@@ -521,6 +523,22 @@ fail:
 }
 
 
+/* parse a data_type option argument */
+static enum cmp_data_type parse_data_type(const char *data_type_str)
+{
+	/* default data type if no optional argument is used */
+	enum cmp_data_type data_type = DATA_TYPE_IMAGETTE;
+
+	if (data_type_str) {
+		data_type = string2data_type(optarg);
+		if (data_type == DATA_TYPE_UNKNOWN)
+			printf("Do not recognize %s compression data type.\n",
+			       data_type_str);
+	}
+	return data_type;
+}
+
+
 /* find a good set of compression parameters for a given dataset */
 static int guess_cmp_pars(struct cmp_cfg *cfg, const char *guess_cmp_mode,
 			  int guess_level)
@@ -563,7 +581,7 @@ static int guess_cmp_pars(struct cmp_cfg *cfg, const char *guess_cmp_mode,
 	printf("DONE\n");
 
 	printf("Write the guessed compression configuration to file %s.cfg ... ", output_prefix);
-	error = write_cfg(cfg, output_prefix, add_rdcu_pars, verbose_en);
+	error = cmp_cfg_fo_file(cfg, output_prefix, verbose_en);
 	if (error)
 		return -1;
 	printf("DONE\n");
@@ -591,7 +609,7 @@ static int gen_rdcu_write_pkts(struct cmp_cfg *cfg)
 		/* generation of packets for parallel read/write RDCU setup */
 		struct cmp_info last_info = {0};
 
-		error  = read_cmp_info(last_info_file_name, &last_info, verbose_en);
+		error  = cmp_info_read(last_info_file_name, &last_info, verbose_en);
 		if (error) {
 			fprintf(stderr, "%s: %s: Importing last decompression information file failed.\n",
 				PROGRAM_NAME, last_info_file_name);
@@ -791,7 +809,7 @@ static int compression(struct cmp_cfg *cfg, struct cmp_info *info)
 	if (!include_cmp_header) {
 		printf("Write decompression information to file %s.info ... ",
 		       output_prefix);
-		error = write_info(info, output_prefix, add_rdcu_pars);
+		error = cmp_info_to_file(info, output_prefix, add_rdcu_pars);
 		if (error)
 			goto error_cleanup;
 		printf("DONE\n");
@@ -859,5 +877,46 @@ static int decompression(struct cmp_entity *ent, uint16_t *input_model_buf)
 
 	printf("DONE\n");
 
+	return 0;
+}
+
+
+/* create a default configuration for a compression data type */
+int cmp_cfg_create_default(struct cmp_cfg *cfg, enum cmp_data_type data_type,
+			   enum cfg_default_opt mode)
+{
+	if (cmp_data_type_is_invalid(data_type))
+		return -1;
+
+	if (!cfg) /* nothing to do */
+		return 0;
+
+	if (cmp_imagette_data_type_is_used(data_type)) {
+		switch (mode) {
+		case MODEL_CFG:
+			*cfg = rdcu_cfg_create(data_type, CMP_DEF_IMA_MODEL_CMP_MODE,
+					       CMP_DEF_IMA_MODEL_MODEL_VALUE, CMP_DEF_IMA_MODEL_LOSSY_PAR);
+			rdcu_cfg_buffers(cfg, NULL, 0, NULL, CMP_DEF_IMA_MODEL_RDCU_DATA_ADR,
+					 CMP_DEF_IMA_MODEL_RDCU_MODEL_ADR, CMP_DEF_IMA_MODEL_RDCU_UP_MODEL_ADR,
+					 CMP_DEF_IMA_MODEL_RDCU_BUFFER_ADR, 0);
+			rdcu_cfg_imagette(cfg,
+					  CMP_DEF_IMA_MODEL_GOLOMB_PAR, CMP_DEF_IMA_MODEL_SPILL_PAR,
+					  CMP_DEF_IMA_MODEL_AP1_GOLOMB_PAR, CMP_DEF_IMA_MODEL_AP1_SPILL_PAR,
+					  CMP_DEF_IMA_MODEL_AP2_GOLOMB_PAR, CMP_DEF_IMA_MODEL_AP2_SPILL_PAR);
+			break;
+		case DIFF_CFG:
+			*cfg = rdcu_cfg_create(data_type, CMP_DEF_IMA_DIFF_CMP_MODE,
+					       CMP_DEF_IMA_DIFF_MODEL_VALUE, CMP_DEF_IMA_DIFF_LOSSY_PAR);
+			rdcu_cfg_buffers(cfg, NULL, 0, NULL, CMP_DEF_IMA_DIFF_RDCU_DATA_ADR,
+					 CMP_DEF_IMA_DIFF_RDCU_MODEL_ADR, CMP_DEF_IMA_DIFF_RDCU_UP_MODEL_ADR,
+					 CMP_DEF_IMA_DIFF_RDCU_BUFFER_ADR, 0);
+			rdcu_cfg_imagette(cfg,
+					  CMP_DEF_IMA_DIFF_GOLOMB_PAR, CMP_DEF_IMA_DIFF_SPILL_PAR,
+					  CMP_DEF_IMA_DIFF_AP1_GOLOMB_PAR, CMP_DEF_IMA_DIFF_AP1_SPILL_PAR,
+					  CMP_DEF_IMA_DIFF_AP2_GOLOMB_PAR, CMP_DEF_IMA_DIFF_AP2_SPILL_PAR);
+			break;
+		}
+	}
+	/* TODO: implement other data types */
 	return 0;
 }
