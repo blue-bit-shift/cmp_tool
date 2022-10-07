@@ -51,7 +51,7 @@ int cmp_cfg_fo_file(const struct cmp_cfg *cfg, const char *output_prefix, int ve
 void cmp_cfg_print(const struct cmp_cfg *cfg);
 
 int atoui32(const char *dep_str, const char *val_str, uint32_t *red_val);
-int cmp_mode_parse(const char *cmp_mode_str, uint32_t *cmp_mode);
+int cmp_mode_parse(const char *cmp_mode_str, enum cmp_mode *cmp_mode);
 
 enum cmp_data_type string2data_type(const char *data_type_str);
 const char *data_type2string(enum cmp_data_type data_type);

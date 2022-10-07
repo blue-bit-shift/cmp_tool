@@ -20,6 +20,7 @@
 
 #include <cmp_support.h>
 #include <cmp_debug.h>
+#include <my_inttypes.h>
 
 
 /**
@@ -466,14 +467,14 @@ int cmp_cfg_icu_gen_par_is_invalid(const struct cmp_cfg *cfg)
 
 	if (model_mode_is_used(cfg->cmp_mode)) {
 		if (cfg->model_value > MAX_MODEL_VALUE) {
-			debug_print("Error: selected model_value: %u is invalid. Largest supported value is: %u.\n",
+			debug_print("Error: selected model_value: %" PRIu32 " is invalid. Largest supported value is: %u.\n",
 				    cfg->model_value, MAX_MODEL_VALUE);
 			cfg_invalid++;
 		}
 	}
 
 	if (cfg->round > MAX_ICU_ROUND) {
-		debug_print("Error: selected lossy parameter: %u is not supported. Largest supported value is: %u.\n",
+		debug_print("Error: selected lossy parameter: %" PRIu32 " is not supported. Largest supported value is: %u.\n",
 			    cfg->round, MAX_ICU_ROUND);
 		cfg_invalid++;
 	}
@@ -604,17 +605,17 @@ static int cmp_pars_are_invalid(uint32_t cmp_par, uint32_t spill, enum cmp_mode 
 	case CMP_MODE_MODEL_ZERO:
 	case CMP_MODE_MODEL_MULTI:
 		if (cmp_par < min_golomb_par || cmp_par > max_golomb_par) {
-			debug_print("Error: The selected %s compression parameter: %u is not supported. The compression parameter has to be between [%u, %u].\n",
+			debug_print("Error: The selected %s compression parameter: %" PRIu32 " is not supported. The compression parameter has to be between [%" PRIu32 ", %" PRIu32 "].\n",
 				    par_name, cmp_par, min_golomb_par, max_golomb_par);
 			cfg_invalid++;
 		}
 		if (spill < min_spill) {
-			debug_print("Error: The selected %s spillover threshold value: %u is too small. Smallest possible spillover value is: %u.\n",
+			debug_print("Error: The selected %s spillover threshold value: %" PRIu32 " is too small. Smallest possible spillover value is: %" PRIu32 ".\n",
 				    par_name, spill, min_spill);
 			cfg_invalid++;
 		}
 		if (spill > max_spill) {
-			debug_print("Error: The selected %s spillover threshold value: %u is too large for the selected %s compression parameter: %u, the largest possible spillover value in the selected compression mode is: %u.\n",
+			debug_print("Error: The selected %s spillover threshold value: %" PRIu32 " is too large for the selected %s compression parameter: %" PRIu32 ", the largest possible spillover value in the selected compression mode is: %" PRIu32 ".\n",
 				    par_name, spill, par_name, cmp_par, max_spill);
 			cfg_invalid++;
 		}
@@ -622,7 +623,7 @@ static int cmp_pars_are_invalid(uint32_t cmp_par, uint32_t spill, enum cmp_mode 
 		break;
 	case CMP_MODE_STUFF:
 		if (cmp_par > MAX_STUFF_CMP_PAR) {
-			debug_print("Error: The selected %s stuff mode compression parameter: %u is too large, the largest possible value in the selected compression mode is: %u.\n",
+			debug_print("Error: The selected %s stuff mode compression parameter: %" PRIu32 " is too large, the largest possible value in the selected compression mode is: %u.\n",
 				    par_name, cmp_par, MAX_STUFF_CMP_PAR);
 			cfg_invalid++;
 		}
@@ -896,15 +897,15 @@ void print_cmp_info(const struct cmp_info *info)
 		return;
 	}
 
-	debug_print("cmp_mode_used: %u\n", info->cmp_mode_used);
-	debug_print("spill_used: %u\n", info->spill_used);
-	debug_print("golomb_par_used: %u\n", info->golomb_par_used);
-	debug_print("samples_used: %u\n", info->samples_used);
-	debug_print("cmp_size: %u\n", info->cmp_size);
-	debug_print("ap1_cmp_size: %u\n", info->ap1_cmp_size);
-	debug_print("ap2_cmp_size: %u\n", info->ap2_cmp_size);
-	debug_print("rdcu_new_model_adr_used: 0x%06X\n", info->rdcu_new_model_adr_used);
-	debug_print("rdcu_cmp_adr_used: 0x%06X\n", info->rdcu_cmp_adr_used);
+	debug_print("cmp_mode_used: %" PRIu32 "\n", info->cmp_mode_used);
+	debug_print("spill_used: %" PRIu32 "\n", info->spill_used);
+	debug_print("golomb_par_used: %" PRIu32 "\n", info->golomb_par_used);
+	debug_print("samples_used: %" PRIu32 "\n", info->samples_used);
+	debug_print("cmp_size: %" PRIu32 "\n", info->cmp_size);
+	debug_print("ap1_cmp_size: %" PRIu32 "\n", info->ap1_cmp_size);
+	debug_print("ap2_cmp_size: %" PRIu32 "\n", info->ap2_cmp_size);
+	debug_print("rdcu_new_model_adr_used: 0x%06"PRIX32"\n", info->rdcu_new_model_adr_used);
+	debug_print("rdcu_cmp_adr_used: 0x%06"PRIX32"\n", info->rdcu_cmp_adr_used);
 	debug_print("model_value_used: %u\n", info->model_value_used);
 	debug_print("round_used: %u\n", info->round_used);
 	debug_print("cmp_err: %#X\n", info->cmp_err);

@@ -36,6 +36,7 @@
 #include <cmp_data_types.h>
 #include <rdcu_ctrl.h>
 #include <rdcu_rmap.h>
+#include <my_inttypes.h>
 
 
 #define IMA_SAM2BYT                                                            \
@@ -111,13 +112,13 @@ static int rdcu_cfg_gen_par_is_invalid(const struct cmp_cfg *cfg)
 	}
 
 	if (cfg->model_value > MAX_MODEL_VALUE) {
-		debug_print("Error: selected model_value: %u is invalid. Largest supported value is: %u.\n",
+		debug_print("Error: selected model_value: %" PRIu32 " is invalid. Largest supported value is: %u.\n",
 			    cfg->model_value, MAX_MODEL_VALUE);
 		cfg_invalid++;
 	}
 
 	if (cfg->round > MAX_RDCU_ROUND) {
-		debug_print("Error: selected round parameter: %u is not supported. Largest supported value is: %u.\n",
+		debug_print("Error: selected round parameter: %" PRIu32 " is not supported. Largest supported value is: %u.\n",
 			    cfg->round, MAX_RDCU_ROUND);
 		cfg_invalid++;
 	}
@@ -415,57 +416,57 @@ static int rdcu_cfg_imagette_is_invalid(const struct cmp_cfg *cfg)
 
 	if (cfg->golomb_par < MIN_IMA_GOLOMB_PAR ||
 	    cfg->golomb_par > MAX_IMA_GOLOMB_PAR) {
-		debug_print("Error: The selected Golomb parameter: %u is not supported. The Golomb parameter has to be between [%u, %u].\n",
+		debug_print("Error: The selected Golomb parameter: %" PRIu32 " is not supported. The Golomb parameter has to be between [%u, %u].\n",
 			    cfg->golomb_par, MIN_IMA_GOLOMB_PAR, MAX_IMA_GOLOMB_PAR);
 		cfg_invalid++;
 	}
 
 	if (cfg->ap1_golomb_par < MIN_IMA_GOLOMB_PAR ||
 	    cfg->ap1_golomb_par > MAX_IMA_GOLOMB_PAR) {
-		debug_print("Error: The selected adaptive 1 Golomb parameter: %u is not supported. The Golomb parameter has to be between [%u, %u].\n",
+		debug_print("Error: The selected adaptive 1 Golomb parameter: %" PRIu32 " is not supported. The Golomb parameter has to be between [%u, %u].\n",
 			    cfg->ap1_golomb_par, MIN_IMA_GOLOMB_PAR, MAX_IMA_GOLOMB_PAR);
 		cfg_invalid++;
 	}
 
 	if (cfg->ap2_golomb_par < MIN_IMA_GOLOMB_PAR ||
 	    cfg->ap2_golomb_par > MAX_IMA_GOLOMB_PAR) {
-		debug_print("Error: The selected adaptive 2 Golomb parameter: %u is not supported. The Golomb parameter has to be between [%u, %u].\n",
+		debug_print("Error: The selected adaptive 2 Golomb parameter: %" PRIu32 " is not supported. The Golomb parameter has to be between [%u, %u].\n",
 			    cfg->ap2_golomb_par, MIN_IMA_GOLOMB_PAR, MAX_IMA_GOLOMB_PAR);
 		cfg_invalid++;
 	}
 
 	if (cfg->spill < MIN_IMA_SPILL) {
-		debug_print("Error: The selected spillover threshold value: %u is too small. Smallest possible spillover value is: %u.\n",
+		debug_print("Error: The selected spillover threshold value: %" PRIu32 " is too small. Smallest possible spillover value is: %u.\n",
 			    cfg->spill, MIN_IMA_SPILL);
 		cfg_invalid++;
 	}
 
 	if (cfg->spill > cmp_ima_max_spill(cfg->golomb_par)) {
-		debug_print("Error: The selected spillover threshold value: %u is too large for the selected Golomb parameter: %u, the largest possible spillover value is: %u.\n",
+		debug_print("Error: The selected spillover threshold value: %" PRIu32 " is too large for the selected Golomb parameter: %" PRIu32 ", the largest possible spillover value is: %" PRIu32 ".\n",
 			    cfg->spill, cfg->golomb_par, cmp_ima_max_spill(cfg->golomb_par));
 		cfg_invalid++;
 	}
 
 	if (cfg->ap1_spill < MIN_IMA_SPILL) {
-		debug_print("Error: The selected adaptive 1 spillover threshold value: %u is too small. Smallest possible spillover value is: %u.\n",
+		debug_print("Error: The selected adaptive 1 spillover threshold value: %" PRIu32 " is too small. Smallest possible spillover value is: %u.\n",
 			    cfg->ap1_spill, MIN_IMA_SPILL);
 		cfg_invalid++;
 	}
 
 	if (cfg->ap1_spill > cmp_ima_max_spill(cfg->ap1_golomb_par)) {
-		debug_print("Error: The selected adaptive 1 spillover threshold value: %u is too large for the selected adaptive 1 Golomb parameter: %u, the largest possible adaptive 1 spillover value is: %u.\n",
+		debug_print("Error: The selected adaptive 1 spillover threshold value: %" PRIu32 " is too large for the selected adaptive 1 Golomb parameter: %" PRIu32 ", the largest possible adaptive 1 spillover value is: %" PRIu32 ".\n",
 			    cfg->ap1_spill, cfg->ap1_golomb_par, cmp_ima_max_spill(cfg->ap1_golomb_par));
 		cfg_invalid++;
 	}
 
 	if (cfg->ap2_spill < MIN_IMA_SPILL) {
-		debug_print("Error: The selected adaptive 2 spillover threshold value: %u is too small. Smallest possible spillover value is: %u.\n",
+		debug_print("Error: The selected adaptive 2 spillover threshold value: %" PRIu32 " is too small. Smallest possible spillover value is: %u.\n",
 			    cfg->ap2_spill, MIN_IMA_SPILL);
 		cfg_invalid++;
 	}
 
 	if (cfg->ap2_spill > cmp_ima_max_spill(cfg->ap2_golomb_par)) {
-		debug_print("Error: The selected adaptive 2 spillover threshold value: %u is too large for the selected adaptive 2 Golomb parameter: %u, the largest possible adaptive 2 spillover value is: %u.\n",
+		debug_print("Error: The selected adaptive 2 spillover threshold value: %" PRIu32 " is too large for the selected adaptive 2 Golomb parameter: %" PRIu32 ", the largest possible adaptive 2 spillover value is: %" PRIu32 ".\n",
 			    cfg->ap2_spill, cfg->ap2_golomb_par, cmp_ima_max_spill(cfg->ap2_golomb_par));
 		cfg_invalid++;
 	}

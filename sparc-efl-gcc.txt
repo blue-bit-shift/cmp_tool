@@ -1,0 +1,24 @@
+[binaries]
+c = 'sparc-elf-gcc'
+cpp = 'sparc-elf-g++'
+objc = 'sparc-elf-gcc'
+ar = 'sparc-elf-ar'
+strip = 'sparc-elf-strip'
+ld = 'sparc-elf-ld'
+
+# pkgconfig = ['false']
+# cmake = ['false']
+
+[built-in options]
+# use sparcv8
+c_args = ['-mcpu=v8']
+b_staticpic = 'false'
+
+[properties]
+
+
+[host_machine]
+system = 'none'
+cpu_family = 'sparc'
+cpu = 'leon'
+endian = 'big'

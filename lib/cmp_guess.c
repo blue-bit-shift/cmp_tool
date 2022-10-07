@@ -23,9 +23,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "cmp_data_types.h"
-#include "cmp_icu.h"
-#include "cmp_guess.h"
+#include <cmp_data_types.h>
+#include <cmp_icu.h>
+#include <cmp_guess.h>
+#include <my_inttypes.h>
 
 
 /* how often the model is updated before it is rested */
@@ -190,7 +191,7 @@ static uint32_t brute_force(struct cmp_cfg *cfg)
 		percent = n_cal_steps*100/max_cal_steps;
 		if (percent > 5+last && percent < 100) {
 			last = percent;
-			printf("%u%%... ", percent);
+			printf("%" PRIu32 "%%... ", percent);
 			fflush(stdout);
 		}
 	}
