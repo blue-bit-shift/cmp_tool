@@ -2562,12 +2562,14 @@ void test_cmp_ent_create_timestamp(void)
 	timestamp = cmp_ent_create_timestamp(NULL);
 	TEST_ASSERT_NOT_EQUAL_INT(0, timestamp);
 
+#if !defined(_WIN32) && !defined(_WIN64)
 	/* test my_timegm function */
 	setenv("TZ", "/etc/localtime", 0);
 	timestamp = cmp_ent_create_timestamp(NULL);
 	TEST_ASSERT_NOT_EQUAL_INT(0, timestamp);
 	TEST_ASSERT_EQUAL_STRING("/etc/localtime", getenv("TZ"));
 	unsetenv("TZ");
+#endif
 
 	/* error cases */
 	/* ts before epoch */
