@@ -416,7 +416,7 @@ uint32_t cmp_icu_max_spill(unsigned int cmp_par)
 	unsigned int cutoff = (1UL << (ilog_2(cmp_par)+1)) - cmp_par;
 	unsigned int max_n_sym_offset = max_cw_bits/2 - 1;
 
-	if (!cmp_par || cmp_par > MAX_ICU_GOLOMB_PAR)
+	if (!cmp_par || cmp_par > MAX_NON_IMA_GOLOMB_PAR)
 		return 0;
 
 	return (max_cw_bits-1-ilog_2(cmp_par))*cmp_par + cutoff
@@ -589,9 +589,9 @@ static int cmp_pars_are_invalid(uint32_t cmp_par, uint32_t spill, enum cmp_mode 
 		min_spill = MIN_IMA_SPILL;
 		max_spill = cmp_ima_max_spill(cmp_par);
 	} else {
-		min_golomb_par = MIN_ICU_GOLOMB_PAR;
-		max_golomb_par = MAX_ICU_GOLOMB_PAR;
-		min_spill = MIN_ICU_SPILL;
+		min_golomb_par = MIN_NON_IMA_GOLOMB_PAR;
+		max_golomb_par = MAX_NON_IMA_GOLOMB_PAR;
+		min_spill = MIN_NON_IMA_SPILL;
 		max_spill = cmp_icu_max_spill(cmp_par);
 	}
 

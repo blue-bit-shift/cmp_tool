@@ -46,10 +46,10 @@
 #define MAX_RDCU_ROUND		2U
 /* for maximum spill value look at cmp_rdcu_max_spill function */
 
-/* valid compression parameter ranges for ICU compression */
-#define MIN_ICU_GOLOMB_PAR	1U
-#define MAX_ICU_GOLOMB_PAR	UINT16_MAX /* the compression entity dos not allow larger values */
-#define MIN_ICU_SPILL		2U
+/* valid compression parameter ranges for ICU non-imagette compression */
+#define MIN_NON_IMA_GOLOMB_PAR	1U
+#define MAX_NON_IMA_GOLOMB_PAR	UINT16_MAX /* the compression entity dos not allow larger values */
+#define MIN_NON_IMA_SPILL	2U
 /* for maximum spill value look at cmp_icu_max_spill function */
 #define MAX_ICU_ROUND		3U
 #define MAX_STUFF_CMP_PAR	32U

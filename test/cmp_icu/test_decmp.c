@@ -753,29 +753,29 @@ void test_random_compression_decompression(void)
 		cfg.golomb_par = my_random(MIN_IMA_GOLOMB_PAR, MAX_IMA_GOLOMB_PAR);
 		cfg.ap1_golomb_par = my_random(MIN_IMA_GOLOMB_PAR, MAX_IMA_GOLOMB_PAR);
 		cfg.ap2_golomb_par = my_random(MIN_IMA_GOLOMB_PAR, MAX_IMA_GOLOMB_PAR);
-		cfg.cmp_par_exp_flags = my_random(MIN_ICU_GOLOMB_PAR, MAX_ICU_GOLOMB_PAR);
-		cfg.cmp_par_fx = my_random(MIN_ICU_GOLOMB_PAR, MAX_ICU_GOLOMB_PAR);
-		cfg.cmp_par_ncob = my_random(MIN_ICU_GOLOMB_PAR, MAX_ICU_GOLOMB_PAR);
-		cfg.cmp_par_efx = my_random(MIN_ICU_GOLOMB_PAR, MAX_ICU_GOLOMB_PAR);
-		cfg.cmp_par_ecob = my_random(MIN_ICU_GOLOMB_PAR, MAX_ICU_GOLOMB_PAR);
-		cfg.cmp_par_fx_cob_variance = my_random(MIN_ICU_GOLOMB_PAR, MAX_ICU_GOLOMB_PAR);
-		cfg.cmp_par_mean = my_random(MIN_ICU_GOLOMB_PAR, MAX_ICU_GOLOMB_PAR);
-		cfg.cmp_par_variance = my_random(MIN_ICU_GOLOMB_PAR, MAX_ICU_GOLOMB_PAR);
-		cfg.cmp_par_pixels_error = my_random(MIN_ICU_GOLOMB_PAR, MAX_ICU_GOLOMB_PAR);
+		cfg.cmp_par_exp_flags = my_random(MIN_NON_IMA_GOLOMB_PAR, MAX_NON_IMA_GOLOMB_PAR);
+		cfg.cmp_par_fx = my_random(MIN_NON_IMA_GOLOMB_PAR, MAX_NON_IMA_GOLOMB_PAR);
+		cfg.cmp_par_ncob = my_random(MIN_NON_IMA_GOLOMB_PAR, MAX_NON_IMA_GOLOMB_PAR);
+		cfg.cmp_par_efx = my_random(MIN_NON_IMA_GOLOMB_PAR, MAX_NON_IMA_GOLOMB_PAR);
+		cfg.cmp_par_ecob = my_random(MIN_NON_IMA_GOLOMB_PAR, MAX_NON_IMA_GOLOMB_PAR);
+		cfg.cmp_par_fx_cob_variance = my_random(MIN_NON_IMA_GOLOMB_PAR, MAX_NON_IMA_GOLOMB_PAR);
+		cfg.cmp_par_mean = my_random(MIN_NON_IMA_GOLOMB_PAR, MAX_NON_IMA_GOLOMB_PAR);
+		cfg.cmp_par_variance = my_random(MIN_NON_IMA_GOLOMB_PAR, MAX_NON_IMA_GOLOMB_PAR);
+		cfg.cmp_par_pixels_error = my_random(MIN_NON_IMA_GOLOMB_PAR, MAX_NON_IMA_GOLOMB_PAR);
 
 		cfg.spill = my_random(MIN_IMA_SPILL, cmp_ima_max_spill(cfg.golomb_par));
 		cfg.ap1_spill = my_random(MIN_IMA_SPILL, cmp_ima_max_spill(cfg.ap1_golomb_par));
 		cfg.ap2_spill = my_random(MIN_IMA_SPILL, cmp_ima_max_spill(cfg.ap2_golomb_par));
 		if (!rdcu_supported_data_type_is_used(cfg.data_type)) {
-			cfg.spill_exp_flags = my_random(MIN_ICU_SPILL, cmp_icu_max_spill(cfg.cmp_par_exp_flags));
-			cfg.spill_fx = my_random(MIN_ICU_SPILL, cmp_icu_max_spill(cfg.cmp_par_fx));
-			cfg.spill_ncob = my_random(MIN_ICU_SPILL, cmp_icu_max_spill(cfg.cmp_par_ncob));
-			cfg.spill_efx = my_random(MIN_ICU_SPILL, cmp_icu_max_spill(cfg.cmp_par_efx));
-			cfg.spill_ecob = my_random(MIN_ICU_SPILL, cmp_icu_max_spill(cfg.cmp_par_ecob));
-			cfg.spill_fx_cob_variance = my_random(MIN_ICU_SPILL, cmp_icu_max_spill(cfg.cmp_par_fx_cob_variance));
-			cfg.spill_mean = my_random(MIN_ICU_SPILL, cmp_icu_max_spill(cfg.cmp_par_mean));
-			cfg.spill_variance = my_random(MIN_ICU_SPILL, cmp_icu_max_spill(cfg.cmp_par_variance));
-			cfg.spill_pixels_error = my_random(MIN_ICU_SPILL, cmp_icu_max_spill(cfg.cmp_par_pixels_error));
+			cfg.spill_exp_flags = my_random(MIN_NON_IMA_SPILL, cmp_icu_max_spill(cfg.cmp_par_exp_flags));
+			cfg.spill_fx = my_random(MIN_NON_IMA_SPILL, cmp_icu_max_spill(cfg.cmp_par_fx));
+			cfg.spill_ncob = my_random(MIN_NON_IMA_SPILL, cmp_icu_max_spill(cfg.cmp_par_ncob));
+			cfg.spill_efx = my_random(MIN_NON_IMA_SPILL, cmp_icu_max_spill(cfg.cmp_par_efx));
+			cfg.spill_ecob = my_random(MIN_NON_IMA_SPILL, cmp_icu_max_spill(cfg.cmp_par_ecob));
+			cfg.spill_fx_cob_variance = my_random(MIN_NON_IMA_SPILL, cmp_icu_max_spill(cfg.cmp_par_fx_cob_variance));
+			cfg.spill_mean = my_random(MIN_NON_IMA_SPILL, cmp_icu_max_spill(cfg.cmp_par_mean));
+			cfg.spill_variance = my_random(MIN_NON_IMA_SPILL, cmp_icu_max_spill(cfg.cmp_par_variance));
+			cfg.spill_pixels_error = my_random(MIN_NON_IMA_SPILL, cmp_icu_max_spill(cfg.cmp_par_pixels_error));
 		}
 
 		for (cfg.cmp_mode = CMP_MODE_RAW; cfg.cmp_mode < CMP_MODE_STUFF; cfg.cmp_mode++) {
