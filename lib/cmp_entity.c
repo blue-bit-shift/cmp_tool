@@ -1083,7 +1083,7 @@ uint64_t cmp_ent_get_end_timestamp(struct cmp_entity *ent)
 		return 0;
 
 #ifdef __LITTLE_ENDIAN
-	return be64_to_cpu(ent->end_timestamp << 16);
+	return be64_to_cpu(ent->end_timestamp) >> 16;
 #else
 	return ent->end_timestamp;
 #endif /* __LITTLE_ENDIAN */

@@ -51,7 +51,7 @@ void test_cmp_cal_size_of_data(void)
 
 void test_cmp_set_max_used_bits(void)
 {
-	struct cmp_max_used_bits set_max_used_bits;
+	struct cmp_max_used_bits set_max_used_bits = {0};
 	cmp_set_max_used_bits(&set_max_used_bits);
 	cmp_set_max_used_bits(NULL);
 }

@@ -328,7 +328,7 @@ void test_ent_end_timestamp(void)
 	TEST_ASSERT_FALSE(error);
 
 	end_timestamp_read = cmp_ent_get_end_timestamp(&ent);
-	TEST_ASSERT_EQUAL_UINT64(end_timestamp, end_timestamp_read);
+	TEST_ASSERT_EQUAL_HEX64(end_timestamp, end_timestamp_read);
 
 	/* check the right position in the header */
 	TEST_ASSERT_EQUAL_HEX(0x12, entity_p[16]);
