@@ -2028,6 +2028,7 @@ static int decompress_smearing(const struct cmp_cfg *cfg)
  *	compression)
  *
  * @returns the size of the decompressed data on success; returns negative on failure
+ * TODO: change return type to int32_t
  */
 
 static int decompressed_data_internal(struct cmp_cfg *cfg)

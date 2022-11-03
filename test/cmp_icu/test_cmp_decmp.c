@@ -14,7 +14,7 @@
  * more details.
  *
  * @brief random compression decompression test
- * @detail We generate random data and compress them with random parameters.
+ * @details We generate random data and compress them with random parameters.
  *	After that we put the data in a compression entity. We decompress the
  *	compression entity and compare the decompressed data with the original
  *	data.
@@ -41,7 +41,7 @@
 #define IMAX_BITS(m) ((m)/((m)%255+1) / 255%255*8 + 7-86/((m)%255+12))
 #define RAND_MAX_WIDTH IMAX_BITS(RAND_MAX)
 
-#define set_n_bits(n)  (n!=32?~(~0UL << (n)):0xFFFFFFFF)
+#define set_n_bits(n)  (n != 32 ? ~(~0UL << (n)):0xFFFFFFFF)
 
 
 /**
@@ -493,7 +493,7 @@ void compression_decompression(struct cmp_cfg *cfg)
 	int data_size, cmp_data_size;
 	struct cmp_entity *ent;
 	void *decompressed_data;
-	static void *model_of_data = NULL;
+	static void *model_of_data;
 	void *updated_model = NULL;
 
 	if (!cfg) {
@@ -568,7 +568,7 @@ void compression_decompression(struct cmp_cfg *cfg)
 
 /**
  * @brief random compression decompression test
- * @detail We generate random data and compress them with random parameters.
+ * @details We generate random data and compress them with random parameters.
  *	After that we put the data in a compression entity. We decompress the
  *	compression entity and compare the decompressed data with the original
  *	data.
@@ -659,9 +659,8 @@ void test_random_compression_decompression2(void)
 	s = decompress_rdcu_data(compressed_data, &info, NULL, NULL, decompressed_data);
 	TEST_ASSERT(s > 0);
 
-	for (i = 0; i < N_SAMPLES; i++) {
+	for (i = 0; i < N_SAMPLES; i++)
 		TEST_ASSERT_EQUAL_HEX16(data[i], decompressed_data[i]);
-	}
 
 
 	free(compressed_data);
