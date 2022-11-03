@@ -91,7 +91,7 @@
 #define CMP_DEF_IMA_DIFF_RDCU_UP_MODEL_ADR	0x000000 /* not needed for 1d-differencing cmp_mode */
 #define CMP_DEF_IMA_DIFF_RDCU_BUFFER_ADR	0x600000
 
-enum {ICU_CHECK, RDCU_CHECK}; /* option for the cmp_cfg_imagette_is_invalid() function */
+enum check_opt {ICU_CHECK, RDCU_CHECK}; /* options for configuration check functions */
 
 
 /* defined compression data product types */
@@ -249,10 +249,10 @@ int ilog_2(uint32_t x);
 
 unsigned int cmp_bit_to_4byte(unsigned int cmp_size_bit);
 
-int cmp_cfg_is_invalid(const struct cmp_cfg *cfg);
-int cmp_cfg_icu_gen_par_is_invalid(const struct cmp_cfg *cfg);
+int cmp_cfg_icu_is_invalid(const struct cmp_cfg *cfg);
+int cmp_cfg_gen_par_is_invalid(const struct cmp_cfg *cfg, enum check_opt opt);
 int cmp_cfg_icu_buffers_is_invalid(const struct cmp_cfg *cfg);
-int cmp_cfg_imagette_is_invalid(const struct cmp_cfg *cfg, int rdcu_check);
+int cmp_cfg_imagette_is_invalid(const struct cmp_cfg *cfg, enum check_opt opt);
 int cmp_cfg_fx_cob_is_invalid(const struct cmp_cfg *cfg);
 int cmp_cfg_aux_is_invalid(const struct cmp_cfg *cfg);
 uint32_t cmp_ima_max_spill(unsigned int golomb_par);

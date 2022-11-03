@@ -4418,7 +4418,7 @@ void test_support_function_call_NULL(void)
 	TEST_ASSERT_TRUE(cmp_cfg_imagette_is_invalid(NULL, ICU_CHECK));
 	TEST_ASSERT_TRUE(cmp_cfg_fx_cob_is_invalid(NULL));
 	TEST_ASSERT_TRUE(cmp_cfg_aux_is_invalid(NULL));
-	TEST_ASSERT_TRUE(cmp_cfg_is_invalid(NULL));
+	TEST_ASSERT_TRUE(cmp_cfg_icu_is_invalid(NULL));
 	TEST_ASSERT_TRUE(cmp_cfg_fx_cob_get_need_pars(DATA_TYPE_S_FX, NULL));
 }
 

@@ -441,43 +441,76 @@ unsigned int cmp_bit_to_4byte(unsigned int cmp_size_bit)
 
 /**
  * @brief check if the compression data type, compression mode, model value and
- *	the lossy rounding parameters are invalid for a ICU compression
+ *	the lossy rounding parameters are invalid for a RDCU or ICU compression
  *
- * @param cfg	pointer to the compressor configuration
+ * @param cfg	pointer to a compression configuration containing the compression
+ *	data product type, compression mode, model value and the rounding parameters
+ * @param opt		check options:
+ *			RDCU_CHECK for RDCU compression check
+ *			ICU_CHECK for ICU compression check
  *
- * @returns 0 if generic compression parameters are valid, otherwise invalid
+ * @returns 0 if the compression data type, compression mode, model value and
+ *	the lossy rounding parameters are valid for an RDCU or ICU compression,
+ *	non-zero if parameters are invalid
  */
 
-int cmp_cfg_icu_gen_par_is_invalid(const struct cmp_cfg *cfg)
+int cmp_cfg_gen_par_is_invalid(const struct cmp_cfg *cfg, enum check_opt opt)
 {
 	int cfg_invalid = 0;
+	int invalid_data_type;
+	int unsupported_cmp_mode;
+	int check_model_value;
+	uint32_t max_round_value;
+	char *str = "";
 
 	if (!cfg)
-		return 0;
+		return 1;
 
-	if (cmp_data_type_is_invalid(cfg->data_type)) {
-		debug_print("Error: selected compression data type is not supported.\n");
+	switch (opt) {
+	case RDCU_CHECK:
+		/* the RDCU can only compress imagette data */
+		invalid_data_type = !cmp_imagette_data_type_is_used(cfg->data_type);
+		unsupported_cmp_mode = !rdcu_supported_cmp_mode_is_used(cfg->cmp_mode);
+		max_round_value = MAX_RDCU_ROUND;
+		/* for the RDCU the model vale has to be always in the allowed range */
+		check_model_value = 1;
+		str = " for a RDCU compression";
+		break;
+	case ICU_CHECK:
+		invalid_data_type = cmp_data_type_is_invalid(cfg->data_type);
+		unsupported_cmp_mode = !cmp_mode_is_supported(cfg->cmp_mode);
+		max_round_value = MAX_ICU_ROUND;
+		check_model_value = model_mode_is_used(cfg->cmp_mode);
+		break;
+	}
+
+	if (invalid_data_type) {
+		debug_print("Error: selected compression data type is not supported%s.\n", str);
 		cfg_invalid++;
 	}
 
-	if (cfg->cmp_mode > CMP_MODE_STUFF) {
-		debug_print("Error: selected cmp_mode: %i is not supported.\n", cfg->cmp_mode);
+	if (unsupported_cmp_mode) {
+		debug_print("Error: selected cmp_mode: %i is not supported%s.\n", cfg->cmp_mode, str);
 		cfg_invalid++;
 	}
 
-	if (model_mode_is_used(cfg->cmp_mode)) {
+	if (check_model_value) {
 		if (cfg->model_value > MAX_MODEL_VALUE) {
-			debug_print("Error: selected model_value: %" PRIu32 " is invalid. Largest supported value is: %u.\n",
+			debug_print("Error: selected model_value: %" PRIu32 " is invalid. The largest supported value is: %u.\n",
 				    cfg->model_value, MAX_MODEL_VALUE);
 			cfg_invalid++;
 		}
 	}
 
-	if (cfg->round > MAX_ICU_ROUND) {
-		debug_print("Error: selected lossy parameter: %" PRIu32 " is not supported. Largest supported value is: %u.\n",
-			    cfg->round, MAX_ICU_ROUND);
+	if (cfg->round > max_round_value) {
+		debug_print("Error: selected lossy parameter: %" PRIu32 " is not supported%s. The largest supported value is: %u.\n",
+			    cfg->round, str, max_round_value);
 		cfg_invalid++;
 	}
+
+#ifdef SKIP_CMP_PAR_CHECK
+	return 0;
+#endif
 
 	return cfg_invalid;
 }
@@ -496,7 +529,7 @@ int cmp_cfg_icu_buffers_is_invalid(const struct cmp_cfg *cfg)
 	int cfg_invalid = 0;
 
 	if (!cfg)
-		return 0;
+		return 1;
 
 	if (cfg->input_buf == NULL) {
 		debug_print("Error: The data_to_compress buffer for the data to be compressed is NULL.\n");
@@ -578,9 +611,6 @@ static int cmp_pars_are_invalid(uint32_t cmp_par, uint32_t spill, enum cmp_mode 
 	uint32_t min_spill;
 	uint32_t max_spill;
 
-	if (!par_name)
-		par_name = "";
-
 	/* The maximum compression parameter for imagette data are smaller to
 	 * fit into the imagette compression entity header */
 	if (cmp_imagette_data_type_is_used(data_type)) {
@@ -605,17 +635,17 @@ static int cmp_pars_are_invalid(uint32_t cmp_par, uint32_t spill, enum cmp_mode 
 	case CMP_MODE_MODEL_ZERO:
 	case CMP_MODE_MODEL_MULTI:
 		if (cmp_par < min_golomb_par || cmp_par > max_golomb_par) {
-			debug_print("Error: The selected %s compression parameter: %" PRIu32 " is not supported. The compression parameter has to be between [%" PRIu32 ", %" PRIu32 "].\n",
+			debug_print("Error: The selected %s compression parameter: %" PRIu32 " is not supported in the selected compression mode. The compression parameter has to be between [%" PRIu32 ", %" PRIu32 "] in this mode.\n",
 				    par_name, cmp_par, min_golomb_par, max_golomb_par);
 			cfg_invalid++;
 		}
 		if (spill < min_spill) {
-			debug_print("Error: The selected %s spillover threshold value: %" PRIu32 " is too small. Smallest possible spillover value is: %" PRIu32 ".\n",
+			debug_print("Error: The selected %s spillover threshold value: %" PRIu32 " is too small. The smallest possible spillover value is: %" PRIu32 ".\n",
 				    par_name, spill, min_spill);
 			cfg_invalid++;
 		}
 		if (spill > max_spill) {
-			debug_print("Error: The selected %s spillover threshold value: %" PRIu32 " is too large for the selected %s compression parameter: %" PRIu32 ", the largest possible spillover value in the selected compression mode is: %" PRIu32 ".\n",
+			debug_print("Error: The selected %s spillover threshold value: %" PRIu32 " is too large for the selected %s compression parameter: %" PRIu32 ". The largest possible spillover value in the selected compression mode is: %" PRIu32 ".\n",
 				    par_name, spill, par_name, cmp_par, max_spill);
 			cfg_invalid++;
 		}
@@ -623,7 +653,7 @@ static int cmp_pars_are_invalid(uint32_t cmp_par, uint32_t spill, enum cmp_mode 
 		break;
 	case CMP_MODE_STUFF:
 		if (cmp_par > MAX_STUFF_CMP_PAR) {
-			debug_print("Error: The selected %s stuff mode compression parameter: %" PRIu32 " is too large, the largest possible value in the selected compression mode is: %u.\n",
+			debug_print("Error: The selected %s stuff mode compression parameter: %" PRIu32 " is too large. The largest possible value in the selected compression mode is: %u.\n",
 				    par_name, cmp_par, MAX_STUFF_CMP_PAR);
 			cfg_invalid++;
 		}
@@ -642,19 +672,20 @@ static int cmp_pars_are_invalid(uint32_t cmp_par, uint32_t spill, enum cmp_mode 
  * @brief check if the imagette specific compression parameters are invalid
  *
  * @param cfg		pointer to the compressor configuration
- * @param rdcu_check	set to non-zero if a check for a imagette RDCU compression
- *			should be done; zero for imagette ICU compression
+ * @param opt		check options:
+ *			RDCU_CHECK for a imagette RDCU compression check
+ *			ICU_CHECK for a imagette ICU compression check
  *
  * @returns 0 if the imagette specific parameters are valid, otherwise invalid
  */
 
-int cmp_cfg_imagette_is_invalid(const struct cmp_cfg *cfg, int rdcu_check)
+int cmp_cfg_imagette_is_invalid(const struct cmp_cfg *cfg, enum check_opt opt)
 {
 	int cfg_invalid = 0;
 	enum cmp_mode cmp_mode;
 
 	if (!cfg)
-		return 0;
+		return 1;
 
 	if (!cmp_imagette_data_type_is_used(cfg->data_type)) {
 		debug_print("Error: The compression data type is not an imagette compression data type.\n");
@@ -662,7 +693,7 @@ int cmp_cfg_imagette_is_invalid(const struct cmp_cfg *cfg, int rdcu_check)
 	}
 
 	/* The RDCU needs valid compression parameters also in RAW_MODE */
-	if (rdcu_check && cfg->cmp_mode == CMP_MODE_RAW)
+	if (opt == RDCU_CHECK && cfg->cmp_mode == CMP_MODE_RAW)
 		cmp_mode = CMP_MODE_MODEL_ZERO;
 	else
 		cmp_mode = cfg->cmp_mode;
@@ -671,7 +702,7 @@ int cmp_cfg_imagette_is_invalid(const struct cmp_cfg *cfg, int rdcu_check)
 					    cfg->data_type, "imagette");
 
 	/* for the RDCU the adaptive parameters have to be always valid */
-	if (rdcu_check || cmp_ap_imagette_data_type_is_used(cfg->data_type)) {
+	if (opt == RDCU_CHECK || cmp_ap_imagette_data_type_is_used(cfg->data_type)) {
 		cfg_invalid += cmp_pars_are_invalid(cfg->ap1_golomb_par, cfg->ap1_spill,
 				cmp_mode, cfg->data_type, "adaptive 1 imagette");
 		cfg_invalid += cmp_pars_are_invalid(cfg->ap2_golomb_par, cfg->ap2_spill,
@@ -783,7 +814,7 @@ int cmp_cfg_fx_cob_is_invalid(const struct cmp_cfg *cfg)
 	struct fx_cob_par needed_pars;
 
 	if (!cfg)
-		return 0;
+		return 1;
 
 	if (!cmp_fx_cob_data_type_is_used(cfg->data_type)) {
 		debug_print("Error: The compression data type is not a flux/center of brightness compression data type.\n");
@@ -792,7 +823,7 @@ int cmp_cfg_fx_cob_is_invalid(const struct cmp_cfg *cfg)
 
 	cmp_cfg_fx_cob_get_need_pars(cfg->data_type, &needed_pars);
 
-	if (needed_pars.fx)
+	if (needed_pars.fx) /* this is always true because every flux/center of brightness  data type contains a flux parameter */
 		cfg_invalid += cmp_pars_are_invalid(cfg->cmp_par_fx, cfg->spill_fx,
 						    cfg->cmp_mode, cfg->data_type, "flux");
 	if (needed_pars.exp_flags)
@@ -830,7 +861,7 @@ int cmp_cfg_aux_is_invalid(const struct cmp_cfg *cfg)
 	int cfg_invalid = 0;
 
 	if (!cfg)
-		return 0;
+		return 1;
 
 	if (!cmp_aux_data_type_is_used(cfg->data_type)) {
 		debug_print("Error: The compression data type is not an auxiliary science compression data type.\n");
@@ -852,21 +883,21 @@ int cmp_cfg_aux_is_invalid(const struct cmp_cfg *cfg)
 
 
 /**
- * @brief check if a compression configuration is invalid
+ * @brief check if a compression configuration is invalid for ICU compression
  *
  * @param cfg	pointer to the compressor configuration
  *
  * @returns 0 if the compression configuration is valid, otherwise invalid
  */
 
-int cmp_cfg_is_invalid(const struct cmp_cfg *cfg)
+int cmp_cfg_icu_is_invalid(const struct cmp_cfg *cfg)
 {
 	int cfg_invalid = 0;
 
 	if (!cfg)
-		return 0;
+		return 1;
 
-	cfg_invalid += cmp_cfg_icu_gen_par_is_invalid(cfg);
+	cfg_invalid += cmp_cfg_gen_par_is_invalid(cfg, ICU_CHECK);
 
 	cfg_invalid += cmp_cfg_icu_buffers_is_invalid(cfg);
 

@@ -88,7 +88,7 @@ struct cmp_cfg cmp_cfg_icu_create(enum cmp_data_type data_type, enum cmp_mode cm
 	cfg.model_value = model_value;
 	cfg.round = lossy_par;
 
-	if (cmp_cfg_icu_gen_par_is_invalid(&cfg))
+	if (cmp_cfg_gen_par_is_invalid(&cfg, ICU_CHECK))
 		cfg.data_type = DATA_TYPE_UNKNOWN;
 
 	return cfg;
@@ -171,10 +171,7 @@ int cmp_cfg_icu_imagette(struct cmp_cfg *cfg, uint32_t cmp_par,
 	cfg->golomb_par = cmp_par;
 	cfg->spill = spillover_par;
 
-	if (cmp_cfg_imagette_is_invalid(cfg, ICU_CHECK))
-		return -1;
-
-	return 0;
+	return cmp_cfg_imagette_is_invalid(cfg, ICU_CHECK);
 }
 
 
@@ -225,10 +222,7 @@ int cmp_cfg_fx_cob(struct cmp_cfg *cfg,
 	cfg->spill_ecob = spillover_ecob;
 	cfg->spill_fx_cob_variance = spillover_fx_cob_variance;
 
-	if (cmp_cfg_fx_cob_is_invalid(cfg))
-		return -1;
-
-	return 0;
+	return cmp_cfg_fx_cob_is_invalid(cfg);
 }
 
 
@@ -266,10 +260,7 @@ int cmp_cfg_aux(struct cmp_cfg *cfg,
 	cfg->spill_variance = spillover_variance;
 	cfg->spill_pixels_error = spillover_pixels_error;
 
-	if (cmp_cfg_aux_is_invalid(cfg))
-		return -1;
-
-	return 0;
+	return cmp_cfg_aux_is_invalid(cfg);
 }
 
 
@@ -2347,7 +2338,7 @@ int icu_compress_data(const struct cmp_cfg *cfg)
 		if (cfg->samples > cfg->buffer_length)
 			return CMP_ERROR_SMALL_BUF;
 
-	if (cmp_cfg_is_invalid(cfg))
+	if (cmp_cfg_icu_is_invalid(cfg))
 		return -1;
 
 	if (raw_mode_is_used(cfg->cmp_mode)) {
