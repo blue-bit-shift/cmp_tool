@@ -503,7 +503,7 @@ int cmp_cfg_gen_par_is_invalid(const struct cmp_cfg *cfg, enum check_opt opt)
 	}
 
 	if (cfg->round > max_round_value) {
-		debug_print("Error: selected lossy parameter: %" PRIu32 " is not supported%s. The largest supported value is: %u.\n",
+		debug_print("Error: selected lossy parameter: %" PRIu32 " is not supported%s. The largest supported value is: %" PRIu32 ".\n",
 			    cfg->round, str, max_round_value);
 		cfg_invalid++;
 	}
