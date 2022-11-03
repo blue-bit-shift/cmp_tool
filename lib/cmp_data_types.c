@@ -194,7 +194,7 @@ size_t size_of_a_sample(enum cmp_data_type data_type)
  * @returns the size in bytes to store the data sample; zero on failure
  */
 
-unsigned int cmp_cal_size_of_data(unsigned int samples, enum cmp_data_type data_type)
+uint32_t cmp_cal_size_of_data(uint32_t samples, enum cmp_data_type data_type)
 {
 	size_t s = size_of_a_sample(data_type);
 	uint64_t x; /* use 64 bit to catch overflow */
@@ -224,7 +224,7 @@ unsigned int cmp_cal_size_of_data(unsigned int samples, enum cmp_data_type data_
  * @returns the number samples for the given compression mode; negative on error
  */
 
-int cmp_input_size_to_samples(unsigned int size, enum cmp_data_type data_type)
+int32_t cmp_input_size_to_samples(uint32_t size, enum cmp_data_type data_type)
 {
 	uint32_t samples_size = size_of_a_sample(data_type);
 
@@ -462,7 +462,7 @@ static void be_to_cpus_f_fx_efx_ncob_ecob(struct f_fx_efx_ncob_ecob *a, int samp
 int cmp_input_big_to_cpu_endianness(void *data, uint32_t data_size_byte,
 				    enum cmp_data_type data_type)
 {
-	int samples = cmp_input_size_to_samples(data_size_byte, data_type);
+	int32_t samples = cmp_input_size_to_samples(data_size_byte, data_type);
 
 	if (!data) /* nothing to do */
 		return 0;
@@ -533,10 +533,12 @@ int cmp_input_big_to_cpu_endianness(void *data, uint32_t data_size_byte,
 	/* TODO: implement F_CAM conversion */
 	case DATA_TYPE_F_CAM_OFFSET:
 	case DATA_TYPE_F_CAM_BACKGROUND:
+	/* LCOV_EXCL_START */
 	case DATA_TYPE_UNKNOWN:
 	default:
 		debug_print("Error: Can not swap endianness for this compression data type.\n");
 		return -1;
+	/* LCOV_EXCL_STOP */
 	}
 
 	return 0;

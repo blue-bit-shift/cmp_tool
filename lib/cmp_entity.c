@@ -2145,7 +2145,7 @@ size_t cmp_ent_build(struct cmp_entity *ent, uint32_t version_id,
 
 int cmp_ent_read_header(struct cmp_entity *ent, struct cmp_cfg *cfg)
 {
-	int samples;
+	int32_t samples;
 
 	if (!cfg)
 		return -1;
@@ -2172,7 +2172,7 @@ int cmp_ent_read_header(struct cmp_entity *ent, struct cmp_cfg *cfg)
 		return -1;
 	}
 
-	cfg->samples = samples;
+	cfg->samples = (uint32_t)samples;
 
 	cfg->icu_output_buf = cmp_ent_get_data_buf(ent);
 
@@ -2532,7 +2532,7 @@ static void cmp_ent_parese_specific_header(struct cmp_entity *ent)
 	enum cmp_data_type data_type = cmp_ent_get_data_type(ent);
 
 	if (cmp_ent_get_data_type_raw_bit(ent)) {
-		debug_print("Uncompressed data bit is set no specific header is used.\n");
+		debug_print("Uncompressed data bit is set. No specific header is used.\n");
 		return;
 	}
 

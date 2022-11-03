@@ -329,11 +329,11 @@ int main(int argc, char **argv)
 		printf("Importing data file %s ... ", data_file_name);
 		/* count the samples in the data file when samples == 0 */
 		if (cfg.samples == 0) {
-			int samples;
+			int32_t samples;
 			size = read_file_data(data_file_name, cfg.data_type, NULL, 0, 0);
 			if (size <= 0 || size > UINT32_MAX) /* empty file is treated as an error */
 				goto fail;
-			samples = cmp_input_size_to_samples(size, cfg.data_type);
+			samples = cmp_input_size_to_samples((uint32_t)size, cfg.data_type);
 			if (samples < 0)
 				goto fail;
 			cfg.samples = (uint32_t)samples;

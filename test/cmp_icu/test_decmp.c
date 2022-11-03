@@ -703,7 +703,7 @@ void test_s_fx_model(void)
 void generate_random_test_data(void *data, int samples,
 			       enum cmp_data_type data_type)
 {
-	int s = cmp_cal_size_of_data(samples, data_type);
+	uint32_t s = cmp_cal_size_of_data(samples, data_type);
 	memset(data, 0x0, s);
 }
 

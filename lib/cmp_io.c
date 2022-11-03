@@ -1397,7 +1397,8 @@ ssize_t read_file_data(const char *file_name, enum cmp_data_type data_type,
 		       void *buf, uint32_t buf_size, int verbose_en)
 {
 	ssize_t size;
-	int samples, err;
+	int32_t samples;
+	int err;
 
 	size = read_file8(file_name, (uint8_t *)buf, buf_size, verbose_en);
 
