@@ -18,7 +18,6 @@
 
 
 #include <stdint.h>
-#include <stdio.h>
 #include <limits.h>
 
 
@@ -67,10 +66,10 @@ struct cmp_max_used_bits max_used_bits = {
 
 
 /**
- * @brief sets the maximum length of the different data products types
+ * @brief sets the maximum length of the different data product types
  *
  * @param set_max_used_bits	pointer to a structure with the maximum length
- *				of the different data products types in bits
+ *				of the different data product types in bits
  */
 
 void cmp_set_max_used_bits(const struct cmp_max_used_bits *set_max_used_bits)
@@ -81,10 +80,10 @@ void cmp_set_max_used_bits(const struct cmp_max_used_bits *set_max_used_bits)
 
 
 /**
- * @brief get the maximum length of the different data products types
+ * @brief get the maximum length of the different data product types
  *
  * @returns a structure with the used maximum length of the different data
- *	products types in bits
+ *	product types in bits
  */
 
 struct cmp_max_used_bits cmp_get_max_used_bits(void)

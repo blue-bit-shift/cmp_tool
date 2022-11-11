@@ -372,7 +372,7 @@ unsigned int cmp_up_model(unsigned int data, unsigned int model,
 
 
 /**
- * @brief get the maximum valid spill threshold value for a RDCU HW imagette
+ * @brief get the maximum valid spill threshold value for a imagette
  *	compression in diff or model mode
  *
  * @param golomb_par	Golomb parameter
@@ -400,7 +400,7 @@ uint32_t cmp_ima_max_spill(unsigned int golomb_par)
 
 
 /**
- * @brief get the maximum valid spill threshold value for a ICU SW compression
+ * @brief get the maximum valid spill threshold value for a non-imagette compression
  *	in diff or model mode
  *
  * @param cmp_par	compression parameter
@@ -457,10 +457,10 @@ unsigned int cmp_bit_to_4byte(unsigned int cmp_size_bit)
 int cmp_cfg_gen_par_is_invalid(const struct cmp_cfg *cfg, enum check_opt opt)
 {
 	int cfg_invalid = 0;
-	int invalid_data_type;
-	int unsupported_cmp_mode;
-	int check_model_value;
-	uint32_t max_round_value;
+	int invalid_data_type = 1;
+	int unsupported_cmp_mode = 1;
+	int check_model_value = 1;
+	uint32_t max_round_value = 0;
 	char *str = "";
 
 	if (!cfg)
@@ -517,7 +517,7 @@ int cmp_cfg_gen_par_is_invalid(const struct cmp_cfg *cfg, enum check_opt opt)
 
 
 /**
- * @brief check if the buffer parameters are invalid
+ * @brief check if the ICU buffer parameters are invalid
  *
  * @param cfg	pointer to the compressor configuration
  *
@@ -671,7 +671,7 @@ static int cmp_pars_are_invalid(uint32_t cmp_par, uint32_t spill, enum cmp_mode 
 /**
  * @brief check if the imagette specific compression parameters are invalid
  *
- * @param cfg		pointer to the compressor configuration
+ * @param cfg		pointer to a compressor configuration
  * @param opt		check options:
  *			RDCU_CHECK for a imagette RDCU compression check
  *			ICU_CHECK for a imagette ICU compression check
@@ -823,7 +823,7 @@ int cmp_cfg_fx_cob_is_invalid(const struct cmp_cfg *cfg)
 
 	cmp_cfg_fx_cob_get_need_pars(cfg->data_type, &needed_pars);
 
-	if (needed_pars.fx) /* this is always true because every flux/center of brightness  data type contains a flux parameter */
+	if (needed_pars.fx) /* this is always true because every flux/center of brightness data type contains a flux parameter */
 		cfg_invalid += cmp_pars_are_invalid(cfg->cmp_par_fx, cfg->spill_fx,
 						    cfg->cmp_mode, cfg->data_type, "flux");
 	if (needed_pars.exp_flags)
@@ -883,9 +883,9 @@ int cmp_cfg_aux_is_invalid(const struct cmp_cfg *cfg)
 
 
 /**
- * @brief check if a compression configuration is invalid for ICU compression
+ * @brief check if a compression configuration is invalid for a ICU compression
  *
- * @param cfg	pointer to the compressor configuration
+ * @param cfg	pointer to a compressor configuration
  *
  * @returns 0 if the compression configuration is valid, otherwise invalid
  */

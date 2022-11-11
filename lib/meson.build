@@ -9,6 +9,7 @@ cmplib_sources = files([
   'decmp.c',
   'rdcu_pkt_to_file.c',
   'cmp_guess.c',
+  'cmp_rdcu_cfg.c',
   'cmp_rdcu.c',
   'rdcu_cmd.c',
   'rdcu_rmap.c'

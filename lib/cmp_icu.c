@@ -51,7 +51,7 @@ typedef uint32_t (*generate_cw_f_pt)(uint32_t value, uint32_t encoder_par1,
 
 /* structure to hold a setup to encode a value */
 struct encoder_setupt {
-	generate_cw_f_pt generate_cw_f; /* pointer to the code word encoder */
+	generate_cw_f_pt generate_cw_f; /* function pointer to a code word encoder */
 	int (*encode_method_f)(uint32_t data, uint32_t model, int stream_len,
 			       const struct encoder_setupt *setup); /* pointer to the encoding function */
 	uint32_t *bitstream_adr; /* start address of the compressed data bitstream */
@@ -122,7 +122,7 @@ uint32_t cmp_cfg_icu_buffers(struct cmp_cfg *cfg, void *data_to_compress,
 			     void *updated_model, uint32_t *compressed_data,
 			     uint32_t compressed_data_len_samples)
 {
-	uint32_t data_size, hdr_size;
+	uint32_t cmp_data_size, hdr_size;
 
 	if (!cfg) {
 		debug_print("Error: pointer to the compression configuration structure is NULL.\n");
@@ -139,15 +139,15 @@ uint32_t cmp_cfg_icu_buffers(struct cmp_cfg *cfg, void *data_to_compress,
 	if (cmp_cfg_icu_buffers_is_invalid(cfg))
 		return 0;
 
-	data_size = cmp_cal_size_of_data(compressed_data_len_samples, cfg->data_type);
+	cmp_data_size = cmp_cal_size_of_data(compressed_data_len_samples, cfg->data_type);
 	hdr_size = cmp_ent_cal_hdr_size(cfg->data_type, cfg->cmp_mode == CMP_MODE_RAW);
 
-	if ((data_size + hdr_size) > CMP_ENTITY_MAX_SIZE || data_size > CMP_ENTITY_MAX_SIZE) {
+	if ((cmp_data_size + hdr_size) > CMP_ENTITY_MAX_SIZE || cmp_data_size > CMP_ENTITY_MAX_SIZE) {
 		debug_print("Error: The buffer for the compressed data is too large to fit in a compression entity.\n");
 		return 0;
 	}
 
-	return data_size;
+	return cmp_data_size;
 }
 
 

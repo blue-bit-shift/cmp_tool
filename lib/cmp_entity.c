@@ -1928,8 +1928,7 @@ int cmp_ent_write_cmp_pars(struct cmp_entity *ent, const struct cmp_cfg *cfg,
 		break;
 	case DATA_TYPE_F_CAM_OFFSET:
 	case DATA_TYPE_F_CAM_BACKGROUND:
-		/* TODO: fix this*/
-		/* fall through */
+		/* TODO: implement this*/
 	case DATA_TYPE_UNKNOWN:
 	default:
 		return -1;
@@ -1977,7 +1976,7 @@ int cmp_ent_write_rdcu_cmp_pars(struct cmp_entity *ent, const struct cmp_info *i
 	}
 
 	if (cmp_ent_get_data_type_raw_bit(ent) != raw_mode_is_used(info->cmp_mode_used)) {
-		debug_print("Error: The raw bit is set in data product type filed, but no raw compression mode is used.\n");
+		debug_print("Error: The entity's raw data bit does not match up with the compression mode.\n");
 		return -1;
 	}
 
@@ -2292,8 +2291,8 @@ static time_t my_timegm(struct tm *tm)
 /*
  * @brief Generate a timestamp for the compression header
  *
- * @param ts	pointer to an object of type struct timespec of the timestamp
- *	time, null for now
+ * @param ts	pointer to an object of type struct timespec of the 
+ *	timestamp time, NULL for now
  *
  * @returns returns compression header timestamp or 0 on error
  */

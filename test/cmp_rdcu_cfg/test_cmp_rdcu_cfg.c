@@ -1,5 +1,5 @@
 /**
- * @file test_cmp_rdcu.c
+ * @file test_cmp_rdcu_cfg.c
  * @author Dominik Loidolt (dominik.loidolt@univie.ac.at),
  * @date   2022
  *
@@ -13,13 +13,13 @@
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
  * more details.
  *
- * @brief hardware compressor control library tests
+ * @brief hardware compressor configuration tests
  */
 
 #include <stdint.h>
 
 #include <unity.h>
-#include <cmp_rdcu.h>
+#include <cmp_rdcu_cfg.h>
 #include <rdcu_cmd.h>
 
 
