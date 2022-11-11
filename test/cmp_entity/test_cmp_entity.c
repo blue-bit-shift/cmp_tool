@@ -2156,6 +2156,7 @@ void test_cmp_ent_write_rdcu_cmp_pars(void)
 	/* golomb_par to high */
 	info.golomb_par_used = 0x100;
 	error = cmp_ent_write_rdcu_cmp_pars(ent, &info, &cfg);
+	TEST_ASSERT_TRUE(error);
 	info.golomb_par_used = 0xFF;
 	/* this should work */
 	error = cmp_ent_write_rdcu_cmp_pars(ent, &info, &cfg);

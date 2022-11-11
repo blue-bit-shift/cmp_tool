@@ -9,4 +9,4 @@ test_cmp_rdcu_cfg = executable('test_cmp_rdcu_cfg',
    build_by_default : false
 )
 
-test('Hardware Compressor Configuration Library Tests', test_cmp_rdcu_cfg)
+test('Hardware Compressor Configuration Tests', test_cmp_rdcu_cfg)
