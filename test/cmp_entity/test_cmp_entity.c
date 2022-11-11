@@ -17,7 +17,7 @@
  */
 
 
-#include <stdlib.h>
+#include <string.h>
 #if defined __has_include
 #  if __has_include(<time.h>)
 #    include <time.h>
@@ -29,8 +29,6 @@
 #include <unity.h>
 
 #include <cmp_entity.h>
-#include <cmp_io.h>
-#include <cmp_icu.h>
 #include <cmp_data_types.h>
 
 

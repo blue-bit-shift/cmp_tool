@@ -21,7 +21,6 @@
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
 #include <cmp_data_types.h>
 #include <cmp_icu.h>

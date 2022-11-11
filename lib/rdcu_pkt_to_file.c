@@ -28,6 +28,7 @@
 #include <errno.h>
 #include <sys/stat.h>
 
+#include <cmp_support.h>
 #include <rdcu_pkt_to_file.h>
 #include <cmp_rdcu_extended.h>
 #include <rdcu_rmap.h>

@@ -23,7 +23,6 @@
 #include <stdlib.h>
 #include <limits.h>
 #include <getopt.h>
-#include <time.h>
 
 #include "cmp_tool-config.h"
 #include "cmp_io.h"
