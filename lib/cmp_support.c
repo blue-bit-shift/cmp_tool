@@ -321,7 +321,7 @@ int cmp_aux_data_type_is_used(enum cmp_data_type data_type)
  * @return rounded value
  */
 
-unsigned int round_fwd(unsigned int value, unsigned int round)
+inline  __attribute__((always_inline)) uint32_t round_fwd(uint32_t value, unsigned int round)
 {
 	return value >> round;
 }
@@ -336,7 +336,7 @@ unsigned int round_fwd(unsigned int value, unsigned int round)
  * @return back rounded value
  */
 
-unsigned int round_inv(unsigned int value, unsigned int round)
+inline __attribute__((always_inline)) uint32_t round_inv(uint32_t value, unsigned int round)
 {
 	return value << round;
 }

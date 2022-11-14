@@ -273,8 +273,8 @@ int rdcu_supported_cmp_mode_is_used(enum cmp_mode cmp_mode);
 int zero_escape_mech_is_used(enum cmp_mode cmp_mode);
 int multi_escape_mech_is_used(enum cmp_mode cmp_mode);
 
-unsigned int round_fwd(unsigned int value, unsigned int round);
-unsigned int round_inv(unsigned int value, unsigned int round);
+uint32_t round_fwd(uint32_t value, unsigned int round);
+uint32_t round_inv(uint32_t value, unsigned int round);
 unsigned int cmp_up_model(unsigned int data, unsigned int model,
 			  unsigned int model_value, unsigned int round);
 
