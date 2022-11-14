@@ -313,36 +313,6 @@ int cmp_aux_data_type_is_used(enum cmp_data_type data_type)
 
 
 /**
- * @brief method for lossy rounding
- *
- * @param value	the value to round
- * @param round	rounding parameter
- *
- * @return rounded value
- */
-
-inline  __attribute__((always_inline)) uint32_t round_fwd(uint32_t value, unsigned int round)
-{
-	return value >> round;
-}
-
-
-/**
- * @brief inverse method for lossy rounding
- *
- * @param value	the value to round back
- * @param round	rounding parameter
- *
- * @return back rounded value
- */
-
-inline __attribute__((always_inline)) uint32_t round_inv(uint32_t value, unsigned int round)
-{
-	return value << round;
-}
-
-
-/**
  * @brief implantation of the model update equation
  * @note check before that model_value is not greater than MAX_MODEL_VALUE
  *
