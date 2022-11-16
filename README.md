@@ -1,8 +1,8 @@
 # PLATO Compression/Decompression Tool
 
-If you find a bug or have a feature request please file an [issue][1] or send
-me an [email][2].  
-Compiled executables can be found [here][3]. The building instructions can be found [here](INSTALL.md).
+If you find a bug or have a feature request please file an [issue](https://gitlab.phaidra.org/loidoltd15/cmp_tool/-/issues) or send
+me an [email](mailto:dominik.loidolt@univie.ac.at?subject=%5BIssue%5D%20cmp_tool).  
+Compiled executables can be found [here](https://gitlab.phaidra.org/loidoltd15/cmp_tool/-/releases). The building instructions can be found [here](INSTALL.md).
 
 ## Usage
 
@@ -21,7 +21,7 @@ Compiled executables can be found [here][3]. The building instructions can be fo
 | `-V, --version`   | Print program version and exit                                                |
 | `-v, --verbose`   | Print various debugging information                                           |
 
-<a name="fnote2">1</a>) **NOTE:** If the -o option is not used the `<prefix>`
+<a name="fnote1">1</a>) **NOTE:** If the -o option is not used the `<prefix>`
 will be set to "OUTPUT".  
 <a name="fnote2">2</a>) **NOTE:** In the default configurations the **samples**
 and **buffer_length** parameter is set to **0**!
@@ -33,10 +33,10 @@ and **buffer_length** parameter is set to **0**!
 | `-c <file>`                 | File containing the compressing configuration                                        |
 | `-d <file>`                 | File containing the data to be compressed                                            |
 | `-m <file>`                 | File containing the model of the data to be compressed                               |
-| `--rdcu_pkt`                | Generate RMAP packets for an RDCU compression<sup>[3](#fnoot3)</sup>                 |
+| `--rdcu_pkt`                | Generate RMAP packets for an RDCU compression<sup>[3](#fnote3)</sup>                 |
 | `--last_info  <.info file>` | Generate RMAP packets for an RDCU compression with parallel read of the last results |
 
-<a name="foot3">3</a>) **NOTE:** When using the `--rdcu_pkt` option the
+<a name="fnote3">3</a>) **NOTE:** When using the `--rdcu_pkt` option the
 configuration of the RMAP parameters can be found in the `.rdcu_pkt_mode_cfg file`.
 The generated packets can be found in the `TC_FILES` directory.
 
@@ -52,15 +52,15 @@ The generated packets can be found in the `TC_FILES` directory.
 
 | Options                 | Description                                                                     |
 |:------------------------|:--------------------------------------------------------------------------------|
-| `--guess <mode>`        | Search for a good configuration for compression \<mode\><sup>[4](#fnoot4)</sup> |
+| `--guess <mode>`        | Search for a good configuration for compression \<mode\><sup>[4](#fnote4)</sup> |
 | `-d <file>`             | File containing the data to be compressed                                       |
 | `-m <file>`             | File containing the model of the data to be compressed                          |
-| `--guess_level <level>` | Set guess level to \<level\> (optional)<sup>[5](#fnoot5)</sup>                  |
+| `--guess_level <level>` | Set guess level to \<level\> (optional)<sup>[5](#fnote5)</sup>                  |
 
-<a name="fnoot4">4</a>) **NOTE:** \<mode\> can be either the compression mode
+<a name="fnote4">4</a>) **NOTE:** \<mode\> can be either the compression mode
 number or the keyword: `RDCU`. The RDCU mode automatically selects the correct
 RDCU-compatible compression mode depending on if the Model (-m) option is set.  
-<a name="fnoot5">5</a>) **Supported levels:** 
+<a name="fnote5">5</a>) **Supported levels:** 
 
 | guess level | Description                     |
 |:------------|:--------------------------------|
@@ -86,7 +86,7 @@ You can find the user manual [here](doc).
 A simple example to show how the compression tool works.
 Instructions on how to perform compression without headers can be found [here](how_to_no_header.md).
 
-0. Download the [tool][3] or [build the tool](INSTALL.md) yourself
+0. Download the [tool](https://gitlab.phaidra.org/loidoltd15/cmp_tool/-/releases) or [build the tool](INSTALL.md) yourself
 
 1. Create a configuration file
 * Create a cfg directory  
@@ -132,6 +132,3 @@ Instructions on how to perform compression without headers can be found [here](h
     And also check if the updated model is the same  
     `diff compressed/data2_upmodel.dat decompressed/test_data2_upmodel.dat`
 
-[1]: <https://gitlab.phaidra.org/loidoltd15/cmp_tool/-/issues> "issues"
-[2]: <mailto:dominik.loidolt@univie.ac.at?subject=%5BIssue%5D%20cmp_tool> "email"
-[3]: <https://gitlab.phaidra.org/loidoltd15/cmp_tool/-/releases> "release"

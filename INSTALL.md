@@ -11,7 +11,9 @@ If you're on Linux, you probably already have these. On macOS and Windows, you c
 Meson 0.56 or newer is required.  
 You can get meson through your package manager or using:
 
-```pip3 install meson```
+```
+pip3 install meson
+```
 
 Check if meson is included in your PATH.
 
