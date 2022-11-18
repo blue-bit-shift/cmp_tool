@@ -1,6 +1,6 @@
 /**
  * @file test_cmp_data_types.c
- * @author Dominik Loidolt (dominik.loidolt@univie.ac.at),
+ * @author Dominik Loidolt (dominik.loidolt@univie.ac.at)
  * @date   2022
  *
  * @copyright GPLv2

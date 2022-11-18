@@ -1,6 +1,6 @@
 /**
  * @file   cmp_data_types.h
- * @author Dominik Loidolt (dominik.loidolt@univie.ac.at),
+ * @author Dominik Loidolt (dominik.loidolt@univie.ac.at)
  * @date   2020
  * @brief definition of the different compression data types
  *

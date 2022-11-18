@@ -14,7 +14,7 @@
  * more details.
  *
  * @brief This is a simple inttypes.h implementation for the sparc platform,
- * since the sparc-elf-gcc toolchain does not provide one.
+ *	since the sparc-elf-gcc toolchain does not provide one.
  * @warning Does not fully implement the standard.
  */
 

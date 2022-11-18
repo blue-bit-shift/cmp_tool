@@ -1,6 +1,6 @@
 /**
  * @file   cmp_io.c
- * @author Dominik Loidolt (dominik.loidolt@univie.ac.at),
+ * @author Dominik Loidolt (dominik.loidolt@univie.ac.at)
  * @author Johannes Seelig (johannes.seelig@univie.ac.at)
  * @date   2020
  *

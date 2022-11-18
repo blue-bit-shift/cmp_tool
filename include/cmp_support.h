@@ -1,6 +1,6 @@
 /**
  * @file   cmp_support.h
- * @author Dominik Loidolt (dominik.loidolt@univie.ac.at),
+ * @author Dominik Loidolt (dominik.loidolt@univie.ac.at)
  * @date   2018
  *
  * @copyright GPLv2
