@@ -13,6 +13,7 @@
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
  * more details.
  *
+ * @brief RDCU packets to file library header file
  */
 
 #ifndef _RDCU_PKT_TO_FILE_H_

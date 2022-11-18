@@ -13,8 +13,8 @@
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
  * more details.
  *
- * This is a set of macros for consistent endianess conversion. They work
- * for both little and big endian cpus.
+ * @brief This is a set of macros for consistent endianess conversion. They work
+ *	for both little and big endian cpus.
  *
  * conversion of XX-bit integers (16- or 32-) between native CPU format
  * and little/big endian format:

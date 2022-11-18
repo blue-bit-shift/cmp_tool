@@ -13,6 +13,7 @@
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
  * more details.
  *
+ * @brief RMAP RDCU link interface header file
  */
 
 #ifndef _RDCU_RMAP_H_

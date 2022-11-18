@@ -1,7 +1,7 @@
 /**
  * @file   cmp_tool.c
- * @author Johannes Seelig (johannes.seelig@univie.ac.at)
  * @author Dominik Loidolt (dominik.loidolt@univie.ac.at)
+ * @author Johannes Seelig (johannes.seelig@univie.ac.at)
  * @date   2020
  *
  * @copyright GPLv2
@@ -55,9 +55,9 @@ static int compression(struct cmp_cfg *cfg, struct cmp_info *info);
 static int decompression(struct cmp_entity *ent, uint16_t *input_model_buf);
 
 /* create a default configuration for a compression data type */
-enum cfg_default_opt {DIFF_CFG, MODEL_CFG};
-int cmp_cfg_create_default(struct cmp_cfg *cfg, enum cmp_data_type data_type,
-			   enum cfg_default_opt mode);
+static enum cfg_default_opt {DIFF_CFG, MODEL_CFG};
+static int cmp_cfg_create_default(struct cmp_cfg *cfg, enum cmp_data_type data_type,
+				  enum cfg_default_opt mode);
 
 
 /*
@@ -329,6 +329,7 @@ int main(int argc, char **argv)
 		/* count the samples in the data file when samples == 0 */
 		if (cfg.samples == 0) {
 			int32_t samples;
+
 			size = read_file_data(data_file_name, cfg.data_type, NULL, 0, 0);
 			if (size <= 0 || size > UINT32_MAX) /* empty file is treated as an error */
 				goto fail;
@@ -522,7 +523,10 @@ fail:
 }
 
 
-/* parse a data_type option argument */
+/**
+ * @brief parse a data_type option argument
+ */
+
 static enum cmp_data_type parse_data_type(const char *data_type_str)
 {
 	/* default data type if no optional argument is used */
@@ -538,7 +542,10 @@ static enum cmp_data_type parse_data_type(const char *data_type_str)
 }
 
 
-/* find a good set of compression parameters for a given dataset */
+/**
+ * @brief find a good set of compression parameters for a given dataset
+ */
+
 static int guess_cmp_pars(struct cmp_cfg *cfg, const char *guess_cmp_mode,
 			  int guess_level)
 {
@@ -592,7 +599,10 @@ static int guess_cmp_pars(struct cmp_cfg *cfg, const char *guess_cmp_mode,
 }
 
 
-/* generate packets to setup an RDCU compression */
+/**
+ * @brief generate packets to setup an RDCU compression
+ */
+
 static int gen_rdcu_write_pkts(struct cmp_cfg *cfg)
 {
 	int error;
@@ -704,7 +714,10 @@ static int cmp_gernate_rdcu_info(const struct cmp_cfg *cfg, int cmp_size_bit,
 }
 
 
-/* compress the data and write the results to files */
+/**
+ * @brief compress the data and write the results to files
+ */
+
 static int compression(struct cmp_cfg *cfg, struct cmp_info *info)
 {
 	int cmp_size, error;
@@ -752,6 +765,7 @@ static int compression(struct cmp_cfg *cfg, struct cmp_info *info)
 
 	if (model_id_str) {
 		uint32_t red_val;
+
 		error = atoui32("model_id", model_id_str, &red_val);
 		if (error || red_val > UINT16_MAX)
 			return -1;
@@ -759,6 +773,7 @@ static int compression(struct cmp_cfg *cfg, struct cmp_info *info)
 	}
 	if (model_counter_str) {
 		uint32_t red_val;
+
 		error = atoui32("model_counter", model_counter_str, &red_val);
 		if (error || red_val > UINT8_MAX)
 			return -1;
@@ -833,7 +848,10 @@ error_cleanup:
 }
 
 
-/* decompress the data and write the results in file(s)*/
+/**
+ * @brief decompress the data and write the results in file(s)
+ */
+
 static int decompression(struct cmp_entity *ent, uint16_t *input_model_buf)
 {
 	int error;
@@ -880,9 +898,12 @@ static int decompression(struct cmp_entity *ent, uint16_t *input_model_buf)
 }
 
 
-/* create a default configuration for a compression data type */
-int cmp_cfg_create_default(struct cmp_cfg *cfg, enum cmp_data_type data_type,
-			   enum cfg_default_opt mode)
+/**
+ * @brief create a default configuration for a compression data type
+ */
+
+static int cmp_cfg_create_default(struct cmp_cfg *cfg, enum cmp_data_type data_type,
+				  enum cfg_default_opt mode)
 {
 	if (cmp_data_type_is_invalid(data_type))
 		return -1;

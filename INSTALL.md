@@ -141,7 +141,9 @@ Optional you can install the "dot" tool from [graphviz](http://www.graphviz.org/
 To generate the documentation you need to run:
 
 ```
+git submodule update --init
 cd <name of the build directory>
 meson compile doc
 ```
 
+You can find the documentation in the directory **generated_documentation**.

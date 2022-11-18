@@ -38,10 +38,18 @@
 /* maximum used bits registry */
 extern struct cmp_max_used_bits max_used_bits;
 
-/* function pointer to a code word decoder function */
+
+/**
+ * @brief function pointer to a code word decoder function
+ */
+
 typedef int (*decoder_ptr)(uint32_t, unsigned int, unsigned int, uint32_t *);
 
-/* structure to hold a setup to encode a value */
+
+/**
+ * @brief structure to hold a setup to encode a value
+ */
+
 struct decoder_setup {
 	decoder_ptr decode_cw_f; /* pointer to the code word decoder (Golomb/Rice)*/
 	int (*decode_method_f)(uint32_t *decoded_value, int stream_pos,
@@ -2175,6 +2183,8 @@ int decompress_cmp_entiy(struct cmp_entity *ent, void *model_of_data,
  *
  * @param compressed_data	pointer to the RDCU compressed data (without a
  *				compression entity header)
+ * @param info			pointer to a decompression information structure
+ *				consisting the metadata of the compression
  * @param model_of_data		pointer to model data buffer (can be NULL if no
  *				model compression mode is used)
  * @param up_model_buf		pointer to store the updated model for the next model

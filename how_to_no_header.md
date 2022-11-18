@@ -2,7 +2,7 @@
 
 A simple example to show how the compression tool works without the compression entity header.
 
-0. Download the [tool][3] or run `make` to build the tool
+0. Download the [cmp_tool](https://gitlab.phaidra.org/loidoltd15/cmp_tool/-/releases) or [build](INSTALL.md) the tool
 
 1. Create a configuration file
 * Create a cfg directory  

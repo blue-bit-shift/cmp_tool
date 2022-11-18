@@ -1,7 +1,7 @@
 /**
  * @file   cmp_io.c
- * @author Johannes Seelig (johannes.seelig@univie.ac.at)
  * @author Dominik Loidolt (dominik.loidolt@univie.ac.at),
+ * @author Johannes Seelig (johannes.seelig@univie.ac.at)
  * @date   2020
  *
  * @copyright GPLv2
@@ -14,7 +14,7 @@
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
  * more details.
  *
- * @brief compression tool Input/Output library
+ * @brief compression tool input/output library
  * @warning this part of the software is not intended to run on-board on the ICU.
  */
 
@@ -150,11 +150,12 @@ static FILE *open_file(const char *dirname, const char *filename)
 /**
  * @brief write uncompressed input data to an output file
  *
- * @param data		the data to write a file
- * @param data_size	size of the data in bytes
- * @param output_prefix  file name without file extension
- * @param name_extension file extension (with leading point character)
- * @param verbose	print verbose output if not zero
+ * @param data			the data to write a file
+ * @param data_size		size of the data in bytes
+ * @param data_type		compression data type of the data
+ * @param output_prefix		file name without file extension
+ * @param name_extension	extension (with leading point character)
+ * @param verbose		print verbose output if not zero
  *
  * @returns 0 on success, error otherwise
  */

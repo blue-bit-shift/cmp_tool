@@ -1,3 +1,22 @@
+/**
+ * @file   test_decmp.c
+ * @author Dominik Loidolt (dominik.loidolt@univie.ac.at)
+ * @date   2022
+ *
+ * @copyright GPLv2
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms and conditions of the GNU General Public License,
+ * version 2, as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+ * more details.
+ *
+ * @brief decompression tests
+ */
+
+
 #include <string.h>
 #include <stdlib.h>
 
@@ -13,6 +32,7 @@
 #define IMAX_BITS(m) ((m)/((m)%255+1) / 255%255*8 + 7-86/((m)%255+12))
 #define RAND_MAX_WIDTH IMAX_BITS(RAND_MAX)
 
+/* TODO: clean up this file */
 
 /**
  * @brief generate a uint32_t random number
@@ -123,10 +143,9 @@ void test_cmp_decmp_n_imagette_raw(void)
 	s = decompress_cmp_entiy(ent, NULL, NULL, decompressed_data);
 	TEST_ASSERT_EQUAL_INT(sizeof(data), s);
 
-	for (i = 0; i < ARRAY_SIZE(data); ++i) {
+	for (i = 0; i < ARRAY_SIZE(data); ++i)
 		TEST_ASSERT_EQUAL_INT(data[i], decompressed_data[i]);
 
-	}
 
 	free(compressed_data);
 	free(ent);
@@ -234,6 +253,7 @@ void test_re_map_to_pos(void)
 
 	for (j = INT16_MIN; j < INT16_MAX; j++) {
 		uint32_t map_val =  map_to_pos(j, 16) & 0xFFFF;
+
 		result = re_map_to_pos(map_val);
 		TEST_ASSERT_EQUAL_INT32(j, result);
 	}
@@ -310,6 +330,7 @@ void test_decode_multi(void)
 	uint32_t cmp_data[] = {0x16B66DF8, 0x84360000};
 	struct decoder_setup setup = {0};
 	struct cmp_cfg cfg = {0};
+	int err;
 
 	cpu_to_be32s(&cmp_data[0]);
 	cpu_to_be32s(&cmp_data[1]);
@@ -319,7 +340,7 @@ void test_decode_multi(void)
 	cfg.icu_output_buf = cmp_data;
 	cfg.buffer_length = 8;
 
-	int err = configure_decoder_setup(&setup, 3, 8, CMP_LOSSLESS, 16, &cfg);
+	err = configure_decoder_setup(&setup, 3, 8, CMP_LOSSLESS, 16, &cfg);
 	TEST_ASSERT_FALSE(err);
 
 	stream_pos = 0;
@@ -390,7 +411,7 @@ void test_cmp_decmp_s_fx_diff(void)
 	struct cmp_entity *ent;
 	const uint32_t MAX_VALUE = ~(~0U << MAX_USED_S_FX_BITS);
 	struct s_fx data_entry[DATA_SAMPLES] = {
-		{0,0}, {1,23}, {2,42}, {3,MAX_VALUE}, {3,MAX_VALUE>>1} };
+		{0, 0}, {1, 23}, {2, 42}, {3, MAX_VALUE}, {3, MAX_VALUE>>1} };
 	uint8_t data_to_compress[MULTI_ENTRY_HDR_SIZE + sizeof(data_entry)];
 	struct s_fx *decompressed_data = NULL;
 	/* uint32_t *compressed_data = NULL; */
@@ -643,7 +664,7 @@ void test_s_fx_model(void)
 		0x00, 0x00, 0x0A, 0x00, 0x01, 0x00, 0x00, 0x0A, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x3B, 0xFF, 0xFF, 0xEF, 0xFF, 0xFF, 0x5B, 0xFF, 0xFF, 0xEF, 0xFF, 0xFF, 0x5D, 0x80, 0x00, 0x00,
 	};
-	struct cmp_entity * cmp_entity = (struct cmp_entity *)compressed_data_buf;
+	struct cmp_entity *cmp_entity = (struct cmp_entity *)compressed_data_buf;
 
 	uint8_t model_buf[32];
 	uint8_t decompressed_data[32];
@@ -723,7 +744,7 @@ void test_random_compression_decompression(void)
 	/*      cfg.data_type < DATA_TYPE_F_CAM_BACKGROUND+1; cfg.data_type++) { */
 	for (cfg.data_type = DATA_TYPE_IMAGETTE;
 	     cfg.data_type < DATA_TYPE_F_CAM_IMAGETTE_ADAPTIVE+1; cfg.data_type++) {
-		cfg.samples = my_random(1,0x30000);
+		cfg.samples = my_random(1, 0x30000);
 			if (cfg.data_type == DATA_TYPE_OFFSET)
 				puts("FADF");
 
@@ -746,7 +767,7 @@ void test_random_compression_decompression(void)
 		generate_random_test_data(cfg.input_buf, cfg.samples, cfg.data_type);
 		generate_random_test_data(cfg.model_buf, cfg.samples, cfg.data_type);
 
-		cfg.model_value = my_random(0,16);
+		cfg.model_value = my_random(0, 16);
 		/* cfg.round = my_random(0,3); /1* XXX *1/ */
 		cfg.round = 0;
 

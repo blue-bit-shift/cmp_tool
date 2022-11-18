@@ -27,6 +27,8 @@
 #include <cmp_guess.h>
 #include <my_inttypes.h>
 
+#define CMP_GUESS_MAX_CAL_STEPS 20274
+
 
 /* how often the model is updated before it is rested */
 static int num_model_updates = CMP_GUESS_N_MODEL_UPDATE_DEF;
@@ -153,7 +155,6 @@ static uint32_t pre_cal_method(struct cmp_cfg *cfg)
  * configuration; 0 on error
  */
 
-#define CMP_GUESS_MAX_CAL_STEPS 20274
 static uint32_t brute_force(struct cmp_cfg *cfg)
 {
 	uint32_t g, s;

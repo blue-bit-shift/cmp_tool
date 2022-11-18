@@ -1,7 +1,7 @@
 /**
  * @file   cmp_io.h
+ * @author Dominik Loidolt (dominik.loidolt@univie.ac.at)
  * @author Johannes Seelig (johannes.seelig@univie.ac.at)
- * @author Dominik Loidolt (dominik.loidolt@univie.ac.at),
  * @date   2020
  *
  * @copyright GPLv2
@@ -13,6 +13,8 @@
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
  * more details.
+ *
+ * @brief compression tool input/output library header file
  */
 
 #include <string.h>

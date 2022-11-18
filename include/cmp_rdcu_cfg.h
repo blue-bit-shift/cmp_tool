@@ -1,5 +1,5 @@
 /**
- * @file   cmp_rdcu_rdcu.h
+ * @file   cmp_rdcu_cfg.h
  * @author Dominik Loidolt (dominik.loidolt@univie.ac.at),
  * @date   2020
  *
