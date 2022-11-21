@@ -272,7 +272,7 @@ struct fx_cob_par {
  * @return rounded value
  */
 
-#define round_fwd(value, round) ((uint32_t)(value) << (round))
+#define round_fwd(value, round) ((uint32_t)(value) >> (round))
 
 
 /**
