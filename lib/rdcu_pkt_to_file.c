@@ -1,6 +1,6 @@
 /**
  * @file   rdcu_pkt_to_file.c
- * @author Dominik Loidolt (dominik.loidolt@univie.ac.at),
+ * @author Dominik Loidolt (dominik.loidolt@univie.ac.at)
  * @date   2020
  *
  * @copyright GPLv2
@@ -28,11 +28,16 @@
 #include <errno.h>
 #include <sys/stat.h>
 
+#include <cmp_support.h>
 #include <rdcu_pkt_to_file.h>
-#include <cmp_rdcu_extended.h>
+#include <cmp_rdcu.h>
 #include <rdcu_rmap.h>
 #include <rdcu_ctrl.h>
 #include <rdcu_cmd.h>
+
+
+int rdcu_compress_data_parallel(const struct cmp_cfg *cfg, const struct cmp_info *last_info);
+
 
 /* Name of directory were the RMAP packages are stored */
 static char tc_folder_dir[MAX_TC_FOLDER_DIR_LEN] = "TC_FILES";

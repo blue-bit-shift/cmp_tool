@@ -1,6 +1,6 @@
 /**
  * @file   cmp_guess.c
- * @author Dominik Loidolt (dominik.loidolt@univie.ac.at),
+ * @author Dominik Loidolt (dominik.loidolt@univie.ac.at)
  * @date   2021
  *
  * @copyright GPLv2
@@ -21,11 +21,13 @@
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
-#include "cmp_data_types.h"
-#include "cmp_icu.h"
-#include "cmp_guess.h"
+#include <cmp_data_types.h>
+#include <cmp_icu.h>
+#include <cmp_guess.h>
+#include <my_inttypes.h>
+
+#define CMP_GUESS_MAX_CAL_STEPS 20274
 
 
 /* how often the model is updated before it is rested */
@@ -153,7 +155,6 @@ static uint32_t pre_cal_method(struct cmp_cfg *cfg)
  * configuration; 0 on error
  */
 
-#define CMP_GUESS_MAX_CAL_STEPS 20274
 static uint32_t brute_force(struct cmp_cfg *cfg)
 {
 	uint32_t g, s;
@@ -190,7 +191,7 @@ static uint32_t brute_force(struct cmp_cfg *cfg)
 		percent = n_cal_steps*100/max_cal_steps;
 		if (percent > 5+last && percent < 100) {
 			last = percent;
-			printf("%u%%... ", percent);
+			printf("%" PRIu32 "%%... ", percent);
 			fflush(stdout);
 		}
 	}

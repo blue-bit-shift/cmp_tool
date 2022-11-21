@@ -1,7 +1,7 @@
-test_case = files('test_cmp_data_types.c')
+test_case = files('test_cmp_decmp.c')
 test_runner = test_runner_generator.process(test_case)
 
-test_cmp_data_types = executable('test_cmp_data_types',
+test_cmp_decmp = executable('test_cmp_decmp',
    test_case, test_runner,
    include_directories : incdir,
    link_with : cmp_lib,
@@ -9,4 +9,4 @@ test_cmp_data_types = executable('test_cmp_data_types',
    build_by_default : false
 )
 
-test('Compression Data Types Unit Tests', test_cmp_data_types)
+test('Compression Decompression Unit Tests', test_cmp_decmp)

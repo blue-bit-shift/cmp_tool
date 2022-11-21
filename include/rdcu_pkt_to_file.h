@@ -1,6 +1,6 @@
 /**
  * @file   rdcu_pkt_to_file.h
- * @author Dominik Loidolt (dominik.loidolt@univie.ac.at),
+ * @author Dominik Loidolt (dominik.loidolt@univie.ac.at)
  * @date   2020
  *
  * @copyright GPLv2
@@ -13,6 +13,7 @@
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
  * more details.
  *
+ * @brief RDCU packets to file library header file
  */
 
 #ifndef _RDCU_PKT_TO_FILE_H_

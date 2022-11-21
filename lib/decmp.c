@@ -1,6 +1,6 @@
 /**
  * @file   decmp.c
- * @author Dominik Loidolt (dominik.loidolt@univie.ac.at),
+ * @author Dominik Loidolt (dominik.loidolt@univie.ac.at)
  * @date   2020
  *
  * @copyright GPLv2
@@ -22,7 +22,6 @@
 
 #include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <limits.h>
 #include <string.h>
 
@@ -39,10 +38,18 @@
 /* maximum used bits registry */
 extern struct cmp_max_used_bits max_used_bits;
 
-/* function pointer to a code word decoder function */
+
+/**
+ * @brief function pointer to a code word decoder function
+ */
+
 typedef int (*decoder_ptr)(uint32_t, unsigned int, unsigned int, uint32_t *);
 
-/* structure to hold a setup to encode a value */
+
+/**
+ * @brief structure to hold a setup to encode a value
+ */
+
 struct decoder_setup {
 	decoder_ptr decode_cw_f; /* pointer to the code word decoder (Golomb/Rice)*/
 	int (*decode_method_f)(uint32_t *decoded_value, int stream_pos,
@@ -2028,6 +2035,7 @@ static int decompress_smearing(const struct cmp_cfg *cfg)
  *	compression)
  *
  * @returns the size of the decompressed data on success; returns negative on failure
+ * TODO: change return type to int32_t
  */
 
 static int decompressed_data_internal(struct cmp_cfg *cfg)
@@ -2141,7 +2149,7 @@ static int decompressed_data_internal(struct cmp_cfg *cfg)
  * @param ent			pointer to the compression entity to be decompressed
  * @param model_of_data		pointer to model data buffer (can be NULL if no
  *				model compression mode is used)
- * @param updated_model		pointer to store the updated model for the next model
+ * @param up_model_buf		pointer to store the updated model for the next model
  *				mode compression (can be the same as the model_of_data
  *				buffer for in-place update or NULL if updated model is not needed)
  * @param decompressed_data	pointer to the decompressed data buffer (can be NULL)
@@ -2175,9 +2183,11 @@ int decompress_cmp_entiy(struct cmp_entity *ent, void *model_of_data,
  *
  * @param compressed_data	pointer to the RDCU compressed data (without a
  *				compression entity header)
+ * @param info			pointer to a decompression information structure
+ *				consisting the metadata of the compression
  * @param model_of_data		pointer to model data buffer (can be NULL if no
  *				model compression mode is used)
- * @param updated_model		pointer to store the updated model for the next model
+ * @param up_model_buf		pointer to store the updated model for the next model
  *				mode compression (can be the same as the model_of_data
  *				buffer for in-place update or NULL if updated model is not needed)
  * @param decompressed_data	pointer to the decompressed data buffer (can be NULL)

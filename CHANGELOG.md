@@ -2,6 +2,19 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+### Added
+- add cross compile file for sparc
+- add tests for the compression entity
+- add test for cmp_rdcu_cfg.c
+- add sparc inttypes.h definitions
+###Changed
+- refactor function and constants names
+- refactor configure check functions
+- move the rdcu setup functions to cmp_rdcu_cfg.c
+- update Documentation
+- update Doxygen setup
+### Fixed
+- remove memory leaks from tests
 
 ## [0.09] - 30-09-2022
 ### Added
@@ -11,7 +24,7 @@ All notable changes to this project will be documented in this file.
 - add max used bit version field to the compression entity
 ###Changed
 - Change the build system form make to meson
-- Change DEFAULT_CFG_MODEL and DEFAULT_CFG_DIFF to CMP_DIF_XXX constats
+- Change DEFAULT_CFG_MODEL and DEFAULT_CFG_DIFF to CMP_DIF_XXX constants
 ### Fixed
 - now the adaptive compression size (ap1_cmp_size, ap2_cmp_size) is calculate when the --rdcu_par option is used
 

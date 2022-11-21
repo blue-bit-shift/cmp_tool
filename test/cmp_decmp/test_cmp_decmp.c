@@ -1,6 +1,6 @@
 /**
  * @file   test_cmp_decmp.c
- * @author Dominik Loidolt (dominik.loidolt@univie.ac.at),
+ * @author Dominik Loidolt (dominik.loidolt@univie.ac.at)
  * @date   2022
  *
  * @copyright GPLv2
@@ -13,8 +13,8 @@
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
  * more details.
  *
- * @brief random compression decompression test
- * @detail We generate random data and compress them with random parameters.
+ * @brief random compression decompression tests
+ * @details We generate random data and compress them with random parameters.
  *	After that we put the data in a compression entity. We decompress the
  *	compression entity and compare the decompressed data with the original
  *	data.
@@ -41,7 +41,7 @@
 #define IMAX_BITS(m) ((m)/((m)%255+1) / 255%255*8 + 7-86/((m)%255+12))
 #define RAND_MAX_WIDTH IMAX_BITS(RAND_MAX)
 
-#define set_n_bits(n)  (n!=32?~(~0UL << (n)):0xFFFFFFFF)
+#define set_n_bits(n)  (n != 32 ? ~(~0UL << (n)):0xFFFFFFFF)
 
 
 /**
@@ -113,9 +113,8 @@ static void gen_ima_data(uint16_t *data, uint32_t samples)
 	uint32_t i;
 	struct cmp_max_used_bits max_used_bits = cmp_get_max_used_bits();
 
-	for (i = 0; i < samples; i++) {
+	for (i = 0; i < samples; i++)
 		data[i] = random_between(0, set_n_bits(max_used_bits.nc_imagette));
-	}
 }
 
 
@@ -218,9 +217,8 @@ static void gen_f_fx_data(struct f_fx *data, uint32_t samples)
 	uint32_t i;
 	struct cmp_max_used_bits max_used_bits = cmp_get_max_used_bits();
 
-	for (i = 0; i < samples; i++) {
+	for (i = 0; i < samples; i++)
 		data[i].fx = random_between(0, set_n_bits(max_used_bits.f_fx));
-	}
 }
 
 
@@ -351,10 +349,10 @@ void *generate_random_test_data(uint32_t samples, enum cmp_data_type data_type)
 
 	if (!rdcu_supported_data_type_is_used(data_type)) {
 		int i;
+
 		TEST_ASSERT(data_size > MULTI_ENTRY_HDR_SIZE);
-		for (i = 0; i < MULTI_ENTRY_HDR_SIZE; ++i) {
+		for (i = 0; i < MULTI_ENTRY_HDR_SIZE; ++i)
 			*p++ = random_between(0, UINT8_MAX);
-		}
 		data = p;
 	}
 
@@ -435,30 +433,30 @@ void generate_random_cmp_par(struct cmp_cfg *cfg)
 	cfg->ap1_golomb_par = random_between(MIN_IMA_GOLOMB_PAR, MAX_IMA_GOLOMB_PAR);
 	cfg->ap2_golomb_par = random_between(MIN_IMA_GOLOMB_PAR, MAX_IMA_GOLOMB_PAR);
 
-	cfg->cmp_par_exp_flags = random_between(MIN_ICU_GOLOMB_PAR, MAX_ICU_GOLOMB_PAR);
-	cfg->cmp_par_fx = random_between(MIN_ICU_GOLOMB_PAR, MAX_ICU_GOLOMB_PAR);
-	cfg->cmp_par_ncob = random_between(MIN_ICU_GOLOMB_PAR, MAX_ICU_GOLOMB_PAR);
-	cfg->cmp_par_efx = random_between(MIN_ICU_GOLOMB_PAR, MAX_ICU_GOLOMB_PAR);
-	cfg->cmp_par_ecob = random_between(MIN_ICU_GOLOMB_PAR, MAX_ICU_GOLOMB_PAR);
-	cfg->cmp_par_fx_cob_variance = random_between(MIN_ICU_GOLOMB_PAR, MAX_ICU_GOLOMB_PAR);
-	cfg->cmp_par_mean = random_between(MIN_ICU_GOLOMB_PAR, MAX_ICU_GOLOMB_PAR);
-	cfg->cmp_par_variance = random_between(MIN_ICU_GOLOMB_PAR, MAX_ICU_GOLOMB_PAR);
-	cfg->cmp_par_pixels_error = random_between(MIN_ICU_GOLOMB_PAR, MAX_ICU_GOLOMB_PAR);
+	cfg->cmp_par_exp_flags = random_between(MIN_NON_IMA_GOLOMB_PAR, MAX_NON_IMA_GOLOMB_PAR);
+	cfg->cmp_par_fx = random_between(MIN_NON_IMA_GOLOMB_PAR, MAX_NON_IMA_GOLOMB_PAR);
+	cfg->cmp_par_ncob = random_between(MIN_NON_IMA_GOLOMB_PAR, MAX_NON_IMA_GOLOMB_PAR);
+	cfg->cmp_par_efx = random_between(MIN_NON_IMA_GOLOMB_PAR, MAX_NON_IMA_GOLOMB_PAR);
+	cfg->cmp_par_ecob = random_between(MIN_NON_IMA_GOLOMB_PAR, MAX_NON_IMA_GOLOMB_PAR);
+	cfg->cmp_par_fx_cob_variance = random_between(MIN_NON_IMA_GOLOMB_PAR, MAX_NON_IMA_GOLOMB_PAR);
+	cfg->cmp_par_mean = random_between(MIN_NON_IMA_GOLOMB_PAR, MAX_NON_IMA_GOLOMB_PAR);
+	cfg->cmp_par_variance = random_between(MIN_NON_IMA_GOLOMB_PAR, MAX_NON_IMA_GOLOMB_PAR);
+	cfg->cmp_par_pixels_error = random_between(MIN_NON_IMA_GOLOMB_PAR, MAX_NON_IMA_GOLOMB_PAR);
 
 
 	cfg->spill = random_between(MIN_IMA_SPILL, cmp_ima_max_spill(cfg->golomb_par));
 	cfg->ap1_spill = random_between(MIN_IMA_SPILL, cmp_ima_max_spill(cfg->ap1_golomb_par));
 	cfg->ap2_spill = random_between(MIN_IMA_SPILL, cmp_ima_max_spill(cfg->ap2_golomb_par));
 
-	cfg->spill_exp_flags = random_between(MIN_ICU_SPILL, cmp_icu_max_spill(cfg->cmp_par_exp_flags));
-	cfg->spill_fx = random_between(MIN_ICU_SPILL, cmp_icu_max_spill(cfg->cmp_par_fx));
-	cfg->spill_ncob = random_between(MIN_ICU_SPILL, cmp_icu_max_spill(cfg->cmp_par_ncob));
-	cfg->spill_efx = random_between(MIN_ICU_SPILL, cmp_icu_max_spill(cfg->cmp_par_efx));
-	cfg->spill_ecob = random_between(MIN_ICU_SPILL, cmp_icu_max_spill(cfg->cmp_par_ecob));
-	cfg->spill_fx_cob_variance = random_between(MIN_ICU_SPILL, cmp_icu_max_spill(cfg->cmp_par_fx_cob_variance));
-	cfg->spill_mean = random_between(MIN_ICU_SPILL, cmp_icu_max_spill(cfg->cmp_par_mean));
-	cfg->spill_variance = random_between(MIN_ICU_SPILL, cmp_icu_max_spill(cfg->cmp_par_variance));
-	cfg->spill_pixels_error = random_between(MIN_ICU_SPILL, cmp_icu_max_spill(cfg->cmp_par_pixels_error));
+	cfg->spill_exp_flags = random_between(MIN_NON_IMA_SPILL, cmp_icu_max_spill(cfg->cmp_par_exp_flags));
+	cfg->spill_fx = random_between(MIN_NON_IMA_SPILL, cmp_icu_max_spill(cfg->cmp_par_fx));
+	cfg->spill_ncob = random_between(MIN_NON_IMA_SPILL, cmp_icu_max_spill(cfg->cmp_par_ncob));
+	cfg->spill_efx = random_between(MIN_NON_IMA_SPILL, cmp_icu_max_spill(cfg->cmp_par_efx));
+	cfg->spill_ecob = random_between(MIN_NON_IMA_SPILL, cmp_icu_max_spill(cfg->cmp_par_ecob));
+	cfg->spill_fx_cob_variance = random_between(MIN_NON_IMA_SPILL, cmp_icu_max_spill(cfg->cmp_par_fx_cob_variance));
+	cfg->spill_mean = random_between(MIN_NON_IMA_SPILL, cmp_icu_max_spill(cfg->cmp_par_mean));
+	cfg->spill_variance = random_between(MIN_NON_IMA_SPILL, cmp_icu_max_spill(cfg->cmp_par_variance));
+	cfg->spill_pixels_error = random_between(MIN_NON_IMA_SPILL, cmp_icu_max_spill(cfg->cmp_par_pixels_error));
 #if 0
 	if (cfg->cmp_mode == CMP_MODE_STUFF) {
 		/* cfg->golomb_par = random_between(16, MAX_STUFF_CMP_PAR); */
@@ -495,6 +493,11 @@ void compression_decompression(struct cmp_cfg *cfg)
 	void *decompressed_data;
 	static void *model_of_data;
 	void *updated_model = NULL;
+
+	if (!cfg) {
+		free(model_of_data);
+		return;
+	}
 
 	TEST_ASSERT_NOT_NULL(cfg);
 
@@ -563,7 +566,7 @@ void compression_decompression(struct cmp_cfg *cfg)
 
 /**
  * @brief random compression decompression test
- * @detail We generate random data and compress them with random parameters.
+ * @details We generate random data and compress them with random parameters.
  *	After that we put the data in a compression entity. We decompress the
  *	compression entity and compare the decompressed data with the original
  *	data.
@@ -611,6 +614,7 @@ void test_random_compression_decompression(void)
 		free(data_to_compress2);
 		free(updated_model);
 	}
+	compression_decompression(NULL);
 }
 
 #define N_SAMPLES 5
@@ -653,9 +657,8 @@ void test_random_compression_decompression2(void)
 	s = decompress_rdcu_data(compressed_data, &info, NULL, NULL, decompressed_data);
 	TEST_ASSERT(s > 0);
 
-	for (i = 0; i < N_SAMPLES; i++) {
+	for (i = 0; i < N_SAMPLES; i++)
 		TEST_ASSERT_EQUAL_HEX16(data[i], decompressed_data[i]);
-	}
 
 
 	free(compressed_data);

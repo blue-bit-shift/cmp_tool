@@ -11,7 +11,9 @@ If you're on Linux, you probably already have these. On macOS and Windows, you c
 Meson 0.56 or newer is required.  
 You can get meson through your package manager or using:
 
-```pip3 install meson```
+```
+pip3 install meson
+```
 
 Check if meson is included in your PATH.
 
@@ -139,7 +141,9 @@ Optional you can install the "dot" tool from [graphviz](http://www.graphviz.org/
 To generate the documentation you need to run:
 
 ```
+git submodule update --init
 cd <name of the build directory>
 meson compile doc
 ```
 
+You can find the documentation in the directory **generated_documentation**.
