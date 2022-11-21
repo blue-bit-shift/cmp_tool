@@ -17,11 +17,11 @@
  */
 
 
+#include <stdlib.h>
 #include <string.h>
 #if defined __has_include
 #  if __has_include(<time.h>)
 #    include <time.h>
-#    include <stdlib.h>
 #    define HAS_TIME_H 1
 #  endif
 #endif

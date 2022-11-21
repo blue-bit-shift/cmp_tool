@@ -20,6 +20,14 @@
 #include <string.h>
 #include <stdlib.h>
 
+#if defined __has_include
+#  if __has_include(<time.h>)
+#    include <time.h>
+#    include <unistd.h>
+#    define HAS_TIME_H 1
+#  endif
+#endif
+
 #include "unity.h"
 
 #include "compiler.h"
@@ -202,7 +210,7 @@ void test_rice_decoder(void)
 	uint32_t code_word;
 	unsigned int m = ~0;  /* we don't need this value */
 	unsigned int log2_m;
-	unsigned int decoded_cw;
+	uint32_t decoded_cw;
 
 	/* test log_2 to big */
 	code_word = 0xE0000000;
@@ -271,7 +279,7 @@ void test_decode_normal(void)
 	uint32_t decoded_value = ~0;
 	int stream_pos, sample;
 	 /* compressed data from 0 to 6; */
-	uint32_t cmp_data[] = {0x5BBDF7E0};
+	uint32_t cmp_data[1] = {0x5BBDF7E0};
 	struct decoder_setup setup = {0};
 
 	cpu_to_be32s(cmp_data);
@@ -535,7 +543,7 @@ int my_random(unsigned int min, unsigned int max)
 
 void test_imagette_random(void)
 {
-	unsigned int seed = time(NULL) * getpid();
+	unsigned int seed;
 	size_t i, s, cmp_data_size;
 	int error;
 	struct cmp_cfg cfg;
@@ -549,6 +557,11 @@ void test_imagette_random(void)
 	uint16_t *data, *model = NULL, *up_model = NULL, *de_up_model = NULL;
 
 	/* Seeds the pseudo-random number generator used by rand() */
+#if HAS_TIME_H
+	seed = time(NULL) * getpid();
+#else
+	seed = 1;
+#endif
 	srand(seed);
 	printf("seed: %u\n", seed);
 

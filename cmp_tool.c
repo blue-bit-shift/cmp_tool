@@ -55,7 +55,7 @@ static int compression(struct cmp_cfg *cfg, struct cmp_info *info);
 static int decompression(struct cmp_entity *ent, uint16_t *input_model_buf);
 
 /* create a default configuration for a compression data type */
-static enum cfg_default_opt {DIFF_CFG, MODEL_CFG};
+enum cfg_default_opt {DIFF_CFG, MODEL_CFG};
 static int cmp_cfg_create_default(struct cmp_cfg *cfg, enum cmp_data_type data_type,
 				  enum cfg_default_opt mode);
 

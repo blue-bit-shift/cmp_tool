@@ -582,12 +582,14 @@ struct rmap_pkt *rmap_pkt_from_buffer(uint8_t *buf, uint32_t len)
 	pkt->hdr_crc  = buf[RMAP_HEADER_CRC];
 
 	if (pkt->data_len) {
-		if (len < RMAP_DATA_START + n + pkt->data_len + 1) {  /* +1 for data CRC */
-			printf("buffer len is smaller than the contained RMAP packet; buf len: %" PRIu32 " bytes vs RMAP: %lu bytes needed\n",
-				len, RMAP_DATA_START + n + pkt->data_len);
+		size_t pkt_size = RMAP_DATA_START + n + pkt->data_len + 1; /* +1 for data CRC */
+
+		if (len < pkt_size) {
+			printf("buffer len is smaller than the contained RMAP packet; buf len: %" PRIu32 " bytes vs RMAP: %zu bytes needed\n",
+				len, pkt_size);
 			goto error;
 		}
-		if (len > RMAP_DATA_START + n + pkt->data_len + 1)  /* +1 for data CRC */
+		if (len > pkt_size)
 			printf("warning: the buffer is larger than the included RMAP packet\n");
 
 		pkt->data = (uint8_t *) malloc(pkt->data_len);
