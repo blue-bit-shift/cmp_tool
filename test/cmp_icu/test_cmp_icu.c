@@ -31,7 +31,6 @@
 #include "cmp_icu.h"
 #include "../lib/cmp_icu.c" /* this is a hack to test static functions */
 
-/* TODO: test compression with samples = 0 and buffer_length = 0; */
 
 /**
  * @brief  Seeds the pseudo-random number generator used by rand()
@@ -2936,122 +2935,6 @@ void test_compress_s_fx_model_multi(void)
 	free(cfg.icu_new_model_buf);
 	free(cfg.icu_output_buf);
 }
-
-
-#if 0
-void todo_est_compress_s_fx_efx_model_multi(void)
-{
-	uint32_t i;
-	struct s_fx_efx data[6], model[6];
-	struct s_fx_efx *up_model_buf;
-	struct cmp_cfg cfg = {0};
-	int cmp_size;
-	struct multi_entry_hdr *hdr;
-	uint32_t *cmp_data;
-	struct cmp_max_used_bits my_max_used_bits = cmp_get_max_used_bits();
-
-	/* define max_used_bits */
-	my_max_used_bits.s_exp_flags = 2;
-	my_max_used_bits.s_fx = 21;
-	my_max_used_bits.s_efx = 21;
-	cmp_set_max_used_bits(&my_max_used_bits);
-
-	/* setup configuration */
-	cfg.data_type = DATA_TYPE_S_FX_EFX;
-	cfg.cmp_mode = CMP_MODE_MODEL_MULTI;
-	cfg.model_value = 16;
-	cfg.samples = 6;
-	cfg.input_buf = malloc(cmp_cal_size_of_data(cfg.samples, cfg.data_type));
-	TEST_ASSERT_NOT_NULL(cfg.input_buf);
-	cfg.model_buf = malloc(cmp_cal_size_of_data(cfg.samples, cfg.data_type));
-	TEST_ASSERT_NOT_NULL(cfg.model_buf);
-	cfg.icu_new_model_buf = malloc(cmp_cal_size_of_data(cfg.samples, cfg.data_type));
-	TEST_ASSERT_NOT_NULL(cfg.icu_new_model_buf);
-	cfg.buffer_length = 6;
-	cfg.icu_output_buf = malloc(cmp_cal_size_of_data(cfg.buffer_length, cfg.data_type));
-	TEST_ASSERT_NOT_NULL(cfg.icu_output_buf);
-	cfg.cmp_par_exp_flags = 1;
-	cfg.spill_exp_flags = 8;
-	cfg.cmp_par_fx = 3;
-	cfg.spill_fx = 35;
-	cfg.cmp_par_efx = 4;
-	cfg.spill_efx = 35;
-
-
-	/* generate input data */
-	hdr = cfg.input_buf;
-	/* use dummy data for the header */
-	memset(hdr, 0x42, sizeof(struct multi_entry_hdr));
-	data[0].exp_flags = 0x0;
-	data[0].fx = 0x0;
-	data[0].efx = 0x0;
-	data[1].exp_flags = 0x1;
-	data[1].fx = 0x1;
-	data[1].efx = 0;
-	data[2].exp_flags = 0x2;
-	data[2].fx = 0x23;
-	data[2].efx = 0;
-	data[3].exp_flags = 0x3;
-	data[3].fx = 0x42;
-	data[3].efx = 0;
-	data[4].exp_flags = 0x0;
-	data[4].fx = 0x001FFFFF;
-	data[4].efx = 0;
-	data[5].exp_flags = 0x0;
-	data[5].fx = 0x0;
-	data[5].efx = 0;
-	memcpy(hdr->entry, data, sizeof(data));
-
-	/* generate model data */
-	hdr = cfg.model_buf;
-	/* use dummy data for the header */
-	memset(hdr, 0x41, sizeof(struct multi_entry_hdr));
-	model[0].exp_flags = 0x0;
-	model[0].fx = 0x0;
-	model[0].efx = 0x1FFFFF;
-	model[1].exp_flags = 0x3;
-	model[1].fx = 0x1;
-	model[1].efx = 0x1FFFFF;
-	model[2].exp_flags = 0x0;
-	model[2].fx = 0x42;
-	model[2].efx = 0x1FFFFF;
-	model[3].exp_flags = 0x0;
-	model[3].fx = 0x23;
-	model[3].efx = 0x1FFFFF;
-	model[4].exp_flags = 0x3;
-	model[4].fx = 0x0;
-	model[4].efx = 0x1FFFFF;
-	model[5].exp_flags = 0x2;
-	model[5].fx = 0x001FFFFF;
-	model[5].efx = 0x1FFFFF;
-	memcpy(hdr->entry, model, sizeof(model));
-
-	cmp_size = icu_compress_data(&cfg);
-#if 0
-	TEST_ASSERT_EQUAL_INT(166, cmp_size);
-	TEST_ASSERT_FALSE(memcmp(cfg.input_buf, cfg.icu_output_buf, MULTI_ENTRY_HDR_SIZE));
-	cmp_data = &cfg.icu_output_buf[MULTI_ENTRY_HDR_SIZE/sizeof(uint32_t)];
-	TEST_ASSERT_EQUAL_HEX(0x1C77FFA6, be32_to_cpu(cmp_data[0]));
-	TEST_ASSERT_EQUAL_HEX(0xAFFF4DE5, be32_to_cpu(cmp_data[1]));
-	TEST_ASSERT_EQUAL_HEX(0xCC000000, be32_to_cpu(cmp_data[2]));
-
-#endif
-	hdr = cfg.icu_new_model_buf;
-	up_model_buf = (struct s_fx *)hdr->entry;
-	TEST_ASSERT_FALSE(memcmp(hdr, cfg.icu_output_buf, MULTI_ENTRY_HDR_SIZE));
-	for (i = 0; i < cfg.samples; i++) {
-		TEST_ASSERT_EQUAL(model[i].exp_flags, up_model_buf[i].exp_flags);
-		TEST_ASSERT_EQUAL(model[i].fx, up_model_buf[i].fx);
-		TEST_ASSERT_EQUAL(model[i].efx, up_model_buf[i].efx);
-	}
-
-
-	free(cfg.input_buf);
-	free(cfg.model_buf);
-	free(cfg.icu_new_model_buf);
-	free(cfg.icu_output_buf);
-}
-#endif
 
 
 /**
