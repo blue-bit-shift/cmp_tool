@@ -2569,7 +2569,7 @@ void test_compress_imagette_error_cases(void)
 	uint32_t output_buf[2] = {0xFFFF, 0xFFFF};
 	struct cmp_cfg cfg = {0};
 	int cmp_size;
-	struct cmp_max_used_bits max_used_bits;
+	struct cmp_max_used_bits my_max_used_bits;
 
 	cfg.data_type = DATA_TYPE_IMAGETTE;
 	cfg.cmp_mode = CMP_MODE_DIFF_ZERO;
@@ -2627,9 +2627,9 @@ void test_compress_imagette_error_cases(void)
 	TEST_ASSERT_EQUAL_INT(-1, cmp_size);
 
 	/* error in setup */
-	max_used_bits = cmp_get_max_used_bits();
-	max_used_bits.nc_imagette = 33;
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits = cmp_get_max_used_bits();
+	my_max_used_bits.nc_imagette = 33;
+	cmp_set_max_used_bits(&my_max_used_bits);
 	cfg.data_type = DATA_TYPE_IMAGETTE;
 	cfg.cmp_mode = CMP_MODE_DIFF_ZERO;
 	cfg.input_buf = data;
@@ -2843,7 +2843,7 @@ void test_compress_s_fx_model_multi(void)
 	int cmp_size;
 	struct multi_entry_hdr *hdr;
 	uint32_t *cmp_data;
-	struct cmp_max_used_bits max_used_bits;
+	struct cmp_max_used_bits my_max_used_bits;
 
 	/* setup configuration */
 	cfg.data_type = DATA_TYPE_S_FX;
@@ -2901,10 +2901,10 @@ void test_compress_s_fx_model_multi(void)
 	model[5].fx = 0x001FFFFF;
 	memcpy(hdr->entry, model, sizeof(model));
 
-	max_used_bits = cmp_get_max_used_bits();
-	max_used_bits.s_exp_flags = 2;
-	max_used_bits.s_fx = 21;
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits = cmp_get_max_used_bits();
+	my_max_used_bits.s_exp_flags = 2;
+	my_max_used_bits.s_fx = 21;
+	cmp_set_max_used_bits(&my_max_used_bits);
 
 	cmp_size = icu_compress_data(&cfg);
 
@@ -2948,13 +2948,13 @@ void todo_est_compress_s_fx_efx_model_multi(void)
 	int cmp_size;
 	struct multi_entry_hdr *hdr;
 	uint32_t *cmp_data;
-	struct cmp_max_used_bits max_used_bits = cmp_get_max_used_bits();
+	struct cmp_max_used_bits my_max_used_bits = cmp_get_max_used_bits();
 
 	/* define max_used_bits */
-	max_used_bits.s_exp_flags = 2;
-	max_used_bits.s_fx = 21;
-	max_used_bits.s_efx = 21;
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.s_exp_flags = 2;
+	my_max_used_bits.s_fx = 21;
+	my_max_used_bits.s_efx = 21;
+	cmp_set_max_used_bits(&my_max_used_bits);
 
 	/* setup configuration */
 	cfg.data_type = DATA_TYPE_S_FX_EFX;
@@ -3068,12 +3068,12 @@ void test_compress_s_fx_error_cases(void)
 	uint32_t spillover_fx = 8;
 	uint8_t data_to_compress[MULTI_ENTRY_HDR_SIZE+3*sizeof(struct s_fx)] = {0};
 	uint8_t compressed_data[MULTI_ENTRY_HDR_SIZE+1*sizeof(struct s_fx)] = {0};
-	struct cmp_max_used_bits max_used_bits = {0};
+	struct cmp_max_used_bits my_max_used_bits = {0};
 	struct s_fx *data_p = (struct s_fx *)&data_to_compress[MULTI_ENTRY_HDR_SIZE];
 
-	max_used_bits.s_exp_flags = 2;
-	max_used_bits.s_fx = 21;
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.s_exp_flags = 2;
+	my_max_used_bits.s_fx = 21;
+	cmp_set_max_used_bits(&my_max_used_bits);
 
 	cfg = cmp_cfg_icu_create(DATA_TYPE_S_FX, CMP_MODE_DIFF_ZERO, 0, CMP_LOSSLESS);
 	TEST_ASSERT(cfg.data_type != DATA_TYPE_UNKNOWN);
@@ -3090,26 +3090,26 @@ void test_compress_s_fx_error_cases(void)
 	TEST_ASSERT_EQUAL_INT(sizeof(compressed_data), compressed_data_size);
 
 	/* test if data are higher than max used bits value */
-	data_p[0].fx = 0x200000; /* has more than 21 bits (max_used_bits.s_fx) */
+	data_p[0].fx = 0x200000; /* has more than 21 bits (my_max_used_bits.s_fx) */
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(CMP_ERROR_HIGH_VALUE, cmp_bits);
 
 	/* compressed data are to small for the compressed_data buffer */
-	max_used_bits.s_exp_flags = 8;
-	max_used_bits.s_fx = 32;
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.s_exp_flags = 8;
+	my_max_used_bits.s_fx = 32;
+	cmp_set_max_used_bits(&my_max_used_bits);
 	memset(data_to_compress, 0xff, sizeof(data_to_compress));
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(CMP_ERROR_SMALL_BUF, cmp_bits);
 
-	max_used_bits.s_exp_flags = 33; /* more than 32 bits are not allowed */
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.s_exp_flags = 33; /* more than 32 bits are not allowed */
+	cmp_set_max_used_bits(&my_max_used_bits);
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(-1, cmp_bits);
 
-	max_used_bits.s_exp_flags = 32;
-	max_used_bits.s_fx = 33; /* more than 32 bits are not allowed */
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.s_exp_flags = 32;
+	my_max_used_bits.s_fx = 33; /* more than 32 bits are not allowed */
+	cmp_set_max_used_bits(&my_max_used_bits);
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(-1, cmp_bits);
 }
@@ -3131,13 +3131,13 @@ void test_compress_s_fx_efx_error_cases(void)
 	uint32_t spillover_efx = cmp_icu_max_spill(MAX_NON_IMA_GOLOMB_PAR);
 	uint8_t data_to_compress[MULTI_ENTRY_HDR_SIZE+2*sizeof(struct s_fx_efx)] = {0};
 	uint8_t compressed_data[MULTI_ENTRY_HDR_SIZE+1*sizeof(struct s_fx_efx)] = {0};
-	struct cmp_max_used_bits max_used_bits = {0};
+	struct cmp_max_used_bits my_max_used_bits = {0};
 	struct s_fx_efx *data_p = (struct s_fx_efx *)&data_to_compress[MULTI_ENTRY_HDR_SIZE];
 
-	max_used_bits.s_exp_flags = 2;
-	max_used_bits.s_fx = 21;
-	max_used_bits.s_efx = 16;
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.s_exp_flags = 2;
+	my_max_used_bits.s_fx = 21;
+	my_max_used_bits.s_efx = 16;
+	cmp_set_max_used_bits(&my_max_used_bits);
 
 	cfg = cmp_cfg_icu_create(DATA_TYPE_S_FX_EFX, CMP_MODE_DIFF_MULTI, 0, CMP_LOSSLESS);
 	TEST_ASSERT(cfg.data_type != DATA_TYPE_UNKNOWN);
@@ -3154,37 +3154,37 @@ void test_compress_s_fx_efx_error_cases(void)
 	TEST_ASSERT_EQUAL_INT(sizeof(compressed_data), compressed_data_size);
 
 	/* test if data are higher than max used bits value */
-	data_p[0].exp_flags = 0x4; /* has more than 2 bits (max_used_bits.s_exp_flags) */
+	data_p[0].exp_flags = 0x4; /* has more than 2 bits (my_max_used_bits.s_exp_flags) */
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(CMP_ERROR_HIGH_VALUE, cmp_bits);
 
 	data_p[0].exp_flags = 0x3;
-	data_p[1].fx = 0x200000; /* has more than 21 bits (max_used_bits.fx) */
+	data_p[1].fx = 0x200000; /* has more than 21 bits (my_max_used_bits.fx) */
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(CMP_ERROR_HIGH_VALUE, cmp_bits);
 
 	data_p[1].fx = 0x1FFFFF;
-	data_p[1].efx = 0x100000; /* has more than 16 bits (max_used_bits.efx) */
+	data_p[1].efx = 0x100000; /* has more than 16 bits (my_max_used_bits.efx) */
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(CMP_ERROR_HIGH_VALUE, cmp_bits);
 
 	/* error case exp_flag setup */
-	max_used_bits.s_exp_flags = 33;
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.s_exp_flags = 33;
+	cmp_set_max_used_bits(&my_max_used_bits);
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(-1, cmp_bits);
 
 	/* error case fx setup */
-	max_used_bits.s_exp_flags = 2;
-	max_used_bits.s_fx = 33;
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.s_exp_flags = 2;
+	my_max_used_bits.s_fx = 33;
+	cmp_set_max_used_bits(&my_max_used_bits);
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(-1, cmp_bits);
 
 	/* error case efx setup */
-	max_used_bits.s_fx = 21;
-	max_used_bits.s_efx = 33;
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.s_fx = 21;
+	my_max_used_bits.s_efx = 33;
+	cmp_set_max_used_bits(&my_max_used_bits);
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(-1, cmp_bits);
 }
@@ -3207,14 +3207,14 @@ void test_compress_s_fx_ncob_error_cases(void)
 	uint8_t data_to_compress[MULTI_ENTRY_HDR_SIZE+3*sizeof(struct s_fx_ncob)] = {0};
 	uint8_t model_data[MULTI_ENTRY_HDR_SIZE+3*sizeof(struct s_fx_ncob)] = {0};
 	uint8_t compressed_data[MULTI_ENTRY_HDR_SIZE+1*sizeof(struct s_fx_ncob)] = {0};
-	struct cmp_max_used_bits max_used_bits = {0};
+	struct cmp_max_used_bits my_max_used_bits = {0};
 	struct s_fx_ncob *data_p = (struct s_fx_ncob *)&data_to_compress[MULTI_ENTRY_HDR_SIZE];
 
 
-	max_used_bits.s_exp_flags = 2;
-	max_used_bits.s_fx = 21;
-	max_used_bits.s_ncob = 31;
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.s_exp_flags = 2;
+	my_max_used_bits.s_fx = 21;
+	my_max_used_bits.s_ncob = 31;
+	cmp_set_max_used_bits(&my_max_used_bits);
 
 	cfg = cmp_cfg_icu_create(DATA_TYPE_S_FX_NCOB, CMP_MODE_MODEL_ZERO, 0, CMP_LOSSLESS);
 	TEST_ASSERT(cfg.data_type != DATA_TYPE_UNKNOWN);
@@ -3234,7 +3234,7 @@ void test_compress_s_fx_ncob_error_cases(void)
 	TEST_ASSERT_EQUAL_INT(CMP_ERROR_SMALL_BUF, cmp_bits);
 
 	/* test if data are higher than max used bits value */
-	data_p[2].exp_flags = 0x4; /* has more than 2 bits (max_used_bits.s_exp_flags) */
+	data_p[2].exp_flags = 0x4; /* has more than 2 bits (my_max_used_bits.s_exp_flags) */
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(CMP_ERROR_HIGH_VALUE, cmp_bits);
 
@@ -3250,22 +3250,22 @@ void test_compress_s_fx_ncob_error_cases(void)
 	data_p[0].ncob_y = 0x7FFFFFFF; /* value to high */
 
 	/* error case exp_flag setup */
-	max_used_bits.s_exp_flags = 33;
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.s_exp_flags = 33;
+	cmp_set_max_used_bits(&my_max_used_bits);
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(-1, cmp_bits);
 
 	/* error case fx setup */
-	max_used_bits.s_exp_flags = 2;
-	max_used_bits.s_fx = 33;
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.s_exp_flags = 2;
+	my_max_used_bits.s_fx = 33;
+	cmp_set_max_used_bits(&my_max_used_bits);
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(-1, cmp_bits);
 
 	/* error case efx setup */
-	max_used_bits.s_fx = 21;
-	max_used_bits.s_ncob = 33;
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.s_fx = 21;
+	my_max_used_bits.s_ncob = 33;
+	cmp_set_max_used_bits(&my_max_used_bits);
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(-1, cmp_bits);
 }
@@ -3292,16 +3292,16 @@ void test_compress_s_fx_efx_ncob_ecob_error_cases(void)
 	uint8_t data_to_compress[MULTI_ENTRY_HDR_SIZE+3*sizeof(struct s_fx_efx_ncob_ecob)] = {0};
 	uint8_t model_data[MULTI_ENTRY_HDR_SIZE+3*sizeof(struct s_fx_efx_ncob_ecob)] = {0};
 	uint8_t compressed_data[MULTI_ENTRY_HDR_SIZE+1*sizeof(struct s_fx_efx_ncob_ecob)] = {0};
-	struct cmp_max_used_bits max_used_bits = {0};
+	struct cmp_max_used_bits my_max_used_bits = {0};
 	struct s_fx_efx_ncob_ecob *data_p = (struct s_fx_efx_ncob_ecob *)&data_to_compress[MULTI_ENTRY_HDR_SIZE];
 
 
-	max_used_bits.s_exp_flags = 2;
-	max_used_bits.s_fx = 21;
-	max_used_bits.s_ncob = 31;
-	max_used_bits.s_efx = 23;
-	max_used_bits.s_ecob = 7;
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.s_exp_flags = 2;
+	my_max_used_bits.s_fx = 21;
+	my_max_used_bits.s_ncob = 31;
+	my_max_used_bits.s_efx = 23;
+	my_max_used_bits.s_ecob = 7;
+	cmp_set_max_used_bits(&my_max_used_bits);
 
 	cfg = cmp_cfg_icu_create(DATA_TYPE_S_FX_EFX_NCOB_ECOB, CMP_MODE_MODEL_ZERO, 0, CMP_LOSSLESS);
 	TEST_ASSERT(cfg.data_type != DATA_TYPE_UNKNOWN);
@@ -3353,37 +3353,37 @@ void test_compress_s_fx_efx_ncob_ecob_error_cases(void)
 	data_p[1].ecob_y = 0x7F;
 
 	/* error case exp_flag setup */
-	max_used_bits.s_exp_flags = 33;
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.s_exp_flags = 33;
+	cmp_set_max_used_bits(&my_max_used_bits);
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(-1, cmp_bits);
 
 	/* error case fx setup */
-	max_used_bits.s_exp_flags = 32;
-	max_used_bits.s_fx = 33;
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.s_exp_flags = 32;
+	my_max_used_bits.s_fx = 33;
+	cmp_set_max_used_bits(&my_max_used_bits);
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(-1, cmp_bits);
 
 	/* error case efx setup */
-	max_used_bits.s_fx = 32;
-	max_used_bits.s_ncob = 33;
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.s_fx = 32;
+	my_max_used_bits.s_ncob = 33;
+	cmp_set_max_used_bits(&my_max_used_bits);
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(-1, cmp_bits);
 
-	max_used_bits.s_ncob = 32;
-	max_used_bits.s_efx = 33;
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.s_ncob = 32;
+	my_max_used_bits.s_efx = 33;
+	cmp_set_max_used_bits(&my_max_used_bits);
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(-1, cmp_bits);
 
-	max_used_bits.s_efx = 32;
-	max_used_bits.s_ecob = 33;
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.s_efx = 32;
+	my_max_used_bits.s_ecob = 33;
+	cmp_set_max_used_bits(&my_max_used_bits);
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(-1, cmp_bits);
-	max_used_bits.s_ecob = 32;
+	my_max_used_bits.s_ecob = 32;
 }
 
 
@@ -3399,10 +3399,10 @@ void test_compress_f_fx_error_cases(void)
 	uint32_t spillover_fx = 8;
 	uint8_t data_to_compress[MULTI_ENTRY_HDR_SIZE+3*sizeof(struct f_fx)] = {0};
 	uint8_t compressed_data[MULTI_ENTRY_HDR_SIZE+1*sizeof(struct f_fx)] = {0};
-	struct cmp_max_used_bits max_used_bits = {0};
+	struct cmp_max_used_bits my_max_used_bits = {0};
 
-	max_used_bits.f_fx = 23;
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.f_fx = 23;
+	cmp_set_max_used_bits(&my_max_used_bits);
 
 	cfg = cmp_cfg_icu_create(DATA_TYPE_F_FX, CMP_MODE_DIFF_ZERO, 0, CMP_LOSSLESS);
 	TEST_ASSERT(cfg.data_type != DATA_TYPE_UNKNOWN);
@@ -3421,8 +3421,8 @@ void test_compress_f_fx_error_cases(void)
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(CMP_ERROR_SMALL_BUF, cmp_bits);
 
-	max_used_bits.f_fx = 33; /* more than 32 bits are not allowed */
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.f_fx = 33; /* more than 32 bits are not allowed */
+	cmp_set_max_used_bits(&my_max_used_bits);
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(-1, cmp_bits);
 }
@@ -3442,12 +3442,12 @@ void test_compress_f_fx_efx_error_cases(void)
 	uint32_t spillover_efx = 8;
 	uint8_t data_to_compress[MULTI_ENTRY_HDR_SIZE+2*sizeof(struct f_fx_efx)] = {0};
 	uint8_t compressed_data[MULTI_ENTRY_HDR_SIZE+1*sizeof(struct f_fx_efx)] = {0};
-	struct cmp_max_used_bits max_used_bits = {0};
+	struct cmp_max_used_bits my_max_used_bits = {0};
 	struct f_fx_efx *data_p = (struct f_fx_efx *)&data_to_compress[MULTI_ENTRY_HDR_SIZE];
 
-	max_used_bits.f_fx = 23;
-	max_used_bits.f_efx = 31;
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.f_fx = 23;
+	my_max_used_bits.f_efx = 31;
+	cmp_set_max_used_bits(&my_max_used_bits);
 
 	cfg = cmp_cfg_icu_create(DATA_TYPE_F_FX_EFX, CMP_MODE_DIFF_ZERO, 0, CMP_LOSSLESS);
 	TEST_ASSERT(cfg.data_type != DATA_TYPE_UNKNOWN);
@@ -3471,19 +3471,19 @@ void test_compress_f_fx_efx_error_cases(void)
 
 	/* efx value is to big for the max used bits values */
 	data_p[0].efx = 0x80000000;
-	cmp_set_max_used_bits(&max_used_bits);
+	cmp_set_max_used_bits(&my_max_used_bits);
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(CMP_ERROR_HIGH_VALUE, cmp_bits);
 	data_p[0].efx = 0x7FFFFFFF;
 
-	max_used_bits.f_fx = 33; /* more than 32 bits are not allowed */
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.f_fx = 33; /* more than 32 bits are not allowed */
+	cmp_set_max_used_bits(&my_max_used_bits);
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(-1, cmp_bits);
 
-	max_used_bits.f_fx = 32;
-	max_used_bits.f_efx = 33; /* more than 32 bits are not allowed */
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.f_fx = 32;
+	my_max_used_bits.f_efx = 33; /* more than 32 bits are not allowed */
+	cmp_set_max_used_bits(&my_max_used_bits);
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(-1, cmp_bits);
 }
@@ -3503,12 +3503,12 @@ void test_compress_f_fx_ncob_error_cases(void)
 	uint32_t spillover_ncob = 8;
 	uint8_t data_to_compress[MULTI_ENTRY_HDR_SIZE+2*sizeof(struct f_fx_ncob)] = {0};
 	uint8_t compressed_data[MULTI_ENTRY_HDR_SIZE+1*sizeof(struct f_fx_ncob)] = {0};
-	struct cmp_max_used_bits max_used_bits = {0};
+	struct cmp_max_used_bits my_max_used_bits = {0};
 	struct f_fx_ncob *data_p = (struct f_fx_ncob *)&data_to_compress[MULTI_ENTRY_HDR_SIZE];
 
-	max_used_bits.f_fx = 31;
-	max_used_bits.f_ncob = 23;
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.f_fx = 31;
+	my_max_used_bits.f_ncob = 23;
+	cmp_set_max_used_bits(&my_max_used_bits);
 
 	cfg = cmp_cfg_icu_create(DATA_TYPE_F_FX_NCOB, CMP_MODE_DIFF_ZERO, 0, CMP_LOSSLESS);
 	TEST_ASSERT(cfg.data_type != DATA_TYPE_UNKNOWN);
@@ -3530,24 +3530,24 @@ void test_compress_f_fx_ncob_error_cases(void)
 
 	/* value is to big for the max used bits values */
 	data_p[0].ncob_x = 0x800000;
-	cmp_set_max_used_bits(&max_used_bits);
+	cmp_set_max_used_bits(&my_max_used_bits);
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(CMP_ERROR_HIGH_VALUE, cmp_bits);
 	data_p[0].ncob_x = 0x7FFFFF;
 	data_p[0].ncob_y = 0x800000;
-	cmp_set_max_used_bits(&max_used_bits);
+	cmp_set_max_used_bits(&my_max_used_bits);
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(CMP_ERROR_HIGH_VALUE, cmp_bits);
 	data_p[0].ncob_y = 0x7FFFFF;
 
-	max_used_bits.f_fx = 33; /* more than 32 bits are not allowed */
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.f_fx = 33; /* more than 32 bits are not allowed */
+	cmp_set_max_used_bits(&my_max_used_bits);
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(-1, cmp_bits);
 
-	max_used_bits.f_fx = 32;
-	max_used_bits.f_ncob = 33; /* more than 32 bits are not allowed */
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.f_fx = 32;
+	my_max_used_bits.f_ncob = 33; /* more than 32 bits are not allowed */
+	cmp_set_max_used_bits(&my_max_used_bits);
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(-1, cmp_bits);
 }
@@ -3571,14 +3571,14 @@ void test_compress_f_fx_efx_ncob_ecob(void)
 	uint32_t spillover_ecob = 55;
 	uint8_t data_to_compress[MULTI_ENTRY_HDR_SIZE+4*sizeof(struct f_fx_efx_ncob_ecob)] = {0};
 	uint8_t compressed_data[MULTI_ENTRY_HDR_SIZE+1*sizeof(struct f_fx_efx_ncob_ecob)] = {0};
-	struct cmp_max_used_bits max_used_bits = {0};
+	struct cmp_max_used_bits my_max_used_bits = {0};
 	struct f_fx_efx_ncob_ecob *data_p = (struct f_fx_efx_ncob_ecob *)&data_to_compress[MULTI_ENTRY_HDR_SIZE];
 
-	max_used_bits.f_fx = 31;
-	max_used_bits.f_ncob = 3;
-	max_used_bits.f_efx = 16;
-	max_used_bits.f_ecob = 8;
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.f_fx = 31;
+	my_max_used_bits.f_ncob = 3;
+	my_max_used_bits.f_efx = 16;
+	my_max_used_bits.f_ecob = 8;
+	cmp_set_max_used_bits(&my_max_used_bits);
 
 	cfg = cmp_cfg_icu_create(DATA_TYPE_F_FX_EFX_NCOB_ECOB, CMP_MODE_DIFF_ZERO, 0, CMP_LOSSLESS);
 	TEST_ASSERT(cfg.data_type != DATA_TYPE_UNKNOWN);
@@ -3624,26 +3624,26 @@ void test_compress_f_fx_efx_ncob_ecob(void)
 	TEST_ASSERT_EQUAL_INT(CMP_ERROR_HIGH_VALUE, cmp_bits);
 	data_p[3].ecob_y = 0x100-1;
 
-	max_used_bits.f_fx = 33; /* more than 32 bits are not allowed */
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.f_fx = 33; /* more than 32 bits are not allowed */
+	cmp_set_max_used_bits(&my_max_used_bits);
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(-1, cmp_bits);
 
-	max_used_bits.f_fx = 32;
-	max_used_bits.f_ncob = 33; /* more than 32 bits are not allowed */
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.f_fx = 32;
+	my_max_used_bits.f_ncob = 33; /* more than 32 bits are not allowed */
+	cmp_set_max_used_bits(&my_max_used_bits);
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(-1, cmp_bits);
 
-	max_used_bits.f_ncob = 32;
-	max_used_bits.f_efx = 33; /* more than 32 bits are not allowed */
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.f_ncob = 32;
+	my_max_used_bits.f_efx = 33; /* more than 32 bits are not allowed */
+	cmp_set_max_used_bits(&my_max_used_bits);
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(-1, cmp_bits);
 
-	max_used_bits.f_efx = 32;
-	max_used_bits.f_ecob = 33; /* more than 32 bits are not allowed */
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.f_efx = 32;
+	my_max_used_bits.f_ecob = 33; /* more than 32 bits are not allowed */
+	cmp_set_max_used_bits(&my_max_used_bits);
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(-1, cmp_bits);
 }
@@ -3665,14 +3665,14 @@ void test_compress_l_fx_error_cases(void)
 	uint32_t spillover_fx_cob_variance = 8;
 	uint8_t data_to_compress[MULTI_ENTRY_HDR_SIZE+3*sizeof(struct l_fx)] = {0};
 	uint8_t compressed_data[MULTI_ENTRY_HDR_SIZE+1*sizeof(struct l_fx)] = {0};
-	struct cmp_max_used_bits max_used_bits = {0};
+	struct cmp_max_used_bits my_max_used_bits = {0};
 	struct l_fx *data_p = (struct l_fx *)&data_to_compress[MULTI_ENTRY_HDR_SIZE];
 
-	max_used_bits.l_exp_flags = 23;
-	max_used_bits.l_fx = 31;
-	max_used_bits.l_efx = 1;
-	max_used_bits.l_fx_variance = 23;
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.l_exp_flags = 23;
+	my_max_used_bits.l_fx = 31;
+	my_max_used_bits.l_efx = 1;
+	my_max_used_bits.l_fx_variance = 23;
+	cmp_set_max_used_bits(&my_max_used_bits);
 
 	cfg = cmp_cfg_icu_create(DATA_TYPE_L_FX, CMP_MODE_DIFF_ZERO, 0, CMP_LOSSLESS);
 	TEST_ASSERT(cfg.data_type != DATA_TYPE_UNKNOWN);
@@ -3704,20 +3704,20 @@ void test_compress_l_fx_error_cases(void)
 
 	data_p[0].fx_variance = 0x800000-1;
 
-	max_used_bits.l_exp_flags = 33; /* more than 32 bits are not allowed */
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.l_exp_flags = 33; /* more than 32 bits are not allowed */
+	cmp_set_max_used_bits(&my_max_used_bits);
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(-1, cmp_bits);
 
-	max_used_bits.l_exp_flags = 32;
-	max_used_bits.l_fx = 33; /* more than 32 bits are not allowed */
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.l_exp_flags = 32;
+	my_max_used_bits.l_fx = 33; /* more than 32 bits are not allowed */
+	cmp_set_max_used_bits(&my_max_used_bits);
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(-1, cmp_bits);
 
-	max_used_bits.l_fx = 32;
-	max_used_bits.l_fx_variance = 33; /* more than 32 bits are not allowed */
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.l_fx = 32;
+	my_max_used_bits.l_fx_variance = 33; /* more than 32 bits are not allowed */
+	cmp_set_max_used_bits(&my_max_used_bits);
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(-1, cmp_bits);
 }
@@ -3741,14 +3741,14 @@ void test_compress_l_fx_efx_error_cases(void)
 	uint32_t spillover_fx_cob_variance = 8;
 	uint8_t data_to_compress[MULTI_ENTRY_HDR_SIZE+3*sizeof(struct l_fx_efx)] = {0};
 	uint8_t compressed_data[MULTI_ENTRY_HDR_SIZE+1*sizeof(struct l_fx_efx)] = {0};
-	struct cmp_max_used_bits max_used_bits = {0};
+	struct cmp_max_used_bits my_max_used_bits = {0};
 	struct l_fx_efx *data_p = (struct l_fx_efx *)&data_to_compress[MULTI_ENTRY_HDR_SIZE];
 
-	max_used_bits.l_exp_flags = 23;
-	max_used_bits.l_fx = 31;
-	max_used_bits.l_efx = 1;
-	max_used_bits.l_fx_variance = 23;
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.l_exp_flags = 23;
+	my_max_used_bits.l_fx = 31;
+	my_max_used_bits.l_efx = 1;
+	my_max_used_bits.l_fx_variance = 23;
+	cmp_set_max_used_bits(&my_max_used_bits);
 
 	cfg = cmp_cfg_icu_create(DATA_TYPE_L_FX_EFX, CMP_MODE_DIFF_ZERO, 0, CMP_LOSSLESS);
 	TEST_ASSERT(cfg.data_type != DATA_TYPE_UNKNOWN);
@@ -3785,26 +3785,26 @@ void test_compress_l_fx_efx_error_cases(void)
 
 	data_p[0].fx_variance = 0x800000-1;
 
-	max_used_bits.l_exp_flags = 33; /* more than 32 bits are not allowed */
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.l_exp_flags = 33; /* more than 32 bits are not allowed */
+	cmp_set_max_used_bits(&my_max_used_bits);
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(-1, cmp_bits);
 
-	max_used_bits.l_exp_flags = 32;
-	max_used_bits.l_fx = 33; /* more than 32 bits are not allowed */
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.l_exp_flags = 32;
+	my_max_used_bits.l_fx = 33; /* more than 32 bits are not allowed */
+	cmp_set_max_used_bits(&my_max_used_bits);
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(-1, cmp_bits);
 
-	max_used_bits.l_fx = 32;
-	max_used_bits.l_efx = 33; /* more than 32 bits are not allowed */
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.l_fx = 32;
+	my_max_used_bits.l_efx = 33; /* more than 32 bits are not allowed */
+	cmp_set_max_used_bits(&my_max_used_bits);
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(-1, cmp_bits);
 
-	max_used_bits.l_efx = 32;
-	max_used_bits.l_fx_variance = 33; /* more than 32 bits are not allowed */
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.l_efx = 32;
+	my_max_used_bits.l_fx_variance = 33; /* more than 32 bits are not allowed */
+	cmp_set_max_used_bits(&my_max_used_bits);
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(-1, cmp_bits);
 }
@@ -3828,15 +3828,15 @@ void test_compress_l_fx_ncob_error_cases(void)
 	uint32_t spillover_fx_cob_variance = 8;
 	uint8_t data_to_compress[MULTI_ENTRY_HDR_SIZE+3*sizeof(struct l_fx_ncob)] = {0};
 	uint8_t compressed_data[MULTI_ENTRY_HDR_SIZE+1*sizeof(struct l_fx_ncob)] = {0};
-	struct cmp_max_used_bits max_used_bits = {0};
+	struct cmp_max_used_bits my_max_used_bits = {0};
 	struct l_fx_ncob *data_p = (struct l_fx_ncob *)&data_to_compress[MULTI_ENTRY_HDR_SIZE];
 
-	max_used_bits.l_exp_flags = 23;
-	max_used_bits.l_fx = 31;
-	max_used_bits.l_ncob = 2;
-	max_used_bits.l_fx_variance = 23;
-	max_used_bits.l_cob_variance = 11;
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.l_exp_flags = 23;
+	my_max_used_bits.l_fx = 31;
+	my_max_used_bits.l_ncob = 2;
+	my_max_used_bits.l_fx_variance = 23;
+	my_max_used_bits.l_cob_variance = 11;
+	cmp_set_max_used_bits(&my_max_used_bits);
 
 	cfg = cmp_cfg_icu_create(DATA_TYPE_L_FX_NCOB, CMP_MODE_DIFF_ZERO, 0, CMP_LOSSLESS);
 	TEST_ASSERT(cfg.data_type != DATA_TYPE_UNKNOWN);
@@ -3888,32 +3888,32 @@ void test_compress_l_fx_ncob_error_cases(void)
 
 	data_p[2].cob_y_variance = 0x800-1;
 
-	max_used_bits.l_exp_flags = 33; /* more than 32 bits are not allowed */
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.l_exp_flags = 33; /* more than 32 bits are not allowed */
+	cmp_set_max_used_bits(&my_max_used_bits);
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(-1, cmp_bits);
 
-	max_used_bits.l_exp_flags = 32;
-	max_used_bits.l_fx = 33; /* more than 32 bits are not allowed */
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.l_exp_flags = 32;
+	my_max_used_bits.l_fx = 33; /* more than 32 bits are not allowed */
+	cmp_set_max_used_bits(&my_max_used_bits);
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(-1, cmp_bits);
 
-	max_used_bits.l_fx = 32;
-	max_used_bits.l_ncob = 33; /* more than 32 bits are not allowed */
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.l_fx = 32;
+	my_max_used_bits.l_ncob = 33; /* more than 32 bits are not allowed */
+	cmp_set_max_used_bits(&my_max_used_bits);
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(-1, cmp_bits);
 
-	max_used_bits.l_ncob = 32;
-	max_used_bits.l_fx_variance = 33; /* more than 32 bits are not allowed */
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.l_ncob = 32;
+	my_max_used_bits.l_fx_variance = 33; /* more than 32 bits are not allowed */
+	cmp_set_max_used_bits(&my_max_used_bits);
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(-1, cmp_bits);
 
-	max_used_bits.l_fx_variance = 32;
-	max_used_bits.l_cob_variance = 33; /* more than 32 bits are not allowed */
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.l_fx_variance = 32;
+	my_max_used_bits.l_cob_variance = 33; /* more than 32 bits are not allowed */
+	cmp_set_max_used_bits(&my_max_used_bits);
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(-1, cmp_bits);
 }
@@ -3941,17 +3941,17 @@ void test_compress_l_fx_efx_ncob_ecob_error_cases(void)
 	uint32_t spillover_fx_cob_variance = 8;
 	uint8_t data_to_compress[MULTI_ENTRY_HDR_SIZE+3*sizeof(struct l_fx_efx_ncob_ecob)] = {0};
 	uint8_t compressed_data[MULTI_ENTRY_HDR_SIZE+1*sizeof(struct l_fx_efx_ncob_ecob)] = {0};
-	struct cmp_max_used_bits max_used_bits = {0};
+	struct cmp_max_used_bits my_max_used_bits = {0};
 	struct l_fx_efx_ncob_ecob *data_p = (struct l_fx_efx_ncob_ecob *)&data_to_compress[MULTI_ENTRY_HDR_SIZE];
 
-	max_used_bits.l_exp_flags = 23;
-	max_used_bits.l_fx = 31;
-	max_used_bits.l_ncob = 2;
-	max_used_bits.l_efx = 1;
-	max_used_bits.l_ecob = 3;
-	max_used_bits.l_fx_variance = 23;
-	max_used_bits.l_cob_variance = 11;
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.l_exp_flags = 23;
+	my_max_used_bits.l_fx = 31;
+	my_max_used_bits.l_ncob = 2;
+	my_max_used_bits.l_efx = 1;
+	my_max_used_bits.l_ecob = 3;
+	my_max_used_bits.l_fx_variance = 23;
+	my_max_used_bits.l_cob_variance = 11;
+	cmp_set_max_used_bits(&my_max_used_bits);
 
 	cfg = cmp_cfg_icu_create(DATA_TYPE_L_FX_EFX_NCOB_ECOB, CMP_MODE_DIFF_ZERO, 0, CMP_LOSSLESS);
 	TEST_ASSERT(cfg.data_type != DATA_TYPE_UNKNOWN);
@@ -4018,44 +4018,44 @@ void test_compress_l_fx_efx_ncob_ecob_error_cases(void)
 
 	data_p[2].cob_y_variance = 0x800-1;
 
-	max_used_bits.l_exp_flags = 33; /* more than 32 bits are not allowed */
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.l_exp_flags = 33; /* more than 32 bits are not allowed */
+	cmp_set_max_used_bits(&my_max_used_bits);
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(-1, cmp_bits);
 
-	max_used_bits.l_exp_flags = 32;
-	max_used_bits.l_fx = 33; /* more than 32 bits are not allowed */
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.l_exp_flags = 32;
+	my_max_used_bits.l_fx = 33; /* more than 32 bits are not allowed */
+	cmp_set_max_used_bits(&my_max_used_bits);
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(-1, cmp_bits);
 
-	max_used_bits.l_fx = 32;
-	max_used_bits.l_ncob = 33; /* more than 32 bits are not allowed */
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.l_fx = 32;
+	my_max_used_bits.l_ncob = 33; /* more than 32 bits are not allowed */
+	cmp_set_max_used_bits(&my_max_used_bits);
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(-1, cmp_bits);
 
-	max_used_bits.l_ncob = 32;
-	max_used_bits.l_efx = 33; /* more than 32 bits are not allowed */
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.l_ncob = 32;
+	my_max_used_bits.l_efx = 33; /* more than 32 bits are not allowed */
+	cmp_set_max_used_bits(&my_max_used_bits);
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(-1, cmp_bits);
 
-	max_used_bits.l_efx = 32;
-	max_used_bits.l_ecob = 33; /* more than 32 bits are not allowed */
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.l_efx = 32;
+	my_max_used_bits.l_ecob = 33; /* more than 32 bits are not allowed */
+	cmp_set_max_used_bits(&my_max_used_bits);
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(-1, cmp_bits);
 
-	max_used_bits.l_ecob = 32;
-	max_used_bits.l_fx_variance = 33; /* more than 32 bits are not allowed */
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.l_ecob = 32;
+	my_max_used_bits.l_fx_variance = 33; /* more than 32 bits are not allowed */
+	cmp_set_max_used_bits(&my_max_used_bits);
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(-1, cmp_bits);
 
-	max_used_bits.l_fx_variance = 32;
-	max_used_bits.l_cob_variance = 33; /* more than 32 bits are not allowed */
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.l_fx_variance = 32;
+	my_max_used_bits.l_cob_variance = 33; /* more than 32 bits are not allowed */
+	cmp_set_max_used_bits(&my_max_used_bits);
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(-1, cmp_bits);
 }
@@ -4075,12 +4075,12 @@ void test_compress_nc_offset_error_cases(void)
 	uint32_t spillover_variance = cmp_icu_max_spill(MAX_NON_IMA_GOLOMB_PAR);
 	uint8_t data_to_compress[MULTI_ENTRY_HDR_SIZE+3*sizeof(struct nc_offset)] = {0};
 	uint8_t compressed_data[MULTI_ENTRY_HDR_SIZE+1*sizeof(struct nc_offset)] = {0};
-	struct cmp_max_used_bits max_used_bits = {0};
+	struct cmp_max_used_bits my_max_used_bits = {0};
 	struct nc_offset *data_p = (struct nc_offset *)&data_to_compress[MULTI_ENTRY_HDR_SIZE];
 
-	max_used_bits.nc_offset_mean = 1;
-	max_used_bits.nc_offset_variance = 31;
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.nc_offset_mean = 1;
+	my_max_used_bits.nc_offset_variance = 31;
+	cmp_set_max_used_bits(&my_max_used_bits);
 
 	cfg = cmp_cfg_icu_create(DATA_TYPE_OFFSET, CMP_MODE_DIFF_MULTI, 0, CMP_LOSSLESS);
 	TEST_ASSERT(cfg.data_type != DATA_TYPE_UNKNOWN);
@@ -4106,14 +4106,14 @@ void test_compress_nc_offset_error_cases(void)
 
 	data_p[1].variance = 0x80000000-1;
 
-	max_used_bits.nc_offset_mean = 33; /* more than 32 bits are not allowed */
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.nc_offset_mean = 33; /* more than 32 bits are not allowed */
+	cmp_set_max_used_bits(&my_max_used_bits);
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(-1, cmp_bits);
 
-	max_used_bits.nc_offset_mean = 32;
-	max_used_bits.nc_offset_variance = 33; /* more than 32 bits are not allowed */
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.nc_offset_mean = 32;
+	my_max_used_bits.nc_offset_variance = 33; /* more than 32 bits are not allowed */
+	cmp_set_max_used_bits(&my_max_used_bits);
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(-1, cmp_bits);
 }
@@ -4135,13 +4135,13 @@ void test_compress_nc_background_error_cases(void)
 	uint32_t spillover_pixels_error = 42;
 	uint8_t data_to_compress[MULTI_ENTRY_HDR_SIZE+3*sizeof(struct nc_background)] = {0};
 	uint8_t compressed_data[MULTI_ENTRY_HDR_SIZE+1*sizeof(struct nc_background)] = {0};
-	struct cmp_max_used_bits max_used_bits = {0};
+	struct cmp_max_used_bits my_max_used_bits = {0};
 	struct nc_background *data_p = (struct nc_background *)&data_to_compress[MULTI_ENTRY_HDR_SIZE];
 
-	max_used_bits.nc_background_mean = 1;
-	max_used_bits.nc_background_variance = 31;
-	max_used_bits.nc_background_outlier_pixels = 2;
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.nc_background_mean = 1;
+	my_max_used_bits.nc_background_variance = 31;
+	my_max_used_bits.nc_background_outlier_pixels = 2;
+	cmp_set_max_used_bits(&my_max_used_bits);
 
 	cfg = cmp_cfg_icu_create(DATA_TYPE_BACKGROUND, CMP_MODE_DIFF_MULTI, 0, CMP_LOSSLESS);
 	TEST_ASSERT(cfg.data_type != DATA_TYPE_UNKNOWN);
@@ -4172,20 +4172,20 @@ void test_compress_nc_background_error_cases(void)
 
 	data_p[1].outlier_pixels = 0x3;
 
-	max_used_bits.nc_background_mean = 33; /* more than 32 bits are not allowed */
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.nc_background_mean = 33; /* more than 32 bits are not allowed */
+	cmp_set_max_used_bits(&my_max_used_bits);
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(-1, cmp_bits);
 
-	max_used_bits.nc_background_mean = 32;
-	max_used_bits.nc_background_variance = 33; /* more than 32 bits are not allowed */
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.nc_background_mean = 32;
+	my_max_used_bits.nc_background_variance = 33; /* more than 32 bits are not allowed */
+	cmp_set_max_used_bits(&my_max_used_bits);
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(-1, cmp_bits);
 
-	max_used_bits.nc_background_variance = 32;
-	max_used_bits.nc_background_outlier_pixels = 33; /* more than 32 bits are not allowed */
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.nc_background_variance = 32;
+	my_max_used_bits.nc_background_outlier_pixels = 33; /* more than 32 bits are not allowed */
+	cmp_set_max_used_bits(&my_max_used_bits);
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(-1, cmp_bits);
 }
@@ -4207,13 +4207,13 @@ void test_compress_smearing_error_cases(void)
 	uint32_t spillover_pixels_error = 42;
 	uint8_t data_to_compress[MULTI_ENTRY_HDR_SIZE+3*sizeof(struct smearing)] = {0};
 	uint8_t compressed_data[MULTI_ENTRY_HDR_SIZE+1*sizeof(struct smearing)] = {0};
-	struct cmp_max_used_bits max_used_bits = {0};
+	struct cmp_max_used_bits my_max_used_bits = {0};
 	struct smearing *data_p = (struct smearing *)&data_to_compress[MULTI_ENTRY_HDR_SIZE];
 
-	max_used_bits.smearing_mean = 1;
-	max_used_bits.smearing_variance_mean = 15;
-	max_used_bits.smearing_outlier_pixels = 2;
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.smearing_mean = 1;
+	my_max_used_bits.smearing_variance_mean = 15;
+	my_max_used_bits.smearing_outlier_pixels = 2;
+	cmp_set_max_used_bits(&my_max_used_bits);
 
 	cfg = cmp_cfg_icu_create(DATA_TYPE_SMEARING, CMP_MODE_DIFF_MULTI, 0, CMP_LOSSLESS);
 	TEST_ASSERT(cfg.data_type != DATA_TYPE_UNKNOWN);
@@ -4244,20 +4244,20 @@ void test_compress_smearing_error_cases(void)
 
 	data_p[1].outlier_pixels = 0x3;
 
-	max_used_bits.smearing_mean = 33; /* more than 32 bits are not allowed */
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.smearing_mean = 33; /* more than 32 bits are not allowed */
+	cmp_set_max_used_bits(&my_max_used_bits);
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(-1, cmp_bits);
 
-	max_used_bits.smearing_mean = 32;
-	max_used_bits.smearing_variance_mean = 33; /* more than 32 bits are not allowed */
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.smearing_mean = 32;
+	my_max_used_bits.smearing_variance_mean = 33; /* more than 32 bits are not allowed */
+	cmp_set_max_used_bits(&my_max_used_bits);
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(-1, cmp_bits);
 
-	max_used_bits.smearing_variance_mean = 32;
-	max_used_bits.smearing_outlier_pixels = 33; /* more than 32 bits are not allowed */
-	cmp_set_max_used_bits(&max_used_bits);
+	my_max_used_bits.smearing_variance_mean = 32;
+	my_max_used_bits.smearing_outlier_pixels = 33; /* more than 32 bits are not allowed */
+	cmp_set_max_used_bits(&my_max_used_bits);
 	cmp_bits = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(-1, cmp_bits);
 }
