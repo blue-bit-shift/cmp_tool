@@ -1230,8 +1230,8 @@ static ssize_t str2uint8_arr(const char *str, uint8_t *data, uint32_t buf_size,
 			if (!data)  /* finished counting the sample */
 				break;
 
-			fprintf(stderr, "%s: %s: Error: The files do not contain enough data as requested.\n",
-				PROGRAM_NAME, file_name);
+			fprintf(stderr, "%s: %s: Error: The files do not contain enough data. Expected: 0x%x, has 0x%zx.\n",
+				PROGRAM_NAME, file_name, buf_size, i);
 			return -1;
 		}
 
@@ -1275,12 +1275,12 @@ static ssize_t str2uint8_arr(const char *str, uint8_t *data, uint32_t buf_size,
 		nptr = eptr;
 	}
 
-	/* did we read all data in the string? */
-	while (isspace(*nptr) || *nptr == '#') {
+	/* did we read all data in the string? 0 at the end are ignored */
+	while (isspace(*nptr) || *nptr == '0' || *nptr == '#') {
 		if (*nptr == '#')
 			nptr = skip_comment(nptr);
 		else
-			nptr = skip_space(nptr);
+			nptr++;
 	}
 	if (*nptr != '\0') {
 		fprintf(stderr, "%s: %s: Warning: The file may contain more data than specified by the samples or cmp_size parameter.\n",
@@ -1339,7 +1339,7 @@ ssize_t read_file8(const char *file_name, uint8_t *buf, uint32_t buf_size, int v
 		return 0;
 	}
 	if ((unsigned long)file_size < buf_size) {
-		fprintf(stderr, "%s: %s: Error: The files do not contain enough data as requested.\n", PROGRAM_NAME, file_name);
+		fprintf(stderr, "%s: %s: Error: The files do not contain enough data.\n", PROGRAM_NAME, file_name);
 		goto fail;
 	}
 	/* reset the file position indicator to the beginning of the file */
@@ -1451,13 +1451,13 @@ ssize_t read_file_cmp_entity(const char *file_name, struct cmp_entity *ent,
 		enum cmp_data_type data_type = cmp_ent_get_data_type(ent);
 
 		if (data_type == DATA_TYPE_UNKNOWN) {
-			fprintf(stderr, "%s: %s: Error: Compression data type is not supported.\n",
+			fprintf(stderr, "%s: %s: Error: Compression data type is not supported. The header of the compression entity may be corrupted.\n",
 				PROGRAM_NAME, file_name);
 			return -1;
 		}
 		if (size != (ssize_t)cmp_ent_get_size(ent)) {
-			fprintf(stderr, "%s: %s: The size of the compression entity set in the header of the compression entity is not the same size as the read-in file has.\n",
-				PROGRAM_NAME, file_name);
+			fprintf(stderr, "%s: %s: The size of the compression entity set in the header of the compression entity is not the same size as the read-in file has. Expected: 0x%x, has 0x%zx.\n",
+				PROGRAM_NAME, file_name, cmp_ent_get_size(ent), size);
 			return -1;
 		}
 
