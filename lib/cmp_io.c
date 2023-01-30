@@ -163,10 +163,12 @@ static FILE *open_file(const char *dirname, const char *filename)
 int write_input_data_to_file(void *data, uint32_t data_size, enum cmp_data_type data_type,
 			     const char *output_prefix, const char *name_extension, int verbose)
 {
-	uint32_t i = 0;
+	uint32_t i,j = 0;
 	FILE *fp;
 	uint8_t *tmp_buf;
 	size_t sample_size = size_of_a_sample(data_type);
+	uint8_t *output_file_data;
+	size_t output_file_size = data_size*3+1;
 
 	if (!data)
 		abort();
@@ -185,34 +187,48 @@ int write_input_data_to_file(void *data, uint32_t data_size, enum cmp_data_type 
 	}
 
 	tmp_buf = malloc(data_size);
+	if (!tmp_buf) {
+		fclose(fp);
+		return -1;
+	}
 	memcpy(tmp_buf, data, data_size);
 	cmp_input_big_to_cpu_endianness(tmp_buf, data_size, data_type);
 
-	for (i = 0 ; i < data_size; i++) {
-		fprintf(fp, "%02X",  tmp_buf[i]);
-		if ((i + 1) % 16 == 0)
-			fprintf(fp, "\n");
-		else
-			fprintf(fp, " ");
+	output_file_data = malloc(output_file_size);
+	if (!output_file_data){
+		fclose(fp);
+		free(tmp_buf);
+		return -1;
 	}
-	fprintf(fp, "\n");
 
-	fclose(fp);
+	for (i = 0 ; i < data_size; i++) {
+		output_file_data[j++] = (tmp_buf[i] >> 4) + '0';
+		output_file_data[j++] = (tmp_buf[i] & 0xF) + '0';
+
+		if ((i + 1) % 16 == 0)
+			output_file_data[j++] = '\n';
+		else
+			output_file_data[j++] = ' ';
+	}
+	output_file_data[j] = '\n';
+	free(tmp_buf);
+
+	{
+		size_t const size_check = fwrite(output_file_data, 1, output_file_size, fp);
+		fclose(fp);
+		if (size_check != output_file_size) {
+			free(output_file_data);
+			return -1;
+		}
+	}
 
 	if (verbose) {
-		printf("\n\n");
-			for (i = 0; i < data_size; i++) {
-				printf("%02X", tmp_buf[i]);
-			if ((i + 1) % 16 == 0)
-				printf("\n");
-			else
-				printf(" ");
-		}
-
+		fwrite(output_file_data, 1, output_file_size, stdout);
 		printf("\n\n");
 	}
 
-	free(tmp_buf);
+	free(output_file_data);
+
 	return 0;
 }
 
@@ -1094,7 +1110,7 @@ int cmp_info_read(const char *file_name, struct cmp_info *info, int verbose_en)
  * @returns a pointer to the character after the spaces
  */
 
-static const char *skip_space(const char *str)
+static __inline const char *skip_space(const char *str)
 {
 	while (isspace(*str))
 		str++;
@@ -1110,7 +1126,7 @@ static const char *skip_space(const char *str)
  * @returns a pointer to the character after the comment
  */
 
-static const char *skip_comment(const char *str)
+static __inline const char *skip_comment(const char *str)
 {
 	char c = *str;
 
@@ -1143,7 +1159,7 @@ static const char *skip_comment(const char *str)
  *	conversion can be performed, 0 is returned (errno is set to EINVAL)).
  */
 
-static uint8_t str_to_uint8(const char *str, char **str_end)
+static __inline uint8_t str_to_uint8(const char *str, char **str_end)
 {
 	const int BASE = 16;
 	int i;
@@ -1166,7 +1182,7 @@ static uint8_t str_to_uint8(const char *str, char **str_end)
 		else
 			c = 0xff;
 
-		if (c >= BASE)
+		if (unlikely(c >= BASE))
 			break;
 
 		res = res * BASE + c;
@@ -1177,7 +1193,7 @@ static uint8_t str_to_uint8(const char *str, char **str_end)
 	if (str_end)
 		*str_end = (char *)str;
 
-	if (str == orig) { /* no value read in */
+	if (unlikely(str == orig)) { /* no value read in */
 		errno = EINVAL;
 		res = 0;
 	}
@@ -1207,8 +1223,8 @@ static uint8_t str_to_uint8(const char *str, char **str_end)
  * @returns the size in bytes to store the string content; negative on error
  */
 
-static ssize_t str2uint8_arr(const char *str, uint8_t *data, uint32_t buf_size,
-			     const char *file_name, int verbose_en)
+static ssize_t __inline str2uint8_arr(const char *str, uint8_t *data, uint32_t buf_size,
+				      const char *file_name, int verbose_en)
 {
 	const char *nptr = str;
 	char *eptr = NULL;
