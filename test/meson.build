@@ -71,3 +71,5 @@ foreach test : test_cases
 
   test(test_description, test_exe)
 endforeach
+
+subdir('bench')
