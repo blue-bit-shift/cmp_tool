@@ -2413,7 +2413,7 @@ static void cmp_ent_parse_generic_header(struct cmp_entity *ent)
 
 		debug_print("Compressed with cmp_tool version: %u.%02u\n", major, minor);
 	} else
-		debug_print("ICU ASW Version ID: %" PRIu32 "\n", version_id);
+		debug_print("ICU ASW Version ID: %08" PRIx32 "\n", version_id);
 
 	cmp_ent_size = cmp_ent_get_size(ent);
 	debug_print("Compression Entity Size: %" PRIu32 " byte\n", cmp_ent_size);

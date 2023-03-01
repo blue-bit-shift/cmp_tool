@@ -15,17 +15,14 @@ endif
 cppcheck = find_program('cppcheck', required : false)
 if cppcheck.found()
   cppcheck_args = [
-    main, cmplib_sources,
-    '--clang',
+    '--project=' + join_paths(meson.build_root(), 'compile_commands.json'),
+    # '--clang',
     '--cppcheck-build-dir='+meson.current_build_dir(),
-    '-I', 'include',
     '--std=c89',
-    # '--addon=misra.py',
-    '--bug-hunting',
     '--enable=all',
     '--inconclusive'
   ]
-  run_target('inspector',
+  run_target('cppcheck',
     command : [cppcheck, cppcheck_args]
   )
 endif

@@ -21,6 +21,7 @@ IMAGETTE_HEADER_SIZE = GENERIC_HEADER_SIZE+4
 IMAGETTE_ADAPTIVE_HEADER_SIZE = GENERIC_HEADER_SIZE+12
 NON_IMAGETTE_HEADER_SIZE = GENERIC_HEADER_SIZE+32
 
+
 def call_cmp_tool(args):
     args = shlex.split(PATH_CMP_TOOL + " " + args)
 
@@ -1016,6 +1017,81 @@ def test_sample_used_is_to_big():
         del_file(info_file_name)
 
 
+def test_cmp_entity_not_4_byte_aligned():
+    cmp_data = '444444' # cmp data are not a multiple of 4
+
+    version_id = 0x8001_0042
+    cmp_ent_size = IMAGETTE_HEADER_SIZE + len(cmp_data)//2
+    original_size = 0xA
+
+    start_time = cuc_timestamp(datetime.utcnow())
+    end_time = cuc_timestamp(datetime.utcnow())
+
+    data_type = 1
+    cmp_mode_used = 2
+    model_value_used = 8
+    model_id = 0xBEEF
+    model_counter = 0
+    lossy_cmp_par_used = 0
+
+    generic_header = build_generic_header(version_id, cmp_ent_size,
+                        original_size, start_time, end_time, data_type,
+                        cmp_mode_used, model_value_used, model_id,
+                        model_counter, lossy_cmp_par_used)
+    spill_used = 60
+    golomb_par_used = 7
+
+    ima_header = build_imagette_header(spill_used, golomb_par_used)
+    cmp_data_header = generic_header + ima_header + cmp_data
+
+    data_exp = '00 01 00 02 00 03 00 04 00 05 \n'
+    info = ("cmp_size = 20\n" + "golomb_par_used = 7\n" + "spill_used = 60\n"
+            + "cmp_mode_used = 2\n" +"samples_used=5\n")
+
+    cmp_file_name = 'unaligned_cmp_size.cmp'
+    info_file_name = 'unaligned_cmp_size.info'
+    output_prefix = '4_byte_aligned'
+    pars = ['-i %s -d %s --no_header -o %s' % (info_file_name, cmp_file_name, output_prefix),
+            '-d %s -o %s' % (cmp_file_name, output_prefix)]
+
+    try:
+        with open(info_file_name, 'w') as f:
+            f.write(info)
+
+        for par in pars:
+            with open(cmp_file_name, 'w') as f:
+                if '--no_header' in par:
+                    f.write(cmp_data)
+                else:
+                    f.write(cmp_data_header)
+
+            returncode, stdout, stderr = call_cmp_tool(par)
+
+            assert(stderr == "")
+
+            if '--no_header' in par:
+                assert(stdout == CMP_START_STR_DECMP +
+                       "Importing decompression information file %s ... DONE\n" % (info_file_name) +
+                       "Importing compressed data file %s ... DONE\n" % (cmp_file_name) +
+                       "Decompress data ... DONE\n" +
+                       "Write decompressed data to file %s.dat ... DONE\n" % (output_prefix))
+            else:
+                assert(stdout == CMP_START_STR_DECMP +
+                       "Importing compressed data file %s ... \n" % (cmp_file_name) +
+                       "The size of the compression entity is not a multiple of 4 bytes. Padding the compression entity to a multiple of 4 bytes.\n" +
+                       "DONE\n" +
+                       "Decompress data ... DONE\n"+
+                       "Write decompressed data to file %s.dat ... DONE\n" % (output_prefix))
+
+            assert(returncode == EXIT_SUCCESS)
+            with open(output_prefix+".dat", encoding='utf-8') as f:
+                assert(f.read() == data_exp)  # decompressed data == input data
+
+    finally:
+        del_file(cmp_file_name)
+        del_file(info_file_name)
+        del_file(output_prefix+".dat")
+
 
 def test_header_wrong_formatted():
     cmp_file_name = 'read_wrong_format_header.cmp'
@@ -1072,7 +1148,9 @@ def test_header_read_in():
         assert(returncode == EXIT_FAILURE)
         assert(stdout == CMP_START_STR_DECMP +
                "Importing compressed data file %s ... FAILED\n" % (cmp_file_name))
-        assert(stderr == "cmp_tool: %s: The size of the compression entity set in the header of the compression entity is not the same size as the read-in file has.\n" %(cmp_file_name))
+        assert(stderr == "cmp_tool: %s: The size of the compression entity set in the "
+               "header of the compression entity is not the same size as the read-in "
+               "file has. Expected: 0x28, has 0x26.\n" %(cmp_file_name))
 
         # false data type
         data_type = 0x7FFE
@@ -1090,7 +1168,8 @@ def test_header_read_in():
         assert(returncode == EXIT_FAILURE)
         assert(stdout == CMP_START_STR_DECMP +
                "Importing compressed data file %s ... FAILED\n" % (cmp_file_name))
-        assert(stderr == "cmp_tool: %s: Error: Compression data type is not supported.\n" % (cmp_file_name))
+        assert(stderr == "cmp_tool: %s: Error: Compression data type is not supported. The "
+               "header of the compression entity may be corrupted.\n" % (cmp_file_name))
 
         # false cmp_mode_used
         cmp_mode_used = 0xFF
@@ -1153,7 +1232,7 @@ def test_model_fiel_erros():
                    "Importing configuration file %s ... DONE\n" % (cfg_file_name) +
                    "Importing data file %s ... DONE\n" % (data_file_name) +
                    "Importing model file %s ... FAILED\n" % (model_file_name) )
-        assert(stderr == "cmp_tool: %s: Error: The files do not contain enough data as requested.\n" % (model_file_name))
+        assert(stderr == "cmp_tool: %s: Error: The files do not contain enough data. Expected: 0xa, has 0x8.\n" % (model_file_name))
 
         # updated model can not write
         with open(model_file_name, 'w', encoding='utf-8') as f:

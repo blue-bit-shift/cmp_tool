@@ -367,26 +367,22 @@ int main(int argc, char **argv)
 			printf("DONE\n");
 
 			printf("Importing compressed data file %s ... ", data_file_name);
-			cmp_size_byte = cmp_bit_to_4byte(info.cmp_size);
 
 			ent_size = cmp_ent_create(NULL, DATA_TYPE_IMAGETTE, info.cmp_mode_used == CMP_MODE_RAW,
-						  cmp_size_byte);
+						  cmp_bit_to_4byte(info.cmp_size));
 			if (!ent_size)
 				goto fail;
-			decomp_entity = malloc(ent_size);
+			decomp_entity = calloc(1, ent_size);
 			if (!decomp_entity) {
 				fprintf(stderr, "%s: Error allocating memory for decompression input buffer.\n", PROGRAM_NAME);
 				goto fail;
 			}
 			ent_size = cmp_ent_create(decomp_entity, DATA_TYPE_IMAGETTE, info.cmp_mode_used == CMP_MODE_RAW,
-						  cmp_size_byte);
+						  cmp_bit_to_4byte(info.cmp_size));
 			if (!ent_size)
 				goto fail;
 
-			if (info.cmp_mode_used == CMP_MODE_RAW)
-				/* the raw data does not have to be a multiple of 4 bytes */
-				cmp_size_byte = (info.cmp_size+7)/CHAR_BIT;
-
+			cmp_size_byte = (info.cmp_size+7)/CHAR_BIT;
 			f_size = read_file8(data_file_name, cmp_ent_get_data_buf(decomp_entity),
 					    cmp_size_byte, verbose_en);
 			if (f_size < 0)
@@ -407,16 +403,25 @@ int main(int argc, char **argv)
 			/* to be save allocate at least the size of the cmp_entity struct */
 			if (buf_size < sizeof(struct cmp_entity))
 				buf_size = sizeof(struct cmp_entity);
+			/* The compressed data is read in 4-byte words, so our
+			 * data buffer must be a multiple of 4 bytes.
+			 */
+			buf_size = (buf_size + 3) & ~((size_t)0x3);
 
-			decomp_entity = malloc(buf_size);
+			decomp_entity = calloc(1, buf_size);
 			if (!decomp_entity) {
 				fprintf(stderr, "%s: Error allocating memory for the compression entity buffer.\n", PROGRAM_NAME);
 				goto fail;
 			}
 			size = read_file_cmp_entity(data_file_name, decomp_entity,
-						    size, verbose_en);
+						    (uint32_t)size, verbose_en);
 			if (size < 0)
 				goto fail;
+
+			if (cmp_ent_get_size(decomp_entity) & 0x3) {
+				printf("\nThe size of the compression entity is not a multiple of 4 bytes. Padding the compression entity to a multiple of 4 bytes.\n");
+				cmp_ent_set_size(decomp_entity, (uint32_t)buf_size);
+			}
 
 			if (verbose_en) {
 				cmp_ent_print(decomp_entity);
