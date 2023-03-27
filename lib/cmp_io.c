@@ -1144,7 +1144,7 @@ static __inline const char *skip_comment(const char *str)
  *	conversion can be performed, 0 is returned (errno is set to EINVAL)).
  */
 
-static __inline uint8_t str_to_uint8(const char *str, char **str_end)
+static __inline uint8_t str_to_uint8(const char *str, char const **str_end)
 {
 	const int BASE = 16;
 	int i;
@@ -1156,7 +1156,7 @@ static __inline uint8_t str_to_uint8(const char *str, char **str_end)
 	orig = str;
 
 	for (i = 0; i < 2; i++) {
-		unsigned char c = *str;
+		unsigned char c = (unsigned char)*str;
 
 		if (c >= 'a')
 			c = c - 'a' + 10;
@@ -1176,7 +1176,7 @@ static __inline uint8_t str_to_uint8(const char *str, char **str_end)
 	}
 
 	if (str_end)
-		*str_end = (char *)str;
+		*str_end = str;
 
 	if (unlikely(str == orig)) { /* no value read in */
 		errno = EINVAL;
@@ -1212,20 +1212,20 @@ static ssize_t __inline str2uint8_arr(const char *str, uint8_t *data, uint32_t b
 				      const char *file_name, int verbose_en)
 {
 	const char *nptr = str;
-	char *eptr = NULL;
+	const char *eptr = NULL;
 	size_t i = 0;
 
 	errno = 0;
 
 	if (!data)
-		buf_size = ~0;
+		buf_size = ~0U;
 
 	if (!file_name)
 		file_name = "unknown file name";
 
 	for (i = 0; i < buf_size; ) {
 		uint8_t read_val;
-		unsigned char c = *nptr;
+		char c = *nptr;
 
 		if (c == '\0') {
 			if (!data)  /* finished counting the sample */
@@ -1292,7 +1292,7 @@ static ssize_t __inline str2uint8_arr(const char *str, uint8_t *data, uint32_t b
 			PROGRAM_NAME, file_name);
 	}
 
-	return i;
+	return (ssize_t)i;
 }
 
 
@@ -1365,7 +1365,7 @@ ssize_t read_file8(const char *file_name, uint8_t *buf, uint32_t buf_size, int f
 		return file_size;
 	}
 
-	file_cpy = (char *)calloc((size_t)file_size+1, sizeof(uint8_t));
+	file_cpy = calloc((size_t)file_size+1, sizeof(char));
 	if (file_cpy == NULL) {
 		fprintf(stderr, "%s: %s: Error: allocating memory!\n", PROGRAM_NAME, file_name);
 		goto fail;
@@ -1551,7 +1551,7 @@ uint32_t cmp_tool_gen_version_id(const char *version)
 	 */
 	copy = strdup(version);
 	token = strtok(copy, ".");
-	n = atoi(token);
+	n = (unsigned int)atoi(token);
 	if (n > UINT16_MAX) {
 		free(copy);
 		return 0;
@@ -1563,7 +1563,7 @@ uint32_t cmp_tool_gen_version_id(const char *version)
 	}
 
 	token = strtok(NULL, ".");
-	n = atoi(token);
+	n = (unsigned int)atoi(token);
 	free(copy);
 	if (n > UINT16_MAX)
 		return 0;
