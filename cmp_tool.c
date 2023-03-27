@@ -73,6 +73,7 @@ enum {
 	NO_HEADER,
 	MODEL_ID,
 	MODEL_COUTER,
+	BINARY_IO,
 };
 
 static const struct option long_options[] = {
@@ -89,6 +90,7 @@ static const struct option long_options[] = {
 	{"no_header", no_argument, NULL, NO_HEADER},
 	{"model_id", required_argument, NULL, MODEL_ID},
 	{"model_counter", required_argument, NULL, MODEL_COUTER},
+	{"binary", no_argument, NULL, BINARY_IO},
 	{NULL, 0, NULL, 0}
 };
 
@@ -106,8 +108,8 @@ static int rdcu_pkt_mode;
  * setup packets */
 static const char *last_info_file_name;
 
-/* if non zero print additional verbose output */
-static int verbose_en;
+/* option flags for file IO */
+static int io_flags;
 
 /* if non zero add a compression entity header in front of the compressed data */
 static int include_cmp_header = 1;
@@ -197,7 +199,7 @@ int main(int argc, char **argv)
 			output_prefix = optarg;
 			break;
 		case 'v': /* --verbose */
-			verbose_en = 1;
+			io_flags |= CMP_IO_VERBOSE;
 			break;
 		case 'V': /* --version */
 			printf("%s version %s\n", PROGRAM_NAME, CMP_TOOL_VERSION);
@@ -230,6 +232,9 @@ int main(int argc, char **argv)
 			break;
 		case MODEL_COUTER:
 			model_counter_str = optarg;
+			break;
+		case BINARY_IO:
+			io_flags |= CMP_IO_BINARY;
 			break;
 		default:
 			print_help(program_name);
@@ -317,7 +322,7 @@ int main(int argc, char **argv)
 		if (cmp_operation) {
 			printf("## Starting the compression ##\n");
 			printf("Importing configuration file %s ... ", cfg_file_name);
-			error = cmp_cfg_read(cfg_file_name, &cfg, verbose_en);
+			error = cmp_cfg_read(cfg_file_name, &cfg, io_flags & CMP_IO_VERBOSE);
 			if (error)
 				goto fail;
 			printf("DONE\n");
@@ -330,7 +335,7 @@ int main(int argc, char **argv)
 		if (cfg.samples == 0) {
 			int32_t samples;
 
-			size = read_file_data(data_file_name, cfg.data_type, NULL, 0, 0);
+			size = read_file_data(data_file_name, cfg.data_type, NULL, 0, io_flags);
 			if (size <= 0 || size > UINT32_MAX) /* empty file is treated as an error */
 				goto fail;
 			samples = cmp_input_size_to_samples((uint32_t)size, cfg.data_type);
@@ -348,7 +353,7 @@ int main(int argc, char **argv)
 		}
 
 		size = read_file_data(data_file_name, cfg.data_type, cfg.input_buf,
-				      input_size, verbose_en);
+				      input_size, io_flags);
 		if (size < 0)
 			goto fail;
 		printf("DONE\n");
@@ -361,7 +366,7 @@ int main(int argc, char **argv)
 			uint32_t cmp_size_byte;
 
 			printf("Importing decompression information file %s ... ", info_file_name);
-			error  = cmp_info_read(info_file_name, &info, verbose_en);
+			error  = cmp_info_read(info_file_name, &info, io_flags & CMP_IO_VERBOSE);
 			if (error)
 				goto fail;
 			printf("DONE\n");
@@ -384,7 +389,7 @@ int main(int argc, char **argv)
 
 			cmp_size_byte = (info.cmp_size+7)/CHAR_BIT;
 			f_size = read_file8(data_file_name, cmp_ent_get_data_buf(decomp_entity),
-					    cmp_size_byte, verbose_en);
+					    cmp_size_byte, io_flags);
 			if (f_size < 0)
 				goto fail;
 
@@ -396,11 +401,11 @@ int main(int argc, char **argv)
 			size_t buf_size;
 
 			printf("Importing compressed data file %s ... ", data_file_name);
-			buf_size = size = read_file_cmp_entity(data_file_name,
-							       NULL, 0, 0);
+			size = read_file_cmp_entity(data_file_name, NULL, 0, io_flags);
 			if (size < 0 || size > UINT32_MAX)
 				goto fail;
 			/* to be save allocate at least the size of the cmp_entity struct */
+			buf_size = (size_t)size;
 			if (buf_size < sizeof(struct cmp_entity))
 				buf_size = sizeof(struct cmp_entity);
 			/* The compressed data is read in 4-byte words, so our
@@ -414,7 +419,7 @@ int main(int argc, char **argv)
 				goto fail;
 			}
 			size = read_file_cmp_entity(data_file_name, decomp_entity,
-						    (uint32_t)size, verbose_en);
+						    (uint32_t)size, io_flags);
 			if (size < 0)
 				goto fail;
 
@@ -423,7 +428,7 @@ int main(int argc, char **argv)
 				cmp_ent_set_size(decomp_entity, (uint32_t)buf_size);
 			}
 
-			if (verbose_en) {
+			if (io_flags & CMP_IO_VERBOSE) {
 				cmp_ent_print(decomp_entity);
 				printf("\n");
 			}
@@ -465,7 +470,7 @@ int main(int argc, char **argv)
 		}
 
 		size = read_file_data(model_file_name, data_type, input_model_buf,
-				      model_size, verbose_en);
+				      model_size, io_flags);
 		if (size < 0)
 			goto fail;
 		printf("DONE\n");
@@ -505,7 +510,7 @@ int main(int argc, char **argv)
 		}
 
 		error = write_input_data_to_file(input_model_buf, model_size, data_type,
-						 output_prefix, "_upmodel.dat", verbose_en);
+						 output_prefix, "_upmodel.dat", io_flags);
 		if (error)
 			goto fail;
 		printf("DONE\n");
@@ -592,7 +597,7 @@ static int guess_cmp_pars(struct cmp_cfg *cfg, const char *guess_cmp_mode,
 	printf("DONE\n");
 
 	printf("Write the guessed compression configuration to file %s.cfg ... ", output_prefix);
-	error = cmp_cfg_fo_file(cfg, output_prefix, verbose_en);
+	error = cmp_cfg_fo_file(cfg, output_prefix, io_flags & CMP_IO_VERBOSE);
 	if (error)
 		return -1;
 	printf("DONE\n");
@@ -623,7 +628,7 @@ static int gen_rdcu_write_pkts(struct cmp_cfg *cfg)
 		/* generation of packets for parallel read/write RDCU setup */
 		struct cmp_info last_info = {0};
 
-		error  = cmp_info_read(last_info_file_name, &last_info, verbose_en);
+		error  = cmp_info_read(last_info_file_name, &last_info, io_flags & CMP_IO_VERBOSE);
 		if (error) {
 			fprintf(stderr, "%s: %s: Importing last decompression information file failed.\n",
 				PROGRAM_NAME, last_info_file_name);
@@ -703,13 +708,13 @@ static int cmp_gernate_rdcu_info(const struct cmp_cfg *cfg, int cmp_size_bit,
 
 				cfg_cpy.golomb_par = cfg_cpy.ap1_golomb_par;
 				cfg_cpy.spill = cfg_cpy.ap1_spill;
-				info->ap1_cmp_size = icu_compress_data(&cfg_cpy);
+				info->ap1_cmp_size = (uint32_t)icu_compress_data(&cfg_cpy);
 				if ((int)info->ap1_cmp_size < 0)
 					info->ap1_cmp_size = 0;
 
 				cfg_cpy.golomb_par = cfg_cpy.ap2_golomb_par;
 				cfg_cpy.spill = cfg_cpy.ap2_spill;
-				info->ap2_cmp_size = icu_compress_data(&cfg_cpy);
+				info->ap2_cmp_size = (uint32_t)icu_compress_data(&cfg_cpy);
 				if ((int)info->ap2_cmp_size < 0)
 					info->ap2_cmp_size = 0;
 			}
@@ -819,8 +824,8 @@ static int compression(struct cmp_cfg *cfg, struct cmp_info *info)
 	}
 
 	printf("Write compressed data to file %s.cmp ... ", output_prefix);
-	error = write_cmp_data_file(data_to_write_to_file, cmp_size_byte,
-				    output_prefix, ".cmp", verbose_en);
+	error = write_data_to_file(data_to_write_to_file, cmp_size_byte,
+				   output_prefix, ".cmp", io_flags);
 	if (error)
 		goto error_cleanup;
 	printf("DONE\n");
@@ -833,7 +838,7 @@ static int compression(struct cmp_cfg *cfg, struct cmp_info *info)
 			goto error_cleanup;
 		printf("DONE\n");
 
-		if (verbose_en) {
+		if (io_flags & CMP_IO_VERBOSE) {
 			printf("\n");
 			print_cmp_info(info);
 			printf("\n");
@@ -891,7 +896,7 @@ static int decompression(struct cmp_entity *ent, uint16_t *input_model_buf)
 	printf("Write decompressed data to file %s.dat ... ", output_prefix);
 
 	error = write_input_data_to_file(decomp_output, (uint32_t)decomp_size, cmp_ent_get_data_type(ent),
-					 output_prefix, ".dat", verbose_en);
+					 output_prefix, ".dat", io_flags);
 
 	free(decomp_output);
 	if (error)

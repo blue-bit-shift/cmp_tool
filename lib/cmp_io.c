@@ -32,6 +32,7 @@
 #include <byteorder.h>
 #include <cmp_data_types.h>
 #include <my_inttypes.h>
+#include <cmp_io.h>
 
 
 /* directory to convert from data_type to string */
@@ -80,6 +81,7 @@ void print_help(const char *program_name)
 	printf("  -o <prefix>              Use the <prefix> for output files\n");
 	printf("  -n, --model_cfg          Print a default model configuration and exit\n");
 	printf("  --diff_cfg               Print a default 1d-differencing configuration and exit\n");
+	printf("  --binary                 Read and write files in binary format\n");
 	printf("  --no_header              Do not add a compression entity header in front of the compressed data\n");
 	printf("  -a, --rdcu_par           Add additional RDCU control parameters\n");
 	printf("  -V, --version            Print program version and exit\n");
@@ -134,7 +136,7 @@ static FILE *open_file(const char *dirname, const char *filename)
 	}
 
 	errno = 0;
-	pathname = (char *) alloca((size_t)n + 1);
+	pathname = (char *)alloca((size_t)n + 1);
 
 	errno = 0;
 	n = snprintf(pathname, (size_t)n + 1, "%s%s", dirname, filename);
@@ -148,25 +150,25 @@ static FILE *open_file(const char *dirname, const char *filename)
 
 
 /**
- * @brief write uncompressed input data to an output file
+ * @brief write uncompressed input data in big-endian to an output file
  *
  * @param data			the data to write a file
  * @param data_size		size of the data in bytes
  * @param data_type		compression data type of the data
  * @param output_prefix		file name without file extension
  * @param name_extension	extension (with leading point character)
- * @param verbose		print verbose output if not zero
+ * @param flags			CMP_IO_VERBOSE	print verbose output if set
+ *				CMP_IO_BINARY	write file in binary format if set
  *
  * @returns 0 on success, error otherwise
  */
 
 int write_input_data_to_file(void *data, uint32_t data_size, enum cmp_data_type data_type,
-			     const char *output_prefix, const char *name_extension, int verbose)
+			     const char *output_prefix, const char *name_extension, int flags)
 {
-	uint32_t i = 0;
-	FILE *fp;
-	uint8_t *tmp_buf;
 	size_t sample_size = size_of_a_sample(data_type);
+	uint8_t *tmp_buf;
+	int return_value;
 
 	if (!data)
 		abort();
@@ -177,43 +179,18 @@ int write_input_data_to_file(void *data, uint32_t data_size, enum cmp_data_type 
 	if (!sample_size)
 		return -1;
 
-	fp = open_file(output_prefix, name_extension);
-	if (fp == NULL) {
-		fprintf(stderr, "%s: %s%s: %s\n", PROGRAM_NAME, output_prefix,
-			name_extension, strerror(errno));
-		return -1;
-	}
-
 	tmp_buf = malloc(data_size);
+	if (!tmp_buf)
+		return -1;
 	memcpy(tmp_buf, data, data_size);
 	cmp_input_big_to_cpu_endianness(tmp_buf, data_size, data_type);
 
-	for (i = 0 ; i < data_size; i++) {
-		fprintf(fp, "%02X",  tmp_buf[i]);
-		if ((i + 1) % 16 == 0)
-			fprintf(fp, "\n");
-		else
-			fprintf(fp, " ");
-	}
-	fprintf(fp, "\n");
-
-	fclose(fp);
-
-	if (verbose) {
-		printf("\n\n");
-			for (i = 0; i < data_size; i++) {
-				printf("%02X", tmp_buf[i]);
-			if ((i + 1) % 16 == 0)
-				printf("\n");
-			else
-				printf(" ");
-		}
-
-		printf("\n\n");
-	}
+        return_value = write_data_to_file(tmp_buf, data_size, output_prefix,
+					  name_extension, flags);
 
 	free(tmp_buf);
-	return 0;
+
+	return return_value;
 }
 
 
@@ -226,17 +203,20 @@ int write_input_data_to_file(void *data, uint32_t data_size, enum cmp_data_type 
  * @param output_prefix  file name without file extension
  * @param name_extension file extension (with leading point character)
  *
- * @param verbose	print verbose output if not zero
+ * @param flags		CMP_IO_VERBOSE	print verbose output if set
+ *			CMP_IO_BINARY	write file in binary format if set
  *
  * @returns 0 on success, error otherwise
  */
 
-int write_cmp_data_file(const void *buf, uint32_t buf_size, const char *output_prefix,
-			const char *name_extension, int verbose)
+int write_data_to_file(const void *buf, uint32_t buf_size, const char *output_prefix,
+		       const char *name_extension, int flags)
 {
-	unsigned int i;
 	FILE *fp;
 	const uint8_t *p = (const uint8_t *)buf;
+	const uint8_t *output_file_data;
+	uint8_t *tmp_buf = NULL;
+	size_t output_file_size;
 
 	if (!buf)
 		abort();
@@ -251,28 +231,49 @@ int write_cmp_data_file(const void *buf, uint32_t buf_size, const char *output_p
 		return -1;
 	}
 
-	for (i = 0; i < buf_size; i++) {
-		fprintf(fp, "%02X", p[i]);
-		if ((i + 1) % 32 == 0)
-			fprintf(fp, "\n");
-		else
-			fprintf(fp, " ");
-	}
-	fprintf(fp, "\n");
+	if (flags & CMP_IO_BINARY) {
+		output_file_size = buf_size;
+		output_file_data = buf;
+	} else {
+		size_t i, j;
+		const uint8_t lut[0x10] = "0123456789abcdef";
 
-	fclose(fp);
-
-	if (verbose) {
-		printf("\n\n");
-		for (i = 0; i < buf_size; i++) {
-			printf("%02X", p[i]);
-			if ((i + 1) % 32 == 0)
-				printf("\n");
-			else
-				printf(" ");
+		/* convert data to ASCII */
+		output_file_size = buf_size*3 + 1;
+		tmp_buf = malloc(output_file_size);
+		if (!tmp_buf){
+			fclose(fp);
+			return -1;
 		}
+
+		for (i = 0, j = 0; i < buf_size; i++) {
+			tmp_buf[j++] = lut[(p[i] >> 4)];
+			tmp_buf[j++] = lut[(p[i] & 0xF)];
+
+			if ((i + 1) % 16 == 0)
+				tmp_buf[j++] = '\n';
+			else
+				tmp_buf[j++] = ' ';
+		}
+		tmp_buf[j] = '\n';
+		output_file_data = tmp_buf;
+	}
+	{
+		size_t const size_check = fwrite(output_file_data, sizeof(uint8_t),
+						 output_file_size, fp);
+		fclose(fp);
+		if (size_check != output_file_size) {
+			free(tmp_buf);
+			return -1;
+		}
+	}
+
+	if (flags & CMP_IO_VERBOSE && !(flags & CMP_IO_BINARY)) {
+		fwrite(output_file_data, 1, output_file_size, stdout);
 		printf("\n\n");
 	}
+
+	free(tmp_buf);
 	return 0;
 }
 
@@ -1094,7 +1095,7 @@ int cmp_info_read(const char *file_name, struct cmp_info *info, int verbose_en)
  * @returns a pointer to the character after the spaces
  */
 
-static const char *skip_space(const char *str)
+static __inline const char *skip_space(const char *str)
 {
 	while (isspace(*str))
 		str++;
@@ -1110,7 +1111,7 @@ static const char *skip_space(const char *str)
  * @returns a pointer to the character after the comment
  */
 
-static const char *skip_comment(const char *str)
+static __inline const char *skip_comment(const char *str)
 {
 	char c = *str;
 
@@ -1143,7 +1144,7 @@ static const char *skip_comment(const char *str)
  *	conversion can be performed, 0 is returned (errno is set to EINVAL)).
  */
 
-static uint8_t str_to_uint8(const char *str, char **str_end)
+static __inline uint8_t str_to_uint8(const char *str, char const **str_end)
 {
 	const int BASE = 16;
 	int i;
@@ -1155,7 +1156,7 @@ static uint8_t str_to_uint8(const char *str, char **str_end)
 	orig = str;
 
 	for (i = 0; i < 2; i++) {
-		unsigned char c = *str;
+		unsigned char c = (unsigned char)*str;
 
 		if (c >= 'a')
 			c = c - 'a' + 10;
@@ -1166,7 +1167,7 @@ static uint8_t str_to_uint8(const char *str, char **str_end)
 		else
 			c = 0xff;
 
-		if (c >= BASE)
+		if (unlikely(c >= BASE))
 			break;
 
 		res = res * BASE + c;
@@ -1175,9 +1176,9 @@ static uint8_t str_to_uint8(const char *str, char **str_end)
 	}
 
 	if (str_end)
-		*str_end = (char *)str;
+		*str_end = str;
 
-	if (str == orig) { /* no value read in */
+	if (unlikely(str == orig)) { /* no value read in */
 		errno = EINVAL;
 		res = 0;
 	}
@@ -1207,24 +1208,24 @@ static uint8_t str_to_uint8(const char *str, char **str_end)
  * @returns the size in bytes to store the string content; negative on error
  */
 
-static ssize_t str2uint8_arr(const char *str, uint8_t *data, uint32_t buf_size,
-			     const char *file_name, int verbose_en)
+static ssize_t __inline str2uint8_arr(const char *str, uint8_t *data, uint32_t buf_size,
+				      const char *file_name, int verbose_en)
 {
 	const char *nptr = str;
-	char *eptr = NULL;
+	const char *eptr = NULL;
 	size_t i = 0;
 
 	errno = 0;
 
 	if (!data)
-		buf_size = ~0;
+		buf_size = ~0U;
 
 	if (!file_name)
 		file_name = "unknown file name";
 
 	for (i = 0; i < buf_size; ) {
 		uint8_t read_val;
-		unsigned char c = *nptr;
+		char c = *nptr;
 
 		if (c == '\0') {
 			if (!data)  /* finished counting the sample */
@@ -1249,8 +1250,12 @@ static ssize_t str2uint8_arr(const char *str, uint8_t *data, uint32_t buf_size,
 			abort();
 		c = *eptr;
 		if (c != '\0' && !isxdigit(c) && !isspace(c) && c != '#') {
-			fprintf(stderr, "%s: %s: Error read in '%.*s'. The data are not correct formatted.\n",
-				PROGRAM_NAME, file_name, (int)(eptr-nptr+1), nptr);
+			if (isprint(c))
+				fprintf(stderr, "%s: %s: Error read in '%.*s'. The data are not correct formatted.\n",
+					PROGRAM_NAME, file_name, (int)(eptr-nptr+1), nptr);
+			else
+				fprintf(stderr, "%s: %s: Error: Non printable character found. If you want to read binary files, use the --binary option.\n",
+					PROGRAM_NAME, file_name);
 			return -1;
 		}
 		if (errno == EINVAL) {
@@ -1287,7 +1292,7 @@ static ssize_t str2uint8_arr(const char *str, uint8_t *data, uint32_t buf_size,
 			PROGRAM_NAME, file_name);
 	}
 
-	return i;
+	return (ssize_t)i;
 }
 
 
@@ -1306,12 +1311,13 @@ static ssize_t str2uint8_arr(const char *str, uint8_t *data, uint32_t buf_size,
  * @param file_name	data/model file name
  * @param buf		buffer to write the file content (can be NULL)
  * @param buf_size	number of uint8_t data words to read in
- * @param verbose_en	print verbose output if not zero
+ * @param flags		CMP_IO_VERBOSE	print verbose output if set
+ *			CMP_IO_BINARY	read in file in binary format if set
  *
  * @returns the size in bytes to store the file content; negative on error
  */
 
-ssize_t read_file8(const char *file_name, uint8_t *buf, uint32_t buf_size, int verbose_en)
+ssize_t read_file8(const char *file_name, uint8_t *buf, uint32_t buf_size, int flags)
 {
 	FILE *fp;
 	char *file_cpy = NULL;
@@ -1346,14 +1352,27 @@ ssize_t read_file8(const char *file_name, uint8_t *buf, uint32_t buf_size, int v
 	if (fseek(fp, 0L, SEEK_SET) != 0)
 		goto fail;
 
-	file_cpy = (char *)calloc(file_size+1, sizeof(char));
+	if (flags & CMP_IO_BINARY) {
+		if (buf) {
+			ret_code = fread(buf, sizeof(uint8_t), buf_size, fp);
+			if (ret_code != (size_t)file_size) {
+				if (feof(fp))
+					printf("%s: %s: Error: unexpected end of file.\n", PROGRAM_NAME, file_name);
+				goto fail;
+			}
+		}
+		fclose(fp);
+		return file_size;
+	}
+
+	file_cpy = calloc((size_t)file_size+1, sizeof(char));
 	if (file_cpy == NULL) {
 		fprintf(stderr, "%s: %s: Error: allocating memory!\n", PROGRAM_NAME, file_name);
 		goto fail;
 	}
 
 	/* copy all the text into the file_cpy buffer */
-	ret_code = fread(file_cpy, sizeof(char), file_size, fp);
+	ret_code = fread(file_cpy, sizeof(uint8_t), (unsigned long)file_size, fp);
 	if (ret_code != (size_t)file_size) {
 		if (feof(fp))
 			printf("%s: %s: Error: unexpected end of file.\n", PROGRAM_NAME, file_name);
@@ -1365,7 +1384,7 @@ ssize_t read_file8(const char *file_name, uint8_t *buf, uint32_t buf_size, int v
 	fclose(fp);
 	fp = NULL;
 
-	size = str2uint8_arr(file_cpy, buf, buf_size, file_name, verbose_en);
+	size = str2uint8_arr(file_cpy, buf, buf_size, file_name, flags & CMP_IO_VERBOSE);
 
 	free(file_cpy);
 	file_cpy = NULL;
@@ -1389,31 +1408,34 @@ fail:
  * @param data_type	compression data type used for the data
  * @param buf		buffer to write the file content (can be NULL)
  * @param buf_size	size in bytes of the buffer
- * @param verbose_en	print verbose output if not zero
+ * @param flags		CMP_IO_VERBOSE	print verbose output if set
+ *			CMP_IO_BINARY	read in file in binary format if set
  *
  * @returns the size in bytes to store the file content; negative on error
  */
 
 ssize_t read_file_data(const char *file_name, enum cmp_data_type data_type,
-		       void *buf, uint32_t buf_size, int verbose_en)
+		       void *buf, uint32_t buf_size, int flags)
 {
 	ssize_t size;
 	int32_t samples;
 	int err;
 
-	size = read_file8(file_name, (uint8_t *)buf, buf_size, verbose_en);
+	size = read_file8(file_name, (uint8_t *)buf, buf_size, flags);
+	if (size > UINT32_MAX)
+		return -1;
 
 	if (size < 0)
 		return size;
 
-	samples = cmp_input_size_to_samples(size, data_type);
+	samples = cmp_input_size_to_samples((uint32_t)size, data_type);
 	if (samples < 0) {
 		fprintf(stderr, "%s: %s: Error: The data are not correct formatted for the used compression data type.\n",
 				PROGRAM_NAME, file_name);
 		return -1;
 	}
 
-	err = cmp_input_big_to_cpu_endianness(buf, size, data_type);
+	err = cmp_input_big_to_cpu_endianness(buf, (uint32_t)size, data_type);
 	if (err)
 		return -1;
 
@@ -1427,17 +1449,18 @@ ssize_t read_file_data(const char *file_name, enum cmp_data_type data_type,
  * @param file_name	file name of the file containing the compression entity
  * @param ent		pointer to the buffer where the content of the file is written (can be NULL)
  * @param ent_size	size in bytes of the compression entity to read in
- * @param verbose_en	print verbose output if not zero
+ * @param flags		CMP_IO_VERBOSE	print verbose output if set
+ *			CMP_IO_BINARY	read in file in binary format if set
  *
  * @returns the size in bytes to store the file content; negative on error
  */
 
 ssize_t read_file_cmp_entity(const char *file_name, struct cmp_entity *ent,
-			     uint32_t ent_size, int verbose_en)
+			     uint32_t ent_size, int flags)
 {
 	ssize_t size;
 
-	size = read_file8(file_name, (uint8_t *)ent, ent_size, 0);
+	size = read_file8(file_name, (uint8_t *)ent, ent_size, flags);
 	if (size < 0)
 		return size;
 
@@ -1457,11 +1480,11 @@ ssize_t read_file_cmp_entity(const char *file_name, struct cmp_entity *ent,
 		}
 		if (size != (ssize_t)cmp_ent_get_size(ent)) {
 			fprintf(stderr, "%s: %s: The size of the compression entity set in the header of the compression entity is not the same size as the read-in file has. Expected: 0x%x, has 0x%zx.\n",
-				PROGRAM_NAME, file_name, cmp_ent_get_size(ent), size);
+				PROGRAM_NAME, file_name, cmp_ent_get_size(ent), (size_t)size);
 			return -1;
 		}
 
-		if (verbose_en)
+		if (flags & CMP_IO_VERBOSE)
 			cmp_ent_parse(ent);
 	}
 
@@ -1528,7 +1551,7 @@ uint32_t cmp_tool_gen_version_id(const char *version)
 	 */
 	copy = strdup(version);
 	token = strtok(copy, ".");
-	n = atoi(token);
+	n = (unsigned int)atoi(token);
 	if (n > UINT16_MAX) {
 		free(copy);
 		return 0;
@@ -1540,7 +1563,7 @@ uint32_t cmp_tool_gen_version_id(const char *version)
 	}
 
 	token = strtok(NULL, ".");
-	n = atoi(token);
+	n = (unsigned int)atoi(token);
 	free(copy);
 	if (n > UINT16_MAX)
 		return 0;

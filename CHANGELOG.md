@@ -3,6 +3,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 ### Added
+- add --binary option for read and write files in binary format
 - add cross compile file for sparc
 - add tests for the compression entity
 - add test for cmp_rdcu_cfg.c
