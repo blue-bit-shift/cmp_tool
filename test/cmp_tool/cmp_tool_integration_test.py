@@ -191,6 +191,7 @@ General Options:
   -o <prefix>              Use the <prefix> for output files
   -n, --model_cfg          Print a default model configuration and exit
   --diff_cfg               Print a default 1d-differencing configuration and exit
+  --binary                 Read and write files in binary format
   --no_header              Do not add a compression entity header in front of the compressed data
   -a, --rdcu_par           Add additional RDCU control parameters
   -V, --version            Print program version and exit
@@ -412,7 +413,7 @@ def test_compression_diff():
                     assert(info['cmp_err'] == '0')
                 else:
                     header = read_in_cmp_header(f.read())
-                    assert(header['asw_version_id']['value'] == VERSION)
+                    assert(header['asw_version_id']['value'] == VERSION.split('-')[0])
                     assert(header['cmp_ent_size']['value'] == IMAGETTE_HEADER_SIZE+4)
                     assert(header['original_size']['value'] == 10)
                     # todo
@@ -464,6 +465,8 @@ def test_model_compression():
     # generate test data
     data = '00 01 00 02 00 03 00 04 00 05 \n'
     model = '00 00 00 01 00 02 00 03 00 04 \n'
+    data_byte = bytearray.fromhex(data)
+    model_byte = bytearray.fromhex(model)
     data_file_name = 'data.dat'
     model_file_name = 'model.dat'
     cfg_file_name = 'model.cfg'
@@ -488,12 +491,17 @@ def test_model_compression():
             for key, value in cfg.items():
                 f.write(key + ' = ' + str(value) + '\n')
 
-        add_args = [" --no_header", ""]
+        add_args = [" --no_header", "", " --binary"]
+        add_args = [" --no_header", "", " --binary"]
         for add_arg in add_args:
-            print("Remove this", add_arg)
+            if "--binary" in add_arg:
+                with open(data_file_name, 'wb') as f:
+                    f.write(data_byte)
+                with open(model_file_name, 'wb') as f:
+                    f.write(model_byte)
             # compression
             returncode, stdout, stderr = call_cmp_tool(
-                " -c "+cfg_file_name+" -d "+data_file_name + " -m "+model_file_name+" -o "+output_prefix1+ add_arg)
+                " -c "+cfg_file_name+" -d "+data_file_name+" -m "+model_file_name+" -o " +output_prefix1+add_arg)
 
             # check compression results
             assert(stderr == "")
@@ -509,7 +517,7 @@ def test_model_compression():
             )
             assert(returncode == EXIT_SUCCESS)
 
-            if add_arg == " --no_header":
+            if "--no_header" in add_arg:
                 # check compressed data
                 with open(output_prefix1+".cmp", encoding='utf-8') as f:
                     assert(f.read() == "49 24 00 00 \n")
@@ -525,9 +533,14 @@ def test_model_compression():
                 assert(info['cmp_size'] == '15')
                 assert(info['cmp_err'] == '0')
             else:
-                with open(output_prefix1+".cmp", encoding='utf-8') as f:
-                    header = read_in_cmp_header(f.read())
-                assert(header['asw_version_id']['value'] == VERSION)
+                if not "--binary" in add_arg:
+                    with open(output_prefix1+".cmp", encoding='utf-8') as f:
+                        header = read_in_cmp_header(f.read())
+                else:
+                    with open(output_prefix1+".cmp", 'rb') as f:
+                        header = read_in_cmp_header(bytearray(f.read()).hex())
+
+                assert(header['asw_version_id']['value'] == VERSION.split('-')[0])
                 assert(header['cmp_ent_size']['value'] == IMAGETTE_HEADER_SIZE+4)
                 assert(header['original_size']['value'] == 10)
                 # todo
@@ -545,9 +558,11 @@ def test_model_compression():
                 assert(header['compressed_data']['value'] == "49240000")
 
             # decompression
-            if add_arg == " --no_header":
+            if "--no_header" in add_arg:
                 returncode, stdout, stderr = call_cmp_tool(
                     " -i "+output_prefix1+".info -d "+output_prefix1+".cmp -m "+model_file_name+" -o "+output_prefix2)
+            elif "--binary" in add_arg:
+                returncode, stdout, stderr = call_cmp_tool("-d "+output_prefix1+".cmp -m "+model_file_name+" -o "+output_prefix2+" --binary")
             else:
                 returncode, stdout, stderr = call_cmp_tool("-d "+output_prefix1+".cmp -m "+model_file_name+" -o "+output_prefix2)
             assert(stderr == "")
@@ -562,13 +577,19 @@ def test_model_compression():
             assert(returncode == EXIT_SUCCESS)
             # check compressed data
 
-            with open(output_prefix2+".dat", encoding='utf-8') as f:
-                assert(f.read() == data)
-
-            with open(output_prefix1+"_upmodel.dat", encoding='utf-8') as f1:
-                with open(output_prefix2+"_upmodel.dat", encoding='utf-8') as f2:
-                    assert(f1.read() == f2.read() == data) # upmodel == data -> model_value = 0
-                           # '00 00 00 01 00 02 00 03 00 04 \n')
+            if not "--binary" in add_arg:
+                with open(output_prefix2+".dat", encoding='utf-8') as f:
+                    assert(f.read() == data)
+                with open(output_prefix1+"_upmodel.dat", encoding='utf-8') as f1:
+                    with open(output_prefix2+"_upmodel.dat", encoding='utf-8') as f2:
+                        assert(f1.read() == f2.read() == data) # upmodel == data -> model_value = 0
+                               # '00 00 00 01 00 02 00 03 00 04 \n')
+            else:
+                with open(output_prefix2+".dat", 'rb') as f:
+                    assert(f.read() == data_byte)
+                with open(output_prefix1+"_upmodel.dat", 'rb') as f1:
+                    with open(output_prefix2+"_upmodel.dat", 'rb') as f2:
+                        assert(f1.read() == f2.read() == data_byte)
     # clean up
     finally:
         del_file(data_file_name)
@@ -628,7 +649,7 @@ def test_raw_mode_compression():
                     assert(info['cmp_err'] == '0')
                 else:
                     header = read_in_cmp_header(f.read())
-                    assert(header['asw_version_id']['value'] == VERSION)
+                    assert(header['asw_version_id']['value'] == VERSION.split('-')[0])
                     assert(header['cmp_ent_size']['value'] == GENERIC_HEADER_SIZE+12)
                     assert(header['original_size']['value'] == 10)
                     # todo

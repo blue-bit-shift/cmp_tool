@@ -16,6 +16,7 @@ Compiled executables can be found [here](https://gitlab.phaidra.org/loidoltd15/c
 | `-o <prefix>`     | Use the `<prefix>` for output files<sup>[1](#fnote1)</sup>                    |
 | `-n, --model_cfg` | Print a default model configuration and exit<sup>[2](#fnote2)</sup>           |
 | `--diff_cfg`      | Print a default 1d-differencing configuration and exit<sup>[2](#fnote2)</sup> |
+| `--binary`        | Read and write files in binary format                                         |
 | `--no_header`     | Do not add a compression entity header in front of the compressed data        |
 | `-a, --rdcu_par`  | Add additional RDCU control parameters                                        |
 | `-V, --version`   | Print program version and exit                                                |

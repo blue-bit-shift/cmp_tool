@@ -28,26 +28,29 @@
 
 #define BUFFER_LENGTH_DEF_FAKTOR 2
 
+/* flags argument options (can be combined) */
+#define CMP_IO_VERBOSE 1
+#define CMP_IO_BINARY 2
+
 void print_help(const char *program_name);
 
 int cmp_cfg_read(const char *file_name, struct cmp_cfg *cfg, int verbose_en);
 int cmp_info_read(const char *file_name, struct cmp_info *info, int verbose_en);
 
-ssize_t read_file8(const char *file_name, uint8_t *buf, uint32_t buf_size,
-		   int verbose_en);
+ssize_t read_file8(const char *file_name, uint8_t *buf, uint32_t buf_size, int flags);
 ssize_t read_file_data(const char *file_name, enum cmp_data_type data_type,
-		       void *buf, uint32_t buf_size, int verbose_en);
+		       void *buf, uint32_t buf_size, int flags);
 ssize_t read_file_cmp_entity(const char *file_name, struct cmp_entity *ent,
-			     uint32_t ent_size, int verbose_en);
+			     uint32_t ent_size, int flags);
 ssize_t read_file32(const char *file_name, uint32_t *buf, uint32_t buf_size,
 		    int verbose_en);
 
 uint32_t cmp_tool_gen_version_id(const char *version);
 
-int write_cmp_data_file(const void *buf, uint32_t buf_size, const char
-			*output_prefix, const char *name_extension, int verbose);
+int write_data_to_file(const void *buf, uint32_t buf_size, const char *output_prefix,
+		       const char *name_extension, int flags);
 int write_input_data_to_file(void *data, uint32_t data_size, enum cmp_data_type data_type,
-			     const char *output_prefix, const char *name_extension, int verbose);
+			     const char *output_prefix, const char *name_extension, int flags);
 int cmp_info_to_file(const struct cmp_info *info, const char *output_prefix, int rdcu_cfg);
 int cmp_cfg_fo_file(const struct cmp_cfg *cfg, const char *output_prefix, int verbose);
 void cmp_cfg_print(const struct cmp_cfg *cfg);
