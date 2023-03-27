@@ -42,8 +42,6 @@ ssize_t read_file_data(const char *file_name, enum cmp_data_type data_type,
 		       void *buf, uint32_t buf_size, int flags);
 ssize_t read_file_cmp_entity(const char *file_name, struct cmp_entity *ent,
 			     uint32_t ent_size, int flags);
-ssize_t read_file32(const char *file_name, uint32_t *buf, uint32_t buf_size,
-		    int verbose_en);
 
 uint32_t cmp_tool_gen_version_id(const char *version);
 
