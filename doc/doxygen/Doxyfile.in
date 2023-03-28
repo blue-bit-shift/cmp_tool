@@ -1321,9 +1321,9 @@ HTML_STYLESHEET        =
 # list). For an example see the documentation.
 # This tag requires that the tag GENERATE_HTML is set to YES.
 
-HTML_EXTRA_STYLESHEET  = @DOXYDIR@/doxygen-awesome-css/doxygen-awesome.css \
-                         @DOXYDIR@/doxygen-awesome-css/doxygen-awesome-sidebar-only.css \
-                         @DOXYDIR@/doxygen-awesome-css/doxygen-awesome-sidebar-only-darkmode-toggle.css
+HTML_EXTRA_STYLESHEET  = @AWESOMEDIR@/doxygen-awesome.css \
+                         @AWESOMEDIR@/doxygen-awesome-sidebar-only.css \
+                         @AWESOMEDIR@/doxygen-awesome-sidebar-only-darkmode-toggle.css
 
 # The HTML_EXTRA_FILES tag can be used to specify one or more extra images or
 # other source files which should be copied to the HTML output directory. Note
@@ -1333,9 +1333,9 @@ HTML_EXTRA_STYLESHEET  = @DOXYDIR@/doxygen-awesome-css/doxygen-awesome.css \
 # files will be copied as-is; there are no commands or markers available.
 # This tag requires that the tag GENERATE_HTML is set to YES.
 
-HTML_EXTRA_FILES       = @DOXYDIR@/doxygen-awesome-css/doxygen-awesome-darkmode-toggle.js \
-                         @DOXYDIR@/doxygen-awesome-css/doxygen-awesome-fragment-copy-button.js \
-                         @DOXYDIR@/doxygen-awesome-css/doxygen-awesome-interactive-toc.js
+HTML_EXTRA_FILES       = @AWESOMEDIR@/doxygen-awesome-darkmode-toggle.js \
+                         @AWESOMEDIR@/doxygen-awesome-fragment-copy-button.js \
+                         @AWESOMEDIR@/doxygen-awesome-interactive-toc.js
 
 
 # The HTML_COLORSTYLE tag can be used to specify if the generated HTML output

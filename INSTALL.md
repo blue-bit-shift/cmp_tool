@@ -65,18 +65,18 @@ Unfortunately, the cmp\_tool does not support the Microsoft MSVC compiler. To bu
 For this, you need the [Mingw-w64 toolchain](https://www.mingw-w64.org/downloads/). To compile on Windows, do this in the Cygwin64 Terminal:
 
 ```
-meson setup buiddir_win --native-file=mingw-w64-64.txt
-cd buiddir_win
-meson compile
+meson setup builddir_win --native-file=mingw-w64-64.txt
+cd builddir_win
+meson compile cmp_tool
 ```
 
 ### Cross-compile for Windows
 Cross-compile for Windows is also possible with the [Mingw-w64 toolchain](https://www.mingw-w64.org/downloads/). To cross-compile for Windows use the following commands: 
 
 ```
-meson setup buiddir_cross_win --cross-file=mingw-w64-64.txt
-cd buiddir_cross_win
-meson compile
+meson setup builddir_cross_win --cross-file=mingw-w64-64.txt
+cd builddir_cross_win
+meson compile cmp_tool
 ```
 
 ## Tests

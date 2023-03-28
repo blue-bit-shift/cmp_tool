@@ -3,12 +3,15 @@
 cmp_tool
 !test/cmp_tool
 
-#cmp_tool files
+# cmp_tool files
 *.cfg
 *.info
 *.dat
 *.cmp
 
+# Meson subprojects
+/subprojects/*
+!/subprojects/*.wrap
 
 ### C ###
 # Prerequisites

@@ -15,7 +15,7 @@ endif
 cppcheck = find_program('cppcheck', required : false)
 if cppcheck.found()
   cppcheck_args = [
-    '--project=' + join_paths(meson.build_root(), 'compile_commands.json'),
+    '--project=' + join_paths(meson.project_build_root(), 'compile_commands.json'),
     # '--clang',
     '--cppcheck-build-dir='+meson.current_build_dir(),
     '--std=c89',
