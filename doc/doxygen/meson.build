@@ -2,23 +2,21 @@ Doxyfile_template = files('Doxyfile.in')
 
 doc_layout_files = files(
   'header.html',
-  'meson.build',
-  'plato-logo-med.png',
-  'doxygen-awesome-css/doxygen-awesome-darkmode-toggle.js',
-  'doxygen-awesome-css/doxygen-awesome-fragment-copy-button.js',
-  'doxygen-awesome-css/doxygen-awesome-interactive-toc.js',
-  'doxygen-awesome-css/doxygen-awesome-paragraph-link.js',
-  'doxygen-awesome-css/doxygen-awesome-sidebar-only-darkmode-toggle.css',
-  'doxygen-awesome-css/doxygen-awesome-sidebar-only.css',
-  'doxygen-awesome-css/doxygen-awesome.css',
+  'plato-logo-med.png'
 )
 
+doxygen_awesome_css_proj = subproject('doxygen-awesome-css')
+doxygen_awesome_css_files = doxygen_awesome_css_proj.get_variable('doxygen_awesome_files')
+doxygen_awesome_css_dep = doxygen_awesome_css_proj.get_variable('doxygen_awesome_css_dep')
+doxygen_awesome_dir = doxygen_awesome_css_dep.get_variable(internal : 'doxygen_awesome_dir')
+message(doxygen_awesome_dir)
 
 #Build a Doxyfile based on Doxyfile.in
 cdata_doc = configuration_data()
 cdata_doc.set('VERSION', meson.project_version())
 cdata_doc.set('SRCDIR', meson.project_source_root())
 cdata_doc.set('DOXYDIR', meson.current_source_dir())
+cdata_doc.set('AWESOMEDIR', doxygen_awesome_dir)
 cdata_doc.set('BUILDDIR', meson.project_build_root())
 if find_program('dot', required : false).found()
   cdata_doc.set('HAVE_DOT', 'YES')
@@ -39,7 +37,7 @@ if doxygen.found()
   custom_target('doc',
     input : doxy_file,
     output : 'generated_documentation',
-    depend_files : [doxy_file, doc_layout_files, main, cmplib_sources], # test files are missing
+    depend_files : [doxy_file, doc_layout_files, doxygen_awesome_css_files, main, cmplib_sources], # test files are missing
     command : [doxygen, '@INPUT@'],
     build_by_default : false,
     console : true,
