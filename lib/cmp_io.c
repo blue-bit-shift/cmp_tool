@@ -145,7 +145,7 @@ static FILE *open_file(const char *dirname, const char *filename)
 		abort();
 	}
 
-	return fopen(pathname, "w");
+	return fopen(pathname, "wb");
 }
 
 
@@ -1208,7 +1208,7 @@ static __inline uint8_t str_to_uint8(const char *str, char const **str_end)
  * @returns the size in bytes to store the string content; negative on error
  */
 
-static ssize_t __inline str2uint8_arr(const char *str, uint8_t *data, uint32_t buf_size,
+static __inline ssize_t str2uint8_arr(const char *str, uint8_t *data, uint32_t buf_size,
 				      const char *file_name, int verbose_en)
 {
 	const char *nptr = str;
