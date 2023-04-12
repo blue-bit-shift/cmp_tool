@@ -286,15 +286,13 @@ int write_data_to_file(const void *buf, uint32_t buf_size, const char *output_pr
 
 static void remove_spaces(char *s)
 {
-	const char *d;
+	const char *d = s;
 
 	if (!s)
 		return;
 
-	d = s;
-
 	do {
-		while (*d == ' ' || *d == '\t')
+		while (isspace(*d))
 			d++;
 	} while ((*s++ = *d++) != '\0');
 }
