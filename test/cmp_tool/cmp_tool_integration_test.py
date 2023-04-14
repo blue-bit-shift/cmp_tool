@@ -484,7 +484,7 @@ def test_model_compression():
             assert(returncode == EXIT_SUCCESS)
             assert(stderr == "")
             cfg = parse_key_value(stdout)
-            cfg['cmp_mode'] = 'MODE_MODEL_MULTI'
+            cfg['cmp_mode'] = 'MODE_MODEL_MULTI\r'
             cfg['model_value'] = '0'
             cfg["samples"] = '5'
             cfg["buffer_length"] = '2'
