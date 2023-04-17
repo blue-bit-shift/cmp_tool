@@ -81,7 +81,7 @@ void print_help(const char *program_name)
 	printf("  -o <prefix>              Use the <prefix> for output files\n");
 	printf("  -n, --model_cfg          Print a default model configuration and exit\n");
 	printf("  --diff_cfg               Print a default 1d-differencing configuration and exit\n");
-	printf("  --binary                 Read and write files in binary format\n");
+	printf("  -b, --binary             Read and write files in binary format\n");
 	printf("  --no_header              Do not add a compression entity header in front of the compressed data\n");
 	printf("  -a, --rdcu_par           Add additional RDCU control parameters\n");
 	printf("  -V, --version            Print program version and exit\n");
