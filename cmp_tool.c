@@ -73,7 +73,6 @@ enum {
 	NO_HEADER,
 	MODEL_ID,
 	MODEL_COUTER,
-	BINARY_IO,
 };
 
 static const struct option long_options[] = {
@@ -90,7 +89,7 @@ static const struct option long_options[] = {
 	{"no_header", no_argument, NULL, NO_HEADER},
 	{"model_id", required_argument, NULL, MODEL_ID},
 	{"model_counter", required_argument, NULL, MODEL_COUTER},
-	{"binary", no_argument, NULL, BINARY_IO},
+	{"binary", no_argument, NULL, 'b'},
 	{NULL, 0, NULL, 0}
 };
 
@@ -165,11 +164,14 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 
-	while ((opt = getopt_long(argc, argv, "ac:d:hi:m:no:vV", long_options,
+	while ((opt = getopt_long(argc, argv, "abc:d:hi:m:no:vV", long_options,
 				  NULL)) != -1) {
 		switch (opt) {
 		case 'a': /* --rdcu_par */
 			add_rdcu_pars = 1;
+			break;
+		case 'b':
+			io_flags |= CMP_IO_BINARY;
 			break;
 		case 'c':
 			cmp_operation = 1;
@@ -232,9 +234,6 @@ int main(int argc, char **argv)
 			break;
 		case MODEL_COUTER:
 			model_counter_str = optarg;
-			break;
-		case BINARY_IO:
-			io_flags |= CMP_IO_BINARY;
 			break;
 		default:
 			print_help(program_name);
