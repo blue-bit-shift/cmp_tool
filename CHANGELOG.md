@@ -16,6 +16,10 @@ All notable changes to this project will be documented in this file.
 - update Doxygen setup
 ### Fixed
 - remove memory leaks from tests
+- fixed incorrect error message when using rdcu_pkt option without .rdcu_pkt_mode_cfg file
+- set the rdcu_par option when using the rdcu_pkt option
+- fixed a bug when using the last_info option
+
 
 ## [0.09] - 30-09-2022
 ### Added
