@@ -225,6 +225,7 @@ int main(int argc, char **argv)
 			/* fall through */
 		case RDCU_PKT_OPTION:
 			rdcu_pkt_mode = 1;
+			add_rdcu_pars = 1;
 			/* fall through */
 		case NO_HEADER:
 			include_cmp_header = 0;

@@ -527,7 +527,7 @@ int rdcu_compress_data_parallel(const struct cmp_cfg *cfg,
 		if (cfg->icu_new_model_buf) {
 			if (rdcu_read_sram(cfg->icu_new_model_buf,
 					   last_info->rdcu_new_model_adr_used,
-					   new_model_size_4byte))
+					   new_model_size_4byte) < 0)
 				return -1;
 		}
 	/* write model */
