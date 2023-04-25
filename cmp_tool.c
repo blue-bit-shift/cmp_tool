@@ -295,12 +295,18 @@ int main(int argc, char **argv)
 		exit(EXIT_SUCCESS);
 	}
 
-	printf("#########################################################\n");
-	printf("### PLATO Compression/Decompression Tool Version %s ###\n",
-	       CMP_TOOL_VERSION);
-	printf("#########################################################\n");
-	if (!strcmp(CMP_TOOL_VERSION, "0.07") || !strcmp(CMP_TOOL_VERSION, "0.08"))
-		printf("Info: Note that the behaviour of the cmp_tool has changed. From now on, the compressed data will be preceded by a header by default. The old behaviour can be achieved with the --no_header option.\n\n");
+	{
+		char str[] = "### PLATO Compression/Decompression Tool Version " CMP_TOOL_VERSION " ###\n";
+		size_t str_len = strlen(str) - 1; /* -1 for \n */
+		size_t i;
+		for (i = 0; i < str_len; ++i)
+			printf("#");
+		printf("\n");
+		printf("%s", str);
+		for (i = 0; i < str_len; ++i)
+			printf("#");
+		printf("\n");
+	}
 
 	if (!data_file_name) {
 		fprintf(stderr, "%s: No data file (-d option) specified.\n",

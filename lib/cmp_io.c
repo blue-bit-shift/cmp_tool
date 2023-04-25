@@ -82,7 +82,6 @@ void print_help(const char *program_name)
 	printf("  -n, --model_cfg          Print a default model configuration and exit\n");
 	printf("  --diff_cfg               Print a default 1d-differencing configuration and exit\n");
 	printf("  -b, --binary             Read and write files in binary format\n");
-	printf("  --no_header              Do not add a compression entity header in front of the compressed data\n");
 	printf("  -a, --rdcu_par           Add additional RDCU control parameters\n");
 	printf("  -V, --version            Print program version and exit\n");
 	printf("  -v, --verbose            Print various debugging information\n");
@@ -90,6 +89,7 @@ void print_help(const char *program_name)
 	printf("  -c <file>                File containing the compressing configuration\n");
 	printf("  -d <file>                File containing the data to be compressed\n");
 	printf("  -m <file>                File containing the model of the data to be compressed\n");
+	printf("  --no_header              Do not add a compression entity header in front of the compressed data\n");
 	printf("  --rdcu_pkt               Generate RMAP packets for an RDCU compression\n");
 	printf("  --last_info <.info file> Generate RMAP packets for an RDCU compression with parallel read of the last results\n");
 	printf("Decompression Options:\n");
