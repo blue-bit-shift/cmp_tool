@@ -746,11 +746,15 @@ static int compression(struct cmp_cfg *cfg, struct cmp_info *info)
 	}
 
 	if (rdcu_pkt_mode) {
+		void *tmp = cfg->icu_new_model_buf;
+
+		cfg->icu_new_model_buf = NULL;
 		printf("Generate compression setup packets ...\n");
 		error = gen_rdcu_write_pkts(cfg);
 		if (error)
 			goto error_cleanup;
 		printf("... DONE\n");
+		cfg->icu_new_model_buf = tmp;
 	}
 
 	printf("Compress data ... ");
