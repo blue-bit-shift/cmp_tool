@@ -664,8 +664,8 @@ static int gen_rdcu_write_pkts(struct cmp_cfg *cfg)
  * TODO: set cmp_mode_err, set model_value_err, etc, in error case
  */
 
-static int cmp_gernate_rdcu_info(const struct cmp_cfg *cfg, int cmp_size_bit,
-				 struct cmp_info *info)
+static int cmp_gernate_rdcu_info(const struct cmp_cfg *cfg, int cmp_size_bit, int ap1_cmp_size_bit,
+				 int ap2_cmp_size_bit, struct cmp_info *info)
 {
 	if (!cfg)
 		return -1;
@@ -689,36 +689,17 @@ static int cmp_gernate_rdcu_info(const struct cmp_cfg *cfg, int cmp_size_bit,
 		info->samples_used = cfg->samples;
 		info->rdcu_new_model_adr_used = cfg->rdcu_new_model_adr;
 		info->rdcu_cmp_adr_used = cfg->rdcu_buffer_adr;
+		info->ap1_cmp_size = (uint32_t)ap1_cmp_size_bit;
+		info->ap2_cmp_size = (uint32_t)ap2_cmp_size_bit;
 
 		if (cmp_size_bit == CMP_ERROR_SMALL_BUF)
 			/* the icu_output_buf is to small to store the whole bitstream */
 			info->cmp_err |= 1UL << SMALL_BUFFER_ERR_BIT; /* set small buffer error */
-		if (cmp_size_bit < 0) {
+		if (cmp_size_bit < 0)
 			info->cmp_size = 0;
-			info->ap1_cmp_size = 0;
-			info->ap2_cmp_size = 0;
-		} else {
+		else
 			info->cmp_size = (uint32_t)cmp_size_bit;
 
-			if (add_rdcu_pars) {
-				struct cmp_cfg cfg_cpy = *cfg;
-
-				cfg_cpy.icu_output_buf = NULL;
-				cfg_cpy.icu_new_model_buf = NULL;
-
-				cfg_cpy.golomb_par = cfg_cpy.ap1_golomb_par;
-				cfg_cpy.spill = cfg_cpy.ap1_spill;
-				info->ap1_cmp_size = (uint32_t)icu_compress_data(&cfg_cpy);
-				if ((int)info->ap1_cmp_size < 0)
-					info->ap1_cmp_size = 0;
-
-				cfg_cpy.golomb_par = cfg_cpy.ap2_golomb_par;
-				cfg_cpy.spill = cfg_cpy.ap2_spill;
-				info->ap2_cmp_size = (uint32_t)icu_compress_data(&cfg_cpy);
-				if ((int)info->ap2_cmp_size < 0)
-					info->ap2_cmp_size = 0;
-			}
-		}
 	}
 	return 0;
 }
@@ -731,6 +712,7 @@ static int cmp_gernate_rdcu_info(const struct cmp_cfg *cfg, int cmp_size_bit,
 static int compression(struct cmp_cfg *cfg, struct cmp_info *info)
 {
 	int cmp_size, error;
+	int ap1_cmp_size = 0, ap2_cmp_size = 0;
 	uint32_t cmp_size_byte, out_buf_size;
 	size_t s;
 	uint64_t start_time = cmp_ent_create_timestamp(NULL);
@@ -755,6 +737,24 @@ static int compression(struct cmp_cfg *cfg, struct cmp_info *info)
 			goto error_cleanup;
 		printf("... DONE\n");
 		cfg->icu_new_model_buf = tmp;
+	}
+	if (add_rdcu_pars) {
+		struct cmp_cfg cfg_cpy = *cfg;
+
+		cfg_cpy.icu_output_buf = NULL;
+		cfg_cpy.icu_new_model_buf = NULL;
+
+		cfg_cpy.golomb_par = cfg_cpy.ap1_golomb_par;
+		cfg_cpy.spill = cfg_cpy.ap1_spill;
+		ap1_cmp_size = icu_compress_data(&cfg_cpy);
+		if (ap1_cmp_size < 0)
+			ap1_cmp_size = 0;
+
+		cfg_cpy.golomb_par = cfg_cpy.ap2_golomb_par;
+		cfg_cpy.spill = cfg_cpy.ap2_spill;
+		ap2_cmp_size = icu_compress_data(&cfg_cpy);
+		if (ap2_cmp_size < 0)
+			ap2_cmp_size = 0;
 	}
 
 	printf("Compress data ... ");
@@ -808,7 +808,7 @@ static int compression(struct cmp_cfg *cfg, struct cmp_info *info)
 		data_to_write_to_file = cmp_entity;
 		cmp_size_byte = cmp_ent_get_size(cmp_entity);
 	} else {
-		if (cmp_gernate_rdcu_info(cfg, cmp_size, info))
+		if (cmp_gernate_rdcu_info(cfg, cmp_size, ap1_cmp_size, ap2_cmp_size, info))
 			goto error_cleanup;
 		data_to_write_to_file = cmp_ent_get_data_buf(cmp_entity);
 		if (cfg->cmp_mode == CMP_MODE_RAW)

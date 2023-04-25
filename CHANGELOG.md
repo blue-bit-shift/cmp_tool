@@ -19,6 +19,7 @@ All notable changes to this project will be documented in this file.
 - fixed incorrect error message when using rdcu_pkt option without .rdcu_pkt_mode_cfg file
 - set the rdcu_par option when using the rdcu_pkt option
 - fixed several bug when using the last_info option
+- fix a bug in the calculation of the adaptive compression sizes
 
 
 ## [0.09] - 30-09-2022
