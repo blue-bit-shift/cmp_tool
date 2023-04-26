@@ -661,17 +661,18 @@ static int gen_rdcu_write_pkts(struct cmp_cfg *cfg)
  *
  * @param cfg		compression configuration struct
  * @param cmp_size_bit	length of the bitstream in bits
+ * @param ap1_cmp_size_bit	length of the adaptive 1 bitstream in bits
+ * @param ap2_cmp_size_bit	length of the adaptive 2 bitstream in bits
  * @param info		compressor information struct to set the used compression
  *	parameters (can be NULL)
- *
- * @note set cmp_size, ap1_cmp_size, ap2_cmp_size will be set to 0
  *
  * @returns 0 on success, error otherwise
  * TODO: set cmp_mode_err, set model_value_err, etc, in error case
  */
 
-static int cmp_gernate_rdcu_info(const struct cmp_cfg *cfg, int cmp_size_bit, int ap1_cmp_size_bit,
-				 int ap2_cmp_size_bit, struct cmp_info *info)
+static int cmp_gernate_rdcu_info(const struct cmp_cfg *cfg, int cmp_size_bit,
+				 int ap1_cmp_size_bit, int ap2_cmp_size_bit,
+				 struct cmp_info *info)
 {
 	if (!cfg)
 		return -1;
