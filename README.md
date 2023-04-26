@@ -16,8 +16,7 @@ Compiled executables can be found [here](https://gitlab.phaidra.org/loidoltd15/c
 | `-o <prefix>`     | Use the `<prefix>` for output files<sup>[1](#fnote1)</sup>                    |
 | `-n, --model_cfg` | Print a default model configuration and exit<sup>[2](#fnote2)</sup>           |
 | `--diff_cfg`      | Print a default 1d-differencing configuration and exit<sup>[2](#fnote2)</sup> |
-| `--binary`        | Read and write files in binary format                                         |
-| `--no_header`     | Do not add a compression entity header in front of the compressed data        |
+| `-b, --binary`    | Read and write files in binary format                                         |
 | `-a, --rdcu_par`  | Add additional RDCU control parameters                                        |
 | `-V, --version`   | Print program version and exit                                                |
 | `-v, --verbose`   | Print various debugging information                                           |
@@ -34,6 +33,7 @@ and **buffer_length** parameter is set to **0**!
 | `-c <file>`                 | File containing the compressing configuration                                        |
 | `-d <file>`                 | File containing the data to be compressed                                            |
 | `-m <file>`                 | File containing the model of the data to be compressed                               |
+| `--no_header`               | Do not add a compression entity header in front of the compressed data               |
 | `--rdcu_pkt`                | Generate RMAP packets for an RDCU compression<sup>[3](#fnote3)</sup>                 |
 | `--last_info  <.info file>` | Generate RMAP packets for an RDCU compression with parallel read of the last results |
 
@@ -133,3 +133,4 @@ Instructions on how to perform compression without headers can be found [here](h
     And also check if the updated model is the same  
     `diff compressed/data2_upmodel.dat decompressed/test_data2_upmodel.dat`
 
+j

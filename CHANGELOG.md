@@ -1,7 +1,7 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [0.11] - 26-04-2023
 ### Added
 - add -b or --binary option for read and write files in binary format
 - add cross compile file for sparc
