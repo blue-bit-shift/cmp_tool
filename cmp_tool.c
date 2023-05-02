@@ -201,6 +201,8 @@ int main(int argc, char **argv)
 			output_prefix = optarg;
 			break;
 		case 'v': /* --verbose */
+			if (io_flags & CMP_IO_VERBOSE)
+				io_flags |= CMP_IO_VERBOSE_EXTRA;
 			io_flags |= CMP_IO_VERBOSE;
 			break;
 		case 'V': /* --version */
@@ -434,7 +436,7 @@ int main(int argc, char **argv)
 				cmp_ent_set_size(decomp_entity, (uint32_t)buf_size);
 			}
 
-			if (io_flags & CMP_IO_VERBOSE) {
+			if (io_flags & CMP_IO_VERBOSE_EXTRA) {
 				cmp_ent_print(decomp_entity);
 				printf("\n");
 			}

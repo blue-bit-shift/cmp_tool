@@ -29,8 +29,9 @@
 #define BUFFER_LENGTH_DEF_FAKTOR 2
 
 /* flags argument options (can be combined) */
-#define CMP_IO_VERBOSE 1
-#define CMP_IO_BINARY 2
+#define CMP_IO_BINARY 0x1
+#define CMP_IO_VERBOSE 0x2
+#define CMP_IO_VERBOSE_EXTRA 0x4
 
 void print_help(const char *program_name);
 

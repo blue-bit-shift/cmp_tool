@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+### Added
+- add -vv flag for extra verbose output
+
 ## [0.11] - 26-04-2023
 ### Added
 - add -b or --binary option for read and write files in binary format
@@ -20,7 +24,6 @@ All notable changes to this project will be documented in this file.
 - set the rdcu_par option when using the rdcu_pkt option
 - fixed several bug when using the last_info option
 - fix a bug in the calculation of the adaptive compression sizes
-
 
 ## [0.09] - 30-09-2022
 ### Added

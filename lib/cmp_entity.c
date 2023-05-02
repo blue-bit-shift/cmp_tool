@@ -2344,11 +2344,11 @@ void cmp_ent_print_header(struct cmp_entity *ent)
 	size_t i;
 
 	for (i = 0; i < hdr_size; ++i) {
-		debug_print("%02X ", p[i]);
+		printf("%02X ", p[i]);
 		if (i && !((i+1) % 32))
-			debug_print("\n");
+			printf("\n");
 	}
-	debug_print("\n");
+	printf("\n");
 }
 
 
@@ -2368,11 +2368,11 @@ void cmp_ent_print_data(struct cmp_entity *ent)
 		return;
 
 	for (i = 0; i < data_size; ++i) {
-		debug_print("%02X ", p[i]);
+		printf("%02X ", p[i]);
 		if (i && !((i+1) % 32))
-			debug_print("\n");
+			printf("\n");
 	}
-	debug_print("\n");
+	printf("\n");
 }
 
 
@@ -2384,9 +2384,9 @@ void cmp_ent_print_data(struct cmp_entity *ent)
 
 void cmp_ent_print(struct cmp_entity *ent)
 {
-	debug_print("compression entity header:\n");
+	printf("compression entity header:\n");
 	cmp_ent_print_header(ent);
-	debug_print("compressed data in the compressed entity:\n");
+	printf("compressed data in the compressed entity:\n");
 	cmp_ent_print_data(ent);
 }
 
@@ -2411,62 +2411,62 @@ static void cmp_ent_parse_generic_header(struct cmp_entity *ent)
 		uint16_t major = (version_id & 0x7FFF0000U) >> 16U;
 		uint16_t minor = version_id & 0xFFFFU;
 
-		debug_print("Compressed with cmp_tool version: %u.%02u\n", major, minor);
+		printf("Compressed with cmp_tool version: %u.%02u\n", major, minor);
 	} else
-		debug_print("ICU ASW Version ID: %08" PRIx32 "\n", version_id);
+		printf("ICU ASW Version ID: %08" PRIx32 "\n", version_id);
 
 	cmp_ent_size = cmp_ent_get_size(ent);
-	debug_print("Compression Entity Size: %" PRIu32 " byte\n", cmp_ent_size);
+	printf("Compression Entity Size: %" PRIu32 " byte\n", cmp_ent_size);
 
 	original_size = cmp_ent_get_original_size(ent);
-	debug_print("Original Data Size: %" PRIu32 " byte\n", original_size);
+	printf("Original Data Size: %" PRIu32 " byte\n", original_size);
 
 	start_coarse_time = cmp_ent_get_coarse_start_time(ent);
-	debug_print("Compression Coarse Start Time: %" PRIu32 "\n", start_coarse_time);
+	printf("Compression Coarse Start Time: %" PRIu32 "\n", start_coarse_time);
 
 	start_fine_time = cmp_ent_get_fine_start_time(ent);
-	debug_print("Compression Fine Start Time: %d\n", start_fine_time);
+	printf("Compression Fine Start Time: %d\n", start_fine_time);
 
 	end_coarse_time = cmp_ent_get_coarse_end_time(ent);
-	debug_print("Compression Coarse End Time: %" PRIu32 "\n", end_coarse_time);
+	printf("Compression Coarse End Time: %" PRIu32 "\n", end_coarse_time);
 
 	end_fine_time = cmp_ent_get_fine_end_time(ent);
-	debug_print("Compression Fine End Time: %d\n", end_fine_time);
+	printf("Compression Fine End Time: %d\n", end_fine_time);
 
 #ifdef HAS_TIME_H
 	{
 		struct tm epoch_date = PLATO_EPOCH_DATE;
 		time_t time = my_timegm(&epoch_date) + start_coarse_time;
 
-		debug_print("Data were compressed on (local time): %s", ctime(&time));
+		printf("Data were compressed on (local time): %s", ctime(&time));
 	}
 #endif
-	debug_print("The compression took %f second\n", end_coarse_time - start_coarse_time
+	printf("The compression took %f second\n", end_coarse_time - start_coarse_time
 		+ ((end_fine_time - start_fine_time)/256./256.));
 
 	data_type = cmp_ent_get_data_type(ent);
-	debug_print("Data Product Type: %d\n", data_type);
+	printf("Data Product Type: %d\n", data_type);
 
 	raw_bit = cmp_ent_get_data_type_raw_bit(ent);
-	debug_print("RAW bit in the Data Product Type is%s set\n", raw_bit ? "" : " not");
+	printf("RAW bit in the Data Product Type is%s set\n", raw_bit ? "" : " not");
 
 	cmp_mode_used = cmp_ent_get_cmp_mode(ent);
-	debug_print("Used Compression Mode: %" PRIu32 "\n", cmp_mode_used);
+	printf("Used Compression Mode: %" PRIu32 "\n", cmp_mode_used);
 
 	model_value_used = cmp_ent_get_model_value(ent);
-	debug_print("Used Model Updating Weighing Value: %" PRIu32 "\n", model_value_used);
+	printf("Used Model Updating Weighing Value: %" PRIu32 "\n", model_value_used);
 
 	model_id = cmp_ent_get_model_id(ent);
-	debug_print("Model ID: %" PRIu32 "\n", model_id);
+	printf("Model ID: %" PRIu32 "\n", model_id);
 
 	model_counter = cmp_ent_get_model_counter(ent);
-	debug_print("Model Counter: %" PRIu32 "\n", model_counter);
+	printf("Model Counter: %" PRIu32 "\n", model_counter);
 
 	max_used_bits_version = cmp_ent_get_max_used_bits_version(ent);
-	debug_print("Maximum Used Bits Registry Version: %" PRIu32 "\n", max_used_bits_version);
+	printf("Maximum Used Bits Registry Version: %" PRIu32 "\n", max_used_bits_version);
 
 	lossy_cmp_par_used = cmp_ent_get_lossy_cmp_par(ent);
-	debug_print("Used Lossy Compression Parameters: %" PRIu32 "\n", lossy_cmp_par_used);
+	printf("Used Lossy Compression Parameters: %" PRIu32 "\n", lossy_cmp_par_used);
 }
 
 
@@ -2481,10 +2481,10 @@ static void cmp_ent_parese_imagette_header(struct cmp_entity *ent)
 	uint32_t spill_used, golomb_par_used;
 
 	spill_used = cmp_ent_get_ima_spill(ent);
-	debug_print("Used Spillover Threshold Parameter: %" PRIu32 "\n", spill_used);
+	printf("Used Spillover Threshold Parameter: %" PRIu32 "\n", spill_used);
 
 	golomb_par_used = cmp_ent_get_ima_golomb_par(ent);
-	debug_print("Used Golomb Parameter: %" PRIu32 "\n", golomb_par_used);
+	printf("Used Golomb Parameter: %" PRIu32 "\n", golomb_par_used);
 }
 
 
@@ -2500,22 +2500,22 @@ static void cmp_ent_parese_adaptive_imagette_header(struct cmp_entity *ent)
 		 ap1_golomb_par_used, ap2_spill_used, ap2_golomb_par_used;
 
 	spill_used = cmp_ent_get_ima_spill(ent);
-	debug_print("Used Spillover Threshold Parameter: %" PRIu32 "\n", spill_used);
+	printf("Used Spillover Threshold Parameter: %" PRIu32 "\n", spill_used);
 
 	golomb_par_used = cmp_ent_get_ima_golomb_par(ent);
-	debug_print("Used Golomb Parameter: %" PRIu32 "\n", golomb_par_used);
+	printf("Used Golomb Parameter: %" PRIu32 "\n", golomb_par_used);
 
 	ap1_spill_used = cmp_ent_get_ima_ap1_spill(ent);
-	debug_print("Used Adaptive 1 Spillover Threshold Parameter: %" PRIu32 "\n", ap1_spill_used);
+	printf("Used Adaptive 1 Spillover Threshold Parameter: %" PRIu32 "\n", ap1_spill_used);
 
 	ap1_golomb_par_used = cmp_ent_get_ima_ap1_golomb_par(ent);
-	debug_print("Used Adaptive 1 Golomb Parameter: %" PRIu32 "\n", ap1_golomb_par_used);
+	printf("Used Adaptive 1 Golomb Parameter: %" PRIu32 "\n", ap1_golomb_par_used);
 
 	ap2_spill_used = cmp_ent_get_ima_ap2_spill(ent);
-	debug_print("Used Adaptive 2 Spillover Threshold Parameter: %" PRIu32 "\n", ap2_spill_used);
+	printf("Used Adaptive 2 Spillover Threshold Parameter: %" PRIu32 "\n", ap2_spill_used);
 
 	ap2_golomb_par_used = cmp_ent_get_ima_ap2_golomb_par(ent);
-	debug_print("Used Adaptive 2 Golomb Parameter: %" PRIu32 "\n", ap2_golomb_par_used);
+	printf("Used Adaptive 2 Golomb Parameter: %" PRIu32 "\n", ap2_golomb_par_used);
 }
 
 
@@ -2530,7 +2530,7 @@ static void cmp_ent_parese_specific_header(struct cmp_entity *ent)
 	enum cmp_data_type data_type = cmp_ent_get_data_type(ent);
 
 	if (cmp_ent_get_data_type_raw_bit(ent)) {
-		debug_print("Uncompressed data bit is set. No specific header is used.\n");
+		printf("Uncompressed data bit is set. No specific header is used.\n");
 		return;
 	}
 
@@ -2546,7 +2546,7 @@ static void cmp_ent_parese_specific_header(struct cmp_entity *ent)
 		cmp_ent_parese_adaptive_imagette_header(ent);
 		break;
 	default:
-		debug_print("For this data product type no parse functions is implemented!\n");
+		printf("For this data product type no parse functions is implemented!\n");
 		break;
 	}
 }
