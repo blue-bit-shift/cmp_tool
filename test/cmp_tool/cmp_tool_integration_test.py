@@ -204,7 +204,7 @@ General Options:
   -b, --binary             Read and write files in binary format
   -a, --rdcu_par           Add additional RDCU control parameters
   -V, --version            Print program version and exit
-  -v, --verbose            Print various debugging information
+  -v, -vv, --verbose       Print various debugging information, -vv is extra verbose
 Compression Options:
   -c <file>                File containing the compressing configuration
   -d <file>                File containing the data to be compressed
