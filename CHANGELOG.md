@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 ### Added
 - add -vv flag for extra verbose output
+###Changed
+- -last_info option: skip model transfer if last updated model buffer and the current model buffer overlap exactly
 
 ## [0.11] - 26-04-2023
 ### Added
@@ -12,7 +14,7 @@ All notable changes to this project will be documented in this file.
 - add tests for the compression entity
 - add test for cmp_rdcu_cfg.c
 - add sparc inttypes.h definitions
-###Changed
+### Changed
 - refactor function and constants names
 - refactor configure check functions
 - move the rdcu setup functions to cmp_rdcu_cfg.c
@@ -31,7 +33,7 @@ All notable changes to this project will be documented in this file.
 - functions to create and configure a compression configuration
 - add max_used_bits feature
 - add max used bit version field to the compression entity
-###Changed
+### Changed
 - Change the build system form make to meson
 - Change DEFAULT_CFG_MODEL and DEFAULT_CFG_DIFF to CMP_DIF_XXX constants
 ### Fixed

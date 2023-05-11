@@ -509,26 +509,31 @@ int rdcu_compress_data_parallel(const struct cmp_cfg *cfg,
 
 	/* read model and write model in parallel */
 	if (cfg->model_buf && model_mode_is_used(cfg->cmp_mode) && model_mode_is_used(last_info->cmp_mode_used)) {
-		uint32_t new_model_size_4byte;
+		if (cfg->rdcu_model_adr == last_info->rdcu_new_model_adr_used &&
+		    cfg->samples == last_info->samples_used) {
+			printf("The last updated model buffer and the current model buffer overlap exactly in the SRAM of the RDCU. Skip model transfer.\n");
+		} else {
+			uint32_t new_model_size_4byte;
 
-		/* set the model in the local mirror... */
-		if (rdcu_write_sram_16(cfg->model_buf, cfg->rdcu_model_adr,
-				       cfg->samples * IMA_SAM2BYT) < 0)
-			return -1;
-
-		new_model_size_4byte = last_info->samples_used * IMA_SAM2BYT;
-		if (rdcu_sync_sram_mirror_parallel(last_info->rdcu_new_model_adr_used,
-						   (new_model_size_4byte+3) & ~0x3U,
-						   cfg->rdcu_model_adr,
-						   samples_4byte, rdcu_get_data_mtu()))
-			return -1;
-		/* wait for it */
-		sync();
-		if (cfg->icu_new_model_buf) {
-			if (rdcu_read_sram(cfg->icu_new_model_buf,
-					   last_info->rdcu_new_model_adr_used,
-					   new_model_size_4byte) < 0)
+			/* set the model in the local mirror... */
+			if (rdcu_write_sram_16(cfg->model_buf, cfg->rdcu_model_adr,
+					       cfg->samples * IMA_SAM2BYT) < 0)
 				return -1;
+
+			new_model_size_4byte = last_info->samples_used * IMA_SAM2BYT;
+			if (rdcu_sync_sram_mirror_parallel(last_info->rdcu_new_model_adr_used,
+							   (new_model_size_4byte+3) & ~0x3U,
+							   cfg->rdcu_model_adr,
+							   samples_4byte, rdcu_get_data_mtu()))
+				return -1;
+			/* wait for it */
+			sync();
+			if (cfg->icu_new_model_buf) {
+				if (rdcu_read_sram(cfg->icu_new_model_buf,
+						   last_info->rdcu_new_model_adr_used,
+						   new_model_size_4byte) < 0)
+					return -1;
+			}
 		}
 	/* write model */
 	} else if (cfg->model_buf && model_mode_is_used(cfg->cmp_mode)) {
