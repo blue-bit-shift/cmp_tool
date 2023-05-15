@@ -10,16 +10,17 @@ Compiled executables can be found [here](https://gitlab.phaidra.org/loidoltd15/c
 
 ### General Options
 
-| Options           | Description                                                                   |
-|:------------------|:------------------------------------------------------------------------------|
-| `-h, --help`      | Print some help text and exit                                                 |
-| `-o <prefix>`     | Use the `<prefix>` for output files<sup>[1](#fnote1)</sup>                    |
-| `-n, --model_cfg` | Print a default model configuration and exit<sup>[2](#fnote2)</sup>           |
-| `--diff_cfg`      | Print a default 1d-differencing configuration and exit<sup>[2](#fnote2)</sup> |
-| `-b, --binary`    | Read and write files in binary format                                         |
-| `-a, --rdcu_par`  | Add additional RDCU control parameters                                        |
-| `-V, --version`   | Print program version and exit                                                |
-| `-v, --verbose`   | Print various debugging information                                           |
+| Options             | Description                                                                   |
+|:--------------------|:------------------------------------------------------------------------------|
+| `-h, --help`        | Print some help text and exit                                                 |
+| `-o <prefix>`       | Use the `<prefix>` for output files<sup>[1](#fnote1)</sup>                    |
+| `-n, --model_cfg`   | Print a default model configuration and exit<sup>[2](#fnote2)</sup>           |
+| `--diff_cfg`        | Print a default 1d-differencing configuration and exit<sup>[2](#fnote2)</sup> |
+| `-b, --binary`      | Read and write files in binary format                                         |
+| `-a, --rdcu_par`    | Add additional RDCU control parameters                                        |
+| `-V, --version`     | Print program version and exit                                                |
+| `-v, -vv, --verbose`| Print various debugging information, -vv is extra verbose                     |
+
 
 <a name="fnote1">1</a>) **NOTE:** If the -o option is not used the `<prefix>`
 will be set to "OUTPUT".  

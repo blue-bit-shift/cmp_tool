@@ -84,7 +84,7 @@ void print_help(const char *program_name)
 	printf("  -b, --binary             Read and write files in binary format\n");
 	printf("  -a, --rdcu_par           Add additional RDCU control parameters\n");
 	printf("  -V, --version            Print program version and exit\n");
-	printf("  -v, --verbose            Print various debugging information\n");
+	printf("  -v, -vv, --verbose       Print various debugging information, -vv is extra verbose\n");
 	printf("Compression Options:\n");
 	printf("  -c <file>                File containing the compressing configuration\n");
 	printf("  -d <file>                File containing the data to be compressed\n");
@@ -157,7 +157,7 @@ static FILE *open_file(const char *dirname, const char *filename)
  * @param data_type		compression data type of the data
  * @param output_prefix		file name without file extension
  * @param name_extension	extension (with leading point character)
- * @param flags			CMP_IO_VERBOSE	print verbose output if set
+ * @param flags			CMP_IO_VERBOSE_EXTRA	print verbose output if set
  *				CMP_IO_BINARY	write file in binary format if set
  *
  * @returns 0 on success, error otherwise
@@ -203,7 +203,7 @@ int write_input_data_to_file(void *data, uint32_t data_size, enum cmp_data_type 
  * @param output_prefix  file name without file extension
  * @param name_extension file extension (with leading point character)
  *
- * @param flags		CMP_IO_VERBOSE	print verbose output if set
+ * @param flags		CMP_IO_VERBOSE_EXTRA	print verbose output if set
  *			CMP_IO_BINARY	write file in binary format if set
  *
  * @returns 0 on success, error otherwise
@@ -268,9 +268,10 @@ int write_data_to_file(const void *buf, uint32_t buf_size, const char *output_pr
 		}
 	}
 
-	if (flags & CMP_IO_VERBOSE && !(flags & CMP_IO_BINARY)) {
+	if (flags & CMP_IO_VERBOSE_EXTRA && !(flags & CMP_IO_BINARY)) {
+		printf("\n");
 		fwrite(output_file_data, 1, output_file_size, stdout);
-		printf("\n\n");
+		printf("\n");
 	}
 
 	free(tmp_buf);
@@ -1309,7 +1310,7 @@ static __inline ssize_t str2uint8_arr(const char *str, uint8_t *data, uint32_t b
  * @param file_name	data/model file name
  * @param buf		buffer to write the file content (can be NULL)
  * @param buf_size	number of uint8_t data words to read in
- * @param flags		CMP_IO_VERBOSE	print verbose output if set
+ * @param flags		CMP_IO_VERBOSE_EXTRA	print verbose output if set
  *			CMP_IO_BINARY	read in file in binary format if set
  *
  * @returns the size in bytes to store the file content; negative on error
@@ -1382,7 +1383,7 @@ ssize_t read_file8(const char *file_name, uint8_t *buf, uint32_t buf_size, int f
 	fclose(fp);
 	fp = NULL;
 
-	size = str2uint8_arr(file_cpy, buf, buf_size, file_name, flags & CMP_IO_VERBOSE);
+	size = str2uint8_arr(file_cpy, buf, buf_size, file_name, flags & CMP_IO_VERBOSE_EXTRA);
 
 	free(file_cpy);
 	file_cpy = NULL;
@@ -1406,7 +1407,7 @@ fail:
  * @param data_type	compression data type used for the data
  * @param buf		buffer to write the file content (can be NULL)
  * @param buf_size	size in bytes of the buffer
- * @param flags		CMP_IO_VERBOSE	print verbose output if set
+ * @param flags		CMP_IO_VERBOSE_EXTRA	print verbose output if set
  *			CMP_IO_BINARY	read in file in binary format if set
  *
  * @returns the size in bytes to store the file content; negative on error
@@ -1471,6 +1472,11 @@ ssize_t read_file_cmp_entity(const char *file_name, struct cmp_entity *ent,
 	if (ent) {
 		enum cmp_data_type data_type = cmp_ent_get_data_type(ent);
 
+		if (flags & CMP_IO_VERBOSE) {
+			printf("\n");
+			cmp_ent_parse(ent);
+		}
+
 		if (data_type == DATA_TYPE_UNKNOWN) {
 			fprintf(stderr, "%s: %s: Error: Compression data type is not supported. The header of the compression entity may be corrupted.\n",
 				PROGRAM_NAME, file_name);
@@ -1481,9 +1487,6 @@ ssize_t read_file_cmp_entity(const char *file_name, struct cmp_entity *ent,
 				PROGRAM_NAME, file_name, cmp_ent_get_size(ent), (size_t)size);
 			return -1;
 		}
-
-		if (flags & CMP_IO_VERBOSE)
-			cmp_ent_parse(ent);
 	}
 
 	return size;

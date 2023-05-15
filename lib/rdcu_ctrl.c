@@ -2439,8 +2439,11 @@ int rdcu_sync_sram_mirror_parallel(uint32_t rx_addr, uint32_t rx_size,
 		return -1;
 
 	/* check buffer overlap */
-	if (rx_addr < tx_addr+tx_size && rx_addr+rx_size > tx_addr)
+	if (rx_addr < tx_addr+tx_size && rx_addr+rx_size > tx_addr) {
+		printf("Error: The two parallel transferring buffers overlap. Read buffer: 0x%x size: %u. Write buffer: 0x%x size: %u.\n",
+			rx_addr, rx_size, tx_addr, tx_size);
 		return -1;
+	}
 
 
 	rx_bytes = rx_size;
