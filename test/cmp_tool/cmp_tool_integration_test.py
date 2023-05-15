@@ -10,7 +10,6 @@ import shutil
 from datetime import datetime
 from datetime import timedelta
 
-PATH_CMP_TOOL = "./cmp_tool"
 
 EXIT_FAILURE = 1
 EXIT_SUCCESS = 0
@@ -25,7 +24,7 @@ NON_IMAGETTE_HEADER_SIZE = GENERIC_HEADER_SIZE+32
 
 
 def call_cmp_tool(args):
-    args = shlex.split(PATH_CMP_TOOL + " " + args)
+    args = shlex.split("./cmp_tool " + args)
 
     try:
         with subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True) as proc:
@@ -193,6 +192,12 @@ assert(returncode == EXIT_SUCCESS)
 assert(stderr == "")
 VERSION = stdout.split()[2]
 
+#get cmp_tool parth
+returncode, stdout, stderr = call_cmp_tool("")
+assert(returncode == EXIT_FAILURE)
+assert(stderr == "")
+start_parh = stdout.rpartition('usage: ')[2] 
+PATH_CMP_TOOL = start_parh[: start_parh.find(' [options] [<argument>]\n')]
 
 HELP_STRING = \
 """usage: %s [options] [<argument>]
