@@ -23,16 +23,16 @@ IMAGETTE_HEADER_SIZE = GENERIC_HEADER_SIZE+4
 IMAGETTE_ADAPTIVE_HEADER_SIZE = GENERIC_HEADER_SIZE+12
 NON_IMAGETTE_HEADER_SIZE = GENERIC_HEADER_SIZE+32
 
+WINE_TEST_SETUP = False
+my_env=None
 if sys.platform != 'win32' and sys.platform != 'cygwin':
     if Path('cmp_tool.exe').exists():
         # try to detect cross compile setup
         # and use wine to run windows executable
         WINE_TEST_SETUP = True
-    else:
-        WINE_TEST_SETUP = False
-# disable wine debug output
-my_env = os.environ.copy()
-my_env["WINEDEBUG"] = f"-all"
+        # disable wine debug output
+        my_env = os.environ.copy()
+        my_env["WINEDEBUG"] = f"-all"
 
 def call_cmp_tool(args):
     if WINE_TEST_SETUP:
