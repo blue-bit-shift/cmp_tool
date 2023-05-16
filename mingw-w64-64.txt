@@ -15,8 +15,11 @@ cpu_family = 'x86_64'
 cpu = 'x86_64'
 endian = 'little'
 
-[cmake]
+[built-in options]
+# for clock_gettime function
+c_link_args = ['-lwinpthread']
 
+[cmake]
 CMAKE_BUILD_WITH_INSTALL_RPATH     = 'ON'
 CMAKE_FIND_ROOT_PATH_MODE_PROGRAM  = 'NEVER'
 CMAKE_FIND_ROOT_PATH_MODE_LIBRARY  = 'ONLY'
