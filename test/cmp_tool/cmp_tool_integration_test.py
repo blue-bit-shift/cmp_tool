@@ -6,6 +6,7 @@ import sys
 import os
 import math
 import shutil
+from pathlib import Path
 
 from datetime import datetime
 from datetime import timedelta
@@ -22,12 +23,26 @@ IMAGETTE_HEADER_SIZE = GENERIC_HEADER_SIZE+4
 IMAGETTE_ADAPTIVE_HEADER_SIZE = GENERIC_HEADER_SIZE+12
 NON_IMAGETTE_HEADER_SIZE = GENERIC_HEADER_SIZE+32
 
+if sys.platform != 'win32' and sys.platform != 'cygwin':
+    if Path('cmp_tool.exe').exists():
+        # try to detect cross compile setup
+        # and use wine to run windows executable
+        WINE_TEST_SETUP = True
+    else:
+        WINE_TEST_SETUP = False
+# disable wine debug output
+my_env = os.environ.copy()
+my_env["WINEDEBUG"] = f"-all"
 
 def call_cmp_tool(args):
-    args = shlex.split("./cmp_tool " + args)
+    if WINE_TEST_SETUP:
+        args = shlex.split("wine64 cmp_tool.exe " + args)
+    else:
+        args = shlex.split("./cmp_tool " + args)
+    print(args)
 
     try:
-        with subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True) as proc:
+        with subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, env=my_env) as proc:
             stdout, stderr = proc.communicate()
             return (proc.returncode, stdout, stderr)
     except:
@@ -196,7 +211,7 @@ VERSION = stdout.split()[2]
 returncode, stdout, stderr = call_cmp_tool("")
 assert(returncode == EXIT_FAILURE)
 assert(stderr == "")
-start_parh = stdout.rpartition('usage: ')[2] 
+start_parh = stdout.rpartition('usage: ')[2]
 PATH_CMP_TOOL = start_parh[: start_parh.find(' [options] [<argument>]\n')]
 
 HELP_STRING = \
@@ -254,17 +269,17 @@ def test_invalid_option():
         assert(returncode == EXIT_FAILURE)
         assert(stdout == HELP_STRING)
         if arg == '-q':
-            if sys.platform == 'linux':
-                assert(stderr == "%s: invalid option -- 'q'\n" % (PATH_CMP_TOOL))
-            elif sys.platform == 'win32' or sys.platform == 'cygwin':
+            if sys.platform == 'win32' or sys.platform == 'cygwin' or WINE_TEST_SETUP:
                 assert(stderr == "%s: unknown option -- q\n" % (PATH_CMP_TOOL))
+            elif sys.platform == 'linux':
+                assert(stderr == "%s: invalid option -- 'q'\n" % (PATH_CMP_TOOL))
             else:
                 assert(stderr == "cmp_tool: invalid option -- q\n")
         else:
-            if sys.platform == 'linux':
-                assert(stderr == "%s: unrecognized option '--not_used'\n" % (PATH_CMP_TOOL))
-            elif sys.platform == 'win32' or sys.platform == 'cygwin':
+            if sys.platform == 'win32' or sys.platform == 'cygwin' or WINE_TEST_SETUP:
                 assert(stderr == "%s: unknown option -- not_used\n" % (PATH_CMP_TOOL))
+            elif sys.platform == 'linux':
+                assert(stderr == "%s: unrecognized option '--not_used'\n" % (PATH_CMP_TOOL))
             else:
                 assert(stderr == "cmp_tool: unrecognized option `--not_used'\n")
 
@@ -1303,7 +1318,7 @@ def test_model_fiel_erros():
                "Compress data ... DONE\n" +
                "Write compressed data to file %s.cmp ... DONE\n" %(output_prefix) +
                "Write updated model to file %s_upmodel.dat ... FAILED\n" %(output_prefix))
-        if sys.platform == 'win32' or sys.platform == 'cygwin':
+        if sys.platform == 'win32' or sys.platform == 'cygwin' or WINE_TEST_SETUP:
           assert(stderr == "cmp_tool: %s_upmodel.dat: No such file or directory\n" % (output_prefix))
         else:
           assert(stderr == "cmp_tool: %s_upmodel.dat: File name too long\n" % (output_prefix))
