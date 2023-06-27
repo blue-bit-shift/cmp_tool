@@ -40,9 +40,6 @@
 #include <cmp_entity.h>
 
 
-/* maximum used bits registry */
-extern struct cmp_max_used_bits max_used_bits;
-
 
 /**
  * @brief pointer to a code word generation function
@@ -93,6 +90,7 @@ struct cmp_cfg cmp_cfg_icu_create(enum cmp_data_type data_type, enum cmp_mode cm
 	cfg.cmp_mode = cmp_mode;
 	cfg.model_value = model_value;
 	cfg.round = lossy_par;
+	cfg.max_used_bits = &MAX_USED_BITS_SAFE;
 
 	if (cmp_cfg_gen_par_is_invalid(&cfg, ICU_CHECK))
 		cfg.data_type = DATA_TYPE_UNKNOWN;
@@ -102,7 +100,7 @@ struct cmp_cfg cmp_cfg_icu_create(enum cmp_data_type data_type, enum cmp_mode cm
 
 
 /**
- * @brief setup the different data buffers for an ICU compression
+ * @brief set up the different data buffers for an ICU compression
  *
  * @param cfg			pointer to a compression configuration (created
  *				with the cmp_cfg_icu_create() function)
@@ -154,6 +152,33 @@ uint32_t cmp_cfg_icu_buffers(struct cmp_cfg *cfg, void *data_to_compress,
 	}
 
 	return cmp_data_size;
+}
+
+
+/**
+ * @brief set up the maximum length of the different data products types for
+ *	an ICU compression
+ *
+ * @param cfg		pointer to a compression configuration (created with the
+ *			cmp_cfg_icu_create() function)
+ * @param max_used_bits	pointer to a max_used_bits struct containing the maximum
+ *			length of the different data products types
+ *
+ * @returns 0 if all max_used_bits parameters are valid, non-zero if parameters are invalid
+ *
+ * @note the cmp_cfg_icu_create() function set the max_used_bits configuration to
+ *	MAX_USED_BITS_SAFE
+ */
+
+int cmp_cfg_icu_max_used_bits(struct cmp_cfg *cfg, const struct cmp_max_used_bits *max_used_bits)
+{
+	if (cfg)
+		cfg->max_used_bits = max_used_bits;
+
+	if (cmp_cfg_icu_max_used_bits_out_of_limit(max_used_bits))
+		return -1;
+
+	return 0;
 }
 
 
@@ -830,7 +855,7 @@ static int compress_imagette(const struct cmp_cfg *cfg)
 	}
 
 	err = configure_encoder_setup(&setup, cfg->golomb_par, cfg->spill,
-				      cfg->round, max_used_bits.nc_imagette, cfg);
+				      cfg->round, cfg->max_used_bits->nc_imagette, cfg);
 	if (err)
 		return -1;
 
@@ -926,11 +951,11 @@ static int compress_s_fx(const struct cmp_cfg *cfg)
 	}
 
 	err = configure_encoder_setup(&setup_exp_flag, cfg->cmp_par_exp_flags, cfg->spill_exp_flags,
-				      cfg->round, max_used_bits.s_exp_flags, cfg);
+				      cfg->round, cfg->max_used_bits->s_exp_flags, cfg);
 	if (err)
 		return -1;
 	err = configure_encoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
-				      cfg->round, max_used_bits.s_fx, cfg);
+				      cfg->round, cfg->max_used_bits->s_fx, cfg);
 	if (err)
 		return -1;
 
@@ -998,15 +1023,15 @@ static int compress_s_fx_efx(const struct cmp_cfg *cfg)
 	}
 
 	err = configure_encoder_setup(&setup_exp_flag, cfg->cmp_par_exp_flags, cfg->spill_exp_flags,
-				      cfg->round, max_used_bits.s_exp_flags, cfg);
+				      cfg->round, cfg->max_used_bits->s_exp_flags, cfg);
 	if (err)
 		return -1;
 	err = configure_encoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
-				      cfg->round, max_used_bits.s_fx, cfg);
+				      cfg->round, cfg->max_used_bits->s_fx, cfg);
 	if (err)
 		return -1;
 	err = configure_encoder_setup(&setup_efx, cfg->cmp_par_efx, cfg->spill_efx,
-				      cfg->round, max_used_bits.s_efx, cfg);
+				      cfg->round, cfg->max_used_bits->s_efx, cfg);
 	if (err)
 		return -1;
 
@@ -1080,15 +1105,15 @@ static int compress_s_fx_ncob(const struct cmp_cfg *cfg)
 	}
 
 	err = configure_encoder_setup(&setup_exp_flag, cfg->cmp_par_exp_flags, cfg->spill_exp_flags,
-				      cfg->round, max_used_bits.s_exp_flags, cfg);
+				      cfg->round, cfg->max_used_bits->s_exp_flags, cfg);
 	if (err)
 		return -1;
 	err = configure_encoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
-				      cfg->round, max_used_bits.s_fx, cfg);
+				      cfg->round, cfg->max_used_bits->s_fx, cfg);
 	if (err)
 		return -1;
 	err = configure_encoder_setup(&setup_ncob, cfg->cmp_par_ncob, cfg->spill_ncob,
-				      cfg->round, max_used_bits.s_ncob, cfg);
+				      cfg->round, cfg->max_used_bits->s_ncob, cfg);
 	if (err)
 		return -1;
 
@@ -1169,23 +1194,23 @@ static int compress_s_fx_efx_ncob_ecob(const struct cmp_cfg *cfg)
 	}
 
 	err = configure_encoder_setup(&setup_exp_flag, cfg->cmp_par_exp_flags, cfg->spill_exp_flags,
-				      cfg->round, max_used_bits.s_exp_flags, cfg);
+				      cfg->round, cfg->max_used_bits->s_exp_flags, cfg);
 	if (err)
 		return -1;
 	err = configure_encoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
-				      cfg->round, max_used_bits.s_fx, cfg);
+				      cfg->round, cfg->max_used_bits->s_fx, cfg);
 	if (err)
 		return -1;
 	err = configure_encoder_setup(&setup_ncob, cfg->cmp_par_ncob, cfg->spill_ncob,
-				      cfg->round, max_used_bits.s_ncob, cfg);
+				      cfg->round, cfg->max_used_bits->s_ncob, cfg);
 	if (err)
 		return -1;
 	err = configure_encoder_setup(&setup_efx, cfg->cmp_par_efx, cfg->spill_efx,
-				      cfg->round, max_used_bits.s_efx, cfg);
+				      cfg->round, cfg->max_used_bits->s_efx, cfg);
 	if (err)
 		return -1;
 	err = configure_encoder_setup(&setup_ecob, cfg->cmp_par_ecob, cfg->spill_ecob,
-				      cfg->round, max_used_bits.s_ecob, cfg);
+				      cfg->round, cfg->max_used_bits->s_ecob, cfg);
 	if (err)
 		return -1;
 
@@ -1283,7 +1308,7 @@ static int compress_f_fx(const struct cmp_cfg *cfg)
 	}
 
 	err = configure_encoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
-				      cfg->round, max_used_bits.f_fx, cfg);
+				      cfg->round, cfg->max_used_bits->f_fx, cfg);
 	if (err)
 		return -1;
 
@@ -1345,11 +1370,11 @@ static int compress_f_fx_efx(const struct cmp_cfg *cfg)
 	}
 
 	err = configure_encoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
-				      cfg->round, max_used_bits.f_fx, cfg);
+				      cfg->round, cfg->max_used_bits->f_fx, cfg);
 	if (err)
 		return -1;
 	err = configure_encoder_setup(&setup_efx, cfg->cmp_par_efx, cfg->spill_efx,
-				      cfg->round, max_used_bits.f_efx, cfg);
+				      cfg->round, cfg->max_used_bits->f_efx, cfg);
 	if (err)
 		return -1;
 
@@ -1417,11 +1442,11 @@ static int compress_f_fx_ncob(const struct cmp_cfg *cfg)
 	}
 
 	err = configure_encoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
-				      cfg->round, max_used_bits.f_fx, cfg);
+				      cfg->round, cfg->max_used_bits->f_fx, cfg);
 	if (err)
 		return -1;
 	err = configure_encoder_setup(&setup_ncob, cfg->cmp_par_ncob, cfg->spill_ncob,
-				      cfg->round, max_used_bits.f_ncob, cfg);
+				      cfg->round, cfg->max_used_bits->f_ncob, cfg);
 	if (err)
 		return -1;
 
@@ -1495,19 +1520,19 @@ static int compress_f_fx_efx_ncob_ecob(const struct cmp_cfg *cfg)
 	}
 
 	err = configure_encoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
-				      cfg->round, max_used_bits.f_fx, cfg);
+				      cfg->round, cfg->max_used_bits->f_fx, cfg);
 	if (err)
 		return -1;
 	err = configure_encoder_setup(&setup_ncob, cfg->cmp_par_ncob, cfg->spill_ncob,
-				      cfg->round, max_used_bits.f_ncob, cfg);
+				      cfg->round, cfg->max_used_bits->f_ncob, cfg);
 	if (err)
 		return -1;
 	err = configure_encoder_setup(&setup_efx, cfg->cmp_par_efx, cfg->spill_efx,
-				      cfg->round, max_used_bits.f_efx, cfg);
+				      cfg->round, cfg->max_used_bits->f_efx, cfg);
 	if (err)
 		return -1;
 	err = configure_encoder_setup(&setup_ecob, cfg->cmp_par_ecob, cfg->spill_ecob,
-				      cfg->round, max_used_bits.f_ecob, cfg);
+				      cfg->round, cfg->max_used_bits->f_ecob, cfg);
 	if (err)
 		return -1;
 
@@ -1599,15 +1624,15 @@ static int compress_l_fx(const struct cmp_cfg *cfg)
 	}
 
 	err = configure_encoder_setup(&setup_exp_flag, cfg->cmp_par_exp_flags, cfg->spill_exp_flags,
-				      cfg->round, max_used_bits.l_exp_flags, cfg);
+				      cfg->round, cfg->max_used_bits->l_exp_flags, cfg);
 	if (err)
 		return -1;
 	err = configure_encoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
-				      cfg->round, max_used_bits.l_fx, cfg);
+				      cfg->round, cfg->max_used_bits->l_fx, cfg);
 	if (err)
 		return -1;
 	err = configure_encoder_setup(&setup_fx_var, cfg->cmp_par_fx_cob_variance, cfg->spill_fx_cob_variance,
-				      cfg->round, max_used_bits.l_fx_variance, cfg);
+				      cfg->round, cfg->max_used_bits->l_fx_variance, cfg);
 	if (err)
 		return -1;
 
@@ -1681,19 +1706,19 @@ static int compress_l_fx_efx(const struct cmp_cfg *cfg)
 	}
 
 	err = configure_encoder_setup(&setup_exp_flag, cfg->cmp_par_exp_flags, cfg->spill_exp_flags,
-				      cfg->round, max_used_bits.l_exp_flags, cfg);
+				      cfg->round, cfg->max_used_bits->l_exp_flags, cfg);
 	if (err)
 		return -1;
 	err = configure_encoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
-				      cfg->round, max_used_bits.l_fx, cfg);
+				      cfg->round, cfg->max_used_bits->l_fx, cfg);
 	if (err)
 		return -1;
 	err = configure_encoder_setup(&setup_efx, cfg->cmp_par_efx, cfg->spill_efx,
-				      cfg->round, max_used_bits.l_efx, cfg);
+				      cfg->round, cfg->max_used_bits->l_efx, cfg);
 	if (err)
 		return -1;
 	err = configure_encoder_setup(&setup_fx_var, cfg->cmp_par_fx_cob_variance, cfg->spill_fx_cob_variance,
-				      cfg->round, max_used_bits.l_fx_variance, cfg);
+				      cfg->round, cfg->max_used_bits->l_fx_variance, cfg);
 	if (err)
 		return -1;
 
@@ -1774,24 +1799,24 @@ static int compress_l_fx_ncob(const struct cmp_cfg *cfg)
 	}
 
 	err = configure_encoder_setup(&setup_exp_flag, cfg->cmp_par_exp_flags, cfg->spill_exp_flags,
-				      cfg->round, max_used_bits.l_exp_flags, cfg);
+				      cfg->round, cfg->max_used_bits->l_exp_flags, cfg);
 	if (err)
 		return -1;
 	err = configure_encoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
-				      cfg->round, max_used_bits.l_fx, cfg);
+				      cfg->round, cfg->max_used_bits->l_fx, cfg);
 	if (err)
 		return -1;
 	err = configure_encoder_setup(&setup_ncob, cfg->cmp_par_ncob, cfg->spill_ncob,
-				      cfg->round, max_used_bits.l_ncob, cfg);
+				      cfg->round, cfg->max_used_bits->l_ncob, cfg);
 	if (err)
 		return -1;
 	/* we use compression parameter for both variance data fields */
 	err = configure_encoder_setup(&setup_fx_var, cfg->cmp_par_fx_cob_variance, cfg->spill_fx_cob_variance,
-				      cfg->round, max_used_bits.l_fx_variance, cfg);
+				      cfg->round, cfg->max_used_bits->l_fx_variance, cfg);
 	if (err)
 		return -1;
 	err = configure_encoder_setup(&setup_cob_var, cfg->cmp_par_fx_cob_variance, cfg->spill_fx_cob_variance,
-				      cfg->round, max_used_bits.l_cob_variance, cfg);
+				      cfg->round, cfg->max_used_bits->l_cob_variance, cfg);
 	if (err)
 		return -1;
 
@@ -1890,32 +1915,32 @@ static int compress_l_fx_efx_ncob_ecob(const struct cmp_cfg *cfg)
 	}
 
 	err = configure_encoder_setup(&setup_exp_flag, cfg->cmp_par_exp_flags, cfg->spill_exp_flags,
-				      cfg->round, max_used_bits.l_exp_flags, cfg);
+				      cfg->round, cfg->max_used_bits->l_exp_flags, cfg);
 	if (err)
 		return -1;
 	err = configure_encoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
-				      cfg->round, max_used_bits.l_fx, cfg);
+				      cfg->round, cfg->max_used_bits->l_fx, cfg);
 	if (err)
 		return -1;
 	err = configure_encoder_setup(&setup_ncob, cfg->cmp_par_ncob, cfg->spill_ncob,
-				      cfg->round, max_used_bits.l_ncob, cfg);
+				      cfg->round, cfg->max_used_bits->l_ncob, cfg);
 	if (err)
 		return -1;
 	err = configure_encoder_setup(&setup_efx, cfg->cmp_par_efx, cfg->spill_efx,
-				      cfg->round, max_used_bits.l_efx, cfg);
+				      cfg->round, cfg->max_used_bits->l_efx, cfg);
 	if (err)
 		return -1;
 	err = configure_encoder_setup(&setup_ecob, cfg->cmp_par_ecob, cfg->spill_ecob,
-				      cfg->round, max_used_bits.l_ecob, cfg);
+				      cfg->round, cfg->max_used_bits->l_ecob, cfg);
 	if (err)
 		return -1;
 	/* we use compression parameter for both variance data fields */
 	err = configure_encoder_setup(&setup_fx_var, cfg->cmp_par_fx_cob_variance, cfg->spill_fx_cob_variance,
-				      cfg->round, max_used_bits.l_fx_variance, cfg);
+				      cfg->round, cfg->max_used_bits->l_fx_variance, cfg);
 	if (err)
 		return -1;
 	err = configure_encoder_setup(&setup_cob_var, cfg->cmp_par_fx_cob_variance, cfg->spill_fx_cob_variance,
-				      cfg->round, max_used_bits.l_cob_variance, cfg);
+				      cfg->round, cfg->max_used_bits->l_cob_variance, cfg);
 	if (err)
 		return -1;
 
@@ -2030,11 +2055,11 @@ static int compress_nc_offset(const struct cmp_cfg *cfg)
 	}
 
 	err = configure_encoder_setup(&setup_mean, cfg->cmp_par_mean, cfg->spill_mean,
-				      cfg->round, max_used_bits.nc_offset_mean, cfg);
+				      cfg->round, cfg->max_used_bits->nc_offset_mean, cfg);
 	if (err)
 		return -1;
 	err = configure_encoder_setup(&setup_var, cfg->cmp_par_variance, cfg->spill_variance,
-				      cfg->round, max_used_bits.nc_offset_variance, cfg);
+				      cfg->round, cfg->max_used_bits->nc_offset_variance, cfg);
 	if (err)
 		return -1;
 
@@ -2101,15 +2126,15 @@ static int compress_nc_background(const struct cmp_cfg *cfg)
 	}
 
 	err = configure_encoder_setup(&setup_mean, cfg->cmp_par_mean, cfg->spill_mean,
-				      cfg->round, max_used_bits.nc_background_mean, cfg);
+				      cfg->round, cfg->max_used_bits->nc_background_mean, cfg);
 	if (err)
 		return -1;
 	err = configure_encoder_setup(&setup_var, cfg->cmp_par_variance, cfg->spill_variance,
-				      cfg->round, max_used_bits.nc_background_variance, cfg);
+				      cfg->round, cfg->max_used_bits->nc_background_variance, cfg);
 	if (err)
 		return -1;
 	err = configure_encoder_setup(&setup_pix, cfg->cmp_par_pixels_error, cfg->spill_pixels_error,
-				      cfg->round, max_used_bits.nc_background_outlier_pixels, cfg);
+				      cfg->round, cfg->max_used_bits->nc_background_outlier_pixels, cfg);
 	if (err)
 		return -1;
 
@@ -2183,15 +2208,15 @@ static int compress_smearing(const struct cmp_cfg *cfg)
 	}
 
 	err = configure_encoder_setup(&setup_mean, cfg->cmp_par_mean, cfg->spill_mean,
-				      cfg->round, max_used_bits.smearing_mean, cfg);
+				      cfg->round, cfg->max_used_bits->smearing_mean, cfg);
 	if (err)
 		return -1;
 	err = configure_encoder_setup(&setup_var_mean, cfg->cmp_par_variance, cfg->spill_variance,
-				      cfg->round, max_used_bits.smearing_variance_mean, cfg);
+				      cfg->round, cfg->max_used_bits->smearing_variance_mean, cfg);
 	if (err)
 		return -1;
 	err = configure_encoder_setup(&setup_pix, cfg->cmp_par_pixels_error, cfg->spill_pixels_error,
-				      cfg->round, max_used_bits.smearing_outlier_pixels, cfg);
+				      cfg->round, cfg->max_used_bits->smearing_outlier_pixels, cfg);
 	if (err)
 		return -1;
 

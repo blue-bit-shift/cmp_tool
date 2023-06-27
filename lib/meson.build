@@ -12,7 +12,9 @@ cmplib_sources = files([
   'cmp_rdcu_cfg.c',
   'cmp_rdcu.c',
   'rdcu_cmd.c',
-  'rdcu_rmap.c'
+  'rdcu_rmap.c',
+  'cmp_max_used_bits.c',
+  'cmp_max_used_bits_list.c'
 ])
 
 cmp_lib = static_library('cmp_lib',
