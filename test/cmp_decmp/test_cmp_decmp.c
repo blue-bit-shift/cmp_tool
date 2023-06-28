@@ -54,7 +54,7 @@ void setUp(void)
 	static int n;
 
 #if HAS_TIME_H
-	seed = time(NULL) * getpid();
+	seed = (unsigned int)(time(NULL) * getpid());
 #else
 	seed = 1;
 #endif
