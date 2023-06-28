@@ -158,7 +158,7 @@ static int golomb_decoder(uint32_t code_word, unsigned int m,
 	q = count_leading_ones(code_word); /* decode unary coding */
 
 	rl = log2_m + 1;
-	code_word <<= (q+1);  /* shift quotient code out */
+	code_word <<= (q+1) & 0x1FU; /*0x 1FU TODO*/ /* shift quotient code out */
 
 	r2 = code_word >> (32 - rl);
 	r1 = r2 >> 1;
