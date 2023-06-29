@@ -185,7 +185,7 @@ int write_input_data_to_file(void *data, uint32_t data_size, enum cmp_data_type 
 	memcpy(tmp_buf, data, data_size);
 	cmp_input_big_to_cpu_endianness(tmp_buf, data_size, data_type);
 
-        return_value = write_data_to_file(tmp_buf, data_size, output_prefix,
+	return_value = write_data_to_file(tmp_buf, data_size, output_prefix,
 					  name_extension, flags);
 
 	free(tmp_buf);
@@ -241,7 +241,7 @@ int write_data_to_file(const void *buf, uint32_t buf_size, const char *output_pr
 		/* convert data to ASCII */
 		output_file_size = buf_size*3 + 1;
 		tmp_buf = malloc(output_file_size);
-		if (!tmp_buf){
+		if (!tmp_buf) {
 			fclose(fp);
 			return -1;
 		}
@@ -1094,7 +1094,7 @@ int cmp_info_read(const char *file_name, struct cmp_info *info, int verbose_en)
  * @returns a pointer to the character after the spaces
  */
 
-static __inline const char *skip_space(const char *str)
+static const char *skip_space(const char *str)
 {
 	while (isspace(*str))
 		str++;
@@ -1110,7 +1110,7 @@ static __inline const char *skip_space(const char *str)
  * @returns a pointer to the character after the comment
  */
 
-static __inline const char *skip_comment(const char *str)
+static const char *skip_comment(const char *str)
 {
 	char c = *str;
 
@@ -1143,7 +1143,7 @@ static __inline const char *skip_comment(const char *str)
  *	conversion can be performed, 0 is returned (errno is set to EINVAL)).
  */
 
-static __inline uint8_t str_to_uint8(const char *str, char const **str_end)
+static uint8_t str_to_uint8(const char *str, char const **str_end)
 {
 	const int BASE = 16;
 	int i;
