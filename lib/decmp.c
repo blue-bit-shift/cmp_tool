@@ -29,14 +29,13 @@
 #include "cmp_debug.h"
 #include "cmp_support.h"
 #include "cmp_data_types.h"
+#include "cmp_max_used_bits.h"
+#include "cmp_max_used_bits_list.h"
 #include "cmp_entity.h"
 
 
 #define MAX_CW_LEN 32 /* maximum Golomb code word bit length */
 
-
-/* maximum used bits registry */
-extern struct cmp_max_used_bits max_used_bits;
 
 
 /**
@@ -579,7 +578,7 @@ static int decompress_imagette(struct cmp_cfg *cfg)
 	uint16_t model;
 
 	err = configure_decoder_setup(&setup, cfg->golomb_par, cfg->spill,
-				      cfg->round, max_used_bits.nc_imagette, cfg);
+				      cfg->round, cfg->max_used_bits->nc_imagette, cfg);
 	if (err)
 		return -1;
 
@@ -685,10 +684,10 @@ static int decompress_s_fx(const struct cmp_cfg *cfg)
 	}
 
 	if (configure_decoder_setup(&setup_exp_flags, cfg->cmp_par_exp_flags, cfg->spill_exp_flags,
-				    cfg->round, max_used_bits.s_exp_flags, cfg))
+				    cfg->round, cfg->max_used_bits->s_exp_flags, cfg))
 		return -1;
 	if (configure_decoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
-				    cfg->round, max_used_bits.s_fx, cfg))
+				    cfg->round, cfg->max_used_bits->s_fx, cfg))
 		return -1;
 
 	for (i = 0; ; i++) {
@@ -757,13 +756,13 @@ static int decompress_s_fx_efx(const struct cmp_cfg *cfg)
 	}
 
 	if (configure_decoder_setup(&setup_exp_flags, cfg->cmp_par_exp_flags, cfg->spill_exp_flags,
-				    cfg->round, max_used_bits.s_exp_flags, cfg))
+				    cfg->round, cfg->max_used_bits->s_exp_flags, cfg))
 		return -1;
 	if (configure_decoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
-				    cfg->round, max_used_bits.s_fx, cfg))
+				    cfg->round, cfg->max_used_bits->s_fx, cfg))
 		return -1;
 	if (configure_decoder_setup(&setup_efx, cfg->cmp_par_efx, cfg->spill_efx,
-				    cfg->round, max_used_bits.s_efx, cfg))
+				    cfg->round, cfg->max_used_bits->s_efx, cfg))
 		return -1;
 
 	for (i = 0; ; i++) {
@@ -840,13 +839,13 @@ static int decompress_s_fx_ncob(const struct cmp_cfg *cfg)
 	}
 
 	if (configure_decoder_setup(&setup_exp_flags, cfg->cmp_par_exp_flags, cfg->spill_exp_flags,
-				    cfg->round, max_used_bits.s_exp_flags, cfg))
+				    cfg->round, cfg->max_used_bits->s_exp_flags, cfg))
 		return -1;
 	if (configure_decoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
-				    cfg->round, max_used_bits.s_fx, cfg))
+				    cfg->round, cfg->max_used_bits->s_fx, cfg))
 		return -1;
 	if (configure_decoder_setup(&setup_ncob, cfg->cmp_par_ncob, cfg->spill_ncob,
-				    cfg->round, max_used_bits.s_ncob, cfg))
+				    cfg->round, cfg->max_used_bits->s_ncob, cfg))
 		return -1;
 
 	for (i = 0; ; i++) {
@@ -931,19 +930,19 @@ static int decompress_s_fx_efx_ncob_ecob(const struct cmp_cfg *cfg)
 	}
 
 	if (configure_decoder_setup(&setup_exp_flags, cfg->cmp_par_exp_flags, cfg->spill_exp_flags,
-				    cfg->round, max_used_bits.s_exp_flags, cfg))
+				    cfg->round, cfg->max_used_bits->s_exp_flags, cfg))
 		return -1;
 	if (configure_decoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
-				    cfg->round, max_used_bits.s_fx, cfg))
+				    cfg->round, cfg->max_used_bits->s_fx, cfg))
 		return -1;
 	if (configure_decoder_setup(&setup_ncob, cfg->cmp_par_ncob, cfg->spill_ncob,
-				    cfg->round, max_used_bits.s_ncob, cfg))
+				    cfg->round, cfg->max_used_bits->s_ncob, cfg))
 		return -1;
 	if (configure_decoder_setup(&setup_efx, cfg->cmp_par_efx, cfg->spill_efx,
-				    cfg->round, max_used_bits.s_efx, cfg))
+				    cfg->round, cfg->max_used_bits->s_efx, cfg))
 		return -1;
 	if (configure_decoder_setup(&setup_ecob, cfg->cmp_par_ecob, cfg->spill_ecob,
-				    cfg->round, max_used_bits.s_ecob, cfg))
+				    cfg->round, cfg->max_used_bits->s_ecob, cfg))
 		return -1;
 
 	for (i = 0; ; i++) {
@@ -1052,7 +1051,7 @@ static int decompress_f_fx(const struct cmp_cfg *cfg)
 	}
 
 	if (configure_decoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
-				    cfg->round, max_used_bits.f_fx, cfg))
+				    cfg->round, cfg->max_used_bits->f_fx, cfg))
 		return -1;
 
 	for (i = 0; ; i++) {
@@ -1112,10 +1111,10 @@ static int decompress_f_fx_efx(const struct cmp_cfg *cfg)
 	}
 
 	if (configure_decoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
-				    cfg->round, max_used_bits.f_fx, cfg))
+				    cfg->round, cfg->max_used_bits->f_fx, cfg))
 		return -1;
 	if (configure_decoder_setup(&setup_efx, cfg->cmp_par_efx, cfg->spill_efx,
-				    cfg->round, max_used_bits.f_efx, cfg))
+				    cfg->round, cfg->max_used_bits->f_efx, cfg))
 		return -1;
 
 	for (i = 0; ; i++) {
@@ -1184,10 +1183,10 @@ static int decompress_f_fx_ncob(const struct cmp_cfg *cfg)
 	}
 
 	if (configure_decoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
-				    cfg->round, max_used_bits.f_fx, cfg))
+				    cfg->round, cfg->max_used_bits->f_fx, cfg))
 		return -1;
 	if (configure_decoder_setup(&setup_ncob, cfg->cmp_par_ncob, cfg->spill_ncob,
-				    cfg->round, max_used_bits.f_ncob, cfg))
+				    cfg->round, cfg->max_used_bits->f_ncob, cfg))
 		return -1;
 
 	for (i = 0; ; i++) {
@@ -1264,16 +1263,16 @@ static int decompress_f_fx_efx_ncob_ecob(const struct cmp_cfg *cfg)
 	}
 
 	if (configure_decoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
-				    cfg->round, max_used_bits.f_fx, cfg))
+				    cfg->round, cfg->max_used_bits->f_fx, cfg))
 		return -1;
 	if (configure_decoder_setup(&setup_ncob, cfg->cmp_par_ncob, cfg->spill_ncob,
-				    cfg->round, max_used_bits.f_ncob, cfg))
+				    cfg->round, cfg->max_used_bits->f_ncob, cfg))
 		return -1;
 	if (configure_decoder_setup(&setup_efx, cfg->cmp_par_efx, cfg->spill_efx,
-				    cfg->round, max_used_bits.f_efx, cfg))
+				    cfg->round, cfg->max_used_bits->f_efx, cfg))
 		return -1;
 	if (configure_decoder_setup(&setup_ecob, cfg->cmp_par_ecob, cfg->spill_ecob,
-				    cfg->round, max_used_bits.f_ecob, cfg))
+				    cfg->round, cfg->max_used_bits->f_ecob, cfg))
 		return -1;
 
 	for (i = 0; ; i++) {
@@ -1374,13 +1373,13 @@ static int decompress_l_fx(const struct cmp_cfg *cfg)
 	}
 
 	if (configure_decoder_setup(&setup_exp_flags, cfg->cmp_par_exp_flags, cfg->spill_exp_flags,
-				    cfg->round, max_used_bits.l_exp_flags, cfg))
+				    cfg->round, cfg->max_used_bits->l_exp_flags, cfg))
 		return -1;
 	if (configure_decoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
-				    cfg->round, max_used_bits.l_fx, cfg))
+				    cfg->round, cfg->max_used_bits->l_fx, cfg))
 		return -1;
 	if (configure_decoder_setup(&setup_fx_var, cfg->cmp_par_fx_cob_variance, cfg->spill_fx_cob_variance,
-				    cfg->round, max_used_bits.l_fx_variance, cfg))
+				    cfg->round, cfg->max_used_bits->l_fx_variance, cfg))
 		return -1;
 
 	for (i = 0; ; i++) {
@@ -1457,16 +1456,16 @@ static int decompress_l_fx_efx(const struct cmp_cfg *cfg)
 	}
 
 	if (configure_decoder_setup(&setup_exp_flags, cfg->cmp_par_exp_flags, cfg->spill_exp_flags,
-				    cfg->round, max_used_bits.l_exp_flags, cfg))
+				    cfg->round, cfg->max_used_bits->l_exp_flags, cfg))
 		return -1;
 	if (configure_decoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
-				    cfg->round, max_used_bits.l_fx, cfg))
+				    cfg->round, cfg->max_used_bits->l_fx, cfg))
 		return -1;
 	if (configure_decoder_setup(&setup_efx, cfg->cmp_par_efx, cfg->spill_efx,
-				    cfg->round, max_used_bits.l_efx, cfg))
+				    cfg->round, cfg->max_used_bits->l_efx, cfg))
 		return -1;
 	if (configure_decoder_setup(&setup_fx_var, cfg->cmp_par_fx_cob_variance, cfg->spill_fx_cob_variance,
-				    cfg->round, max_used_bits.l_fx_variance, cfg))
+				    cfg->round, cfg->max_used_bits->l_fx_variance, cfg))
 		return -1;
 
 	for (i = 0; ; i++) {
@@ -1552,19 +1551,19 @@ static int decompress_l_fx_ncob(const struct cmp_cfg *cfg)
 	}
 
 	if (configure_decoder_setup(&setup_exp_flags, cfg->cmp_par_exp_flags, cfg->spill_exp_flags,
-				    cfg->round, max_used_bits.l_exp_flags, cfg))
+				    cfg->round, cfg->max_used_bits->l_exp_flags, cfg))
 		return -1;
 	if (configure_decoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
-				    cfg->round, max_used_bits.l_fx, cfg))
+				    cfg->round, cfg->max_used_bits->l_fx, cfg))
 		return -1;
 	if (configure_decoder_setup(&setup_ncob, cfg->cmp_par_ncob, cfg->spill_ncob,
-				    cfg->round, max_used_bits.l_ncob, cfg))
+				    cfg->round, cfg->max_used_bits->l_ncob, cfg))
 		return -1;
 	if (configure_decoder_setup(&setup_fx_var, cfg->cmp_par_fx_cob_variance, cfg->spill_fx_cob_variance,
-				    cfg->round, max_used_bits.l_fx_variance, cfg))
+				    cfg->round, cfg->max_used_bits->l_fx_variance, cfg))
 		return -1;
 	if (configure_decoder_setup(&setup_cob_var, cfg->cmp_par_fx_cob_variance, cfg->spill_fx_cob_variance,
-				    cfg->round, max_used_bits.l_cob_variance, cfg))
+				    cfg->round, cfg->max_used_bits->l_cob_variance, cfg))
 		return -1;
 
 	for (i = 0; ; i++) {
@@ -1674,25 +1673,25 @@ static int decompress_l_fx_efx_ncob_ecob(const struct cmp_cfg *cfg)
 	}
 
 	if (configure_decoder_setup(&setup_exp_flags, cfg->cmp_par_exp_flags, cfg->spill_exp_flags,
-				    cfg->round, max_used_bits.l_exp_flags, cfg))
+				    cfg->round, cfg->max_used_bits->l_exp_flags, cfg))
 		return -1;
 	if (configure_decoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
-				    cfg->round, max_used_bits.l_fx, cfg))
+				    cfg->round, cfg->max_used_bits->l_fx, cfg))
 		return -1;
 	if (configure_decoder_setup(&setup_ncob, cfg->cmp_par_ncob, cfg->spill_ncob,
-				    cfg->round, max_used_bits.l_ncob, cfg))
+				    cfg->round, cfg->max_used_bits->l_ncob, cfg))
 		return -1;
 	if (configure_decoder_setup(&setup_efx, cfg->cmp_par_efx, cfg->spill_efx,
-				    cfg->round, max_used_bits.l_efx, cfg))
+				    cfg->round, cfg->max_used_bits->l_efx, cfg))
 		return -1;
 	if (configure_decoder_setup(&setup_ecob, cfg->cmp_par_ecob, cfg->spill_ecob,
-				    cfg->round, max_used_bits.l_ecob, cfg))
+				    cfg->round, cfg->max_used_bits->l_ecob, cfg))
 		return -1;
 	if (configure_decoder_setup(&setup_fx_var, cfg->cmp_par_fx_cob_variance, cfg->spill_fx_cob_variance,
-				    cfg->round, max_used_bits.l_fx_variance, cfg))
+				    cfg->round, cfg->max_used_bits->l_fx_variance, cfg))
 		return -1;
 	if (configure_decoder_setup(&setup_cob_var, cfg->cmp_par_fx_cob_variance, cfg->spill_fx_cob_variance,
-				    cfg->round, max_used_bits.l_cob_variance, cfg))
+				    cfg->round, cfg->max_used_bits->l_cob_variance, cfg))
 		return -1;
 
 	for (i = 0; ; i++) {
@@ -1825,10 +1824,10 @@ static int decompress_nc_offset(const struct cmp_cfg *cfg)
 	}
 
 	if (configure_decoder_setup(&setup_mean, cfg->cmp_par_mean, cfg->spill_mean,
-				    cfg->round, max_used_bits.nc_offset_mean, cfg))
+				    cfg->round, cfg->max_used_bits->nc_offset_mean, cfg))
 		return -1;
 	if (configure_decoder_setup(&setup_var, cfg->cmp_par_variance, cfg->spill_variance,
-				    cfg->round, max_used_bits.nc_offset_variance, cfg))
+				    cfg->round, cfg->max_used_bits->nc_offset_variance, cfg))
 		return -1;
 
 	for (i = 0; ; i++) {
@@ -1897,13 +1896,13 @@ static int decompress_nc_background(const struct cmp_cfg *cfg)
 	}
 
 	if (configure_decoder_setup(&setup_mean, cfg->cmp_par_mean, cfg->spill_mean,
-				    cfg->round, max_used_bits.nc_background_mean, cfg))
+				    cfg->round, cfg->max_used_bits->nc_background_mean, cfg))
 		return -1;
 	if (configure_decoder_setup(&setup_var, cfg->cmp_par_variance, cfg->spill_variance,
-				    cfg->round, max_used_bits.nc_background_variance, cfg))
+				    cfg->round, cfg->max_used_bits->nc_background_variance, cfg))
 		return -1;
 	if (configure_decoder_setup(&setup_pix, cfg->cmp_par_pixels_error, cfg->spill_pixels_error,
-				    cfg->round, max_used_bits.nc_background_outlier_pixels, cfg))
+				    cfg->round, cfg->max_used_bits->nc_background_outlier_pixels, cfg))
 		return -1;
 
 	for (i = 0; ; i++) {
@@ -1980,13 +1979,13 @@ static int decompress_smearing(const struct cmp_cfg *cfg)
 	}
 
 	if (configure_decoder_setup(&setup_mean, cfg->cmp_par_mean, cfg->spill_mean,
-				    cfg->round, max_used_bits.smearing_mean, cfg))
+				    cfg->round, cfg->max_used_bits->smearing_mean, cfg))
 		return -1;
 	if (configure_decoder_setup(&setup_var, cfg->cmp_par_variance, cfg->spill_variance,
-				    cfg->round, max_used_bits.smearing_variance_mean, cfg))
+				    cfg->round, cfg->max_used_bits->smearing_variance_mean, cfg))
 		return -1;
 	if (configure_decoder_setup(&setup_pix, cfg->cmp_par_pixels_error, cfg->spill_pixels_error,
-				    cfg->round, max_used_bits.smearing_outlier_pixels, cfg))
+				    cfg->round, cfg->max_used_bits->smearing_outlier_pixels, cfg))
 		return -1;
 
 	for (i = 0; ; i++) {
@@ -2046,6 +2045,9 @@ static int decompressed_data_internal(struct cmp_cfg *cfg)
 		return -1;
 
 	if (!cfg->icu_output_buf)
+		return -1;
+
+	if (!cfg->max_used_bits)
 		return -1;
 
 	data_size = cmp_cal_size_of_data(cfg->samples, cfg->data_type);
@@ -2144,6 +2146,122 @@ static int decompressed_data_internal(struct cmp_cfg *cfg)
 
 
 /**
+ * @brief read in an imagette compression entity header to a
+ *	compression configuration
+ *
+ * @param ent	pointer to a compression entity
+ * @param cfg	pointer to a compression configuration
+ *
+ * @returns 0 on success; otherwise error
+ */
+
+static int cmp_ent_read_header(struct cmp_entity *ent, struct cmp_cfg *cfg)
+{
+	int32_t samples;
+
+	if (!cfg)
+		return -1;
+
+	cfg->data_type = cmp_ent_get_data_type(ent);
+	if (cmp_data_type_is_invalid(cfg->data_type)) {
+		debug_print("Error: Compression data type not supported.\n");
+		return -1;
+	}
+
+	cfg->cmp_mode = cmp_ent_get_cmp_mode(ent);
+	if (cmp_ent_get_data_type_raw_bit(ent) != (cfg->cmp_mode == CMP_MODE_RAW)) {
+		debug_print("Error: The entity's raw data bit does not match up with the compression mode.\n");
+		return -1;
+	}
+	cfg->model_value = cmp_ent_get_model_value(ent);
+	cfg->round = cmp_ent_get_lossy_cmp_par(ent);
+	cfg->buffer_length = cmp_ent_get_cmp_data_size(ent);
+
+	samples = cmp_input_size_to_samples(cmp_ent_get_original_size(ent), cfg->data_type);
+	if (samples < 0) {
+		debug_print("Error: original_size and data product type in the compression header are not compatible.\n");
+		cfg->samples = 0;
+		return -1;
+	}
+
+	cfg->samples = (uint32_t)samples;
+
+	cfg->icu_output_buf = cmp_ent_get_data_buf(ent);
+
+	cfg->max_used_bits = cmp_max_used_bits_list_get(cmp_ent_get_max_used_bits_version(ent));
+	if (!cfg->max_used_bits) {
+		debug_print("Error: The Max. Used Bits Registry Version in the compression header is unknown.\n");
+		return -1;
+	}
+
+	if (cfg->cmp_mode == CMP_MODE_RAW)
+		/* no specific header is used for raw data we are done */
+		return 0;
+
+	switch (cfg->data_type) {
+	case DATA_TYPE_IMAGETTE_ADAPTIVE:
+	case DATA_TYPE_SAT_IMAGETTE_ADAPTIVE:
+	case DATA_TYPE_F_CAM_IMAGETTE_ADAPTIVE:
+		cfg->ap1_golomb_par = cmp_ent_get_ima_ap1_golomb_par(ent);
+		cfg->ap1_spill = cmp_ent_get_ima_ap1_spill(ent);
+		cfg->ap2_golomb_par = cmp_ent_get_ima_ap2_golomb_par(ent);
+		cfg->ap2_spill = cmp_ent_get_ima_ap2_spill(ent);
+		/* fall through */
+	case DATA_TYPE_IMAGETTE:
+	case DATA_TYPE_SAT_IMAGETTE:
+	case DATA_TYPE_F_CAM_IMAGETTE:
+		cfg->spill = cmp_ent_get_ima_spill(ent);
+		cfg->golomb_par = cmp_ent_get_ima_golomb_par(ent);
+		break;
+	case DATA_TYPE_OFFSET:
+	case DATA_TYPE_BACKGROUND:
+	case DATA_TYPE_SMEARING:
+		cfg->cmp_par_mean = cmp_ent_get_non_ima_cmp_par1(ent);
+		cfg->spill_mean = cmp_ent_get_non_ima_spill1(ent);
+		cfg->cmp_par_variance = cmp_ent_get_non_ima_cmp_par2(ent);
+		cfg->spill_variance = cmp_ent_get_non_ima_spill2(ent);
+		cfg->cmp_par_pixels_error = cmp_ent_get_non_ima_cmp_par3(ent);
+		cfg->spill_pixels_error = cmp_ent_get_non_ima_spill3(ent);
+		break;
+	case DATA_TYPE_S_FX:
+	case DATA_TYPE_S_FX_EFX:
+	case DATA_TYPE_S_FX_NCOB:
+	case DATA_TYPE_S_FX_EFX_NCOB_ECOB:
+	case DATA_TYPE_L_FX:
+	case DATA_TYPE_L_FX_EFX:
+	case DATA_TYPE_L_FX_NCOB:
+	case DATA_TYPE_L_FX_EFX_NCOB_ECOB:
+	case DATA_TYPE_F_FX:
+	case DATA_TYPE_F_FX_EFX:
+	case DATA_TYPE_F_FX_NCOB:
+	case DATA_TYPE_F_FX_EFX_NCOB_ECOB:
+		cfg->cmp_par_exp_flags = cmp_ent_get_non_ima_cmp_par1(ent);
+		cfg->spill_exp_flags = cmp_ent_get_non_ima_spill1(ent);
+		cfg->cmp_par_fx = cmp_ent_get_non_ima_cmp_par2(ent);
+		cfg->spill_fx = cmp_ent_get_non_ima_spill2(ent);
+		cfg->cmp_par_ncob = cmp_ent_get_non_ima_cmp_par3(ent);
+		cfg->spill_ncob = cmp_ent_get_non_ima_spill3(ent);
+		cfg->cmp_par_efx = cmp_ent_get_non_ima_cmp_par4(ent);
+		cfg->spill_efx = cmp_ent_get_non_ima_spill4(ent);
+		cfg->cmp_par_ecob = cmp_ent_get_non_ima_cmp_par5(ent);
+		cfg->spill_ecob = cmp_ent_get_non_ima_spill5(ent);
+		cfg->cmp_par_fx_cob_variance = cmp_ent_get_non_ima_cmp_par6(ent);
+		cfg->spill_fx_cob_variance = cmp_ent_get_non_ima_spill6(ent);
+		break;
+	case DATA_TYPE_F_CAM_OFFSET:
+	case DATA_TYPE_F_CAM_BACKGROUND:
+	/* LCOV_EXCL_START */
+	case DATA_TYPE_UNKNOWN:
+	default:
+		return -1;
+	/* LCOV_EXCL_STOP */
+	}
+
+	return 0;
+}
+
+
+/**
  * @brief decompress a compression entity
  *
  * @param ent			pointer to the compression entity to be decompressed
@@ -2224,6 +2342,7 @@ int decompress_rdcu_data(uint32_t *compressed_data, const struct cmp_info *info,
 	cfg.samples = info->samples_used;
 	cfg.icu_output_buf = compressed_data;
 	cfg.buffer_length = cmp_bit_to_4byte(info->cmp_size);
+	cfg.max_used_bits = &MAX_USED_BITS_SAFE;
 
 	return decompressed_data_internal(&cfg);
 }

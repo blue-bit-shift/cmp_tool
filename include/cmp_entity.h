@@ -159,9 +159,6 @@ size_t cmp_ent_build(struct cmp_entity *ent, uint32_t version_id,
 		     uint64_t start_time, uint64_t end_time, uint16_t model_id,
 		     uint8_t model_counter, struct cmp_cfg *cfg, int cmp_size_bits);
 
-/* read in a compression entity header */
-int cmp_ent_read_header(struct cmp_entity *ent, struct cmp_cfg *cfg);
-
 /*
  * write the compression parameters from a compression configuration into the
  * compression entity header

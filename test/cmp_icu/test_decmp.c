@@ -392,6 +392,7 @@ void test_decompress_imagette_model(void)
 	cfg.model_value = 16;
 	cfg.golomb_par = 4;
 	cfg.spill = 48;
+	cfg.max_used_bits = &MAX_USED_BITS_SAFE;
 
 	stream_pos = decompress_imagette(&cfg);
 	TEST_ASSERT_EQUAL_INT(15, stream_pos);
@@ -417,7 +418,7 @@ void test_cmp_decmp_s_fx_diff(void)
 	int err;
 
 	struct cmp_entity *ent;
-	const uint32_t MAX_VALUE = ~(~0U << MAX_USED_S_FX_BITS);
+	const uint32_t MAX_VALUE = ~(~0U << MAX_USED_BITS_V1.s_fx);
 	struct s_fx data_entry[DATA_SAMPLES] = {
 		{0, 0}, {1, 23}, {2, 42}, {3, MAX_VALUE}, {3, MAX_VALUE>>1} };
 	uint8_t data_to_compress[MULTI_ENTRY_HDR_SIZE + sizeof(data_entry)];
@@ -599,6 +600,9 @@ void test_imagette_random(void)
 	error = cmp_cfg_icu_imagette(&cfg, golomb_par, spill);
 	TEST_ASSERT_FALSE(error);
 
+	error = cmp_cfg_icu_max_used_bits(&cfg, &MAX_USED_BITS_V1);
+	TEST_ASSERT_FALSE(error);
+
 	/* print_cfg(&cfg, 0); */
 	s = icu_compress_data_entity(NULL, &cfg);
 	TEST_ASSERT_TRUE(s);
@@ -636,7 +640,7 @@ void test_s_fx_diff(void)
 {
 	size_t s, i;
 	uint8_t cmp_entity[88] = {
-		0x80, 0x00, 0x00, 0x09, 0x00, 0x00, 0x58, 0x00, 0x00, 0x20, 0x04, 0xEE, 0x21, 0xBD, 0xB0, 0x1C, 0x04, 0xEE, 0x21, 0xBD, 0xB0, 0x41, 0x00, 0x08, 0x02, 0x08, 0xD0, 0x10, 0x00, 0x00, 0x00, 0x00,
+		0x80, 0x00, 0x00, 0x09, 0x00, 0x00, 0x58, 0x00, 0x00, 0x20, 0x04, 0xEE, 0x21, 0xBD, 0xB0, 0x1C, 0x04, 0xEE, 0x21, 0xBD, 0xB0, 0x41, 0x00, 0x08, 0x02, 0x08, 0xD0, 0x10, 0x00, 0x01, 0x00, 0x00,
 		0x00, 0x00, 0x0A, 0x00, 0x01, 0x00, 0x00, 0x0A, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0xAE, 0xDE, 0x00, 0x00, 0x00, 0x73, 0xFF, 0xFF, 0xF8, 0x00, 0x00, 0x00,
 	};
@@ -645,7 +649,7 @@ void test_s_fx_diff(void)
 	struct multi_entry_hdr *hdr = (struct multi_entry_hdr *)result_data;
 	struct s_fx *data = (struct s_fx *)hdr->entry;
 	/* put some dummy data in the header*/
-	for (i = 0; i < sizeof(*hdr); ++i)
+	for (i = 0; i < sizeof(*hdr); i++)
 		result_data[i] = i;
 	data[0].exp_flags = 0;
 	data[0].fx = 0;
@@ -673,7 +677,7 @@ void test_s_fx_model(void)
 {
 	size_t s, i;
 	uint8_t compressed_data_buf[92] = {
-		0x80, 0x00, 0x00, 0x09, 0x00, 0x00, 0x5C, 0x00, 0x00, 0x20, 0x04, 0xF0, 0xC2, 0xD3, 0x47, 0xE4, 0x04, 0xF0, 0xC2, 0xD3, 0x48, 0x16, 0x00, 0x08, 0x03, 0x08, 0xD0, 0x10, 0x01, 0x00, 0x00, 0x00,
+		0x80, 0x00, 0x00, 0x09, 0x00, 0x00, 0x5C, 0x00, 0x00, 0x20, 0x04, 0xF0, 0xC2, 0xD3, 0x47, 0xE4, 0x04, 0xF0, 0xC2, 0xD3, 0x48, 0x16, 0x00, 0x08, 0x03, 0x08, 0xD0, 0x10, 0x01, 0x01, 0x00, 0x00,
 		0x00, 0x00, 0x0A, 0x00, 0x01, 0x00, 0x00, 0x0A, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x3B, 0xFF, 0xFF, 0xEF, 0xFF, 0xFF, 0x5B, 0xFF, 0xFF, 0xEF, 0xFF, 0xFF, 0x5D, 0x80, 0x00, 0x00,
 	};
@@ -749,18 +753,17 @@ void test_random_compression_decompression(void)
 	struct cmp_entity *cmp_ent;
 	void *decompressed_data;
 	void *decompressed_up_model = NULL;
+	int error;
 
-	srand(0); /* TODO:XXX*/
 	puts("--------------------------------------------------------------");
 
 	/* for (cfg.data_type = DATA_TYPE_IMAGETTE; TODO:!! implement this */
 	/*      cfg.data_type < DATA_TYPE_F_CAM_BACKGROUND+1; cfg.data_type++) { */
 	for (cfg.data_type = DATA_TYPE_IMAGETTE;
 	     cfg.data_type < DATA_TYPE_F_CAM_IMAGETTE_ADAPTIVE+1; cfg.data_type++) {
+		error = cmp_cfg_icu_max_used_bits(&cfg, &MAX_USED_BITS_V1);
+		TEST_ASSERT_FALSE(error);
 		cfg.samples = my_random(1, 0x30000);
-			if (cfg.data_type == DATA_TYPE_OFFSET)
-				puts("FADF");
-
 		cfg.buffer_length = (CMP_ENTITY_MAX_SIZE - NON_IMAGETTE_HEADER_SIZE - MULTI_ENTRY_HDR_SIZE)/size_of_a_sample(cfg.data_type);;
 		s = cmp_cal_size_of_data(cfg.samples, cfg.data_type);
 		printf("%s\n", data_type2string(cfg.data_type));
@@ -855,6 +858,613 @@ void test_random_compression_decompression(void)
 
 	}
 }
+
+
+/**
+ * @test cmp_ent_write_cmp_pars
+ * @test cmp_ent_read_header
+ */
+
+void test_cmp_ent_write_cmp_pars(void)
+{
+	int error;
+	struct cmp_entity *ent;
+	struct cmp_cfg cfg = {0}, cfg_read = {0};
+	int cmp_size_bits;
+	uint32_t size;
+	struct cmp_max_used_bits max_used_bits = MAX_USED_BITS_SAFE;
+
+	/* set up max used bit version */
+	max_used_bits.version = 42;
+	cmp_max_used_bits_list_add(&max_used_bits);
+
+	cmp_size_bits = 93;
+	/** RAW mode test **/
+	/* create imagette raw mode configuration */
+	cfg.data_type = DATA_TYPE_IMAGETTE;
+	cfg.cmp_mode = CMP_MODE_RAW;
+	cfg.model_value = 11;
+	cfg.round = 2;
+	cfg.samples = 9;
+	cfg.max_used_bits = cmp_max_used_bits_list_get(42);
+
+	/* create a compression entity */
+	size = cmp_ent_create(NULL, cfg.data_type, cfg.cmp_mode == CMP_MODE_RAW, 12);
+	TEST_ASSERT_NOT_EQUAL_INT(0, size);
+	ent = malloc(size); TEST_ASSERT_NOT_NULL(ent);
+	size = cmp_ent_create(ent, cfg.data_type, cfg.cmp_mode == CMP_MODE_RAW, 12);
+	TEST_ASSERT_NOT_EQUAL_INT(0, size);
+
+	error = cmp_ent_write_cmp_pars(ent, &cfg, cmp_size_bits);
+	TEST_ASSERT_FALSE(error);
+
+	TEST_ASSERT_EQUAL_INT(cfg.data_type, cmp_ent_get_data_type(ent));
+	TEST_ASSERT_EQUAL_INT(1, cmp_ent_get_data_type_raw_bit(ent));
+	TEST_ASSERT_EQUAL_INT(12, cmp_ent_get_cmp_data_size(ent));
+
+	TEST_ASSERT_EQUAL_INT(cmp_cal_size_of_data(cfg.samples, cfg.data_type), cmp_ent_get_original_size(ent));
+	TEST_ASSERT_EQUAL_INT(cfg.cmp_mode, cmp_ent_get_cmp_mode(ent));
+	TEST_ASSERT_EQUAL_INT(cfg.model_value, cmp_ent_get_model_value(ent));
+	TEST_ASSERT_EQUAL_INT(max_used_bits.version, cmp_ent_get_max_used_bits_version(ent));
+	TEST_ASSERT_EQUAL_INT(cfg.round, cmp_ent_get_lossy_cmp_par(ent));
+
+	error = cmp_ent_read_header(ent, &cfg_read);
+	TEST_ASSERT_FALSE(error);
+	cfg.icu_output_buf = cmp_ent_get_data_buf(ent); /* quick fix that both cfg are equal */
+	cfg.buffer_length = 12; /* quick fix that both cfg are equal */
+	TEST_ASSERT_EQUAL_MEMORY(&cfg, &cfg_read, sizeof(struct cmp_cfg));
+
+	free(ent);
+	memset(&cfg, 0, sizeof(struct cmp_cfg));
+	memset(&cfg_read, 0, sizeof(struct cmp_cfg));
+
+	/** imagette test **/
+	/* create imagette mode configuration */
+	cfg.data_type = DATA_TYPE_IMAGETTE;
+	cfg.cmp_mode = CMP_MODE_MODEL_ZERO;
+	cfg.model_value = 11;
+	cfg.round = 2;
+	cfg.samples = 9;
+	cfg.spill = MIN_IMA_SPILL;
+	cfg.golomb_par = MAX_IMA_GOLOMB_PAR;
+	cfg.max_used_bits = cmp_max_used_bits_list_get(42);
+
+	/* create a compression entity */
+	size = cmp_ent_create(NULL, cfg.data_type, cfg.cmp_mode == CMP_MODE_RAW, 12);
+	TEST_ASSERT_NOT_EQUAL_INT(0, size);
+	ent = malloc(size); TEST_ASSERT_NOT_NULL(ent);
+	size = cmp_ent_create(ent, cfg.data_type, cfg.cmp_mode == CMP_MODE_RAW, 12);
+	TEST_ASSERT_NOT_EQUAL_INT(0, size);
+
+	error = cmp_ent_write_cmp_pars(ent, &cfg, cmp_size_bits);
+	TEST_ASSERT_FALSE(error);
+
+	TEST_ASSERT_EQUAL_INT(cfg.data_type, cmp_ent_get_data_type(ent));
+	TEST_ASSERT_EQUAL_INT(0, cmp_ent_get_data_type_raw_bit(ent));
+	TEST_ASSERT_EQUAL_INT(12, cmp_ent_get_cmp_data_size(ent));
+
+	TEST_ASSERT_EQUAL_INT(cmp_cal_size_of_data(cfg.samples, cfg.data_type), cmp_ent_get_original_size(ent));
+	TEST_ASSERT_EQUAL_INT(cfg.cmp_mode, cmp_ent_get_cmp_mode(ent));
+	TEST_ASSERT_EQUAL_INT(cfg.model_value, cmp_ent_get_model_value(ent));
+	TEST_ASSERT_EQUAL_INT(cfg.max_used_bits->version, cmp_ent_get_max_used_bits_version(ent));
+	TEST_ASSERT_EQUAL_INT(cfg.round, cmp_ent_get_lossy_cmp_par(ent));
+
+	TEST_ASSERT_EQUAL_INT(cfg.spill, cmp_ent_get_ima_spill(ent));
+	TEST_ASSERT_EQUAL_INT(cfg.golomb_par, cmp_ent_get_ima_golomb_par(ent));
+
+	error = cmp_ent_read_header(ent, &cfg_read);
+	TEST_ASSERT_FALSE(error);
+	cfg.icu_output_buf = cmp_ent_get_data_buf(ent); /* quick fix that both cfg are equal */
+	cfg.buffer_length = 12; /* quick fix that both cfg are equal */
+	TEST_ASSERT_EQUAL_MEMORY(&cfg, &cfg_read, sizeof(struct cmp_cfg));
+
+	free(ent);
+	memset(&cfg, 0, sizeof(struct cmp_cfg));
+	memset(&cfg_read, 0, sizeof(struct cmp_cfg));
+
+	/** adaptive imagette test **/
+	/* create a configuration */
+	cfg.data_type = DATA_TYPE_IMAGETTE_ADAPTIVE;
+	cfg.cmp_mode = CMP_MODE_MODEL_ZERO;
+	cfg.model_value = 11;
+	cfg.round = 2;
+	cfg.samples = 9;
+	cfg.spill = MIN_IMA_SPILL;
+	cfg.golomb_par = MAX_IMA_GOLOMB_PAR;
+	cfg.ap1_spill = 555;
+	cfg.ap1_golomb_par = 14;
+	cfg.ap2_spill = 333;
+	cfg.ap2_golomb_par = 43;
+	cfg.max_used_bits = cmp_max_used_bits_list_get(42);
+
+	/* create a compression entity */
+	size = cmp_ent_create(NULL, cfg.data_type, cfg.cmp_mode == CMP_MODE_RAW, 12);
+	TEST_ASSERT_NOT_EQUAL_INT(0, size);
+	ent = malloc(size); TEST_ASSERT_NOT_NULL(ent);
+	size = cmp_ent_create(ent, cfg.data_type, cfg.cmp_mode == CMP_MODE_RAW, 12);
+	TEST_ASSERT_NOT_EQUAL_INT(0, size);
+
+	error = cmp_ent_write_cmp_pars(ent, &cfg, cmp_size_bits);
+	TEST_ASSERT_FALSE(error);
+
+	TEST_ASSERT_EQUAL_INT(cfg.data_type, cmp_ent_get_data_type(ent));
+	TEST_ASSERT_EQUAL_INT(0, cmp_ent_get_data_type_raw_bit(ent));
+	TEST_ASSERT_EQUAL_INT(12, cmp_ent_get_cmp_data_size(ent));
+
+	TEST_ASSERT_EQUAL_INT(cmp_cal_size_of_data(cfg.samples, cfg.data_type), cmp_ent_get_original_size(ent));
+	TEST_ASSERT_EQUAL_INT(cfg.cmp_mode, cmp_ent_get_cmp_mode(ent));
+	TEST_ASSERT_EQUAL_INT(cfg.model_value, cmp_ent_get_model_value(ent));
+	TEST_ASSERT_EQUAL_INT(max_used_bits.version, cmp_ent_get_max_used_bits_version(ent));
+	TEST_ASSERT_EQUAL_INT(cfg.round, cmp_ent_get_lossy_cmp_par(ent));
+
+	TEST_ASSERT_EQUAL_INT(cfg.spill, cmp_ent_get_ima_spill(ent));
+	TEST_ASSERT_EQUAL_INT(cfg.golomb_par, cmp_ent_get_ima_golomb_par(ent));
+	TEST_ASSERT_EQUAL_INT(cfg.ap1_spill, cmp_ent_get_ima_ap1_spill(ent));
+	TEST_ASSERT_EQUAL_INT(cfg.ap1_golomb_par, cmp_ent_get_ima_ap1_golomb_par(ent));
+	TEST_ASSERT_EQUAL_INT(cfg.ap2_spill, cmp_ent_get_ima_ap2_spill(ent));
+	TEST_ASSERT_EQUAL_INT(cfg.ap2_golomb_par, cmp_ent_get_ima_ap2_golomb_par(ent));
+
+	error = cmp_ent_read_header(ent, &cfg_read);
+	TEST_ASSERT_FALSE(error);
+	cfg.icu_output_buf = cmp_ent_get_data_buf(ent); /* quick fix that both cfg are equal */
+	cfg.buffer_length = 12; /* quick fix that both cfg are equal */
+	TEST_ASSERT_EQUAL_MEMORY(&cfg, &cfg_read, sizeof(struct cmp_cfg));
+
+	free(ent);
+	memset(&cfg, 0, sizeof(struct cmp_cfg));
+	memset(&cfg_read, 0, sizeof(struct cmp_cfg));
+
+	/** flux cob data type test **/
+	/* create configuration */
+	cfg.data_type = DATA_TYPE_S_FX_EFX_NCOB_ECOB;
+	cfg.cmp_mode = CMP_MODE_MODEL_ZERO;
+	cfg.model_value = 11;
+	cfg.round = 2;
+	cfg.samples = 9;
+	cfg.spill_exp_flags = 1;
+	cfg.spill_fx = 2;
+	cfg.spill_ncob = 3;
+	cfg.spill_efx = 4;
+	cfg.spill_ecob = 5;
+	cfg.spill_fx_cob_variance = 6;
+	cfg.cmp_par_exp_flags = 7;
+	cfg.cmp_par_fx = 8;
+	cfg.cmp_par_ncob = 9;
+	cfg.cmp_par_efx = 10;
+	cfg.cmp_par_ecob = 11;
+	cfg.cmp_par_fx_cob_variance = 12;
+	cfg.max_used_bits = cmp_max_used_bits_list_get(42);
+
+	/* create a compression entity */
+	size = cmp_ent_create(NULL, cfg.data_type, cfg.cmp_mode == CMP_MODE_RAW, 12);
+	TEST_ASSERT_NOT_EQUAL_INT(0, size);
+	ent = malloc(size); TEST_ASSERT_NOT_NULL(ent);
+	size = cmp_ent_create(ent, cfg.data_type, cfg.cmp_mode == CMP_MODE_RAW, 12);
+	TEST_ASSERT_NOT_EQUAL_INT(0, size);
+
+	error = cmp_ent_write_cmp_pars(ent, &cfg, cmp_size_bits);
+	TEST_ASSERT_FALSE(error);
+
+	TEST_ASSERT_EQUAL_INT(cfg.data_type, cmp_ent_get_data_type(ent));
+	TEST_ASSERT_EQUAL_INT(0, cmp_ent_get_data_type_raw_bit(ent));
+	TEST_ASSERT_EQUAL_INT(12, cmp_ent_get_cmp_data_size(ent));
+
+	TEST_ASSERT_EQUAL_INT(cmp_cal_size_of_data(cfg.samples, cfg.data_type), cmp_ent_get_original_size(ent));
+	TEST_ASSERT_EQUAL_INT(cfg.cmp_mode, cmp_ent_get_cmp_mode(ent));
+	TEST_ASSERT_EQUAL_INT(cfg.model_value, cmp_ent_get_model_value(ent));
+	TEST_ASSERT_EQUAL_INT(max_used_bits.version, cmp_ent_get_max_used_bits_version(ent));
+	TEST_ASSERT_EQUAL_INT(cfg.round, cmp_ent_get_lossy_cmp_par(ent));
+
+
+	TEST_ASSERT_EQUAL_INT(cfg.spill_exp_flags, cmp_ent_get_non_ima_spill1(ent));
+	TEST_ASSERT_EQUAL_INT(cfg.spill_fx, cmp_ent_get_non_ima_spill2(ent));
+	TEST_ASSERT_EQUAL_INT(cfg.spill_ncob, cmp_ent_get_non_ima_spill3(ent));
+	TEST_ASSERT_EQUAL_INT(cfg.spill_efx, cmp_ent_get_non_ima_spill4(ent));
+	TEST_ASSERT_EQUAL_INT(cfg.spill_ecob, cmp_ent_get_non_ima_spill5(ent));
+	TEST_ASSERT_EQUAL_INT(cfg.spill_fx_cob_variance, cmp_ent_get_non_ima_spill6(ent));
+	TEST_ASSERT_EQUAL_INT(cfg.cmp_par_exp_flags, cmp_ent_get_non_ima_cmp_par1(ent));
+	TEST_ASSERT_EQUAL_INT(cfg.cmp_par_fx, cmp_ent_get_non_ima_cmp_par2(ent));
+	TEST_ASSERT_EQUAL_INT(cfg.cmp_par_ncob, cmp_ent_get_non_ima_cmp_par3(ent));
+	TEST_ASSERT_EQUAL_INT(cfg.cmp_par_efx, cmp_ent_get_non_ima_cmp_par4(ent));
+	TEST_ASSERT_EQUAL_INT(cfg.cmp_par_ecob, cmp_ent_get_non_ima_cmp_par5(ent));
+	TEST_ASSERT_EQUAL_INT(cfg.cmp_par_fx_cob_variance, cmp_ent_get_non_ima_cmp_par6(ent));
+
+	error = cmp_ent_read_header(ent, &cfg_read);
+	TEST_ASSERT_FALSE(error);
+	cfg.icu_output_buf = cmp_ent_get_data_buf(ent); /* quick fix that both cfg are equal */
+	cfg.buffer_length = 12; /* quick fix that both cfg are equal */
+	TEST_ASSERT_EQUAL_MEMORY(&cfg, &cfg_read, sizeof(struct cmp_cfg));
+
+	free(ent);
+	memset(&cfg, 0, sizeof(struct cmp_cfg));
+	memset(&cfg_read, 0, sizeof(struct cmp_cfg));
+
+	/** auxiliary data data_type test **/
+	/* create configuration */
+	cfg.data_type = DATA_TYPE_SMEARING;
+	cfg.cmp_mode = CMP_MODE_MODEL_ZERO;
+	cfg.model_value = 11;
+	cfg.round = 2;
+	cfg.samples = 9;
+	cfg.spill_mean = 1;
+	cfg.spill_variance = 2;
+	cfg.spill_pixels_error = 3;
+	cfg.cmp_par_mean = 7;
+	cfg.cmp_par_variance = 8;
+	cfg.cmp_par_pixels_error = 9;
+	cfg.max_used_bits = cmp_max_used_bits_list_get(42);
+
+	/* create a compression entity */
+	size = cmp_ent_create(NULL, cfg.data_type, cfg.cmp_mode == CMP_MODE_RAW, 12);
+	TEST_ASSERT_NOT_EQUAL_INT(0, size);
+	ent = malloc(size); TEST_ASSERT_NOT_NULL(ent);
+	size = cmp_ent_create(ent, cfg.data_type, cfg.cmp_mode == CMP_MODE_RAW, 12);
+	TEST_ASSERT_NOT_EQUAL_INT(0, size);
+
+	error = cmp_ent_write_cmp_pars(ent, &cfg, cmp_size_bits);
+	TEST_ASSERT_FALSE(error);
+
+	TEST_ASSERT_EQUAL_INT(cfg.data_type, cmp_ent_get_data_type(ent));
+	TEST_ASSERT_EQUAL_INT(0, cmp_ent_get_data_type_raw_bit(ent));
+	TEST_ASSERT_EQUAL_INT(12, cmp_ent_get_cmp_data_size(ent));
+
+	TEST_ASSERT_EQUAL_INT(cmp_cal_size_of_data(cfg.samples, cfg.data_type), cmp_ent_get_original_size(ent));
+	TEST_ASSERT_EQUAL_INT(cfg.cmp_mode, cmp_ent_get_cmp_mode(ent));
+	TEST_ASSERT_EQUAL_INT(cfg.model_value, cmp_ent_get_model_value(ent));
+	TEST_ASSERT_EQUAL_INT(max_used_bits.version, cmp_ent_get_max_used_bits_version(ent));
+	TEST_ASSERT_EQUAL_INT(cfg.round, cmp_ent_get_lossy_cmp_par(ent));
+
+
+	TEST_ASSERT_EQUAL_INT(cfg.spill_mean, cmp_ent_get_non_ima_spill1(ent));
+	TEST_ASSERT_EQUAL_INT(cfg.spill_variance, cmp_ent_get_non_ima_spill2(ent));
+	TEST_ASSERT_EQUAL_INT(cfg.spill_pixels_error, cmp_ent_get_non_ima_spill3(ent));
+	TEST_ASSERT_EQUAL_INT(0, cmp_ent_get_non_ima_spill4(ent));
+	TEST_ASSERT_EQUAL_INT(0, cmp_ent_get_non_ima_spill5(ent));
+	TEST_ASSERT_EQUAL_INT(0, cmp_ent_get_non_ima_spill6(ent));
+	TEST_ASSERT_EQUAL_INT(cfg.cmp_par_mean, cmp_ent_get_non_ima_cmp_par1(ent));
+	TEST_ASSERT_EQUAL_INT(cfg.cmp_par_variance, cmp_ent_get_non_ima_cmp_par2(ent));
+	TEST_ASSERT_EQUAL_INT(cfg.cmp_par_pixels_error, cmp_ent_get_non_ima_cmp_par3(ent));
+	TEST_ASSERT_EQUAL_INT(0, cmp_ent_get_non_ima_cmp_par4(ent));
+	TEST_ASSERT_EQUAL_INT(0, cmp_ent_get_non_ima_cmp_par5(ent));
+	TEST_ASSERT_EQUAL_INT(0, cmp_ent_get_non_ima_cmp_par6(ent));
+
+	error = cmp_ent_read_header(ent, &cfg_read);
+	TEST_ASSERT_FALSE(error);
+	cfg.icu_output_buf = cmp_ent_get_data_buf(ent); /* quick fix that both cfg are equal */
+	cfg.buffer_length = 12; /* quick fix that both cfg are equal */
+	TEST_ASSERT_EQUAL_MEMORY(&cfg, &cfg_read, sizeof(struct cmp_cfg));
+
+	free(ent);
+	memset(&cfg, 0, sizeof(struct cmp_cfg));
+	memset(&cfg_read, 0, sizeof(struct cmp_cfg));
+
+	/** Error Cases **/
+	/* create imagette raw mode configuration */
+	cfg.data_type = DATA_TYPE_IMAGETTE;
+	cfg.cmp_mode = CMP_MODE_MODEL_ZERO;
+	cfg.model_value = 11;
+	cfg.round = 2;
+	cfg.samples = 9;
+	cfg.max_used_bits = cmp_max_used_bits_list_get(42);
+
+	/* create a compression entity */
+	size = cmp_ent_create(NULL, cfg.data_type, cfg.cmp_mode == CMP_MODE_RAW, 12);
+	TEST_ASSERT_NOT_EQUAL_INT(0, size);
+	ent = malloc(size); TEST_ASSERT_NOT_NULL(ent);
+	size = cmp_ent_create(ent, cfg.data_type, cfg.cmp_mode == CMP_MODE_RAW, 12);
+	TEST_ASSERT_NOT_EQUAL_INT(0, size);
+
+
+	/* ent = NULL */
+	error = cmp_ent_write_cmp_pars(NULL, &cfg, cmp_size_bits);
+	TEST_ASSERT_TRUE(error);
+
+	/* cfg = NULL */
+	error = cmp_ent_write_cmp_pars(ent, NULL, cmp_size_bits);
+	TEST_ASSERT_TRUE(error);
+
+	/* cmp_size_bits negative */
+	error = cmp_ent_write_cmp_pars(ent, &cfg, -1);
+	TEST_ASSERT_TRUE(error);
+
+	/* data_type mismatch */
+	cfg.data_type = DATA_TYPE_S_FX;
+	error = cmp_ent_write_cmp_pars(ent, &cfg, cmp_size_bits);
+	TEST_ASSERT_TRUE(error);
+	cfg.data_type = DATA_TYPE_IMAGETTE;
+
+	/* compressed data to big for compression entity */
+	error = cmp_ent_write_cmp_pars(ent, &cfg, 97);
+	TEST_ASSERT_TRUE(error);
+
+	/* original_size to high */
+	cfg.samples = 0x800000;
+	error = cmp_ent_write_cmp_pars(ent, &cfg, cmp_size_bits);
+	TEST_ASSERT_TRUE(error);
+	cfg.samples = 0x7FFFFF;
+
+	/* cmp_mode to high */
+	cfg.cmp_mode = 0x100;
+	error = cmp_ent_write_cmp_pars(ent, &cfg, cmp_size_bits);
+	TEST_ASSERT_TRUE(error);
+	cfg.cmp_mode = 0xFF;
+
+	/* max model_value to high */
+	cfg.model_value = 0x100;
+	error = cmp_ent_write_cmp_pars(ent, &cfg, cmp_size_bits);
+	TEST_ASSERT_TRUE(error);
+	cfg.model_value = 0xFF;
+
+	/*  max used bit version to high */
+	TEST_ASSERT_EQUAL_INT(1, sizeof(max_used_bits.version));
+
+	/* max lossy_cmp_par to high */
+	cfg.round = 0x10000;
+	error = cmp_ent_write_cmp_pars(ent, &cfg, cmp_size_bits);
+	TEST_ASSERT_TRUE(error);
+	cfg.round = 0xFFFF;
+
+	/* The entity's raw data bit is not set, but the configuration contains raw data */
+	cfg.cmp_mode = CMP_MODE_RAW;
+	error = cmp_ent_write_cmp_pars(ent, &cfg, cmp_size_bits);
+	TEST_ASSERT_TRUE(error);
+	cfg.cmp_mode = CMP_MODE_MODEL_MULTI;
+
+	/* The entity's raw data bit is set, but the configuration contains no raw data */
+	cmp_ent_set_data_type(ent, cfg.data_type, 1); /* set raw bit */
+	error = cmp_ent_write_cmp_pars(ent, &cfg, cmp_size_bits);
+	TEST_ASSERT_TRUE(error);
+	cmp_ent_set_data_type(ent, cfg.data_type, 0);
+
+	/* spill to high */
+	cfg.spill = 0x10000;
+	error = cmp_ent_write_cmp_pars(ent, &cfg, cmp_size_bits);
+	TEST_ASSERT_TRUE(error);
+	cfg.spill = 0xFFFF;
+
+	/* golomb_par to high */
+	cfg.golomb_par = 0x100;
+	error = cmp_ent_write_cmp_pars(ent, &cfg, cmp_size_bits);
+	TEST_ASSERT_TRUE(error);
+	cfg.golomb_par = 0xFF;
+
+
+	cmp_ent_set_data_type(ent, DATA_TYPE_SAT_IMAGETTE_ADAPTIVE, 0);
+	cfg.data_type = DATA_TYPE_SAT_IMAGETTE_ADAPTIVE;
+	cmp_size_bits = 1;
+	/* adaptive 1 spill to high */
+	cfg.ap1_spill = 0x10000;
+	error = cmp_ent_write_cmp_pars(ent, &cfg, cmp_size_bits);
+	TEST_ASSERT_TRUE(error);
+	cfg.ap1_spill = 0xFFFF;
+
+	/* adaptive 1  golomb_par to high */
+	cfg.ap1_golomb_par = 0x100;
+	error = cmp_ent_write_cmp_pars(ent, &cfg, cmp_size_bits);
+	TEST_ASSERT_TRUE(error);
+	cfg.ap1_golomb_par = 0xFF;
+
+	/* adaptive 2 spill to high */
+	cfg.ap2_spill = 0x10000;
+	error = cmp_ent_write_cmp_pars(ent, &cfg, cmp_size_bits);
+	TEST_ASSERT_TRUE(error);
+	cfg.ap2_spill = 0xFFFF;
+
+	/* adaptive 2  golomb_par to high */
+	cfg.ap2_golomb_par = 0x100;
+	error = cmp_ent_write_cmp_pars(ent, &cfg, cmp_size_bits);
+	TEST_ASSERT_TRUE(error);
+	cfg.ap2_golomb_par = 0xFF;
+
+	cmp_ent_set_data_type(ent, DATA_TYPE_OFFSET, 0);
+	cfg.data_type = DATA_TYPE_OFFSET;
+
+	free(ent);
+
+	/* create a compression entity */
+	cfg.data_type = DATA_TYPE_OFFSET;
+	cfg.samples = 9;
+	size = cmp_ent_create(NULL, cfg.data_type, cfg.cmp_mode == CMP_MODE_RAW, 12);
+	TEST_ASSERT_NOT_EQUAL_INT(0, size);
+	ent = malloc(size); TEST_ASSERT_NOT_NULL(ent);
+	size = cmp_ent_create(ent, cfg.data_type, cfg.cmp_mode == CMP_MODE_RAW, 12);
+	TEST_ASSERT_NOT_EQUAL_INT(0, size);
+
+	/* mean cmp_par to high */
+	cfg.cmp_par_mean = 0x10000;
+	error = cmp_ent_write_cmp_pars(ent, &cfg, cmp_size_bits);
+	TEST_ASSERT_TRUE(error);
+	cfg.cmp_par_mean = 0xFFFF;
+
+	/* mean spill to high */
+	cfg.spill_mean = 0x1000000;
+	error = cmp_ent_write_cmp_pars(ent, &cfg, cmp_size_bits);
+	TEST_ASSERT_TRUE(error);
+	cfg.spill_mean = 0xFFFFFF;
+
+	/* variance cmp_par to high */
+	cfg.cmp_par_variance = 0x10000;
+	error = cmp_ent_write_cmp_pars(ent, &cfg, cmp_size_bits);
+	TEST_ASSERT_TRUE(error);
+	cfg.cmp_par_variance = 0xFFFF;
+
+	/* variance spill to high */
+	cfg.spill_variance = 0x1000000;
+	error = cmp_ent_write_cmp_pars(ent, &cfg, cmp_size_bits);
+	TEST_ASSERT_TRUE(error);
+	cfg.spill_variance = 0xFFFFFF;
+
+	/* pixels_error cmp_par to high */
+	cfg.cmp_par_pixels_error = 0x10000;
+	error = cmp_ent_write_cmp_pars(ent, &cfg, cmp_size_bits);
+	TEST_ASSERT_TRUE(error);
+	cfg.cmp_par_pixels_error = 0xFFFF;
+
+	/* pixels_error spill to high */
+	cfg.spill_pixels_error = 0x1000000;
+	error = cmp_ent_write_cmp_pars(ent, &cfg, cmp_size_bits);
+	TEST_ASSERT_TRUE(error);
+	cfg.spill_pixels_error = 0xFFFFFF;
+
+
+	cmp_ent_set_data_type(ent, DATA_TYPE_F_FX_EFX_NCOB_ECOB, 0);
+	cfg.data_type = DATA_TYPE_F_FX_EFX_NCOB_ECOB;
+
+	/* exp_flags cmp_par to high */
+	cfg.cmp_par_exp_flags = 0x10000;
+	error = cmp_ent_write_cmp_pars(ent, &cfg, cmp_size_bits);
+	TEST_ASSERT_TRUE(error);
+	cfg.cmp_par_exp_flags = 0xFFFF;
+
+	/* exp_flags spill to high */
+	cfg.spill_exp_flags = 0x1000000;
+	error = cmp_ent_write_cmp_pars(ent, &cfg, cmp_size_bits);
+	TEST_ASSERT_TRUE(error);
+	cfg.spill_exp_flags = 0xFFFFFF;
+
+	/* fx cmp_par to high */
+	cfg.cmp_par_fx = 0x10000;
+	error = cmp_ent_write_cmp_pars(ent, &cfg, cmp_size_bits);
+	TEST_ASSERT_TRUE(error);
+	cfg.cmp_par_fx = 0xFFFF;
+
+	/* fx spill to high */
+	cfg.spill_fx = 0x1000000;
+	error = cmp_ent_write_cmp_pars(ent, &cfg, cmp_size_bits);
+	TEST_ASSERT_TRUE(error);
+	cfg.spill_fx = 0xFFFFFF;
+
+	/* ncob cmp_par to high */
+	cfg.cmp_par_ncob = 0x10000;
+	error = cmp_ent_write_cmp_pars(ent, &cfg, cmp_size_bits);
+	TEST_ASSERT_TRUE(error);
+	cfg.cmp_par_ncob = 0xFFFF;
+
+	/* ncob spill to high */
+	cfg.spill_ncob = 0x1000000;
+	error = cmp_ent_write_cmp_pars(ent, &cfg, cmp_size_bits);
+	TEST_ASSERT_TRUE(error);
+	cfg.spill_ncob = 0xFFFFFF;
+
+	/* efx cmp_par to high */
+	cfg.cmp_par_efx = 0x10000;
+	error = cmp_ent_write_cmp_pars(ent, &cfg, cmp_size_bits);
+	TEST_ASSERT_TRUE(error);
+	cfg.cmp_par_efx = 0xFFFF;
+
+	/* efx spill to high */
+	cfg.spill_efx = 0x1000000;
+	error = cmp_ent_write_cmp_pars(ent, &cfg, cmp_size_bits);
+	TEST_ASSERT_TRUE(error);
+	cfg.spill_efx = 0xFFFFFF;
+
+	/* ecob cmp_par to high */
+	cfg.cmp_par_ecob = 0x10000;
+	error = cmp_ent_write_cmp_pars(ent, &cfg, cmp_size_bits);
+	TEST_ASSERT_TRUE(error);
+	cfg.cmp_par_ecob = 0xFFFF;
+
+	/* ecob spill to high */
+	cfg.spill_ecob = 0x1000000;
+	error = cmp_ent_write_cmp_pars(ent, &cfg, cmp_size_bits);
+	TEST_ASSERT_TRUE(error);
+	cfg.spill_ecob = 0xFFFFFF;
+
+	/* fx_cob_variance cmp_par to high */
+	cfg.cmp_par_fx_cob_variance = 0x10000;
+	error = cmp_ent_write_cmp_pars(ent, &cfg, cmp_size_bits);
+	TEST_ASSERT_TRUE(error);
+	cfg.cmp_par_fx_cob_variance = 0xFFFF;
+
+	/* fx_cob_variance spill to high */
+	cfg.spill_fx_cob_variance = 0x1000000;
+	error = cmp_ent_write_cmp_pars(ent, &cfg, cmp_size_bits);
+	TEST_ASSERT_TRUE(error);
+	cfg.spill_fx_cob_variance = 0xFFFFFF;
+
+	/* test data type = DATA_TYPE_UNKNOWN */
+	cmp_ent_set_data_type(ent, DATA_TYPE_UNKNOWN, 0);
+	cfg.data_type = DATA_TYPE_UNKNOWN;
+	error = cmp_ent_write_cmp_pars(ent, &cfg, cmp_size_bits);
+	TEST_ASSERT_TRUE(error);
+
+	/* test data type = DATA_TYPE_F_CAM_BACKGROUND +1 */
+	cmp_ent_set_data_type(ent, DATA_TYPE_F_CAM_BACKGROUND + 1, 0);
+	cfg.data_type = DATA_TYPE_F_CAM_BACKGROUND + 1;
+	error = cmp_ent_write_cmp_pars(ent, &cfg, cmp_size_bits);
+	TEST_ASSERT_TRUE(error);
+	free(ent);
+	cmp_max_used_bits_list_empty();
+}
+
+
+/**
+ * @test cmp_ent_read_header
+ */
+
+void test_cmp_ent_read_header_error_cases(void)
+
+{
+	int error;
+	uint32_t size;
+	struct cmp_entity *ent;
+	struct cmp_cfg cfg;
+
+	/* create a entity */
+	size = cmp_ent_create(NULL, DATA_TYPE_IMAGETTE, 1, 10);
+	TEST_ASSERT_EQUAL_UINT32(sizeof(struct cmp_entity), size);
+	ent = malloc(size); TEST_ASSERT_NOT_NULL(ent);
+	size = cmp_ent_create(ent, DATA_TYPE_IMAGETTE, 1, 10);
+	TEST_ASSERT_EQUAL_UINT32(sizeof(struct cmp_entity), size);
+
+	/* ent = NULL */
+	error = cmp_ent_read_header(NULL, &cfg);
+	TEST_ASSERT_TRUE(error);
+	/* this should work */
+	error = cmp_ent_read_header(ent, &cfg);
+	TEST_ASSERT_FALSE(error);
+
+	/* cfg = NULL */
+	error = cmp_ent_read_header(ent, NULL);
+	TEST_ASSERT_TRUE(error);
+	/* this should work */
+	error = cmp_ent_read_header(ent, &cfg);
+	TEST_ASSERT_FALSE(error);
+
+	/* unknown data type */
+	cmp_ent_set_data_type(ent, DATA_TYPE_UNKNOWN, 1);
+	error = cmp_ent_read_header(ent, &cfg);
+	TEST_ASSERT_TRUE(error);
+	/* unknown data type */
+	cmp_ent_set_data_type(ent, DATA_TYPE_F_CAM_BACKGROUND+1, 1);
+	error = cmp_ent_read_header(ent, &cfg);
+	TEST_ASSERT_TRUE(error);
+	/* this should work */
+	cmp_ent_set_data_type(ent, DATA_TYPE_IMAGETTE, 1);
+	error = cmp_ent_read_header(ent, &cfg);
+	TEST_ASSERT_FALSE(error);
+
+	/* cmp_mode CMP_MODE_RAW and no raw data bit */
+	cmp_ent_set_data_type(ent, DATA_TYPE_IMAGETTE, 0);
+	error = cmp_ent_read_header(ent, &cfg);
+	TEST_ASSERT_TRUE(error);
+	/* this should work */
+	cmp_ent_set_data_type(ent, DATA_TYPE_IMAGETTE, 1);
+	error = cmp_ent_read_header(ent, &cfg);
+	TEST_ASSERT_FALSE(error);
+
+	/* original_size and data product type not compatible */
+	cmp_ent_set_original_size(ent, 11);
+	error = cmp_ent_read_header(ent, &cfg);
+	TEST_ASSERT_TRUE(error);
+	/* this should work */
+	cmp_ent_set_original_size(ent, 12);
+	error = cmp_ent_read_header(ent, &cfg);
+	TEST_ASSERT_FALSE(error);
+
+	free(ent);
+}
+
 
 void test_decompression_error_cases(void)
 {

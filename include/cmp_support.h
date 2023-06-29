@@ -22,6 +22,8 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#include <cmp_max_used_bits.h>
+
 
 /* return code if the bitstream buffer is too small to store the whole bitstream */
 #define CMP_ERROR_SMALL_BUF -2
@@ -181,7 +183,7 @@ struct cmp_cfg {
 	uint32_t ap2_spill;         /**< Adaptive 2 Golomb parameter; HW only */
 	uint32_t cmp_par_exp_flags; /**< Compression parameter for exposure flags compression */
 	uint32_t spill_exp_flags;   /**< Spillover threshold parameter for exposure flags compression */
-	uint32_t cmp_par_fx;	    /**< Compression parameter for normal flux compression */
+	uint32_t cmp_par_fx;        /**< Compression parameter for normal flux compression */
 	uint32_t spill_fx;          /**< Spillover threshold parameter for normal flux compression */
 	uint32_t cmp_par_ncob;      /**< Compression parameter for normal center of brightness compression */
 	uint32_t spill_ncob;        /**< Spillover threshold parameter for normal center of brightness compression */
@@ -197,6 +199,7 @@ struct cmp_cfg {
 	uint32_t spill_variance;    /**< Spillover threshold parameter for auxiliary science variance compression */
 	uint32_t cmp_par_pixels_error; /**< Compression parameter for auxiliary science outlier pixels number compression */
 	uint32_t spill_pixels_error; /**< Spillover threshold parameter for auxiliary science outlier pixels number compression */
+	const struct cmp_max_used_bits *max_used_bits; /**< the maximum length of the different data products types in bits */
 };
 
 
@@ -296,6 +299,7 @@ unsigned int cmp_bit_to_4byte(unsigned int cmp_size_bit);
 int cmp_cfg_icu_is_invalid(const struct cmp_cfg *cfg);
 int cmp_cfg_gen_par_is_invalid(const struct cmp_cfg *cfg, enum check_opt opt);
 int cmp_cfg_icu_buffers_is_invalid(const struct cmp_cfg *cfg);
+int cmp_cfg_icu_max_used_bits_out_of_limit(const struct cmp_max_used_bits *max_used_bits_repo);
 int cmp_cfg_imagette_is_invalid(const struct cmp_cfg *cfg, enum check_opt opt);
 int cmp_cfg_fx_cob_is_invalid(const struct cmp_cfg *cfg);
 int cmp_cfg_aux_is_invalid(const struct cmp_cfg *cfg);

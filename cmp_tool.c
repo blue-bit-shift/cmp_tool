@@ -157,6 +157,7 @@ int main(int argc, char **argv)
 	struct cmp_cfg cfg = {0}; /* compressor configuration struct */
 
 	cfg.data_type = DATA_TYPE_IMAGETTE; /* use imagette as default data type */
+	cfg.max_used_bits = &MAX_USED_BITS_SAFE; /* define max_used_bits default */
 
 	/* show help if no arguments are provided */
 	if (argc < 2) {
