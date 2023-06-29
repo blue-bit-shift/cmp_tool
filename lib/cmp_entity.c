@@ -2136,7 +2136,7 @@ size_t cmp_ent_build(struct cmp_entity *ent, uint32_t version_id,
 
 #ifdef HAS_TIME_H
 /*
- * @brief Covert a calendar time expressed as a struct tm object to time since
+ * @brief Convert a calendar time expressed as a struct tm object to time since
  *	 epoch as a time_t object. The function interprets the input structure
  *	 as representing Universal Coordinated Time (UTC).
  * @note timegm is a GNU C Library extension, not standardized. This function

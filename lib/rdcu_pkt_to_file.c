@@ -152,7 +152,7 @@ static int32_t rmap_tx_to_file(const void *hdr, uint32_t hdr_size,
 		return -1;
 	blob = malloc((unsigned int)n);
 	if (!blob) {
-		printf("malloc for tx_pkt faild\n");
+		printf("malloc for tx_pkt failed\n");
 		return -1;
 	}
 

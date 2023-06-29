@@ -106,7 +106,7 @@ struct cmp_cfg cmp_cfg_icu_create(enum cmp_data_type data_type, enum cmp_mode cm
  *				with the cmp_cfg_icu_create() function)
  * @param data_to_compress	pointer to the data to be compressed
  * @param data_samples		length of the data to be compressed measured in
- *				data samples/entitys (collection header not
+ *				data samples/entities (collection header not
  *				included by imagette data)
  * @param model_of_data		pointer to model data buffer (can be NULL if no
  *				model compression mode is used)

@@ -328,7 +328,7 @@ void test_decode_zero(void)
 	TEST_ASSERT_EQUAL_HEX(7, decoded_value);
 	TEST_ASSERT_EQUAL_INT(28, stream_pos);
 
-	 /* TODO error case: negativ stream_pos */
+	 /* TODO error case: negative stream_pos */
 }
 
 void test_decode_multi(void)

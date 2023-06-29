@@ -48,7 +48,7 @@
  * slow because of how they work algorithmically (*the opposite is true*),
  * but rather because how their cache hit (or miss) rate is in
  * configurations where entries are randomly scattered in memory rather
- * than layed out in one big chunk.
+ * than laid out in one big chunk.
  *
  * Be smart. Don't do that. Allocate a pool in a __single chunk__ and enjoy the
  * cache performance. Do not use larger chunks than the page size of your
@@ -240,7 +240,7 @@ static inline void INIT_LIST_HEAD(struct list_head *list)
 	}
 
 /**
- * @brief the list entry do-while equivalent fo a code block
+ * @brief the list entry do-while equivalent for a code block
  * @param pos:	the type * to use as a loop counter.
  * @param head:	the head for your list.
  * @param member:	the name of the list_struct within the struct.

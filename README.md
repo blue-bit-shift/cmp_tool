@@ -70,7 +70,7 @@ RDCU-compatible compression mode depending on if the Model (-m) option is set.
 | `2`         | default mode                    |
 | `3`         | brute force                     |
 
-**Example of Compression Parmeter guessing:**
+**Example of Compression Parameter guessing:**
 
 ``./cmp_tool --guess RDCU -d test_data/test_data1.dat -o myguess``
 
