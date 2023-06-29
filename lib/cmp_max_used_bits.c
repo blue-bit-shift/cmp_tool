@@ -65,7 +65,7 @@
 #define MAX_USED_FC_BACKGROUND_OUTLIER_PIXELS_BITS	16 /* TBC */
 
 
-#define member_bit_size(type, member) sizeof(((type *)0)->member)*8
+#define member_bit_size(type, member) (sizeof(((type *)0)->member)*8)
 
 
 /* a safe the different data products types in bits */

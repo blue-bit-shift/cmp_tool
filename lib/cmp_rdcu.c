@@ -414,7 +414,7 @@ int rdcu_interrupt_compression(void)
 	sync();
 
 	/* clear local bit immediately, this is a write-only register.
-	 * we would not want to restart compression by accidentially calling
+	 * we would not want to restart compression by accidentally calling
 	 * rdcu_sync_compr_ctrl() again
 	 */
 	rdcu_clear_data_compr_interrupt();

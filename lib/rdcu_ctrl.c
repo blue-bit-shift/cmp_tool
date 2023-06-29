@@ -20,7 +20,7 @@
  *	All sync() calls respect the direction of the sync, i.e. read-only
  *	registers in the RDCU are synced to the local mirror
  *	and vice-versa for write-only register
- *	The only exception are SRAM (data) related syncs, they specifiy
+ *	The only exception are SRAM (data) related syncs, they specify
  *	the direction by a directional suffix, which is either _icu_rdcu
  *	for ICU->RDCU, i.e. transfer local to remote, or _rdcu_icu for a
  *	read-back
@@ -818,7 +818,7 @@ void rdcu_clear_rdcu_interrupt(void)
  * @note The bit will auto-clear in the FPGA once compression is complete.
  *	 To clear the local mirror, make sure to
  *	 rdcu_clear_data_compr_interrupt() so the FPGA does not interrupt
- *	 data compression unexepectedly when rdcu_sync_compr_ctrl()
+ *	 data compression unexpectedly when rdcu_sync_compr_ctrl()
  *	 is called, as write-only registers are not synced back from the RDCU.
  *
  */
@@ -847,7 +847,7 @@ void rdcu_clear_data_compr_interrupt(void)
  * @note The bit will auto-clear in the FPGA once compression is complete.
  *	 To clear the local mirror, make sure to
  *	 rdcu_clear_data_compr_start() so the FPGA does not start
- *	 data compression unexepectedly when rdcu_sync_compr_ctrl()
+ *	 data compression unexpectedly when rdcu_sync_compr_ctrl()
  *	 is called, as write-only registers are not synced back from the RDCU.
  */
 
@@ -2390,7 +2390,7 @@ int rdcu_sync_sram_to_mirror(uint32_t addr, uint32_t size, uint32_t mtu)
  * @note due to restrictions, the number of bytes and mtu must be a multiple
  *	 of 4; the address must be aligned to 32-bits as well
  *
- * @returns 0 on succes, otherwise error
+ * @returns 0 on success, otherwise error
  */
 
 int rdcu_sync_sram_mirror_parallel(uint32_t rx_addr, uint32_t rx_size,

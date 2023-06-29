@@ -292,7 +292,7 @@ static int rdcu_process_rx(void)
 		if (rp->data_len) {
 			uint8_t crc8;
 
-			/* convert endianess if needed */
+			/* convert endianness if needed */
 #if (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
 			{
 				unsigned int i;
@@ -465,7 +465,7 @@ int rdcu_sync(int (*fn)(uint16_t trans_id, uint8_t *cmd),
 		return -1;
 	}
 
-	/* convert endianess if needed */
+	/* convert endianness if needed */
 #if (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
 	if (data_len) {
 		int i;
@@ -501,7 +501,7 @@ int rdcu_sync(int (*fn)(uint16_t trans_id, uint8_t *cmd),
  * @note this one is a little redundant, but otherwise we'd have a lot of
  *	 unused parameters on most of the control functions
  *
- * XXX need a paramter for read...meh...must think of something else
+ * XXX need a parameter for read...meh...must think of something else
  */
 
 

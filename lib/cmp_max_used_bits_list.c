@@ -46,7 +46,8 @@ LIST_HEAD(max_used_bits_list);
 
 const struct cmp_max_used_bits *cmp_max_used_bits_list_get(uint8_t version)
 {
-	struct list_item *list_ptr = NULL ;
+	struct list_item *list_ptr = NULL;
+
 	switch (version) {
 	case 0:
 		return &MAX_USED_BITS_SAFE;
@@ -55,7 +56,7 @@ const struct cmp_max_used_bits *cmp_max_used_bits_list_get(uint8_t version)
 
 	}
 
-	list_for_each_entry (list_ptr, &max_used_bits_list, list) {
+	list_for_each_entry(list_ptr, &max_used_bits_list, list) {
 		if (list_ptr->data.version == version)
 			return &list_ptr->data;
 	}
@@ -110,10 +111,10 @@ int cmp_max_used_bits_list_add(struct cmp_max_used_bits const *item)
 
 void cmp_max_used_bits_list_delet(uint8_t version)
 {
-	struct list_item *list_ptr = NULL ;
-	struct list_item *tmp = NULL ;
+	struct list_item *list_ptr = NULL;
+	struct list_item *tmp = NULL;
 
-	list_for_each_entry_safe (list_ptr, tmp, &max_used_bits_list, list) {
+	list_for_each_entry_safe(list_ptr, tmp, &max_used_bits_list, list) {
 		if (list_ptr->data.version == version) {
 			list_del(&list_ptr->list);
 			free(list_ptr);
@@ -129,10 +130,10 @@ void cmp_max_used_bits_list_delet(uint8_t version)
 
 void cmp_max_used_bits_list_empty(void)
 {
-	struct list_item *list_ptr = NULL ;
-	struct list_item *tmp = NULL ;
+	struct list_item *list_ptr = NULL;
+	struct list_item *tmp = NULL;
 
-	list_for_each_entry_safe (list_ptr, tmp, &max_used_bits_list, list) {
+	list_for_each_entry_safe(list_ptr, tmp, &max_used_bits_list, list) {
 		list_del(&list_ptr->list);
 		free(list_ptr);
 		list_ptr = NULL;

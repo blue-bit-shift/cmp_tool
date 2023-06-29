@@ -405,7 +405,7 @@ void rmap_set_data_addr(struct rmap_pkt *pkt, uint32_t addr)
  *
  * @note the length is at most 2^24-1 bytes
  * @note if the RMAP command is of 'SINGLE' type, only multiples of 4
- *	 will result in successfull execution of the command (at least
+ *	 will result in successful execution of the command (at least
  *	 with the GRSPW2 core)
  */
 
@@ -656,7 +656,7 @@ static int rmap_check_status(uint8_t status)
 		printf("Reserved");
 		break;
 	case RMAP_STATUS_VERIFY_BUFFER_OVERRRUN:
-		printf("Verify buffer overrrun");
+		printf("Verify buffer overrun");
 		break;
 	case RMAP_STATUS_CMD_NOT_IMPL_OR_AUTH:
 		printf("RMAP Command not implemented or not authorised");

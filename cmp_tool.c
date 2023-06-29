@@ -962,5 +962,6 @@ static int cmp_cfg_create_default(struct cmp_cfg *cfg, enum cmp_data_type data_t
 		}
 	}
 	/* TODO: implement other data types */
+	/* TODO: implement error checks */
 	return 0;
 }
