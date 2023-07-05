@@ -17,6 +17,7 @@
  * @see Data Compression User Manual PLATO-UVIE-PL-UM-0001
  */
 
+#include <compiler.h>
 
 #include <cmp_support.h>
 #include <cmp_debug.h>
@@ -362,8 +363,7 @@ uint32_t cmp_ima_max_spill(unsigned int golomb_par)
 		452, 461, 470, 479, 488, 497, 506, 515, 524, 533, 542, 551, 560,
 		569, 578, 587, 596, 605, 614, 623 };
 
-
-	if (golomb_par > MAX_IMA_GOLOMB_PAR)
+	if (golomb_par >= ARRAY_SIZE(LUT_MAX_RDCU))
 		return 0;
 
 	return LUT_MAX_RDCU[golomb_par];
@@ -383,14 +383,14 @@ uint32_t cmp_ima_max_spill(unsigned int golomb_par)
 uint32_t cmp_icu_max_spill(unsigned int cmp_par)
 {
 	/* the ICU compressor can generate code words with a length of maximal 32 bits. */
-	unsigned int max_cw_bits = 32;
-	unsigned int cutoff = (1UL << (ilog_2(cmp_par)+1)) - cmp_par;
-	unsigned int max_n_sym_offset = max_cw_bits/2 - 1;
+	unsigned int const max_cw_bits = 32;
+	unsigned int const cutoff = (unsigned int)(((uint64_t)1 << (ilog_2(cmp_par)+1)) - cmp_par);
+	unsigned int const max_n_sym_offset = max_cw_bits/2 - 1;
 
 	if (!cmp_par || cmp_par > MAX_NON_IMA_GOLOMB_PAR)
 		return 0;
 
-	return (max_cw_bits-1-ilog_2(cmp_par))*cmp_par + cutoff
+	return (max_cw_bits-1-(unsigned int)ilog_2(cmp_par))*cmp_par + cutoff
 		- max_n_sym_offset - 1;
 }
 
