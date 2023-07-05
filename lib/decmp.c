@@ -158,12 +158,17 @@ static int golomb_decoder(uint32_t code_word, unsigned int m,
 	q = count_leading_ones(code_word); /* decode unary coding */
 
 	rl = log2_m + 1;
-	code_word <<= (q+1) & 0x1FU; /*0x 1FU TODO*/ /* shift quotient code out */
+	/* The behaviour is undefined if the right operand is greater than or equal to
+	 * the length in bits of the shifted left operand, so we mask the right operand
+	 * to avoid this case.
+	 */
+	code_word <<= (q+1) & 0x1FU; /* shift quotient code out */
 
-	r2 = code_word >> (32 - rl);
+	r2 = code_word >> (32 - rl); /* get remainder code for both groups */
 	r1 = r2 >> 1;
 
-	cutoff = (1UL << rl) - m;
+	/* For the case rl = 32 the two casts are needed */
+	cutoff = (unsigned int)((uint64_t)1 << rl) - m;
 
 	if (r1 < cutoff) { /* group 1 */
 		cw_len = q + rl;
