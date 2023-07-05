@@ -464,8 +464,8 @@ static int put_n_bits32(uint32_t value, unsigned int n_bits, int bit_offset,
  *			for better performance
  * @param cw		address were the encode code word is stored
  *
- * @returns the length of the formed code word in bits
- * @note no check if the generated code word is not longer than 32 bits!
+ * @returns the length of the formed code word in bits; code word is invalid if
+ *	the return value is greater than 32
  */
 
 static uint32_t rice_encoder(uint32_t value, uint32_t m, uint32_t log2_m,
@@ -503,8 +503,8 @@ static uint32_t rice_encoder(uint32_t value, uint32_t m, uint32_t log2_m,
  *			performance
  * @param cw		address were the formed code word is stored
  *
- * @returns the length of the formed code word in bits
- * @note no check if the generated code word is not longer than 32 bits!
+ * @returns the length of the formed code word in bits; code word is invalid if
+ *	the return value is greater than 32
  */
 
 static uint32_t golomb_encoder(uint32_t value, uint32_t m, uint32_t log2_m,
