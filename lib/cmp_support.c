@@ -573,10 +573,10 @@ int cmp_cfg_icu_max_used_bits_out_of_limit(const struct cmp_max_used_bits *max_u
 {
 #define CHECK_MAX_USED_BITS_LIMIT(entry) \
 	do { \
-	if (max_used_bits->entry > MAX_USED_BITS_SAFE.entry) { \
-		debug_print("Error: The " #entry " entry in the max_used_bits structure is too large (actual: %x, max: %x).\n",  max_used_bits->entry, MAX_USED_BITS_SAFE.entry); \
-		error++; \
-	} \
+		if (max_used_bits->entry > MAX_USED_BITS_SAFE.entry) { \
+			debug_print("Error: The " #entry " entry in the max_used_bits structure is too large (actual: %x, max: %x).\n",  max_used_bits->entry, MAX_USED_BITS_SAFE.entry); \
+			error++; \
+		} \
 	} while (0)
 
 	int error = 0;
