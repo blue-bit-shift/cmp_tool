@@ -25,7 +25,10 @@
 #include <ctype.h>
 #include <sys/stat.h>
 
+
 #include <cmp_tool-config.h>
+#include <compiler.h>
+
 #include <cmp_io.h>
 #include <cmp_support.h>
 #include <rdcu_cmd.h>
@@ -416,7 +419,7 @@ enum cmp_data_type string2data_type(const char *data_type_str)
 		if (isalpha(data_type_str[0])) {  /* check if mode is given as text */
 			size_t j;
 
-			for (j = 0; j < sizeof(data_type_string_table) / sizeof(data_type_string_table[0]); j++) {
+			for (j = 0; j < ARRAY_SIZE(data_type_string_table); j++) {
 				if (!strcmp(data_type_str, data_type_string_table[j].str)) {
 					data_type = data_type_string_table[j].data_type;
 					break;
@@ -449,7 +452,7 @@ const char *data_type2string(enum cmp_data_type data_type)
 	size_t j;
 	const char *string = "DATA_TYPE_UNKNOWN";
 
-	for (j = 0; j < sizeof(data_type_string_table) / sizeof(data_type_string_table[0]); j++) {
+	for (j = 0; j < ARRAY_SIZE(data_type_string_table); j++) {
 		if (data_type == data_type_string_table[j].data_type) {
 			string = data_type_string_table[j].str;
 			break;
@@ -495,7 +498,7 @@ int cmp_mode_parse(const char *cmp_mode_str, enum cmp_mode *cmp_mode)
 		return -1;
 
 	if (isalpha(cmp_mode_str[0])) {  /* check if mode is given as text */
-		for (j = 0; j < sizeof(conversion) / sizeof(conversion[0]); ++j) {
+		for (j = 0; j < ARRAY_SIZE(conversion); j++) {
 			if (!strcmp(cmp_mode_str, conversion[j].str)) {
 				*cmp_mode = conversion[j].cmp_mode;
 				return 0;
