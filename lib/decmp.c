@@ -1407,8 +1407,8 @@ static int decompress_l_fx(const struct cmp_cfg *cfg)
 		data_buf[i].fx_variance = decoded_value;
 
 		if (up_model_buf) {
-			up_model_buf[i].exp_flags = cmp_up_model(data_buf[i].exp_flags, model.exp_flags,
-								 cfg->model_value, setup_exp_flags.lossy_par);
+			up_model_buf[i].exp_flags = cmp_up_model32(data_buf[i].exp_flags, model.exp_flags,
+								   cfg->model_value, setup_exp_flags.lossy_par);
 			up_model_buf[i].fx = cmp_up_model(data_buf[i].fx, model.fx,
 							  cfg->model_value, setup_fx.lossy_par);
 			up_model_buf[i].fx_variance = cmp_up_model(data_buf[i].fx_variance, model.fx_variance,
@@ -1499,8 +1499,8 @@ static int decompress_l_fx_efx(const struct cmp_cfg *cfg)
 		data_buf[i].fx_variance = decoded_value;
 
 		if (up_model_buf) {
-			up_model_buf[i].exp_flags = cmp_up_model(data_buf[i].exp_flags, model.exp_flags,
-								 cfg->model_value, setup_exp_flags.lossy_par);
+			up_model_buf[i].exp_flags = cmp_up_model32(data_buf[i].exp_flags, model.exp_flags,
+								   cfg->model_value, setup_exp_flags.lossy_par);
 			up_model_buf[i].fx = cmp_up_model(data_buf[i].fx, model.fx,
 							  cfg->model_value, setup_fx.lossy_par);
 			up_model_buf[i].efx = cmp_up_model(data_buf[i].efx, model.efx,
@@ -1615,7 +1615,7 @@ static int decompress_l_fx_ncob(const struct cmp_cfg *cfg)
 		data_buf[i].cob_y_variance = decoded_value;
 
 		if (up_model_buf) {
-			up_model_buf[i].exp_flags = cmp_up_model(data_buf[i].exp_flags, model.exp_flags,
+			up_model_buf[i].exp_flags = cmp_up_model32(data_buf[i].exp_flags, model.exp_flags,
 				cfg->model_value, setup_exp_flags.lossy_par);
 			up_model_buf[i].fx = cmp_up_model(data_buf[i].fx, model.fx,
 				cfg->model_value, setup_fx.lossy_par);
@@ -1761,7 +1761,7 @@ static int decompress_l_fx_efx_ncob_ecob(const struct cmp_cfg *cfg)
 		data_buf[i].cob_y_variance = decoded_value;
 
 		if (up_model_buf) {
-			up_model_buf[i].exp_flags = cmp_up_model(data_buf[i].exp_flags, model.exp_flags,
+			up_model_buf[i].exp_flags = cmp_up_model32(data_buf[i].exp_flags, model.exp_flags,
 				cfg->model_value, setup_exp_flags.lossy_par);
 			up_model_buf[i].fx = cmp_up_model(data_buf[i].fx, model.fx,
 				cfg->model_value, setup_fx.lossy_par);

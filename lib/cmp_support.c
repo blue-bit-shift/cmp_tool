@@ -314,36 +314,6 @@ int cmp_aux_data_type_is_used(enum cmp_data_type data_type)
 
 
 /**
- * @brief implantation of the model update equation
- * @note check before that model_value is not greater than MAX_MODEL_VALUE
- *
- * @param data		data to process
- * @param model		(current) model of the data to process
- * @param model_value	model weighting parameter
- * @param round		routing parameter
- *
- * @returns (new) updated model
- */
-
-unsigned int cmp_up_model(unsigned int data, unsigned int model,
-			  unsigned int model_value, unsigned int round)
-
-{
-	uint64_t weighted_model, weighted_data;
-
-	/* round and round back input because for decompression the accurate
-	 * data values are not available
-	 */
-	data = round_inv(round_fwd(data, round), round);
-	/* cast uint64_t to prevent overflow in the multiplication */
-	weighted_model = (uint64_t)model * model_value;
-	weighted_data = (uint64_t)data * (MAX_MODEL_VALUE - model_value);
-	/* truncation is intended */
-	return (unsigned int)((weighted_model + weighted_data) / MAX_MODEL_VALUE);
-}
-
-
-/**
  * @brief get the maximum valid spill threshold value for a imagette
  *	compression in diff or model mode
  *

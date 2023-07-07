@@ -1651,7 +1651,7 @@ static int compress_l_fx(const struct cmp_cfg *cfg)
 			return stream_len;
 
 		if (up_model_buf) {
-			up_model_buf[i].exp_flags = cmp_up_model(data_buf[i].exp_flags, model.exp_flags,
+			up_model_buf[i].exp_flags = cmp_up_model32(data_buf[i].exp_flags, model.exp_flags,
 				cfg->model_value, setup_exp_flag.lossy_par);
 			up_model_buf[i].fx = cmp_up_model(data_buf[i].fx, model.fx,
 				cfg->model_value, setup_fx.lossy_par);
@@ -1741,7 +1741,7 @@ static int compress_l_fx_efx(const struct cmp_cfg *cfg)
 			return stream_len;
 
 		if (up_model_buf) {
-			up_model_buf[i].exp_flags = cmp_up_model(data_buf[i].exp_flags, model.exp_flags,
+			up_model_buf[i].exp_flags = cmp_up_model32(data_buf[i].exp_flags, model.exp_flags,
 				cfg->model_value, setup_exp_flag.lossy_par);
 			up_model_buf[i].fx = cmp_up_model(data_buf[i].fx, model.fx,
 				cfg->model_value, setup_fx.lossy_par);
@@ -1851,7 +1851,7 @@ static int compress_l_fx_ncob(const struct cmp_cfg *cfg)
 			return stream_len;
 
 		if (up_model_buf) {
-			up_model_buf[i].exp_flags = cmp_up_model(data_buf[i].exp_flags, model.exp_flags,
+			up_model_buf[i].exp_flags = cmp_up_model32(data_buf[i].exp_flags, model.exp_flags,
 				cfg->model_value, setup_exp_flag.lossy_par);
 			up_model_buf[i].fx = cmp_up_model(data_buf[i].fx, model.fx,
 				cfg->model_value, setup_fx.lossy_par);
@@ -1987,7 +1987,7 @@ static int compress_l_fx_efx_ncob_ecob(const struct cmp_cfg *cfg)
 			return stream_len;
 
 		if (up_model_buf) {
-			up_model_buf[i].exp_flags = cmp_up_model(data_buf[i].exp_flags, model.exp_flags,
+			up_model_buf[i].exp_flags = cmp_up_model32(data_buf[i].exp_flags, model.exp_flags,
 				cfg->model_value, setup_exp_flag.lossy_par);
 			up_model_buf[i].fx = cmp_up_model(data_buf[i].fx, model.fx,
 				cfg->model_value, setup_fx.lossy_par);
@@ -2357,7 +2357,7 @@ static int cmp_data_to_big_endian(const struct cmp_cfg *cfg, int cmp_size)
 
 int icu_compress_data(const struct cmp_cfg *cfg)
 {
-	int cmp_size = 0;
+	int bitsize = 0;
 
 	if (!cfg)
 		return -1;
@@ -2373,10 +2373,10 @@ int icu_compress_data(const struct cmp_cfg *cfg)
 		return -1;
 
 	if (raw_mode_is_used(cfg->cmp_mode)) {
-		cmp_size = cmp_cal_size_of_data(cfg->samples, cfg->data_type);
+		uint32_t raw_size = cmp_cal_size_of_data(cfg->samples, cfg->data_type);
 		if (cfg->icu_output_buf)
-			memcpy(cfg->icu_output_buf, cfg->input_buf, cmp_size);
-		cmp_size *= CHAR_BIT; /* convert to bits */
+			memcpy(cfg->icu_output_buf, cfg->input_buf, raw_size);
+		bitsize = (int)raw_size * CHAR_BIT; /* convert to bits */
 	} else {
 		if (cfg->icu_output_buf && cfg->samples/3 > cfg->buffer_length)
 			debug_print("Warning: The size of the compressed_data buffer is 3 times smaller than the data_to_compress. This is probably unintended.\n");
@@ -2388,56 +2388,56 @@ int icu_compress_data(const struct cmp_cfg *cfg)
 		case DATA_TYPE_SAT_IMAGETTE_ADAPTIVE:
 		case DATA_TYPE_F_CAM_IMAGETTE:
 		case DATA_TYPE_F_CAM_IMAGETTE_ADAPTIVE:
-			cmp_size = compress_imagette(cfg);
+			bitsize = compress_imagette(cfg);
 			break;
 
 		case DATA_TYPE_S_FX:
-			cmp_size = compress_s_fx(cfg);
+			bitsize = compress_s_fx(cfg);
 			break;
 		case DATA_TYPE_S_FX_EFX:
-			cmp_size = compress_s_fx_efx(cfg);
+			bitsize = compress_s_fx_efx(cfg);
 			break;
 		case DATA_TYPE_S_FX_NCOB:
-			cmp_size = compress_s_fx_ncob(cfg);
+			bitsize = compress_s_fx_ncob(cfg);
 			break;
 		case DATA_TYPE_S_FX_EFX_NCOB_ECOB:
-			cmp_size = compress_s_fx_efx_ncob_ecob(cfg);
+			bitsize = compress_s_fx_efx_ncob_ecob(cfg);
 			break;
 
 		case DATA_TYPE_F_FX:
-			cmp_size = compress_f_fx(cfg);
+			bitsize = compress_f_fx(cfg);
 			break;
 		case DATA_TYPE_F_FX_EFX:
-			cmp_size = compress_f_fx_efx(cfg);
+			bitsize = compress_f_fx_efx(cfg);
 			break;
 		case DATA_TYPE_F_FX_NCOB:
-			cmp_size = compress_f_fx_ncob(cfg);
+			bitsize = compress_f_fx_ncob(cfg);
 			break;
 		case DATA_TYPE_F_FX_EFX_NCOB_ECOB:
-			cmp_size = compress_f_fx_efx_ncob_ecob(cfg);
+			bitsize = compress_f_fx_efx_ncob_ecob(cfg);
 			break;
 
 		case DATA_TYPE_L_FX:
-			cmp_size = compress_l_fx(cfg);
+			bitsize = compress_l_fx(cfg);
 			break;
 		case DATA_TYPE_L_FX_EFX:
-			cmp_size = compress_l_fx_efx(cfg);
+			bitsize = compress_l_fx_efx(cfg);
 			break;
 		case DATA_TYPE_L_FX_NCOB:
-			cmp_size = compress_l_fx_ncob(cfg);
+			bitsize = compress_l_fx_ncob(cfg);
 			break;
 		case DATA_TYPE_L_FX_EFX_NCOB_ECOB:
-			cmp_size = compress_l_fx_efx_ncob_ecob(cfg);
+			bitsize = compress_l_fx_efx_ncob_ecob(cfg);
 			break;
 
 		case DATA_TYPE_OFFSET:
-			cmp_size = compress_nc_offset(cfg);
+			bitsize = compress_nc_offset(cfg);
 			break;
 		case DATA_TYPE_BACKGROUND:
-			cmp_size = compress_nc_background(cfg);
+			bitsize = compress_nc_background(cfg);
 			break;
 		case DATA_TYPE_SMEARING:
-			cmp_size = compress_smearing(cfg);
+			bitsize = compress_smearing(cfg);
 			break;
 
 		case DATA_TYPE_F_CAM_OFFSET:
@@ -2446,13 +2446,13 @@ int icu_compress_data(const struct cmp_cfg *cfg)
 		case DATA_TYPE_UNKNOWN:
 		default:
 			debug_print("Error: Data type not supported.\n");
-			cmp_size = -1;
+			bitsize = -1;
 		}
 		/* LCOV_EXCL_STOP */
 	}
 
-	cmp_size = pad_bitstream(cfg, cmp_size);
-	cmp_size = cmp_data_to_big_endian(cfg, cmp_size);
+	bitsize = pad_bitstream(cfg, bitsize);
+	bitsize = cmp_data_to_big_endian(cfg, bitsize);
 
-	return cmp_size;
+	return bitsize;
 }
