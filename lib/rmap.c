@@ -691,7 +691,7 @@ static void rmap_process_read_reply(uint8_t *pkt)
 	len |= ((uint32_t) pkt[RMAP_DATALEN_BYTE1]) <<  8;
 	len |= ((uint32_t) pkt[RMAP_DATALEN_BYTE2]) <<  0;
 
-#if (__sparc__)
+#if defined(__sparc__)
 	printf("\tData length is %lu bytes:\n\t", len);
 #else
 	printf("\tData length is %u bytes:\n\t", len);

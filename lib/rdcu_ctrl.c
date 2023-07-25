@@ -2528,7 +2528,7 @@ int rdcu_ctrl_init(void)
 		return -1;
 	}
 
-#if (__sparc__)
+#if defined(__sparc__)
 	rdcu->sram =  (uint8_t *) 0x60000000;
 #else /* assume PC */
 
