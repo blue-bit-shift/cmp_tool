@@ -176,7 +176,7 @@ struct rmap_pkt *rmap_create_packet(void)
 	struct rmap_pkt *pkt;
 
 
-	pkt = (struct rmap_pkt *) calloc(1, sizeof(struct rmap_pkt));
+	pkt = (struct rmap_pkt *)calloc(1, sizeof(struct rmap_pkt));
 	if (pkt)
 		pkt->proto_id = RMAP_PROTOCOL_ID;
 
@@ -287,7 +287,7 @@ int rmap_set_reply_path(struct rmap_pkt *pkt, const uint8_t *rpath, uint8_t len)
 	pkt->rpath_len = len;
 
 	if (len) {
-		pkt->rpath = (uint8_t *) malloc(pkt->rpath_len);
+		pkt->rpath = (uint8_t *)malloc(pkt->rpath_len);
 		if (!pkt->rpath)
 			return -1;
 
@@ -329,7 +329,7 @@ int rmap_set_dest_path(struct rmap_pkt *pkt, const uint8_t *path, uint8_t len)
 	if (!len)
 		return 0;
 
-	pkt->path = (uint8_t *) malloc(pkt->path_len);
+	pkt->path = (uint8_t *)malloc(pkt->path_len);
 	if (!pkt->path)
 		return -1;
 
@@ -461,17 +461,17 @@ int rmap_build_hdr(struct rmap_pkt *pkt, uint8_t *hdr)
 		hdr[n++] = pkt->rpath[i];	/* return path to source */
 
 	hdr[n++] = pkt->src;			/* source logical address */
-	hdr[n++] = (uint8_t) (pkt->tr_id >> 8);	/* MSB of transaction id */
-	hdr[n++] = (uint8_t)  pkt->tr_id;	/* LSB of transaction id */
+	hdr[n++] = (uint8_t)(pkt->tr_id >> 8);	/* MSB of transaction id */
+	hdr[n++] = (uint8_t)pkt->tr_id;		/* LSB of transaction id */
 
 
 	/* commands have a data address */
 	if (pkt->ri.cmd_resp) {
 		hdr[n++] = 0x0;	/* extended address field (unused) */
-		hdr[n++] = (uint8_t) (pkt->addr >> 24); /* data addr MSB */
-		hdr[n++] = (uint8_t) (pkt->addr >> 16);
-		hdr[n++] = (uint8_t) (pkt->addr >>  8);
-		hdr[n++] = (uint8_t)  pkt->addr;	/* data addr LSB */
+		hdr[n++] = (uint8_t)(pkt->addr >> 24); /* data addr MSB */
+		hdr[n++] = (uint8_t)(pkt->addr >> 16);
+		hdr[n++] = (uint8_t)(pkt->addr >>  8);
+		hdr[n++] = (uint8_t)pkt->addr;	/* data addr LSB */
 	} else if (!pkt->ri.cmd_resp && pkt->ri.cmd & RMAP_CMD_BIT_WRITE) {
 		/* all headers have data length unless they are a write reply */
 		return n;
@@ -479,9 +479,9 @@ int rmap_build_hdr(struct rmap_pkt *pkt, uint8_t *hdr)
 		hdr[n++] = 0x0;	/* on other replies, this is a reserved field */
 	}
 
-	hdr[n++] = (uint8_t) (pkt->data_len >> 16); /* data len MSB */
-	hdr[n++] = (uint8_t) (pkt->data_len >>  8);
-	hdr[n++] = (uint8_t)  pkt->data_len;	    /* data len LSB */
+	hdr[n++] = (uint8_t)(pkt->data_len >> 16); /* data len MSB */
+	hdr[n++] = (uint8_t)(pkt->data_len >>  8);
+	hdr[n++] = (uint8_t)pkt->data_len;	   /* data len LSB */
 
 	return n;
 }
@@ -543,13 +543,13 @@ struct rmap_pkt *rmap_pkt_from_buffer(uint8_t *buf, uint32_t len)
 
 
 	if (pkt->ri.cmd_resp) {
-		pkt->rpath_len = pkt->ri.reply_addr_len << 2;
+		pkt->rpath_len = (pkt->ri.reply_addr_len << 2) & 0xFF;
 		if (len < (uint32_t)min_hdr_size + pkt->rpath_len) {
 			printf("buffer is smaller than the contained RMAP packet\n");
 			goto error;
 		}
 
-		pkt->rpath = (uint8_t *) malloc(pkt->rpath_len);
+		pkt->rpath = (uint8_t *)malloc(pkt->rpath_len);
 		if (!pkt->rpath)
 			goto error;
 
@@ -560,23 +560,23 @@ struct rmap_pkt *rmap_pkt_from_buffer(uint8_t *buf, uint32_t len)
 	}
 
 	pkt->src   = buf[RMAP_SRC_ADDR + n];
-	pkt->tr_id = ((uint16_t) buf[RMAP_TRANS_ID_BYTE0 + n] << 8) |
-		      (uint16_t) buf[RMAP_TRANS_ID_BYTE1 + n];
+	pkt->tr_id = (((uint16_t)buf[RMAP_TRANS_ID_BYTE0 + n] << 8) & 0xFF00) |
+		      (uint16_t)buf[RMAP_TRANS_ID_BYTE1 + n];
 
 	/* commands have a data address */
 	if (pkt->ri.cmd_resp) {
-		pkt->addr = ((uint32_t) buf[RMAP_ADDR_BYTE0 + n] << 24) |
-			    ((uint32_t) buf[RMAP_ADDR_BYTE1 + n] << 16) |
-			    ((uint32_t) buf[RMAP_ADDR_BYTE2 + n] <<  8) |
-			     (uint32_t) buf[RMAP_ADDR_BYTE3 + n];
+		pkt->addr = ((uint32_t)buf[RMAP_ADDR_BYTE0 + n] << 24) |
+			    ((uint32_t)buf[RMAP_ADDR_BYTE1 + n] << 16) |
+			    ((uint32_t)buf[RMAP_ADDR_BYTE2 + n] <<  8) |
+			     (uint32_t)buf[RMAP_ADDR_BYTE3 + n];
 		n += 4; /* addr skip, extended byte is incorporated in define */
 	}
 
 	/* all headers have data length unless they are a write reply */
 	if (!(!pkt->ri.cmd_resp && (pkt->ri.cmd & (RMAP_CMD_BIT_WRITE)))) {
-		pkt->data_len = ((uint32_t) buf[RMAP_DATALEN_BYTE0 + n] << 16) |
-				((uint32_t) buf[RMAP_DATALEN_BYTE1 + n] <<  8) |
-				 (uint32_t) buf[RMAP_DATALEN_BYTE2 + n];
+		pkt->data_len = ((uint32_t)buf[RMAP_DATALEN_BYTE0 + n] << 16) |
+				((uint32_t)buf[RMAP_DATALEN_BYTE1 + n] <<  8) |
+				 (uint32_t)buf[RMAP_DATALEN_BYTE2 + n];
 	}
 
 	pkt->hdr_crc  = buf[RMAP_HEADER_CRC];
@@ -592,7 +592,7 @@ struct rmap_pkt *rmap_pkt_from_buffer(uint8_t *buf, uint32_t len)
 		if (len > pkt_size)
 			printf("warning: the buffer is larger than the included RMAP packet\n");
 
-		pkt->data = (uint8_t *) malloc(pkt->data_len);
+		pkt->data = (uint8_t *)malloc(pkt->data_len);
 		if (!pkt->data)
 			goto error;
 
@@ -687,9 +687,9 @@ static void rmap_process_read_reply(uint8_t *pkt)
 	uint32_t len = 0;
 
 
-	len |= ((uint32_t) pkt[RMAP_DATALEN_BYTE0]) << 16;
-	len |= ((uint32_t) pkt[RMAP_DATALEN_BYTE1]) <<  8;
-	len |= ((uint32_t) pkt[RMAP_DATALEN_BYTE2]) <<  0;
+	len |= ((uint32_t)pkt[RMAP_DATALEN_BYTE0]) << 16;
+	len |= ((uint32_t)pkt[RMAP_DATALEN_BYTE1]) <<  8;
+	len |= ((uint32_t)pkt[RMAP_DATALEN_BYTE2]) <<  0;
 
 #if defined(__sparc__)
 	printf("\tData length is %lu bytes:\n\t", len);
@@ -709,7 +709,7 @@ static void rmap_process_read_reply(uint8_t *pkt)
 
 static void rmap_parse_cmd_pkt(uint8_t *pkt)
 {
-	(void) pkt;
+	(void)pkt;
 	printf("\trmap_parse_cmd_pkt() not implemented\n");
 }
 
@@ -719,7 +719,7 @@ static void rmap_parse_reply_pkt(uint8_t *pkt)
 	struct rmap_instruction *ri;
 
 
-	ri = (struct rmap_instruction *) &pkt[RMAP_INSTRUCTION];
+	ri = (struct rmap_instruction *)&pkt[RMAP_INSTRUCTION];
 
 	printf("\tInstruction: ");
 
@@ -767,7 +767,7 @@ void rmap_parse_pkt(uint8_t *pkt)
 	}
 
 
-	ri = (struct rmap_instruction *) &pkt[RMAP_INSTRUCTION];
+	ri = (struct rmap_instruction *)&pkt[RMAP_INSTRUCTION];
 
 	if (ri->cmd_resp) {
 		printf("This is a command packet\n");
