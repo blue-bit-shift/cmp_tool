@@ -211,7 +211,7 @@ static uint32_t rmap_rx_dummy(uint8_t *pkt)
  */
 
 static int read_rdcu_pkt_mode_cfg(uint8_t *icu_addr, uint8_t *rdcu_addr,
-				  unsigned long *mtu)
+				  uint32_t *mtu)
 {
 	/* TODO: Build string" %s/.rdcu_pkt_mode_cfg", RDCU_PKT_MODE_DIR */
 	char line[256];
@@ -224,7 +224,7 @@ static int read_rdcu_pkt_mode_cfg(uint8_t *icu_addr, uint8_t *rdcu_addr,
 
 	if (fp == NULL) {
 		/* use default values */
-		printf("Use ICU_ADDR = %#02X, RDCU_ADDR = %#02X and MTU = %lu for the RAMP packets.\n", *icu_addr, *rdcu_addr, *mtu);
+		printf("Use ICU_ADDR = %#02X, RDCU_ADDR = %#02X and MTU = %u for the RAMP packets.\n", *icu_addr, *rdcu_addr, *mtu);
 		return 0;
 	}
 
@@ -274,19 +274,19 @@ static int read_rdcu_pkt_mode_cfg(uint8_t *icu_addr, uint8_t *rdcu_addr,
 			end = NULL;
 			errno = 0;
 			i = strtoul(line + l, &end, 0);
-			if (end == line + l || errno == ERANGE || i > INT_MAX) {
+			if (end == line + l || errno == ERANGE || i > INT32_MAX) {
 				fprintf(stderr, "Error reading MTU.\n");
 				errno = 0;
 				fclose(fp);
 				return -1;
 			}
-			*mtu = i;
+			*mtu = (uint32_t)i;
 			continue;
 		}
 	}
 	fclose(fp);
 
-	printf("Use ICU_ADDR = %#02X, RDCU_ADDR = %#02X and MTU = %lu for the RAMP packets.\n", *icu_addr, *rdcu_addr, *mtu);
+	printf("Use ICU_ADDR = %#02X, RDCU_ADDR = %#02X and MTU = %u for the RAMP packets.\n", *icu_addr, *rdcu_addr, *mtu);
 
 	return 0;
 }
@@ -304,7 +304,7 @@ static int read_rdcu_pkt_mode_cfg(uint8_t *icu_addr, uint8_t *rdcu_addr,
 int init_rmap_pkt_to_file(void)
 {
 	uint8_t icu_addr, rdcu_addr;
-	unsigned long mtu;
+	uint32_t mtu;
 
 	if (read_rdcu_pkt_mode_cfg(&icu_addr, &rdcu_addr, &mtu))
 		return -1;

@@ -91,7 +91,7 @@ static int32_t (*rmap_tx)(const void *hdr,  uint32_t hdr_size,
 			  const void *data, uint32_t data_size);
 static uint32_t (*rmap_rx)(uint8_t *pkt);
 
-static size_t data_mtu;	/* maximum data transfer size per unit */
+static uint32_t data_mtu;	/* maximum data transfer size per unit */
 
 
 
@@ -745,7 +745,7 @@ void rdcu_set_destination_key(uint8_t key)
  * @returns the mtu
  */
 
-size_t rdcu_get_data_mtu(void)
+uint32_t rdcu_get_data_mtu(void)
 {
 	return data_mtu;
 }
@@ -791,7 +791,7 @@ void rdcu_rmap_reset_log(void)
  * @returns 0 on success, otherwise error
  */
 
-int rdcu_rmap_init(size_t mtu,
+int rdcu_rmap_init(uint32_t mtu,
 		   int32_t (*tx)(const void *hdr,  uint32_t hdr_size,
 				 const uint8_t non_crc_bytes,
 				 const void *data, uint32_t data_size),
