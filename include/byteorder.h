@@ -53,13 +53,13 @@
 #undef __LITTLE_ENDIAN
 #endif
 
-#if defined __sparc__
+#if defined (__sparc__)
 #ifndef __BIG_ENDIAN
 #define __BIG_ENDIAN 4321
 #endif
 #endif
 
-#if (defined __i386__ || defined __x86_64__)
+#if defined (__i386__) || defined (__x86_64__)
 #ifndef __LITTLE_ENDIAN
 #define __LITTLE_ENDIAN 1234
 #endif
