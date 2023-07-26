@@ -228,7 +228,7 @@ static void *trans_log_get_addr(int slot)
 
 static int rdcu_process_rx(void)
 {
-	int n;
+	uint32_t n;
 	int cnt = 0;
 
 	uint32_t *local_addr;
