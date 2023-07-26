@@ -200,7 +200,7 @@ uint8_t rdcu_get_rmap_target_cmd_key(void)
 uint32_t rdcu_get_lvds_link_enabled(uint32_t link)
 {
 	if (link > 7)
-		return -1;
+		return -1U;
 
 	return (rdcu->lvds_core_status >> link) & 0x1UL;
 }

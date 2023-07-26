@@ -78,7 +78,7 @@ static unsigned int count_leading_ones(uint32_t value)
 	if (value == 0xFFFFFFFF)
 		return 32;
 
-	return __builtin_clz(~value);
+	return (unsigned int)__builtin_clz(~value);
 }
 
 
