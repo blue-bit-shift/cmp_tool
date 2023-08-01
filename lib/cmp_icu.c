@@ -791,9 +791,9 @@ static int configure_encoder_setup(struct encoder_setupt *setup,
 	setup->max_stream_len = cmp_buffer_length_to_bits(cfg->buffer_length, cfg->data_type);
 
 	if (cfg->cmp_mode != CMP_MODE_STUFF) {
-		if (ilog_2(cmp_par) < 0)
+		if (ilog_2(cmp_par) == -1U)
 			return -1;
-		setup->encoder_par2 = (uint32_t)ilog_2(cmp_par);
+		setup->encoder_par2 = ilog_2(cmp_par);
 
 		setup->spillover_par = spillover;
 

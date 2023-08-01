@@ -264,7 +264,7 @@ struct fx_cob_par {
 
 
 int is_a_pow_of_2(unsigned int v);
-int ilog_2(uint32_t x);
+unsigned int ilog_2(uint32_t x);
 
 unsigned int cmp_bit_to_4byte(unsigned int cmp_size_bit);
 

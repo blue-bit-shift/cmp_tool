@@ -196,7 +196,7 @@ static int golomb_decoder(uint32_t code_word, unsigned int m,
  * @returns function pointer to the select decoder function; NULL on failure
  */
 
-static decoder_ptr select_decoder(unsigned int golomb_par)
+static decoder_ptr select_decoder(uint32_t golomb_par)
 {
 	if (!golomb_par)
 		return NULL;
@@ -547,7 +547,7 @@ static int configure_decoder_setup(struct decoder_setup *setup,
 	}
 	setup->max_stream_len = (cfg->buffer_length) * CHAR_BIT;  /* maximum length of the bitstream/icu_output_buf in bits */
 	setup->encoder_par1 = cmp_par; /* encoding parameter 1 */
-	if (ilog_2(cmp_par) < 0)
+	if (ilog_2(cmp_par) == -1U)
 		return -1;
 	setup->encoder_par2 = ilog_2(cmp_par); /* encoding parameter 2 */
 	setup->outlier_par = spillover; /* outlier parameter */

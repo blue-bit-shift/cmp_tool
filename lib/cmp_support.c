@@ -33,12 +33,12 @@
  * @returns the result of floor(log2(x))
  */
 
-int ilog_2(uint32_t x)
+unsigned int ilog_2(uint32_t x)
 {
 	if (!x)
-		return -1;
+		return -1U;
 
-	return 31 - __builtin_clz(x);
+	return 31 - (unsigned int)__builtin_clz(x);
 }
 
 
@@ -360,7 +360,7 @@ uint32_t cmp_icu_max_spill(unsigned int cmp_par)
 	if (!cmp_par || cmp_par > MAX_NON_IMA_GOLOMB_PAR)
 		return 0;
 
-	return (max_cw_bits-1-(unsigned int)ilog_2(cmp_par))*cmp_par + cutoff
+	return (max_cw_bits-1-ilog_2(cmp_par))*cmp_par + cutoff
 		- max_n_sym_offset - 1;
 }
 

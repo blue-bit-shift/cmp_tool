@@ -1697,7 +1697,7 @@ void test_rice_encoder(void)
 	const uint32_t MAX_GOLOMB_PAR = 0x80000000;
 
 	/* test minimum Golomb parameter */
-	value = 0; log2_g_par = (uint32_t)ilog_2(MIN_NON_IMA_GOLOMB_PAR); g_par = 1U << log2_g_par; cw = ~0U;
+	value = 0; log2_g_par = ilog_2(MIN_NON_IMA_GOLOMB_PAR); g_par = 1U << log2_g_par; cw = ~0U;
 	cw_len = rice_encoder(value, g_par, log2_g_par, &cw);
 	TEST_ASSERT_EQUAL_INT(1, cw_len);
 	TEST_ASSERT_EQUAL_HEX(0x0, cw);
@@ -1734,7 +1734,7 @@ void test_rice_encoder(void)
 	TEST_ASSERT_EQUAL_HEX(0xFFFFFFEF, cw);
 
 	/* test maximum Golomb parameter for rice_encoder */
-	value = 0; log2_g_par = (uint32_t)ilog_2(MAX_GOLOMB_PAR); g_par = 1U << log2_g_par; cw = ~0U;
+	value = 0; log2_g_par = ilog_2(MAX_GOLOMB_PAR); g_par = 1U << log2_g_par; cw = ~0U;
 	cw_len = rice_encoder(value, g_par, log2_g_par, &cw);
 	TEST_ASSERT_EQUAL_INT(32, cw_len);
 	TEST_ASSERT_EQUAL_HEX(0x0, cw);
@@ -1766,7 +1766,7 @@ void test_golomb_encoder(void)
 	const uint32_t MAX_GOLOMB_PAR = 0x80000000;
 
 	/* test minimum Golomb parameter */
-	value = 0; g_par = MIN_NON_IMA_GOLOMB_PAR; log2_g_par = (uint32_t)ilog_2(g_par); cw = ~0U;
+	value = 0; g_par = MIN_NON_IMA_GOLOMB_PAR; log2_g_par = ilog_2(g_par); cw = ~0U;
 	cw_len = golomb_encoder(value, g_par, log2_g_par, &cw);
 	TEST_ASSERT_EQUAL_INT(1, cw_len);
 	TEST_ASSERT_EQUAL_HEX(0x0, cw);
@@ -1778,7 +1778,7 @@ void test_golomb_encoder(void)
 
 
 	/* test some arbitrary values with g_par = 16 */
-	value = 0; g_par = 16; log2_g_par = (uint32_t)ilog_2(g_par); cw = ~0U;
+	value = 0; g_par = 16; log2_g_par = ilog_2(g_par); cw = ~0U;
 	cw_len = golomb_encoder(value, g_par, log2_g_par, &cw);
 	TEST_ASSERT_EQUAL_INT(5, cw_len);
 	TEST_ASSERT_EQUAL_HEX(0x0, cw);
@@ -1805,7 +1805,7 @@ void test_golomb_encoder(void)
 
 
 	/* test some arbitrary values with g_par = 3 */
-	value = 0; g_par = 3; log2_g_par = (uint32_t)ilog_2(g_par); cw = ~0U;
+	value = 0; g_par = 3; log2_g_par = ilog_2(g_par); cw = ~0U;
 	cw_len = golomb_encoder(value, g_par, log2_g_par, &cw);
 	TEST_ASSERT_EQUAL_INT(2, cw_len);
 	TEST_ASSERT_EQUAL_HEX(0x0, cw);
@@ -1836,7 +1836,7 @@ void test_golomb_encoder(void)
 	TEST_ASSERT_EQUAL_HEX(0xFFFFFFFB, cw);
 
 	/* test some arbitrary values with g_par = 0x7FFFFFFF */
-	value = 0; g_par = 0x7FFFFFFF; log2_g_par = (uint32_t)ilog_2(g_par); cw = ~0U;
+	value = 0; g_par = 0x7FFFFFFF; log2_g_par = ilog_2(g_par); cw = ~0U;
 	cw_len = golomb_encoder(value, g_par, log2_g_par, &cw);
 	TEST_ASSERT_EQUAL_INT(31, cw_len);
 	TEST_ASSERT_EQUAL_HEX(0x0, cw);
@@ -1857,12 +1857,12 @@ void test_golomb_encoder(void)
 	TEST_ASSERT_EQUAL_HEX(0x80000000, cw);
 
 	/* test maximum Golomb parameter for golomb_encoder */
-	value = 0; g_par = MAX_GOLOMB_PAR; log2_g_par = (uint32_t)ilog_2(g_par); cw = ~0U;
+	value = 0; g_par = MAX_GOLOMB_PAR; log2_g_par = ilog_2(g_par); cw = ~0U;
 	cw_len = golomb_encoder(value, g_par, log2_g_par, &cw);
 	TEST_ASSERT_EQUAL_INT(32, cw_len);
 	TEST_ASSERT_EQUAL_HEX(0x0, cw);
 
-	value = 1; g_par = MAX_GOLOMB_PAR; log2_g_par = (uint32_t)ilog_2(g_par); cw = ~0U;
+	value = 1; g_par = MAX_GOLOMB_PAR; log2_g_par = ilog_2(g_par); cw = ~0U;
 	cw_len = golomb_encoder(value, g_par, log2_g_par, &cw);
 	TEST_ASSERT_EQUAL_INT(32, cw_len);
 	TEST_ASSERT_EQUAL_HEX(0x1, cw);
@@ -1892,7 +1892,7 @@ void test_encode_value_zero(void)
 
 	/* setup the setup */
 	setup.encoder_par1 = 1;
-	setup.encoder_par2 = (uint32_t)ilog_2(setup.encoder_par1);
+	setup.encoder_par2 = ilog_2(setup.encoder_par1);
 	setup.spillover_par = 32;
 	setup.max_data_bits = 32;
 	setup.generate_cw_f = rice_encoder;
@@ -2014,7 +2014,7 @@ void test_encode_value_multi(void)
 
 	/* setup the setup */
 	setup.encoder_par1 = 1;
-	setup.encoder_par2 = (uint32_t)ilog_2(setup.encoder_par1);
+	setup.encoder_par2 = ilog_2(setup.encoder_par1);
 	setup.spillover_par = 16;
 	setup.max_data_bits = 32;
 	setup.generate_cw_f = golomb_encoder;
