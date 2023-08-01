@@ -52,7 +52,6 @@
 #define round_inv(value, round) ((uint32_t)(value) << (round))
 
 
-
 /**
  * @brief implantation of the model update equation
  * @note check before that model_value is not greater than MAX_MODEL_VALUE
@@ -66,6 +65,7 @@
  */
 
 #define cmp_up_model(data, model, model_value, round)								\
+	__extension__												\
 	({													\
 		__typeof__(data) __ret;										\
 		switch (sizeof(data)) {										\
