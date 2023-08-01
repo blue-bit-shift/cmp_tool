@@ -460,12 +460,14 @@ static int put_n_bits32(uint32_t value, unsigned int n_bits, int bit_offset,
  *
  * @param value		value to be encoded
  * @param m		Golomb parameter, only m's which are power of 2 are allowed
+ *			maximum allowed Golomb parameter is 0x80000000
  * @param log2_m	Rice parameter, is log_2(m) calculate outside function
  *			for better performance
  * @param cw		address were the encode code word is stored
  *
  * @returns the length of the formed code word in bits; code word is invalid if
  *	the return value is greater than 32
+ * @warning no check of the validity of the input parameters!
  */
 
 static uint32_t rice_encoder(uint32_t value, uint32_t m, uint32_t log2_m,
@@ -505,6 +507,7 @@ static uint32_t rice_encoder(uint32_t value, uint32_t m, uint32_t log2_m,
  *
  * @returns the length of the formed code word in bits; code word is invalid if
  *	the return value is greater than 32
+ * @warning no check of the validity of the input parameters!
  */
 
 static uint32_t golomb_encoder(uint32_t value, uint32_t m, uint32_t log2_m,

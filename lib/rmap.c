@@ -185,20 +185,6 @@ struct rmap_pkt *rmap_create_packet(void)
 
 
 /**
- * @brief destroys an RMAP packet
- *
- * @param pkt a struct rmap_pkt
- *
- * @note this will NOT deallocate and pointer references assigned by the user
- */
-
-void rmap_destroy_packet(struct rmap_pkt *pkt)
-{
-	free(pkt);
-}
-
-
-/**
  * @brief completely destroys an RMAP packet
  *
  * @param pkt a struct rmap_pkt
@@ -623,8 +609,6 @@ error:
 __extension__
 static int rmap_check_status(uint8_t status)
 {
-
-
 	printf("\tStatus: ");
 
 	switch (status) {

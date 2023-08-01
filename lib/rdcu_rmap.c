@@ -581,7 +581,7 @@ int rdcu_package(uint8_t *blob,
 {
 	int n;
 	int has_data_crc = 0;
-	struct rmap_instruction *ri;
+	const struct rmap_instruction *ri;
 
 
 	if (data_size & 0x3)	/* must be multiple of 4 */
@@ -599,7 +599,7 @@ int rdcu_package(uint8_t *blob,
 	/* allocate space for header, header crc, data, data crc */
 	n = cmd_size + 1;
 
-	ri = (struct rmap_instruction *) &cmd[non_crc_bytes + RMAP_INSTRUCTION];
+	ri = (const struct rmap_instruction *) &cmd[non_crc_bytes + RMAP_INSTRUCTION];
 
 	/* see if the type of command needs a data crc field at the end */
 	switch (ri->cmd) {

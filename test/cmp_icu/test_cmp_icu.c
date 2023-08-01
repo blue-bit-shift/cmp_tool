@@ -1835,6 +1835,26 @@ void test_golomb_encoder(void)
 	TEST_ASSERT_EQUAL_INT(32, cw_len);
 	TEST_ASSERT_EQUAL_HEX(0xFFFFFFFB, cw);
 
+	/* test some arbitrary values with g_par = 0x7FFFFFFF */
+	value = 0; g_par = 0x7FFFFFFF; log2_g_par = (uint32_t)ilog_2(g_par); cw = ~0U;
+	cw_len = golomb_encoder(value, g_par, log2_g_par, &cw);
+	TEST_ASSERT_EQUAL_INT(31, cw_len);
+	TEST_ASSERT_EQUAL_HEX(0x0, cw);
+
+	value = 1;
+	cw_len = golomb_encoder(value, g_par, log2_g_par, &cw);
+	TEST_ASSERT_EQUAL_INT(32, cw_len);
+	TEST_ASSERT_EQUAL_HEX(0x2, cw);
+
+	value = 0x7FFFFFFE;
+	cw_len = golomb_encoder(value, g_par, log2_g_par, &cw);
+	TEST_ASSERT_EQUAL_INT(32, cw_len);
+	TEST_ASSERT_EQUAL_HEX(0x7FFFFFFF, cw);
+
+	value = 0x7FFFFFFF;
+	cw_len = golomb_encoder(value, g_par, log2_g_par, &cw);
+	TEST_ASSERT_EQUAL_INT(32, cw_len);
+	TEST_ASSERT_EQUAL_HEX(0x80000000, cw);
 
 	/* test maximum Golomb parameter for golomb_encoder */
 	value = 0; g_par = MAX_GOLOMB_PAR; log2_g_par = (uint32_t)ilog_2(g_par); cw = ~0U;
@@ -2850,12 +2870,14 @@ void test_compress_s_fx_staff(void)
 	TEST_ASSERT_EQUAL_INT(cmp_size_exp, cmp_size);
 	TEST_ASSERT_FALSE(memcmp(cfg.input_buf, cfg.icu_output_buf, MULTI_ENTRY_HDR_SIZE));
 	hdr = (void *)cfg.icu_output_buf;
-	cmp_data = (uint32_t *)hdr->entry;
+	cmp_data = calloc(4, sizeof(*cmp_data));
+	memcpy(cmp_data, hdr->entry, 4 * sizeof(*cmp_data));
 	TEST_ASSERT_EQUAL_HEX(0x00000080, be32_to_cpu(cmp_data[0]));
 	TEST_ASSERT_EQUAL_HEX(0x00060001, be32_to_cpu(cmp_data[1]));
 	TEST_ASSERT_EQUAL_HEX(0x1E000423, be32_to_cpu(cmp_data[2]));
 	TEST_ASSERT_EQUAL_HEX(0xFFFFE000, be32_to_cpu(cmp_data[3]));
 
+	free(cmp_data);
 	free(cfg.input_buf);
 	free(cfg.icu_output_buf);
 }
@@ -4260,9 +4282,11 @@ void test_cmp_data_to_big_endian_error_cases(void)
 	int cmp_size;
 	int cmp_size_return;
 	uint16_t cmp_data[3] = {0x0123, 0x4567, 0x89AB};
+	uint32_t output_buf[2] = {0};
 	uint8_t *p;
 
-	cfg.icu_output_buf = (uint32_t *)cmp_data;
+	memcpy(output_buf, cmp_data, sizeof(cmp_data));
+	cfg.icu_output_buf = output_buf;
 
 	/* this should work */
 	cfg.data_type = DATA_TYPE_IMAGETTE;
