@@ -133,5 +133,3 @@ Instructions on how to perform compression without headers can be found [here](h
 
     And also check if the updated model is the same  
     `diff compressed/data2_upmodel.dat decompressed/test_data2_upmodel.dat`
-
-j
