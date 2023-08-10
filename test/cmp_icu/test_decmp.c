@@ -20,145 +20,14 @@
 #include <string.h>
 #include <stdlib.h>
 
-#if defined __has_include
-#  if __has_include(<time.h>)
-#    include <time.h>
-#    include <unistd.h>
-#    define HAS_TIME_H 1
-#  endif
-#endif
-
 #include "unity.h"
 
 #include "compiler.h"
-#include "cmp_debug.h"
 #include "cmp_entity.h"
 #include "../../lib/cmp_icu.c" /* .c file included to test static functions */
 #include "../../lib/decmp.c" /* .c file included to test static functions */
 
-
-#define IMAX_BITS(m) ((m)/((m)%255+1) / 255%255*8 + 7-86/((m)%255+12))
-#define RAND_MAX_WIDTH IMAX_BITS(RAND_MAX)
-
-/* TODO: clean up this file */
-
-/**
- * @brief generate a uint32_t random number
- *
- * @return a "random" uint32_t value
- * @see https://stackoverflow.com/a/33021408
- */
-
-uint32_t rand32(void)
-{
-	int i;
-	uint32_t r = 0;
-
-	for (i = 0; i < 32; i += RAND_MAX_WIDTH) {
-		r <<= RAND_MAX_WIDTH;
-		r ^= (unsigned int) rand();
-	}
-	return r;
-}
-
-
-/**
- * returns the needed size of the compression entry header plus the max size of the
- * compressed data if ent ==  NULL if ent is set the size of the compression
- * entry (entity header + compressed data)
- */
-size_t icu_compress_data_entity(struct cmp_entity *ent, const struct cmp_cfg *cfg)
-{
-	size_t s;
-	struct cmp_cfg cfg_cpy;
-	int cmp_size_bits;
-
-	if (!cfg)
-		return 0;
-
-	if (cfg->icu_output_buf)
-		debug_print("Warning the set buffer for the compressed data is ignored! The compressed data are write to the compression entry.");
-
-	s = cmp_cal_size_of_data(cfg->buffer_length, cfg->data_type);
-	if (!s)
-		return 0;
-	/* we round down to the next 4-byte allied address because we access the
-	 * cmp_buffer in uint32_t words
-	 */
-	if (cfg->cmp_mode != CMP_MODE_RAW)
-		s &= ~0x3U;
-
-	s = cmp_ent_create(ent, cfg->data_type, cfg->cmp_mode == CMP_MODE_RAW, s);
-
-	if (!ent || !s)
-		return s;
-
-	cfg_cpy = *cfg;
-	cfg_cpy.icu_output_buf = cmp_ent_get_data_buf(ent);
-	if (!cfg_cpy.icu_output_buf)
-		return 0;
-	cmp_size_bits = icu_compress_data(&cfg_cpy);
-	if (cmp_size_bits < 0)
-		return 0;
-
-	/* XXX overwrite the size of the compression entity with the size of the actual
-	 * size of the compressed data; not all allocated memory is normally used */
-	s = cmp_ent_create(ent, cfg->data_type, cfg->cmp_mode == CMP_MODE_RAW,
-			   cmp_bit_to_4byte(cmp_size_bits));
-
-	if (cmp_ent_write_cmp_pars(ent, cfg, cmp_size_bits))
-		return 0;
-
-
-	return s;
-}
-
-
-void test_cmp_decmp_n_imagette_raw(void)
-{
-	int cmp_size;
-	size_t s, i;
-	struct cmp_cfg cfg = cmp_cfg_icu_create(DATA_TYPE_IMAGETTE, CMP_MODE_RAW, 0, CMP_LOSSLESS);
-	uint16_t data[] = {0, 1, 2, 0x42, INT16_MIN, INT16_MAX, UINT16_MAX};
-	uint32_t *compressed_data;
-	uint16_t *decompressed_data;
-	struct cmp_entity *ent;
-
-	s = cmp_cfg_icu_buffers(&cfg, data, ARRAY_SIZE(data), NULL, NULL,
-				NULL, ARRAY_SIZE(data));
-	TEST_ASSERT_TRUE(s);
-	compressed_data = malloc(s);
-	TEST_ASSERT_TRUE(compressed_data);
-	s = cmp_cfg_icu_buffers(&cfg, data, ARRAY_SIZE(data), NULL, NULL,
-				compressed_data, ARRAY_SIZE(data));
-	TEST_ASSERT_TRUE(s);
-
-	cmp_size = icu_compress_data(&cfg);
-	TEST_ASSERT_EQUAL_INT(sizeof(data)*CHAR_BIT, cmp_size);
-
-	s = cmp_ent_build(NULL, 0, 0, 0, 0, 0, &cfg, cmp_bit_to_4byte(cmp_size));
-	TEST_ASSERT_TRUE(s);
-	ent = malloc(s);
-	TEST_ASSERT_TRUE(ent);
-	s = cmp_ent_build(ent, 0, 0, 0, 0, 0, &cfg, cmp_bit_to_4byte(cmp_size));
-	TEST_ASSERT_TRUE(s);
-	memcpy(cmp_ent_get_data_buf(ent), compressed_data, (cmp_size+7)/8);
-
-	s = decompress_cmp_entiy(ent, NULL, NULL, NULL);
-	TEST_ASSERT_EQUAL_INT(sizeof(data), s);
-	decompressed_data = malloc(s);
-	TEST_ASSERT_TRUE(decompressed_data);
-	s = decompress_cmp_entiy(ent, NULL, NULL, decompressed_data);
-	TEST_ASSERT_EQUAL_INT(sizeof(data), s);
-
-	for (i = 0; i < ARRAY_SIZE(data); ++i)
-		TEST_ASSERT_EQUAL_INT(data[i], decompressed_data[i]);
-
-
-	free(compressed_data);
-	free(ent);
-	free(decompressed_data);
-}
+#define MAX_VALID_CW_LEM 32
 
 
 /**
@@ -194,6 +63,10 @@ void test_count_leading_ones(void)
 	n_leading_bit = count_leading_ones(value);
 	TEST_ASSERT_EQUAL_INT(16, n_leading_bit);
 
+	value = 0xFFFFFFFE;
+	n_leading_bit = count_leading_ones(value);
+	TEST_ASSERT_EQUAL_INT(31, n_leading_bit);
+
 	value = 0xFFFFFFFF;
 	n_leading_bit = count_leading_ones(value);
 	TEST_ASSERT_EQUAL_INT(32, n_leading_bit);
@@ -206,107 +79,622 @@ void test_count_leading_ones(void)
 
 void test_rice_decoder(void)
 {
-	int cw_len;
+	unsigned int cw_len;
 	uint32_t code_word;
-	unsigned int m = ~0;  /* we don't need this value */
+	unsigned int m = ~0U;  /* we don't need this value */
 	unsigned int log2_m;
-	uint32_t decoded_cw;
+	uint32_t decoded_cw = ~0U;
+
+	/* log2_m = 0 test */
+	log2_m = 0;
+
+	code_word = 0;
+	cw_len = rice_decoder(code_word, m, log2_m, &decoded_cw);
+	TEST_ASSERT_EQUAL(1, cw_len);
+	TEST_ASSERT_EQUAL(0, decoded_cw);
+
+	code_word = 0x7FFF; /* 0b0111...11 */
+	cw_len = rice_decoder(code_word, m, log2_m, &decoded_cw);
+	TEST_ASSERT_EQUAL(1, cw_len);
+	TEST_ASSERT_EQUAL(0, decoded_cw);
+
+	code_word = 0x80000000;
+	cw_len = rice_decoder(code_word, m, log2_m, &decoded_cw);
+	TEST_ASSERT_EQUAL(2, cw_len);
+	TEST_ASSERT_EQUAL(1, decoded_cw);
+
+	code_word = 0xFFFFFFFE;
+	cw_len = rice_decoder(code_word, m, log2_m, &decoded_cw);
+	TEST_ASSERT_EQUAL(32, cw_len);
+	TEST_ASSERT_EQUAL(31, decoded_cw);
+
+	/* invalid code word (longer than 32 bit) */
+	code_word = 0xFFFFFFFF;
+	cw_len = rice_decoder(code_word, m, log2_m, &decoded_cw);
+	TEST_ASSERT_GREATER_THAN_UINT(MAX_VALID_CW_LEM, cw_len);
+
+	/* log2_m = 1 test */
+	log2_m = 1;
+
+	code_word = 0;
+	cw_len = rice_decoder(code_word, m, log2_m, &decoded_cw);
+	TEST_ASSERT_EQUAL(2, cw_len);
+	TEST_ASSERT_EQUAL(0, decoded_cw);
+
+	code_word = 0x40000000;
+	cw_len = rice_decoder(code_word, m, log2_m, &decoded_cw);
+	TEST_ASSERT_EQUAL(2, cw_len);
+	TEST_ASSERT_EQUAL(1, decoded_cw);
+
+	code_word = 0XFFFFFFFC;
+	cw_len = rice_decoder(code_word, m, log2_m, &decoded_cw);
+	TEST_ASSERT_EQUAL(32, cw_len);
+	TEST_ASSERT_EQUAL(60, decoded_cw);
+
+	code_word = 0XFFFFFFFD;
+	cw_len = rice_decoder(code_word, m, log2_m, &decoded_cw);
+	TEST_ASSERT_EQUAL(32, cw_len);
+	TEST_ASSERT_EQUAL(61, decoded_cw);
+
+	/* invalid code word (longer than 32 bit) */
+	code_word = 0XFFFFFFFE;
+	cw_len = rice_decoder(code_word, m, log2_m, &decoded_cw);
+	TEST_ASSERT_GREATER_THAN_UINT(MAX_VALID_CW_LEM, cw_len);
+
+	/* log2_m = 31 test */
+	log2_m = 31;
+
+	code_word = 0;
+	cw_len = rice_decoder(code_word, m, log2_m, &decoded_cw);
+	TEST_ASSERT_EQUAL(32, cw_len);
+	TEST_ASSERT_EQUAL(0, decoded_cw);
+
+	code_word = 1;
+	cw_len = rice_decoder(code_word, m, log2_m, &decoded_cw);
+	TEST_ASSERT_EQUAL(32, cw_len);
+	TEST_ASSERT_EQUAL(1, decoded_cw);
+
+	code_word = 0X7FFFFFFE;
+	cw_len = rice_decoder(code_word, m, log2_m, &decoded_cw);
+	TEST_ASSERT_EQUAL(32, cw_len);
+	TEST_ASSERT_EQUAL(0X7FFFFFFE, decoded_cw);
+
+	code_word = 0X7FFFFFFD;
+	cw_len = rice_decoder(code_word, m, log2_m, &decoded_cw);
+	TEST_ASSERT_EQUAL(32, cw_len);
+	TEST_ASSERT_EQUAL(0X7FFFFFFD, decoded_cw);
+
+	/* invalid code word (longer than 32 bit) */
+	code_word = 0X80000000;
+	cw_len = rice_decoder(code_word, m, log2_m, &decoded_cw);
+	TEST_ASSERT_GREATER_THAN_UINT(MAX_VALID_CW_LEM, cw_len);
+
+#if 0
+this case is prevented by an assert
 
 	/* test log_2 to big */
+	log2_m = 32;
+	code_word = 0x00000000;
+	cw_len = rice_decoder(code_word, m, log2_m, &decoded_cw);
+	TEST_ASSERT_EQUAL(0, cw_len);
+
 	code_word = 0xE0000000;
 	log2_m = 33;
 	cw_len = rice_decoder(code_word, m, log2_m, &decoded_cw);
 	TEST_ASSERT_EQUAL(0, cw_len);
+
 	log2_m = UINT_MAX;
 	cw_len = rice_decoder(code_word, m, log2_m, &decoded_cw);
 	TEST_ASSERT_EQUAL(0, cw_len);
-}
-
-
-/**
- * @test re_map_to_pos
- */
-
-void test_re_map_to_pos(void)
-{
-	int j;
-	uint32_t input, result;
-	unsigned int max_value_bits;
-
-	input = INT32_MIN;
-	result = re_map_to_pos(map_to_pos(input, 32));
-	TEST_ASSERT_EQUAL_INT32(input, result);
-
-	input = INT32_MAX;
-	result = re_map_to_pos(map_to_pos(input, 32));
-	TEST_ASSERT_EQUAL_INT32(input, result);
-
-	input = -1;
-	result = re_map_to_pos(map_to_pos(input, 32));
-	TEST_ASSERT_EQUAL_INT32(input, result);
-
-	input = 0;
-	result = re_map_to_pos(map_to_pos(input, 32));
-	TEST_ASSERT_EQUAL_INT32(input, result);
-
-	input = 1; max_value_bits = 6;
-	result = re_map_to_pos(map_to_pos(input, max_value_bits));
-	TEST_ASSERT_EQUAL_INT32(input, result);
-
-	for (j = -16; j < 15; j++) {
-		uint32_t map_val =  map_to_pos(j, 16) & 0x3F;
-		result = re_map_to_pos(map_val);
-		TEST_ASSERT_EQUAL_INT32(j, result);
-	}
-
-	for (j = INT16_MIN; j < INT16_MAX; j++) {
-		uint32_t map_val =  map_to_pos(j, 16) & 0xFFFF;
-
-		result = re_map_to_pos(map_val);
-		TEST_ASSERT_EQUAL_INT32(j, result);
-	}
-#if 0
-	for (j = INT32_MIN; j < INT32_MAX; j++) {
-		result = re_map_to_pos(map_to_pos(j, 32));
-		TEST_ASSERT_EQUAL_INT32(j, result);
-	}
 #endif
 }
 
 
+/**
+ * @test golomb_decoder
+ */
+
+void test_golomb_decoder(void)
+{
+	unsigned int cw_len;
+	uint32_t code_word;
+	unsigned int m;
+	unsigned int log2_m;
+	uint32_t decoded_cw;
+
+	/* m = 1 test */
+	m = 1;
+	log2_m = ilog_2(m);
+
+	code_word = 0;
+	cw_len = golomb_decoder(code_word, m, log2_m, &decoded_cw);
+	TEST_ASSERT_EQUAL(1, cw_len);
+	TEST_ASSERT_EQUAL(0, decoded_cw);
+
+	code_word = 0x7FFF; /* 0b0111...11 */
+	cw_len = golomb_decoder(code_word, m, log2_m, &decoded_cw);
+	TEST_ASSERT_EQUAL(1, cw_len);
+	TEST_ASSERT_EQUAL(0, decoded_cw);
+
+	code_word = 0x80000000;
+	cw_len = golomb_decoder(code_word, m, log2_m, &decoded_cw);
+	TEST_ASSERT_EQUAL(2, cw_len);
+	TEST_ASSERT_EQUAL(1, decoded_cw);
+
+	code_word = 0xFFFFFFFE;
+	cw_len = golomb_decoder(code_word, m, log2_m, &decoded_cw);
+	TEST_ASSERT_EQUAL(32, cw_len);
+	TEST_ASSERT_EQUAL(31, decoded_cw);
+
+	/* invalid code word (longer than 32 bit) */
+	code_word = 0xFFFFFFFF;
+	cw_len = golomb_decoder(code_word, m, log2_m, &decoded_cw);
+	TEST_ASSERT_GREATER_THAN_UINT(MAX_VALID_CW_LEM, cw_len);
+
+
+	/* m = 2 test */
+	m = 2;
+	log2_m = ilog_2(m);
+
+	code_word = 0;
+	cw_len = golomb_decoder(code_word, m, log2_m, &decoded_cw);
+	TEST_ASSERT_EQUAL(2, cw_len);
+	TEST_ASSERT_EQUAL(0, decoded_cw);
+
+	code_word = 0x40000000;
+	cw_len = golomb_decoder(code_word, m, log2_m, &decoded_cw);
+	TEST_ASSERT_EQUAL(2, cw_len);
+	TEST_ASSERT_EQUAL(1, decoded_cw);
+
+	code_word = 0XFFFFFFFC;
+	cw_len = golomb_decoder(code_word, m, log2_m, &decoded_cw);
+	TEST_ASSERT_EQUAL(32, cw_len);
+	TEST_ASSERT_EQUAL(60, decoded_cw);
+
+	code_word = 0XFFFFFFFD;
+	cw_len = golomb_decoder(code_word, m, log2_m, &decoded_cw);
+	TEST_ASSERT_EQUAL(32, cw_len);
+	TEST_ASSERT_EQUAL(61, decoded_cw);
+
+	/* invalid code word (longer than 32 bit) */
+	code_word = 0XFFFFFFFE;
+	cw_len = golomb_decoder(code_word, m, log2_m, &decoded_cw);
+	TEST_ASSERT_GREATER_THAN_UINT(MAX_VALID_CW_LEM, cw_len);
+
+
+	/* m = 3 test */
+	m = 3;
+	log2_m = ilog_2(m);
+
+	code_word = 0;
+	cw_len = golomb_decoder(code_word, m, log2_m, &decoded_cw);
+	TEST_ASSERT_EQUAL(2, cw_len);
+	TEST_ASSERT_EQUAL(0, decoded_cw);
+
+	code_word = 0x40000000;
+	cw_len = golomb_decoder(code_word, m, log2_m, &decoded_cw);
+	TEST_ASSERT_EQUAL(3, cw_len);
+	TEST_ASSERT_EQUAL(1, decoded_cw);
+
+	code_word = 0x60000000;
+	cw_len = golomb_decoder(code_word, m, log2_m, &decoded_cw);
+	TEST_ASSERT_EQUAL(3, cw_len);
+	TEST_ASSERT_EQUAL(2, decoded_cw);
+
+	code_word = 0x80000000;
+	cw_len = golomb_decoder(code_word, m, log2_m, &decoded_cw);
+	TEST_ASSERT_EQUAL(3, cw_len);
+	TEST_ASSERT_EQUAL(3, decoded_cw);
+
+	code_word = 0xA0000000;
+	cw_len = golomb_decoder(code_word, m, log2_m, &decoded_cw);
+	TEST_ASSERT_EQUAL(4, cw_len);
+	TEST_ASSERT_EQUAL(4, decoded_cw);
+
+	code_word = 0XFFFFFFFB;
+	cw_len = golomb_decoder(code_word, m, log2_m, &decoded_cw);
+	TEST_ASSERT_EQUAL(32, cw_len);
+	TEST_ASSERT_EQUAL(89, decoded_cw);
+
+	code_word = 0XFFFFFFFC;
+	cw_len = golomb_decoder(code_word, m, log2_m, &decoded_cw);
+	TEST_ASSERT_EQUAL(32, cw_len);
+	TEST_ASSERT_EQUAL(90, decoded_cw);
+
+	/* invalid code word (longer than 32 bit) */
+	code_word = 0XFFFFFFFD;
+	cw_len = golomb_decoder(code_word, m, log2_m, &decoded_cw);
+	TEST_ASSERT_GREATER_THAN_UINT(MAX_VALID_CW_LEM, cw_len);
+
+
+	/* m = 0x7FFFFFFF test */
+	m = 0x7FFFFFFF;
+	log2_m = ilog_2(m);
+
+	code_word = 0;
+	cw_len = golomb_decoder(code_word, m, log2_m, &decoded_cw);
+	TEST_ASSERT_EQUAL(31, cw_len);
+	TEST_ASSERT_EQUAL(0, decoded_cw);
+
+	code_word = 0x2;
+	cw_len = golomb_decoder(code_word, m, log2_m, &decoded_cw);
+	TEST_ASSERT_EQUAL(32, cw_len);
+	TEST_ASSERT_EQUAL(1, decoded_cw);
+
+	code_word = 0X7FFFFFFF;
+	cw_len = golomb_decoder(code_word, m, log2_m, &decoded_cw);
+	TEST_ASSERT_EQUAL(32, cw_len);
+	TEST_ASSERT_EQUAL(0X7FFFFFFE, decoded_cw);
+
+	code_word = 0X80000000;
+	cw_len = golomb_decoder(code_word, m, log2_m, &decoded_cw);
+	TEST_ASSERT_EQUAL(32, cw_len);
+	TEST_ASSERT_EQUAL(0X7FFFFFFF, decoded_cw);
+
+	/* invalid code word (longer than 32 bit) */
+	code_word = 0X80000001;
+	cw_len = golomb_decoder(code_word, m, log2_m, &decoded_cw);
+	TEST_ASSERT_GREATER_THAN_UINT(MAX_VALID_CW_LEM, cw_len);
+
+
+	/* m = 0x80000000 test */
+	m = 0x80000000;
+	log2_m = ilog_2(m);
+
+	code_word = 0;
+	cw_len = golomb_decoder(code_word, m, log2_m, &decoded_cw);
+	TEST_ASSERT_EQUAL(32, cw_len);
+	TEST_ASSERT_EQUAL(0, decoded_cw);
+
+	code_word = 1;
+	cw_len = golomb_decoder(code_word, m, log2_m, &decoded_cw);
+	TEST_ASSERT_EQUAL(32, cw_len);
+	TEST_ASSERT_EQUAL(1, decoded_cw);
+
+	code_word = 0X7FFFFFFE;
+	cw_len = golomb_decoder(code_word, m, log2_m, &decoded_cw);
+	TEST_ASSERT_EQUAL(32, cw_len);
+	TEST_ASSERT_EQUAL(0X7FFFFFFE, decoded_cw);
+
+	code_word = 0X7FFFFFFD;
+	cw_len = golomb_decoder(code_word, m, log2_m, &decoded_cw);
+	TEST_ASSERT_EQUAL(32, cw_len);
+	TEST_ASSERT_EQUAL(0X7FFFFFFD, decoded_cw);
+
+	/* invalid code word (longer than 32 bit) */
+	code_word = 0X80000000;
+	cw_len = golomb_decoder(code_word, m, log2_m, &decoded_cw);
+	TEST_ASSERT_GREATER_THAN_UINT(MAX_VALID_CW_LEM, cw_len);
+
+#if 0
+	this case is prevented by an assert
+
+	/* test log_2 to big */
+	code_word = 0x00000000;
+	log2_m = 33;
+	cw_len = golomb_decoder(code_word, m, log2_m, &decoded_cw);
+	TEST_ASSERT_EQUAL(0, cw_len);
+#endif
+}
+
+
+/**
+ * @test select_decoder
+ */
+
+void test_select_decoder(void)
+{
+	decoder_ptr decoder;
+	uint32_t golomb_par;
+
+	golomb_par = 1;
+	decoder = select_decoder(golomb_par);
+	TEST_ASSERT_EQUAL(rice_decoder, decoder);
+
+	golomb_par = 0x80000000;
+	decoder = select_decoder(golomb_par);
+	TEST_ASSERT_EQUAL(rice_decoder, decoder);
+
+	golomb_par = 3;
+	decoder = select_decoder(golomb_par);
+	TEST_ASSERT_EQUAL(golomb_decoder, decoder);
+
+	golomb_par = 0x7FFFFFFF;
+	decoder = select_decoder(golomb_par);
+	TEST_ASSERT_EQUAL(golomb_decoder, decoder);
+
+#if 0
+this case is prevented by an assert
+	golomb_par = 0;
+	decoder = select_decoder(golomb_par);
+	TEST_ASSERT_EQUAL(NULL, decoder);
+#endif
+}
+
+
+/**
+ * @test get_n_bits32
+ */
+
+void test_get_n_bits32(void)
+{
+	int bit_pos;
+	uint32_t read_value;
+	unsigned int n_bits;
+	int bit_offset;
+	uint32_t test_data_1[2] = {~0U, ~0U};
+	uint32_t test_data_2[2] = {0, 0};
+	uint32_t test_data_endianness[5]= {0};
+	unsigned int max_stream_len;
+
+	/* init test_data_endianness with big endian data */
+	test_data_endianness[0] = cpu_to_be32(0x01020304);
+	test_data_endianness[1] = cpu_to_be32(0x05060708);
+	test_data_endianness[2] = cpu_to_be32(0x090A0B0C);
+	test_data_endianness[3] = cpu_to_be32(0x0D0E0F10);
+	test_data_endianness[4] = cpu_to_be32(0x11121314);
+
+	/*  read 1 bit  */
+	/* left boarder */
+	read_value = ~0U;
+	n_bits = 1;
+	bit_offset = 0;
+	max_stream_len = 32;
+	bit_pos = get_n_bits32(&read_value, n_bits, bit_offset, test_data_1, max_stream_len);
+	TEST_ASSERT_EQUAL_INT(1, bit_pos);
+	TEST_ASSERT_EQUAL_HEX32(1, read_value);
+
+	bit_pos = get_n_bits32(&read_value, n_bits, bit_offset, test_data_2, max_stream_len);
+	TEST_ASSERT_EQUAL_INT(1, bit_pos);
+	TEST_ASSERT_EQUAL_HEX32(0, read_value);
+
+	/* right boarder */
+	read_value = ~0U;
+	n_bits = 1;
+	bit_offset = 31;
+	max_stream_len = 32;
+	bit_pos = get_n_bits32(&read_value, n_bits, bit_offset, test_data_1, max_stream_len);
+	TEST_ASSERT_EQUAL_INT(32, bit_pos);
+	TEST_ASSERT_EQUAL_HEX32(1, read_value);
+
+	bit_pos = get_n_bits32(&read_value, n_bits, bit_offset, test_data_2, max_stream_len);
+	TEST_ASSERT_EQUAL_INT(32, bit_pos);
+	TEST_ASSERT_EQUAL_HEX32(0, read_value);
+
+	/*  read 32 bit unsegmented */
+	read_value = ~0U;
+	n_bits = 32;
+	bit_offset = 0;
+	max_stream_len = 32;
+	bit_pos = get_n_bits32(&read_value, n_bits, bit_offset, test_data_1, max_stream_len);
+	TEST_ASSERT_EQUAL_INT(32, bit_pos);
+	TEST_ASSERT_EQUAL_HEX32(0xFFFFFFFF, read_value);
+
+	bit_pos = get_n_bits32(&read_value, n_bits, bit_offset, test_data_2, max_stream_len);
+	TEST_ASSERT_EQUAL_INT(32, bit_pos);
+	TEST_ASSERT_EQUAL_HEX32(0, read_value);
+
+	/*  read 32 bit segmented */
+	read_value = ~0U;
+	n_bits = 32;
+	bit_offset = 16;
+	max_stream_len = 64;
+	bit_pos = get_n_bits32(&read_value, n_bits, bit_offset, test_data_1, max_stream_len);
+	TEST_ASSERT_EQUAL_INT(48, bit_pos);
+	TEST_ASSERT_EQUAL_HEX32(0xFFFFFFFF, read_value);
+
+	bit_pos = get_n_bits32(&read_value, n_bits, bit_offset, test_data_2, max_stream_len);
+	TEST_ASSERT_EQUAL_INT(48, bit_pos);
+	TEST_ASSERT_EQUAL_HEX32(0, read_value);
+
+	/*  middle, read 2 bits  */
+	read_value = ~0U;
+	n_bits = 2;
+	bit_offset = 3;
+	max_stream_len = 32;
+	bit_pos = get_n_bits32(&read_value, n_bits, bit_offset, test_data_1, max_stream_len);
+	TEST_ASSERT_EQUAL_INT(5, bit_pos);
+	TEST_ASSERT_EQUAL_HEX32(0x3, read_value);
+
+	bit_pos = get_n_bits32(&read_value, n_bits, bit_offset, test_data_2, max_stream_len);
+	TEST_ASSERT_EQUAL_INT(5, bit_pos);
+	TEST_ASSERT_EQUAL_HEX32(0, read_value);
+
+	/* read 5 bits, unsegmented ***/
+
+		/* left border, write 0 */
+
+	/* test endianness swap */
+	read_value = ~0U;
+	bit_offset = 0;
+	max_stream_len = 160;
+	n_bits = 4;
+	bit_offset = get_n_bits32(&read_value, n_bits, bit_offset, test_data_endianness, max_stream_len);
+	TEST_ASSERT_EQUAL_INT(4, bit_offset);
+	TEST_ASSERT_EQUAL_HEX32(0x0, read_value);
+
+	n_bits = 8;
+	bit_offset = get_n_bits32(&read_value, n_bits, bit_offset, test_data_endianness, max_stream_len);
+	TEST_ASSERT_EQUAL_INT(12, bit_offset);
+	TEST_ASSERT_EQUAL_HEX32(0x10, read_value);
+
+	n_bits = 12;
+	bit_offset = get_n_bits32(&read_value, n_bits, bit_offset, test_data_endianness, max_stream_len);
+	TEST_ASSERT_EQUAL_INT(24, bit_offset);
+	TEST_ASSERT_EQUAL_HEX32(0x203, read_value);
+
+	n_bits = 16;
+	bit_offset = get_n_bits32(&read_value, n_bits, bit_offset, test_data_endianness, max_stream_len);
+	TEST_ASSERT_EQUAL_INT(40, bit_offset);
+	TEST_ASSERT_EQUAL_HEX32(0x0405, read_value);
+
+	n_bits = 20;
+	bit_offset = get_n_bits32(&read_value, n_bits, bit_offset, test_data_endianness, max_stream_len);
+	TEST_ASSERT_EQUAL_INT(60, bit_offset);
+	TEST_ASSERT_EQUAL_HEX32(0x06070, read_value);
+
+	n_bits = 24;
+	bit_offset = get_n_bits32(&read_value, n_bits, bit_offset, test_data_endianness, max_stream_len);
+	TEST_ASSERT_EQUAL_INT(84, bit_offset);
+	TEST_ASSERT_EQUAL_HEX32(0x8090A0, read_value);
+
+	n_bits = 28;
+	bit_offset = get_n_bits32(&read_value, n_bits, bit_offset, test_data_endianness, max_stream_len);
+	TEST_ASSERT_EQUAL_INT(112, bit_offset);
+	TEST_ASSERT_EQUAL_HEX32(0xB0C0D0E, read_value);
+
+	n_bits = 32;
+	bit_offset = get_n_bits32(&read_value, n_bits, bit_offset, test_data_endianness, max_stream_len);
+	TEST_ASSERT_EQUAL_INT(144, bit_offset);
+	TEST_ASSERT_EQUAL_HEX32(0x0F101112, read_value);
+
+	/* read too match */
+	n_bits = 17;
+	bit_offset = get_n_bits32(&read_value, n_bits, bit_offset, test_data_endianness, max_stream_len);
+	TEST_ASSERT_EQUAL_INT(CMP_ERROR_SMALL_BUF, bit_offset);
+
+
+	/* test error cases */
+
+	/* bit_offset lager than max_stream_len */
+	read_value = ~0U;
+	n_bits = 1;
+	max_stream_len = 32;
+	bit_offset = 33;
+	bit_pos = get_n_bits32(&read_value, n_bits, bit_offset, test_data_1, max_stream_len);
+	TEST_ASSERT_EQUAL_INT(CMP_ERROR_SMALL_BUF, bit_pos);
+
+	/* max_stream_len is 0 */
+	bit_offset = 0;
+	n_bits = 1;
+	max_stream_len = 0;
+	bit_pos = get_n_bits32(&read_value, n_bits, bit_offset, test_data_1, max_stream_len);
+	TEST_ASSERT_EQUAL_INT(CMP_ERROR_SMALL_BUF, bit_pos);
+
+	/* overflow test */
+	bit_offset = INT_MAX;
+	n_bits = 5;
+	max_stream_len = 64;
+	bit_pos = get_n_bits32(&read_value, n_bits, bit_offset, test_data_1, max_stream_len);
+	TEST_ASSERT_EQUAL_INT(CMP_ERROR_SMALL_BUF, bit_pos);
+
+#if 0
+this case is prevented by an assert
+
+	/* try to read 0 Bits */
+	read_value = ~0U;
+	n_bits = 0;
+	bit_offset = 0;
+	max_stream_len = sizeof(bitstream) * CHAR_BIT;
+	bit_pos = get_n_bits32(&read_value, n_bits, bit_offset, bitstream, max_stream_len);
+	TEST_ASSERT_EQUAL_INT(0, bit_pos);
+	TEST_ASSERT_EQUAL_HEX32(0, read_value);
+
+
+	/* test pointer to read value is NULL */
+	read_value = ~0U;
+	n_bits = 2;
+	bit_offset = 3;
+	max_stream_len = 32;
+
+	bit_pos = get_n_bits32(NULL, n_bits, bit_offset, test_data_1, max_stream_len);
+	TEST_ASSERT_EQUAL_INT(-1, bit_pos);
+
+	/* n_bits = 0 */
+	n_bits = 0;
+	bit_pos = get_n_bits32(&read_value, n_bits, bit_offset, test_data_1, max_stream_len);
+	TEST_ASSERT_EQUAL_INT(-1, bit_pos);
+
+	/* n_bits = 33 */
+	n_bits = 33;
+	bit_pos = get_n_bits32(&read_value, n_bits, bit_offset, test_data_1, max_stream_len);
+	TEST_ASSERT_EQUAL_INT(-1, bit_pos);
+
+	/* negative bit_offset */
+	bit_offset = -1;
+	bit_pos = get_n_bits32(&read_value, n_bits, bit_offset, test_data_1, max_stream_len);
+	TEST_ASSERT_EQUAL_INT(-1, bit_pos);
+
+	/* bitstream address = NULL */
+	bit_offset = 3;
+	bit_pos = get_n_bits32(&read_value, n_bits, bit_offset, NULL, max_stream_len);
+	TEST_ASSERT_EQUAL_INT(-1, bit_pos);
+#endif
+
+}
+
+
+/**
+ * @test decode_normal
+ */
+
 void test_decode_normal(void)
 {
-	uint32_t decoded_value = ~0;
-	int stream_pos, sample;
+	uint32_t decoded_value = ~0U;
+	int stream_pos, stream_pos_exp, sample;
 	 /* compressed data from 0 to 6; */
 	uint32_t cmp_data[1] = {0x5BBDF7E0};
 	struct decoder_setup setup = {0};
 
-	cpu_to_be32s(cmp_data);
+	cpu_to_be32s(cmp_data); /* compressed data are stored in big-endian */
 
 	setup.decode_cw_f = rice_decoder;
 	setup.encoder_par1 = 1;
 	setup.encoder_par2 = ilog_2(setup.encoder_par1);
 	setup.bitstream_adr = cmp_data;
-	setup.max_stream_len = 32;
+	setup.max_stream_len = 28;
+	setup.max_cw_len = 16;
 
 	stream_pos = 0;
+	stream_pos_exp = 0;
 	for (sample = 0; sample < 7; sample++) {
+		stream_pos_exp += sample+1;
 		stream_pos = decode_normal(&decoded_value, stream_pos, &setup);
+		TEST_ASSERT_EQUAL_INT(stream_pos_exp, stream_pos);
 		TEST_ASSERT_EQUAL_HEX(sample, decoded_value);
 	}
 
-	 /* TODO error case: negative stream_pos */
+
+	/* error cases*/
+	/* error exactly reading over max_stream_len*/
+	stream_pos = decode_normal(&decoded_value, stream_pos, &setup);
+	TEST_ASSERT_EQUAL_INT(CMP_ERROR_SMALL_BUF, stream_pos);
+
+	/* TODO: error non exactly reading over max_stream_len*/
+
+
+	stream_pos = 0;
+	cmp_data[0] = cpu_to_be32(0xFFFF0000); /* not a valid code word for max_cw_len = 16 */
+	setup.max_stream_len = 32;
+	stream_pos = decode_normal(&decoded_value, stream_pos, &setup);
+	TEST_ASSERT_EQUAL_INT(-1, stream_pos);
+
+	stream_pos = 0;
+	cmp_data[0] = cpu_to_be32(0xFFFFFFFF); /* not a valid bitstream */
+	setup.max_stream_len = 32;
+	setup.max_cw_len = 32;
+	stream_pos = decode_normal(&decoded_value, stream_pos, &setup);
+	TEST_ASSERT_EQUAL_INT(-1, stream_pos);
+
+	/* stream_pos = 0; */
+	/* stream_pos = decode_normal(&decoded_value, stream_pos, &setup); */
+
+	/* reading over compressed data length */
 }
 
 
+/**
+ * @test decode_zero
+ */
+
 void test_decode_zero(void)
 {
-	uint32_t decoded_value = ~0;
+	uint32_t decoded_value = ~0U;
 	int stream_pos;
 	uint32_t cmp_data[] = {0x88449FE0};
 	struct decoder_setup setup = {0};
 	struct cmp_cfg cfg = {0};
+	int err;
 
 	cpu_to_be32s(cmp_data);
 
@@ -315,7 +703,7 @@ void test_decode_zero(void)
 	cfg.icu_output_buf = cmp_data;
 	cfg.buffer_length = 4;
 
-	int err = configure_decoder_setup(&setup, 1, 8, CMP_LOSSLESS, 16, &cfg);
+	err = configure_decoder_setup(&setup, 1, 8, CMP_LOSSLESS, 16, &cfg);
 	TEST_ASSERT_FALSE(err);
 
 	stream_pos = 0;
@@ -331,9 +719,14 @@ void test_decode_zero(void)
 	 /* TODO error case: negative stream_pos */
 }
 
+
+/**
+ * @test decode_multi
+ */
+
 void test_decode_multi(void)
 {
-	uint32_t decoded_value = ~0;
+	uint32_t decoded_value = ~0U;
 	int stream_pos;
 	uint32_t cmp_data[] = {0x16B66DF8, 0x84360000};
 	struct decoder_setup setup = {0};
@@ -367,6 +760,217 @@ void test_decode_multi(void)
 	TEST_ASSERT_EQUAL_HEX(0x4223, decoded_value);
 	TEST_ASSERT_EQUAL_INT(47, stream_pos);
 
+
+	/* error cases unencoded_len > 32 */
+	cfg.data_type = DATA_TYPE_IMAGETTE;
+	cfg.cmp_mode = CMP_MODE_DIFF_MULTI;
+	cfg.icu_output_buf = cmp_data;
+	cfg.buffer_length = 8;
+
+	err = configure_decoder_setup(&setup, 3, 8, CMP_LOSSLESS, 16, &cfg);
+	TEST_ASSERT_FALSE(err);
+
+
+	/* 0xFF -> 24 = spill(8)+16 -> unencoded_len = 34 bits */
+	stream_pos = 0;
+	cmp_data[0] = 0xFF000000;
+	cmp_data[1] = 0x00000000;
+	cpu_to_be32s(&cmp_data[0]);
+	cpu_to_be32s(&cmp_data[1]);
+
+	stream_pos = decode_multi(&decoded_value, stream_pos, &setup);
+	TEST_ASSERT_EQUAL_INT(-1, stream_pos);
+
+
+	/* 0xFA -> 16 = spill(8)+8 -> unencoded_len = 17 bits -> larger than
+	 * 16 bit max_used_bits*/
+	stream_pos = 0;
+	cmp_data[0] = 0xFA000000;
+	cmp_data[1] = 0x00000000;
+	cpu_to_be32s(&cmp_data[0]);
+	cpu_to_be32s(&cmp_data[1]);
+
+	stream_pos = decode_multi(&decoded_value, stream_pos, &setup);
+	TEST_ASSERT_EQUAL_INT(-1, stream_pos);
+
+	/* this should work */
+	stream_pos = 0;
+	cmp_data[0] = 0xF9000200;
+	cmp_data[1] = 0x00000000;
+	cpu_to_be32s(&cmp_data[0]);
+	cpu_to_be32s(&cmp_data[1]);
+	stream_pos = decode_multi(&decoded_value, stream_pos, &setup);
+	TEST_ASSERT_EQUAL_INT(7+16, stream_pos);
+	TEST_ASSERT_EQUAL_HEX(0x8001+8, decoded_value);
+
+	/* error cases unencoded_val is not plausible */
+	/* unencoded_len = 4; unencoded_val =0b0011 */
+	stream_pos = 0;
+	cmp_data[0] = 0xEC000000;
+	cmp_data[1] = 0x00000000;
+	cpu_to_be32s(&cmp_data[0]);
+	cpu_to_be32s(&cmp_data[1]);
+	stream_pos = decode_multi(&decoded_value, stream_pos, &setup);
+	TEST_ASSERT_EQUAL_INT(-1, stream_pos);
+
+	/* unencoded_len = 16; unencoded_val =0x3FFF */
+	stream_pos = 0;
+	cmp_data[0] = 0xF87FFE00;
+	cmp_data[1] = 0x00000000;
+	cpu_to_be32s(&cmp_data[0]);
+	cpu_to_be32s(&cmp_data[1]);
+	stream_pos = decode_multi(&decoded_value, stream_pos, &setup);
+	TEST_ASSERT_EQUAL_INT(-1, stream_pos);
+}
+
+
+/**
+ * @test re_map_to_pos
+ */
+
+void test_re_map_to_pos(void)
+{
+	int j;
+	uint32_t input, result;
+	unsigned int max_value_bits;
+
+	input = (uint32_t)INT32_MIN;
+	result = re_map_to_pos(map_to_pos(input, 32));
+	TEST_ASSERT_EQUAL_INT32(input, result);
+
+	input = INT32_MAX;
+	result = re_map_to_pos(map_to_pos(input, 32));
+	TEST_ASSERT_EQUAL_INT32(input, result);
+
+	input = -1U;
+	result = re_map_to_pos(map_to_pos(input, 32));
+	TEST_ASSERT_EQUAL_INT32(input, result);
+
+	input = 0;
+	result = re_map_to_pos(map_to_pos(input, 32));
+	TEST_ASSERT_EQUAL_INT32(input, result);
+
+	input = 1; max_value_bits = 6;
+	result = re_map_to_pos(map_to_pos(input, max_value_bits));
+	TEST_ASSERT_EQUAL_INT32(input, result);
+
+	for (j = -16; j < 15; j++) {
+		uint32_t map_val =  map_to_pos((uint32_t)j, 16) & 0x3F;
+		result = re_map_to_pos(map_val);
+		TEST_ASSERT_EQUAL_INT32(j, result);
+	}
+
+	for (j = INT16_MIN; j < INT16_MAX; j++) {
+		uint32_t map_val =  map_to_pos((uint32_t)j, 16) & 0xFFFF;
+
+		result = re_map_to_pos(map_val);
+		TEST_ASSERT_EQUAL_INT32(j, result);
+	}
+#if 0
+	for (j = INT32_MIN; j < INT32_MAX; j++) {
+		result = re_map_to_pos(map_to_pos((uint32_t)j, 32));
+		TEST_ASSERT_EQUAL_INT32(j, result);
+	}
+#endif
+}
+
+
+/**
+ * returns the needed size of the compression entry header plus the max size of the
+ * compressed data if ent ==  NULL if ent is set the size of the compression
+ * entry (entity header + compressed data)
+ */
+
+size_t icu_compress_data_entity(struct cmp_entity *ent, const struct cmp_cfg *cfg)
+{
+	uint32_t s;
+	struct cmp_cfg cfg_cpy;
+	int cmp_size_bits;
+
+	if (!cfg)
+		return 0;
+
+	if (cfg->icu_output_buf)
+		debug_print("Warning the set buffer for the compressed data is ignored! The compressed data are write to the compression entry.");
+
+	s = cmp_cal_size_of_data(cfg->buffer_length, cfg->data_type);
+	if (!s)
+		return 0;
+	/* we round down to the next 4-byte allied address because we access the
+	 * cmp_buffer in uint32_t words
+	 */
+	if (cfg->cmp_mode != CMP_MODE_RAW)
+		s &= ~0x3U;
+
+	s = cmp_ent_create(ent, cfg->data_type, cfg->cmp_mode == CMP_MODE_RAW, s);
+
+	if (!ent || !s)
+		return s;
+
+	cfg_cpy = *cfg;
+	cfg_cpy.icu_output_buf = cmp_ent_get_data_buf(ent);
+	if (!cfg_cpy.icu_output_buf)
+		return 0;
+	cmp_size_bits = icu_compress_data(&cfg_cpy);
+	if (cmp_size_bits < 0)
+		return 0;
+
+	/* XXX overwrite the size of the compression entity with the size of the actual
+	 * size of the compressed data; not all allocated memory is normally used */
+	s = cmp_ent_create(ent, cfg->data_type, cfg->cmp_mode == CMP_MODE_RAW,
+			   cmp_bit_to_4byte((unsigned int)cmp_size_bits));
+
+	if (cmp_ent_write_cmp_pars(ent, cfg, cmp_size_bits))
+		return 0;
+
+	return s;
+}
+
+
+void test_cmp_decmp_n_imagette_raw(void)
+{
+	int cmp_size, decmp_size;
+	size_t s, i;
+	struct cmp_cfg cfg = cmp_cfg_icu_create(DATA_TYPE_IMAGETTE, CMP_MODE_RAW, 0, CMP_LOSSLESS);
+	uint16_t data[] = {0, 1, 2, 0x42, (uint16_t)INT16_MIN, INT16_MAX, UINT16_MAX};
+	uint32_t *compressed_data;
+	uint16_t *decompressed_data;
+	struct cmp_entity *ent;
+
+	s = cmp_cfg_icu_buffers(&cfg, data, ARRAY_SIZE(data), NULL, NULL,
+				NULL, ARRAY_SIZE(data));
+	TEST_ASSERT_TRUE(s);
+	compressed_data = malloc(s);
+	TEST_ASSERT_TRUE(compressed_data);
+	s = cmp_cfg_icu_buffers(&cfg, data, ARRAY_SIZE(data), NULL, NULL,
+				compressed_data, ARRAY_SIZE(data));
+	TEST_ASSERT_TRUE(s);
+
+	cmp_size = icu_compress_data(&cfg);
+	TEST_ASSERT_EQUAL_INT(sizeof(data)*CHAR_BIT, cmp_size);
+
+	s = cmp_ent_build(NULL, 0, 0, 0, 0, 0, &cfg, (int)cmp_bit_to_4byte((unsigned int)cmp_size));
+	TEST_ASSERT_TRUE(s);
+	ent = malloc(s);
+	TEST_ASSERT_TRUE(ent);
+	s = cmp_ent_build(ent, 0, 0, 0, 0, 0, &cfg, (int)cmp_bit_to_4byte((unsigned int)cmp_size));
+	TEST_ASSERT_TRUE(s);
+	memcpy(cmp_ent_get_data_buf(ent), compressed_data, ((unsigned int)cmp_size+7)/8);
+
+	decmp_size = decompress_cmp_entiy(ent, NULL, NULL, NULL);
+	TEST_ASSERT_EQUAL_INT(sizeof(data), decmp_size);
+	decompressed_data = malloc((size_t)decmp_size);
+	TEST_ASSERT_TRUE(decompressed_data);
+	decmp_size = decompress_cmp_entiy(ent, NULL, NULL, decompressed_data);
+	TEST_ASSERT_EQUAL_INT(sizeof(data), decmp_size);
+
+	for (i = 0; i < ARRAY_SIZE(data); ++i)
+		TEST_ASSERT_EQUAL_INT(data[i], decompressed_data[i]);
+
+
+	free(compressed_data);
+	free(ent);
+	free(decompressed_data);
 }
 
 
@@ -410,12 +1014,11 @@ void test_decompress_imagette_model(void)
 }
 
 
-
 #define DATA_SAMPLES 5
 void test_cmp_decmp_s_fx_diff(void)
 {
 	size_t s;
-	int err;
+	int err, decmp_size;
 
 	struct cmp_entity *ent;
 	const uint32_t MAX_VALUE = ~(~0U << MAX_USED_BITS_V1.s_fx);
@@ -428,7 +1031,7 @@ void test_cmp_decmp_s_fx_diff(void)
 	struct cmp_cfg cfg;
 
 	for (s = 0; s < MULTI_ENTRY_HDR_SIZE; s++)
-		data_to_compress[s] = s;
+		data_to_compress[s] = (uint8_t)s;
 	memcpy(&data_to_compress[MULTI_ENTRY_HDR_SIZE], data_entry, sizeof(data_entry));
 
 	cfg = cmp_cfg_icu_create(DATA_TYPE_S_FX, CMP_MODE_DIFF_MULTI,
@@ -451,13 +1054,13 @@ void test_cmp_decmp_s_fx_diff(void)
 	TEST_ASSERT_TRUE(s);
 
 	/* now decompress the data */
-	s = decompress_cmp_entiy(ent, NULL, NULL, decompressed_data);
-	TEST_ASSERT_EQUAL_INT(cmp_cal_size_of_data(cfg.samples, cfg.data_type), s);
-	decompressed_data = malloc(s); TEST_ASSERT_TRUE(decompressed_data);
-	s = decompress_cmp_entiy(ent, NULL, NULL, decompressed_data);
-	TEST_ASSERT_EQUAL_INT(cmp_cal_size_of_data(cfg.samples, cfg.data_type), s);
+	decmp_size = decompress_cmp_entiy(ent, NULL, NULL, decompressed_data);
+	TEST_ASSERT_EQUAL_INT(cmp_cal_size_of_data(cfg.samples, cfg.data_type), decmp_size);
+	decompressed_data = malloc((size_t)decmp_size); TEST_ASSERT_TRUE(decompressed_data);
+	decmp_size = decompress_cmp_entiy(ent, NULL, NULL, decompressed_data);
+	TEST_ASSERT_EQUAL_INT(cmp_cal_size_of_data(cfg.samples, cfg.data_type), decmp_size);
 
-	TEST_ASSERT_FALSE(memcmp(data_to_compress, decompressed_data, s));
+	TEST_ASSERT_FALSE(memcmp(data_to_compress, decompressed_data, (size_t)decmp_size));
 	/* for (i = 0; i < samples; ++i) { */
 	/* 	printf("%u == %u (round: %u)\n", data[i], decompressed_data[i], round); */
 	/* 	uint32_t mask = ~0U << round; */
@@ -473,172 +1076,10 @@ void test_cmp_decmp_s_fx_diff(void)
 #undef DATA_SAMPLES
 
 
-int my_random(unsigned int min, unsigned int max)
-{
-	TEST_ASSERT(min < max);
-	if (max-min < RAND_MAX)
-		return min + rand() / (RAND_MAX / (max - min + 1ULL) + 1);
-	else
-		return min + rand32() / (UINT32_MAX / (max - min + 1ULL) + 1);
-
-}
-
-/* #include <cmp_io.h> */
-/* void test_imagette_1(void) */
-/* { */
-/* 	size_t i; */
-
-/* 	enum cmp_mode cmp_mode = 1; */
-/* 	uint16_t model_value = 10; */
-/* 	struct cmp_cfg cfg = cmp_cfg_icu_create(DATA_TYPE_IMAGETTE, cmp_mode, model_value, CMP_LOSSLESS); */
-/* 	unsigned int samples = 1; */
-/* 	uint16_t data[1] = {0x8000}; */
-/* 	uint16_t model[1] = {0}; */
-/* 	uint16_t up_model[1] = {0}; */
-/* 	uint16_t de_up_model[1] = {0}; */
-/* 	uint32_t compressed_data[1]; */
-
-/* 	size_t s = cmp_cfg_buffers(&cfg, data, samples, model, up_model, */
-/* 			      compressed_data, 2*samples); */
-/* 	TEST_ASSERT(s > 0); */
-
-/* 	uint32_t golomb_par = 9; */
-/* 	uint32_t spill = 44; */
-
-/* 	cfg.spill = spill; */
-/* 	cfg.golomb_par = golomb_par; */
-/* 	/1* print_cfg(&cfg, 0); *1/ */
-/* 	int cmp_size = icu_compress_data(&cfg, NULL); */
-/* 	TEST_ASSERT(cmp_size > 0); */
-
-
-/* 	s = cmp_ent_build(NULL, 0, 0, 0, 0, 0, &cfg, cmp_size); */
-/* 	TEST_ASSERT_TRUE(s); */
-/* 	struct cmp_entity *ent = malloc(s); */
-/* 	TEST_ASSERT_TRUE(ent); */
-/* 	s = cmp_ent_build(ent, 0, 0, 0, 0, 0, &cfg, cmp_size); */
-/* 	TEST_ASSERT_TRUE(s); */
-/* 	memcpy(cmp_ent_get_data_buf(ent), compressed_data, cmp_bit_to_4byte(cmp_size)); */
-
-/* 	s = decompress_cmp_entiy(ent, model, de_up_model, NULL); */
-/* 	TEST_ASSERT_EQUAL_INT(samples * sizeof(*data), s); */
-/* 	uint16_t *decompressed_data = malloc(s); */
-/* 	TEST_ASSERT_TRUE(decompressed_data); */
-/* 	s = decompress_cmp_entiy(ent, model, de_up_model, decompressed_data); */
-/* 	TEST_ASSERT_EQUAL_INT(samples * sizeof(*data), s); */
-
-/* 	for (i = 0; i < samples; ++i) { */
-/* 		if (data[i] != decompressed_data[i]) */
-/* 			TEST_ASSERT(0); */
-/* 		/1* TEST_ASSERT_EQUAL_HEX16(data[i], decompressed_data[i]); *1/ */
-/* 		/1* TEST_ASSERT_EQUAL_HEX16(up_model[i], de_up_model[i]); *1/ */
-/* 	} */
-
-
-/* 	free(ent); */
-/* 	free(decompressed_data); */
-/* } */
-
-#include <unistd.h>
-#include "cmp_io.h"
-
-void test_imagette_random(void)
-{
-	unsigned int seed;
-	size_t i, s, cmp_data_size;
-	int error;
-	struct cmp_cfg cfg;
-	struct cmp_entity *ent;
-
-	enum cmp_mode cmp_mode = my_random(0, 4);
-	enum cmp_data_type data_type = DATA_TYPE_IMAGETTE;
-	uint16_t model_value = my_random(0, MAX_MODEL_VALUE);
-	uint32_t round = my_random(0, 3);
-	uint32_t samples, compressed_data_len_samples;
-	uint16_t *data, *model = NULL, *up_model = NULL, *de_up_model = NULL;
-
-	/* Seeds the pseudo-random number generator used by rand() */
-#if HAS_TIME_H
-	seed = time(NULL) * getpid();
-#else
-	seed = 1;
-#endif
-	srand(seed);
-	printf("seed: %u\n", seed);
-
-	/* create random test _data */
-	samples = my_random(1, 100000);
-	s = cmp_cal_size_of_data(samples, data_type);
-	data = malloc(s); TEST_ASSERT_TRUE(data);
-	for (i = 0; i < samples; ++i) {
-		data[i] = my_random(0, UINT16_MAX);
-	}
-	if (model_mode_is_used(cmp_mode)) {
-		model = malloc(s); TEST_ASSERT_TRUE(model);
-		up_model = malloc(s); TEST_ASSERT_TRUE(up_model);
-		de_up_model = malloc(s); TEST_ASSERT(de_up_model);
-		for (i = 0; i < samples; ++i) {
-			model[i] = my_random(0, UINT16_MAX);
-		}
-	}
-	compressed_data_len_samples = 6*samples;
-
-	/* create a compression configuration */
-	cfg = cmp_cfg_icu_create(data_type, cmp_mode, model_value, round);
-	TEST_ASSERT(cfg.data_type != DATA_TYPE_UNKNOWN);
-
-
-	cmp_data_size = cmp_cfg_icu_buffers(&cfg, data, samples, model, up_model,
-					    NULL, compressed_data_len_samples);
-	TEST_ASSERT_TRUE(cmp_data_size);
-
-	uint32_t golomb_par = my_random(MIN_IMA_GOLOMB_PAR, MAX_IMA_GOLOMB_PAR);
-	uint32_t max_spill = cmp_ima_max_spill(golomb_par);
-	TEST_ASSERT(max_spill > 1);
-	uint32_t spill = my_random(2, max_spill);
-
-	error = cmp_cfg_icu_imagette(&cfg, golomb_par, spill);
-	TEST_ASSERT_FALSE(error);
-
-	error = cmp_cfg_icu_max_used_bits(&cfg, &MAX_USED_BITS_V1);
-	TEST_ASSERT_FALSE(error);
-
-	/* print_cfg(&cfg, 0); */
-	s = icu_compress_data_entity(NULL, &cfg);
-	TEST_ASSERT_TRUE(s);
-	ent = malloc(s); TEST_ASSERT_TRUE(ent);
-	s = icu_compress_data_entity(ent, &cfg);
-	TEST_ASSERT_TRUE(s);
-
-	s = decompress_cmp_entiy(ent, model, de_up_model, NULL);
-	TEST_ASSERT_EQUAL_INT(samples * sizeof(*data), s);
-	uint16_t *decompressed_data = malloc(s);
-	TEST_ASSERT_TRUE(decompressed_data);
-	s = decompress_cmp_entiy(ent, model, de_up_model, decompressed_data);
-	TEST_ASSERT_EQUAL_INT(samples * sizeof(*data), s);
-
-	for (i = 0; i < samples; ++i) {
-		/* printf("%u == %u (round: %u)\n", data[i], decompressed_data[i], round); */
-		uint32_t mask = ~0U << round;
-		if ((data[i]&mask) != (decompressed_data[i]&mask))
-			TEST_ASSERT(0);
-		if (model_mode_is_used(cmp_mode))
-			if (up_model[i] != de_up_model[i])
-				TEST_ASSERT(0);
-	}
-
-	free(data);
-	free(model);
-	free(up_model);
-	free(de_up_model);
-	free(ent);
-	free(decompressed_data);
-}
-
-
 void test_s_fx_diff(void)
 {
-	size_t s, i;
+	size_t i;
+	int s;
 	uint8_t cmp_entity[88] = {
 		0x80, 0x00, 0x00, 0x09, 0x00, 0x00, 0x58, 0x00, 0x00, 0x20, 0x04, 0xEE, 0x21, 0xBD, 0xB0, 0x1C, 0x04, 0xEE, 0x21, 0xBD, 0xB0, 0x41, 0x00, 0x08, 0x02, 0x08, 0xD0, 0x10, 0x00, 0x01, 0x00, 0x00,
 		0x00, 0x00, 0x0A, 0x00, 0x01, 0x00, 0x00, 0x0A, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -648,9 +1089,11 @@ void test_s_fx_diff(void)
 	uint8_t result_data[32] = {0};
 	struct multi_entry_hdr *hdr = (struct multi_entry_hdr *)result_data;
 	struct s_fx *data = (struct s_fx *)hdr->entry;
+	uint8_t *decompressed_data;
+
 	/* put some dummy data in the header*/
 	for (i = 0; i < sizeof(*hdr); i++)
-		result_data[i] = i;
+		result_data[i] = (uint8_t)i;
 	data[0].exp_flags = 0;
 	data[0].fx = 0;
 	data[1].exp_flags = 1;
@@ -662,11 +1105,11 @@ void test_s_fx_diff(void)
 
 	s = decompress_cmp_entiy((void *)cmp_entity, NULL, NULL, NULL);
 	TEST_ASSERT_EQUAL_INT(sizeof(result_data), s);
-	uint8_t *decompressed_data = malloc(s);
+	decompressed_data = malloc((size_t)s);
 	TEST_ASSERT_TRUE(decompressed_data);
 	s = decompress_cmp_entiy((void *)cmp_entity, NULL, NULL, decompressed_data);
 	TEST_ASSERT_EQUAL_INT(sizeof(result_data), s);
-	for (i = 0; i < s; ++i) {
+	for (i = 0; i < (size_t)s; ++i) {
 		TEST_ASSERT_EQUAL(result_data[i], decompressed_data[i]);
 	}
 	free(decompressed_data);
@@ -675,7 +1118,8 @@ void test_s_fx_diff(void)
 
 void test_s_fx_model(void)
 {
-	size_t s, i;
+	size_t i;
+	int s;
 	uint8_t compressed_data_buf[92] = {
 		0x80, 0x00, 0x00, 0x09, 0x00, 0x00, 0x5C, 0x00, 0x00, 0x20, 0x04, 0xF0, 0xC2, 0xD3, 0x47, 0xE4, 0x04, 0xF0, 0xC2, 0xD3, 0x48, 0x16, 0x00, 0x08, 0x03, 0x08, 0xD0, 0x10, 0x01, 0x01, 0x00, 0x00,
 		0x00, 0x00, 0x0A, 0x00, 0x01, 0x00, 0x00, 0x0A, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -692,6 +1136,11 @@ void test_s_fx_model(void)
 	struct multi_entry_hdr *model_collection = (struct multi_entry_hdr *)model_buf;
 	struct s_fx *model_data = (struct s_fx *)model_collection->entry;
 
+	struct multi_entry_hdr *exp_data_collection;
+	struct s_fx *exp_data;
+	struct multi_entry_hdr *exp_up_model_collection;
+	struct s_fx *exp_updated_model_data;
+
 	memset(model_collection, 0xFF, sizeof(*model_collection));
 	model_data[0].exp_flags = 0;
 	model_data[0].fx = 0;
@@ -702,11 +1151,11 @@ void test_s_fx_model(void)
 	model_data[3].exp_flags = 3;
 	model_data[3].fx = 0xFFFFFF;
 
-	struct multi_entry_hdr *exp_data_collection = (struct multi_entry_hdr *)exp_data_buf;
-	struct s_fx *exp_data = (struct s_fx *)exp_data_collection->entry;
+	exp_data_collection = (struct multi_entry_hdr *)exp_data_buf;
+	exp_data = (struct s_fx *)exp_data_collection->entry;
 	/* put some dummy data in the header */
 	for (i = 0; i < sizeof(*exp_data_collection); i++)
-		exp_data_buf[i] = i;
+		exp_data_buf[i] = (uint8_t)i;
 	exp_data[0].exp_flags = 0;
 	exp_data[0].fx = 0;
 	exp_data[1].exp_flags = 1;
@@ -716,11 +1165,11 @@ void test_s_fx_model(void)
 	exp_data[3].exp_flags = 0;
 	exp_data[3].fx = 0;
 
-	struct multi_entry_hdr *exp_up_model_collection = (struct multi_entry_hdr *)exp_up_model_buf;
-	struct s_fx *exp_updated_model_data = (struct s_fx *)exp_up_model_collection->entry;
+	exp_up_model_collection = (struct multi_entry_hdr *)exp_up_model_buf;
+	exp_updated_model_data = (struct s_fx *)exp_up_model_collection->entry;
 	/* put some dummy data in the header*/
 	for (i = 0; i < sizeof(*exp_up_model_collection); i++)
-		exp_up_model_buf[i] = i;
+		exp_up_model_buf[i] = (uint8_t)i;
 	exp_updated_model_data[0].exp_flags = 0;
 	exp_updated_model_data[0].fx = 0;
 	exp_updated_model_data[1].exp_flags = 2;
@@ -733,130 +1182,8 @@ void test_s_fx_model(void)
 	s = decompress_cmp_entiy(cmp_entity, model_buf, up_model_buf, decompressed_data);
 	TEST_ASSERT_EQUAL_INT(sizeof(exp_data_buf), s);
 
-	TEST_ASSERT_FALSE(memcmp(exp_data_buf, decompressed_data, s));
-	TEST_ASSERT_FALSE(memcmp(exp_up_model_buf, up_model_buf, s));
-}
-
-/* TODO: implement this! */
-void generate_random_test_data(void *data, int samples,
-			       enum cmp_data_type data_type)
-{
-	uint32_t s = cmp_cal_size_of_data(samples, data_type);
-	memset(data, 0x0, s);
-}
-
-
-void test_random_compression_decompression(void)
-{
-	size_t s;
-	struct cmp_cfg cfg = {0};
-	struct cmp_entity *cmp_ent;
-	void *decompressed_data;
-	void *decompressed_up_model = NULL;
-	int error;
-
-	puts("--------------------------------------------------------------");
-
-	/* for (cfg.data_type = DATA_TYPE_IMAGETTE; TODO:!! implement this */
-	/*      cfg.data_type < DATA_TYPE_F_CAM_BACKGROUND+1; cfg.data_type++) { */
-	for (cfg.data_type = DATA_TYPE_IMAGETTE;
-	     cfg.data_type < DATA_TYPE_F_CAM_IMAGETTE_ADAPTIVE+1; cfg.data_type++) {
-		error = cmp_cfg_icu_max_used_bits(&cfg, &MAX_USED_BITS_V1);
-		TEST_ASSERT_FALSE(error);
-		cfg.samples = my_random(1, 0x30000);
-		cfg.buffer_length = (CMP_ENTITY_MAX_SIZE - NON_IMAGETTE_HEADER_SIZE - MULTI_ENTRY_HDR_SIZE)/size_of_a_sample(cfg.data_type);;
-		s = cmp_cal_size_of_data(cfg.samples, cfg.data_type);
-		printf("%s\n", data_type2string(cfg.data_type));
-		TEST_ASSERT_TRUE(s);
-		cfg.input_buf = calloc(1, s);
-		TEST_ASSERT_NOT_NULL(cfg.input_buf);
-		cfg.model_buf = calloc(1, s);
-		TEST_ASSERT_TRUE(cfg.model_buf);
-		decompressed_data = calloc(1, s);
-		TEST_ASSERT_NOT_NULL(decompressed_data);
-		cfg.icu_new_model_buf = calloc(1, s);
-		TEST_ASSERT_TRUE(cfg.icu_new_model_buf);
-		decompressed_up_model = calloc(1, s);
-		TEST_ASSERT_TRUE(decompressed_up_model);
-		cmp_ent = calloc(1, CMP_ENTITY_MAX_SIZE);
-
-		generate_random_test_data(cfg.input_buf, cfg.samples, cfg.data_type);
-		generate_random_test_data(cfg.model_buf, cfg.samples, cfg.data_type);
-
-		cfg.model_value = my_random(0, 16);
-		/* cfg.round = my_random(0,3); /1* XXX *1/ */
-		cfg.round = 0;
-
-		cfg.golomb_par = my_random(MIN_IMA_GOLOMB_PAR, MAX_IMA_GOLOMB_PAR);
-		cfg.ap1_golomb_par = my_random(MIN_IMA_GOLOMB_PAR, MAX_IMA_GOLOMB_PAR);
-		cfg.ap2_golomb_par = my_random(MIN_IMA_GOLOMB_PAR, MAX_IMA_GOLOMB_PAR);
-		cfg.cmp_par_exp_flags = my_random(MIN_NON_IMA_GOLOMB_PAR, MAX_NON_IMA_GOLOMB_PAR);
-		cfg.cmp_par_fx = my_random(MIN_NON_IMA_GOLOMB_PAR, MAX_NON_IMA_GOLOMB_PAR);
-		cfg.cmp_par_ncob = my_random(MIN_NON_IMA_GOLOMB_PAR, MAX_NON_IMA_GOLOMB_PAR);
-		cfg.cmp_par_efx = my_random(MIN_NON_IMA_GOLOMB_PAR, MAX_NON_IMA_GOLOMB_PAR);
-		cfg.cmp_par_ecob = my_random(MIN_NON_IMA_GOLOMB_PAR, MAX_NON_IMA_GOLOMB_PAR);
-		cfg.cmp_par_fx_cob_variance = my_random(MIN_NON_IMA_GOLOMB_PAR, MAX_NON_IMA_GOLOMB_PAR);
-		cfg.cmp_par_mean = my_random(MIN_NON_IMA_GOLOMB_PAR, MAX_NON_IMA_GOLOMB_PAR);
-		cfg.cmp_par_variance = my_random(MIN_NON_IMA_GOLOMB_PAR, MAX_NON_IMA_GOLOMB_PAR);
-		cfg.cmp_par_pixels_error = my_random(MIN_NON_IMA_GOLOMB_PAR, MAX_NON_IMA_GOLOMB_PAR);
-
-		cfg.spill = my_random(MIN_IMA_SPILL, cmp_ima_max_spill(cfg.golomb_par));
-		cfg.ap1_spill = my_random(MIN_IMA_SPILL, cmp_ima_max_spill(cfg.ap1_golomb_par));
-		cfg.ap2_spill = my_random(MIN_IMA_SPILL, cmp_ima_max_spill(cfg.ap2_golomb_par));
-		if (!rdcu_supported_data_type_is_used(cfg.data_type)) {
-			cfg.spill_exp_flags = my_random(MIN_NON_IMA_SPILL, cmp_icu_max_spill(cfg.cmp_par_exp_flags));
-			cfg.spill_fx = my_random(MIN_NON_IMA_SPILL, cmp_icu_max_spill(cfg.cmp_par_fx));
-			cfg.spill_ncob = my_random(MIN_NON_IMA_SPILL, cmp_icu_max_spill(cfg.cmp_par_ncob));
-			cfg.spill_efx = my_random(MIN_NON_IMA_SPILL, cmp_icu_max_spill(cfg.cmp_par_efx));
-			cfg.spill_ecob = my_random(MIN_NON_IMA_SPILL, cmp_icu_max_spill(cfg.cmp_par_ecob));
-			cfg.spill_fx_cob_variance = my_random(MIN_NON_IMA_SPILL, cmp_icu_max_spill(cfg.cmp_par_fx_cob_variance));
-			cfg.spill_mean = my_random(MIN_NON_IMA_SPILL, cmp_icu_max_spill(cfg.cmp_par_mean));
-			cfg.spill_variance = my_random(MIN_NON_IMA_SPILL, cmp_icu_max_spill(cfg.cmp_par_variance));
-			cfg.spill_pixels_error = my_random(MIN_NON_IMA_SPILL, cmp_icu_max_spill(cfg.cmp_par_pixels_error));
-		}
-
-		for (cfg.cmp_mode = CMP_MODE_RAW; cfg.cmp_mode < CMP_MODE_STUFF; cfg.cmp_mode++) {
-			int cmp_size, decompress_size;
-
-			cmp_size = icu_compress_data_entity(cmp_ent, &cfg);
-			if (cmp_size <= 0) {
-				printf("cmp_size: %i\n", cmp_size);
-				cmp_cfg_print(&cfg);
-			}
-			TEST_ASSERT_GREATER_THAN(0, cmp_size);
-
-			/* now decompress the data */
-			decompress_size = decompress_cmp_entiy(cmp_ent, cfg.model_buf,
-							       decompressed_up_model, decompressed_data);
-
-			TEST_ASSERT_EQUAL_INT(s, decompress_size);
-			if (memcmp(cfg.input_buf, decompressed_data, s)) {
-				cmp_cfg_print(&cfg);
-				TEST_ASSERT_FALSE(memcmp(cfg.input_buf, decompressed_data, s));
-			}
-			if (model_mode_is_used(cfg.cmp_mode))
-				TEST_ASSERT_FALSE(memcmp(cfg.icu_new_model_buf, decompressed_up_model, s));
-
-			memset(cmp_ent, 0, CMP_ENTITY_MAX_SIZE);
-			memset(decompressed_data, 0, s);
-			memset(decompressed_up_model, 0, s);
-			memset(cfg.icu_new_model_buf, 0, s);
-		}
-
-		free(cfg.model_buf);
-		cfg.model_buf = NULL;
-		free(cfg.input_buf);
-		cfg.input_buf = NULL;
-		free(cfg.icu_new_model_buf);
-		cfg.icu_new_model_buf = NULL;
-		free(cmp_ent);
-		cmp_ent = NULL;
-		free(decompressed_data);
-		decompressed_data = NULL;
-		free(decompressed_up_model);
-		decompressed_up_model = NULL;
-
-	}
+	TEST_ASSERT_FALSE(memcmp(exp_data_buf, decompressed_data, sizeof(exp_data_buf)));
+	TEST_ASSERT_FALSE(memcmp(exp_up_model_buf, up_model_buf, sizeof(exp_up_model_buf)));
 }
 
 

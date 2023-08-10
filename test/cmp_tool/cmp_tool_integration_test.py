@@ -207,7 +207,7 @@ assert(returncode == EXIT_SUCCESS)
 assert(stderr == "")
 VERSION = stdout.split()[2]
 
-#get cmp_tool parth
+#get cmp_tool path
 returncode, stdout, stderr = call_cmp_tool("")
 assert(returncode == EXIT_FAILURE)
 assert(stderr == "")
@@ -1068,7 +1068,7 @@ def test_sample_used_is_to_big():
                        "Importing compressed data file %s ... DONE\n" % (cmp_file_name) +
                        "Decompress data ... FAILED\n")
 
-            assert(stderr == "Error: Buffer overflow detected.\n")
+            assert(stderr == "Error: The end of the compressed bit stream has been exceeded. Please check that the compression parameters match those used to compress the data and that the compressed data are not corrupted.\n")
 
             assert(returncode == EXIT_FAILURE)
     finally:
@@ -1246,7 +1246,7 @@ def test_header_read_in():
         assert(stdout == CMP_START_STR_DECMP +
                "Importing compressed data file %s ... DONE\n" % (cmp_file_name) +
                "Decompress data ... FAILED\n" )
-        assert(stderr == "Error: Compression mode not supported.\n")
+        assert(stderr == "Error: The compression mode is not supported.\n")
 
     finally:
         del_file(cmp_file_name)
