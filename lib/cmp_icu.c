@@ -458,78 +458,71 @@ static int put_n_bits32(uint32_t value, unsigned int n_bits, int bit_offset,
 /**
  * @brief forms the codeword according to the Rice code
  *
- * @param value		value to be encoded
+ * @param value		value to be encoded (must be smaller or equal than cmp_ima_max_spill(m))
  * @param m		Golomb parameter, only m's which are power of 2 are allowed
  *			maximum allowed Golomb parameter is 0x80000000
- * @param log2_m	Rice parameter, is log_2(m) calculate outside function
+ * @param log2_m	Rice parameter, is ilog_2(m) calculate outside function
  *			for better performance
- * @param cw		address were the encode code word is stored
+ * @param cw		address where the code word is stored
  *
+ * @warning no check of the validity of the input parameters!
  * @returns the length of the formed code word in bits; code word is invalid if
  *	the return value is greater than 32
- * @warning no check of the validity of the input parameters!
  */
 
 static uint32_t rice_encoder(uint32_t value, uint32_t m, uint32_t log2_m,
 			     uint32_t *cw)
 {
-	uint32_t g;  /* quotient of value/m */
-	uint32_t q;  /* quotient code without ending zero */
-	uint32_t r;  /* remainder of value/m */
-	uint32_t rl; /* remainder length */
+	uint32_t q = value >> log2_m;   /* quotient of value/m */
+	uint32_t qc = (1U << q) - 1;    /* quotient code without ending zero */
 
-	g = value >> log2_m; /* quotient, number of leading bits */
-	q = (1U << g) - 1;   /* prepare the quotient code without ending zero */
+	uint32_t r = value & (m-1);     /* remainder of value/m */
+	uint32_t rl = log2_m + 1;       /* length of the remainder (+1 for the 0 in the quotient code) */
 
-	r = value & (m-1);   /* calculate the remainder */
-	rl = log2_m + 1;     /* length of the remainder (+1 for the 0 in the quotient code) */
-	*cw = (q << rl) | r; /* put the quotient and remainder code together */
+	*cw = (qc << (rl & 0x1FU)) | r; /* put the quotient and remainder code together */
 	/*
 	 * NOTE: If log2_m = 31 -> rl = 32, (q << rl) leads to an undefined
 	 * behavior. However, in this case, a valid code with a maximum of 32
-	 * bits can only be formed if q = 0. Any shift with 0 << x always
-	 * results in 0, which forms the correct codeword in this case. For
-	 * performance reasons, this undefined behaviour is not caught.
+	 * bits can only be formed if q = 0 and qc = 0. Any shift with 0 << x always
+	 * results in 0, which forms the correct codeword in this case. To prevent
+	 * undefined behavior, the right shift operand is masked (& 0x1FU)
 	 */
 
-	return rl + g;	      /* calculate the length of the code word */
+	return rl + q;  /* calculate the length of the code word */
 }
 
 
 /**
  * @brief forms a codeword according to the Golomb code
  *
- * @param value		value to be encoded
+ * @param value		value to be encoded (must be smaller or equal than cmp_ima_max_spill(m))
  * @param m		Golomb parameter (have to be bigger than 0)
- * @param log2_m	is log_2(m) calculate outside function for better
- *			performance
- * @param cw		address were the formed code word is stored
+ * @param log2_m	is ilog_2(m) calculate outside function for better performance
+ * @param cw		address where the code word is stored
  *
+ * @warning no check of the validity of the input parameters!
  * @returns the length of the formed code word in bits; code word is invalid if
  *	the return value is greater than 32
- * @warning no check of the validity of the input parameters!
  */
 
 static uint32_t golomb_encoder(uint32_t value, uint32_t m, uint32_t log2_m,
 			       uint32_t *cw)
 {
-	uint32_t len0, b, g, q, lg;
-	uint32_t len;
-	uint32_t cutoff;
-
-	len0 = log2_m + 1;                 /* codeword length in group 0 */
-	cutoff = (1U << (log2_m + 1)) - m; /* members in group 0 */
+	uint32_t len = log2_m + 1;               /* codeword length in group 0 */
+	uint32_t cutoff = (0x2U << log2_m) - m;  /* members in group 0 */
 
 	if (value < cutoff) { /* group 0 */
 		*cw = value;
-		len = len0;
 	} else { /* other groups */
-		g = (value-cutoff) / m; /* this group is which one */
-		b = cutoff << 1;        /* form the base codeword */
-		lg = len0 + g;          /* it has lg remainder bits */
-		q = (1U << g) - 1;      /* prepare the left side in unary */
-		*cw = (q << (len0+1)) + b + (value-cutoff) - g*m; /* composed codeword */
-		len = lg + 1;           /* length of the codeword */
+		uint32_t const reg_mask = 0x1FU;  /* mask for the right shift operand to prevent undefined behavior */
+		uint32_t g = (value-cutoff) / m;  /* group number of same cw length */
+		uint32_t r = (value-cutoff) - g * m; /* member in the group */
+		uint32_t gc = (1U << (g & reg_mask)) - 1; /* prepare the left side in unary */
+		uint32_t b = cutoff << 1;         /* form the base codeword */
+
+		*cw = gc << ((len+1) & reg_mask);  /* composed codeword part 1 */
+		*cw += b + r;                      /* composed codeword part 2 */
+		len += 1 + g;                      /* length of the codeword */
 	}
 	return len;
 }
@@ -2377,6 +2370,7 @@ int icu_compress_data(const struct cmp_cfg *cfg)
 
 	if (raw_mode_is_used(cfg->cmp_mode)) {
 		uint32_t raw_size = cmp_cal_size_of_data(cfg->samples, cfg->data_type);
+
 		if (cfg->icu_output_buf)
 			memcpy(cfg->icu_output_buf, cfg->input_buf, raw_size);
 		bitsize = (int)raw_size * CHAR_BIT; /* convert to bits */

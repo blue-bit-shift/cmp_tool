@@ -354,7 +354,7 @@ uint32_t cmp_icu_max_spill(unsigned int cmp_par)
 {
 	/* the ICU compressor can generate code words with a length of maximal 32 bits. */
 	unsigned int const max_cw_bits = 32;
-	unsigned int const cutoff = (unsigned int)(((uint64_t)1 << (ilog_2(cmp_par)+1)) - cmp_par);
+	unsigned int const cutoff = (0x2U << (ilog_2(cmp_par) & 0x1FU)) - cmp_par;
 	unsigned int const max_n_sym_offset = max_cw_bits/2 - 1;
 
 	if (!cmp_par || cmp_par > MAX_NON_IMA_GOLOMB_PAR)
