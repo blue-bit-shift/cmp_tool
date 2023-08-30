@@ -26,10 +26,6 @@
 #include <rdcu_cmd.h>
 
 
-#define IMA_SAM2BYT                                                            \
-2 /* imagette sample to byte conversion factor; one imagette samples has 16 bits (2 bytes) */
-
-
 /**
  * @brief create an RDCU compression configuration
  *

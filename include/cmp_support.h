@@ -91,6 +91,9 @@
 #define CMP_DEF_IMA_DIFF_RDCU_BUFFER_ADR	0x600000
 
 
+/* imagette sample to byte conversion factor; one imagette samples has 16 bits (2 bytes) */
+#define IMA_SAM2BYT  2
+
 /**
  * @brief options for configuration check functions
  */
