@@ -28,7 +28,9 @@
 #endif
 
 #include "unity.h"
-#include "cmp_icu.h"
+#include "../test_common/test_common.h"
+
+#include <cmp_icu.h>
 #include "../lib/cmp_icu.c" /* this is a hack to test static functions */
 
 
@@ -38,39 +40,20 @@
 
 void setUp(void)
 {
-	unsigned int seed;
+	uint64_t seed;
 	static int n;
 
 #if HAS_TIME_H
-	seed = time(NULL) * getpid();
+	seed = (uint64_t)(time(NULL) ^ getpid()  ^ (intptr_t)&setUp);
 #else
 	seed = 1;
 #endif
 
 	if (!n) {
 		n = 1;
-		srand(seed);
-		printf("seed: %u\n", seed);
+		cmp_rand_seed(seed);
+		printf("seed: %llu\n", seed);
 	}
-}
-
-
-/**
- * @brief generate a random number
- *
- * @param min minimum value (inclusive)
- * @param max maximum value (inclusive)
- *
- * @returns "random" numbers in the range [M, N]
- *
- * @see https://c-faq.com/lib/randrange.html
- */
-
-int random_between(unsigned int min, unsigned int max)
-{
-	TEST_ASSERT(min < max);
-	TEST_ASSERT(max-min <= RAND_MAX);
-	return min + rand() / (RAND_MAX / (max - min + 1) + 1);
 }
 
 
@@ -125,7 +108,7 @@ void test_cmp_cfg_icu_create(void)
 	TEST_ASSERT_EQUAL_INT(DATA_TYPE_UNKNOWN, cfg.data_type);
 	memset(&cfg, 0, sizeof(cfg));
 
-	cmp_mode = -1;
+	cmp_mode = (enum cmp_mode)-1;
 	cfg = cmp_cfg_icu_create(data_type, cmp_mode, model_value, lossy_par);
 	TEST_ASSERT_EQUAL_INT(DATA_TYPE_UNKNOWN, cfg.data_type);
 	memset(&cfg, 0, sizeof(cfg));
@@ -185,10 +168,10 @@ void test_cmp_cfg_icu_create(void)
 	TEST_ASSERT_EQUAL_INT(3, cfg.round);
 
 	/* random test */
-	data_type = random_between(DATA_TYPE_IMAGETTE, biggest_data_type);
-	cmp_mode = random_between(CMP_MODE_RAW, CMP_MODE_STUFF);
-	model_value = random_between(0, MAX_MODEL_VALUE);
-	lossy_par = random_between(CMP_LOSSLESS, MAX_ICU_ROUND);
+	data_type = cmp_rand_between(DATA_TYPE_IMAGETTE, biggest_data_type);
+	cmp_mode = cmp_rand_between(CMP_MODE_RAW, CMP_MODE_STUFF);
+	model_value = cmp_rand_between(0, MAX_MODEL_VALUE);
+	lossy_par = cmp_rand_between(CMP_LOSSLESS, MAX_ICU_ROUND);
 	cfg = cmp_cfg_icu_create(data_type, cmp_mode, model_value, lossy_par);
 	TEST_ASSERT_EQUAL_INT(data_type, cfg.data_type);
 	TEST_ASSERT_EQUAL_INT(cmp_mode, cfg.cmp_mode);
@@ -1217,7 +1200,7 @@ void test_map_to_pos(void)
 	mapped_value = map_to_pos(value_to_map, max_data_bits);
 	TEST_ASSERT_EQUAL_HEX(UINT32_MAX-1, mapped_value);
 
-	value_to_map = INT32_MIN;
+	value_to_map = (uint32_t)INT32_MIN;
 	mapped_value = map_to_pos(value_to_map, max_data_bits);
 	TEST_ASSERT_EQUAL_HEX(UINT32_MAX, mapped_value);
 
@@ -1776,6 +1759,22 @@ void test_golomb_encoder(void)
 	TEST_ASSERT_EQUAL_INT(32, cw_len);
 	TEST_ASSERT_EQUAL_HEX(0xFFFFFFFE, cw);
 
+	/* error case: value larger than allowed */
+	value = 32; g_par = 1; log2_g_par = ilog_2(g_par); cw = ~0U;
+	cw_len = golomb_encoder(value, g_par, log2_g_par, &cw);
+	TEST_ASSERT_GREATER_THAN_UINT(32, cw_len);
+
+	/* error case: value larger than allowed */
+	value = 33; g_par = 1; log2_g_par = ilog_2(g_par); cw = ~0U;
+	cw_len = golomb_encoder(value, g_par, log2_g_par, &cw);
+	TEST_ASSERT_GREATER_THAN_UINT(32, cw_len);
+
+#if 0
+	/* error case: value larger than allowed overflow in returned len */
+	value = UINT32_MAX; g_par = 1; log2_g_par = ilog_2(g_par); cw = ~0U;
+	cw_len = golomb_encoder(value, g_par, log2_g_par, &cw);
+	TEST_ASSERT_GREATER_THAN_UINT(32, cw_len);
+#endif
 
 	/* test some arbitrary values with g_par = 16 */
 	value = 0; g_par = 16; log2_g_par = ilog_2(g_par); cw = ~0U;
@@ -1876,6 +1875,11 @@ void test_golomb_encoder(void)
 	cw_len = golomb_encoder(value, g_par, log2_g_par, &cw);
 	TEST_ASSERT_EQUAL_INT(32, cw_len);
 	TEST_ASSERT_EQUAL_HEX(0x7FFFFFFF, cw);
+
+	value = 0; g_par = 0xFFFFFFFF; log2_g_par = ilog_2(g_par); cw = ~0U;
+	cw_len = golomb_encoder(value, g_par, log2_g_par, &cw);
+	TEST_ASSERT_EQUAL_INT(32, cw_len);
+	TEST_ASSERT_EQUAL_HEX(0x0, cw);
 }
 
 
@@ -1932,7 +1936,7 @@ void test_encode_value_zero(void)
 	TEST_ASSERT_EQUAL_HEX(0x00000000, bitstream[2]);
 
 	/* test overflow */
-	data = INT32_MIN; model = 0;
+	data = (uint32_t)INT32_MIN; model = 0;
 	/* (INT32_MIN)*-2-1+1=0(overflow) -> cw 0 + 0x0000_0000_0000_0000 */
 	stream_len = encode_value_zero(data, model, stream_len, &setup);
 	TEST_ASSERT_EQUAL_INT(91, stream_len);
@@ -2066,7 +2070,7 @@ void test_encode_value_multi(void)
 	TEST_ASSERT_EQUAL_HEX(0x00000000, bitstream[3]);
 
 	/* highest value with multi outlier encoding */
-	data = INT32_MIN; model = 0;
+	data = (uint32_t)INT32_MIN; model = 0;
 	stream_len = encode_value_multi(data, model, stream_len, &setup);
 	TEST_ASSERT_EQUAL_INT(105, stream_len);
 	TEST_ASSERT_EQUAL_HEX(0x5BFFFBFF, bitstream[0]);
@@ -2534,7 +2538,7 @@ void test_compress_imagette_stuff(void)
 
 void test_compress_imagette_raw(void)
 {
-	uint16_t data[] = {0x0, 0x1, 0x23, 0x42, INT16_MIN, INT16_MAX, UINT16_MAX};
+	uint16_t data[] = {0x0, 0x1, 0x23, 0x42, (uint16_t)INT16_MIN, INT16_MAX, UINT16_MAX};
 	uint16_t output_buf[7] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 	struct cmp_cfg cfg = {0};
 	int cmp_size;
@@ -2799,7 +2803,7 @@ void test_compress_s_fx_raw(void)
 	data[3].exp_flags = 0x3;
 	data[3].fx = 0x42;
 	data[4].exp_flags = 0x0;
-	data[4].fx = INT32_MIN;
+	data[4].fx = (uint32_t)INT32_MIN;
 	data[5].exp_flags = 0x3;
 	data[5].fx = INT32_MAX;
 	data[6].exp_flags = 0x1;
@@ -2815,8 +2819,10 @@ void test_compress_s_fx_raw(void)
 	TEST_ASSERT_EQUAL_INT(cmp_size_exp, cmp_size);
 
 	for (i = 0; i < ARRAY_SIZE(data); i++) {
+		struct s_fx *p;
+
 		hdr = (struct multi_entry_hdr *)cfg.icu_output_buf;
-		struct s_fx *p = (struct s_fx *)hdr->entry;
+		p = (struct s_fx *)hdr->entry;
 
 		TEST_ASSERT_EQUAL_HEX(data[i].exp_flags, p[i].exp_flags);
 		TEST_ASSERT_EQUAL_HEX(data[i].fx, cpu_to_be32(p[i].fx));
@@ -2992,7 +2998,8 @@ void test_compress_s_fx_model_multi(void)
 
 void test_compress_s_fx_error_cases(void)
 {
-	int error, cmp_bits, compressed_data_size;
+	int error, cmp_bits;
+	uint32_t compressed_data_size;
 	struct cmp_cfg cfg = {0};
 	uint32_t cmp_par_exp_flags = MAX_NON_IMA_GOLOMB_PAR;
 	uint32_t spillover_exp_flags = 6;
@@ -3053,7 +3060,8 @@ void test_compress_s_fx_error_cases(void)
 
 void test_compress_s_fx_efx_error_cases(void)
 {
-	int error, cmp_bits, compressed_data_size;
+	int error, cmp_bits;
+	uint32_t compressed_data_size;
 	struct cmp_cfg cfg = {0};
 	uint32_t cmp_par_exp_flags = 2;
 	uint32_t spillover_exp_flags = 6;
@@ -3129,7 +3137,8 @@ void test_compress_s_fx_efx_error_cases(void)
 
 void test_compress_s_fx_ncob_error_cases(void)
 {
-	int error, cmp_bits, compressed_data_size;
+	int error, cmp_bits;
+	uint32_t compressed_data_size;
 	struct cmp_cfg cfg = {0};
 	uint32_t cmp_par_exp_flags = 3;
 	uint32_t spillover_exp_flags = 6;
@@ -3212,7 +3221,8 @@ void test_compress_s_fx_ncob_error_cases(void)
 
 void test_compress_s_fx_efx_ncob_ecob_error_cases(void)
 {
-	int error, cmp_bits, compressed_data_size;
+	int error, cmp_bits;
+	uint32_t compressed_data_size;
 	struct cmp_cfg cfg = {0};
 	uint32_t cmp_par_exp_flags = 3;
 	uint32_t spillover_exp_flags = 6;
@@ -3329,7 +3339,8 @@ void test_compress_s_fx_efx_ncob_ecob_error_cases(void)
 
 void test_compress_f_fx_error_cases(void)
 {
-	int error, cmp_bits, compressed_data_size;
+	int error, cmp_bits;
+	uint32_t compressed_data_size;
 	struct cmp_cfg cfg = {0};
 	uint32_t cmp_par_fx = MAX_NON_IMA_GOLOMB_PAR;
 	uint32_t spillover_fx = 8;
@@ -3370,7 +3381,8 @@ void test_compress_f_fx_error_cases(void)
 
 void test_compress_f_fx_efx_error_cases(void)
 {
-	int error, cmp_bits, compressed_data_size;
+	int error, cmp_bits;
+	uint32_t compressed_data_size;
 	struct cmp_cfg cfg = {0};
 	uint32_t cmp_par_fx = 1;
 	uint32_t spillover_fx = 8;
@@ -3431,7 +3443,8 @@ void test_compress_f_fx_efx_error_cases(void)
 
 void test_compress_f_fx_ncob_error_cases(void)
 {
-	int error, cmp_bits, compressed_data_size;
+	int error, cmp_bits;
+	uint32_t compressed_data_size;
 	struct cmp_cfg cfg = {0};
 	uint32_t cmp_par_fx = MAX_NON_IMA_GOLOMB_PAR;
 	uint32_t spillover_fx = 8;
@@ -3495,7 +3508,8 @@ void test_compress_f_fx_ncob_error_cases(void)
 
 void test_compress_f_fx_efx_ncob_ecob(void)
 {
-	int error, cmp_bits, compressed_data_size;
+	int error, cmp_bits;
+	uint32_t compressed_data_size;
 	struct cmp_cfg cfg = {0};
 	uint32_t cmp_par_fx = 1;
 	uint32_t spillover_fx = 8;
@@ -3591,7 +3605,8 @@ void test_compress_f_fx_efx_ncob_ecob(void)
 
 void test_compress_l_fx_error_cases(void)
 {
-	int error, cmp_bits, compressed_data_size;
+	int error, cmp_bits;
+	uint32_t compressed_data_size;
 	struct cmp_cfg cfg = {0};
 	uint32_t cmp_par_exp_flags = 3;
 	uint32_t spillover_exp_flags = 10;
@@ -3665,7 +3680,8 @@ void test_compress_l_fx_error_cases(void)
 
 void test_compress_l_fx_efx_error_cases(void)
 {
-	int error, cmp_bits, compressed_data_size;
+	int error, cmp_bits;
+	uint32_t compressed_data_size;
 	struct cmp_cfg cfg = {0};
 	uint32_t cmp_par_exp_flags = MAX_NON_IMA_GOLOMB_PAR;
 	uint32_t spillover_exp_flags = cmp_icu_max_spill(cmp_par_exp_flags);
@@ -3752,7 +3768,8 @@ void test_compress_l_fx_efx_error_cases(void)
 
 void test_compress_l_fx_ncob_error_cases(void)
 {
-	int error, cmp_bits, compressed_data_size;
+	int error, cmp_bits;
+	uint32_t compressed_data_size;
 	struct cmp_cfg cfg = {0};
 	uint32_t cmp_par_exp_flags = MAX_NON_IMA_GOLOMB_PAR;
 	uint32_t spillover_exp_flags = cmp_icu_max_spill(cmp_par_exp_flags);
@@ -3861,7 +3878,8 @@ void test_compress_l_fx_ncob_error_cases(void)
 
 void test_compress_l_fx_efx_ncob_ecob_error_cases(void)
 {
-	int error, cmp_bits, compressed_data_size;
+	int error, cmp_bits;
+	uint32_t compressed_data_size;
 	struct cmp_cfg cfg = {0};
 	uint32_t cmp_par_exp_flags = MAX_NON_IMA_GOLOMB_PAR;
 	uint32_t spillover_exp_flags = cmp_icu_max_spill(cmp_par_exp_flags);
@@ -4003,7 +4021,8 @@ void test_compress_l_fx_efx_ncob_ecob_error_cases(void)
 
 void test_compress_nc_offset_error_cases(void)
 {
-	int error, cmp_bits, compressed_data_size;
+	int error, cmp_bits;
+	uint32_t compressed_data_size;
 	struct cmp_cfg cfg = {0};
 	uint32_t cmp_par_mean = 1;
 	uint32_t spillover_mean = 2;
@@ -4061,7 +4080,8 @@ void test_compress_nc_offset_error_cases(void)
 
 void test_compress_nc_background_error_cases(void)
 {
-	int error, cmp_bits, compressed_data_size;
+	int error, cmp_bits;
+	uint32_t compressed_data_size;
 	struct cmp_cfg cfg = {0};
 	uint32_t cmp_par_mean = 1;
 	uint32_t spillover_mean = 2;
@@ -4133,7 +4153,8 @@ void test_compress_nc_background_error_cases(void)
 
 void test_compress_smearing_error_cases(void)
 {
-	int error, cmp_bits, compressed_data_size;
+	int error, cmp_bits;
+	uint32_t compressed_data_size;
 	struct cmp_cfg cfg = {0};
 	uint32_t cmp_par_mean = 1;
 	uint32_t spillover_mean = 2;
@@ -4358,7 +4379,7 @@ void test_icu_compress_data_error_cases(void)
 
 void test_zero_escape_mech_is_used(void)
 {
-	int cmp_mode;
+	enum cmp_mode cmp_mode;
 
 	for (cmp_mode = 0; cmp_mode <= CMP_MODE_STUFF; cmp_mode++) {
 		int res = zero_escape_mech_is_used(cmp_mode);

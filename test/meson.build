@@ -33,6 +33,7 @@ subdir('cmp_tool')
 
 unity_dep = dependency('unity', fallback : ['unity', 'unity_dep'])
 
+subdir('test_common')
 subdir('cmp_icu')
 subdir('cmp_decmp')
 subdir('cmp_data_types')
