@@ -18,6 +18,7 @@
 
 
 #include <stdlib.h>
+#include <inttypes.h>
 
 #if defined __has_include
 #  if __has_include(<time.h>)
@@ -52,7 +53,7 @@ void setUp(void)
 	if (!n) {
 		n = 1;
 		cmp_rand_seed(seed);
-		printf("seed: %llu\n", seed);
+		printf("seed: %"PRIu64"\n", seed);
 	}
 }
 
