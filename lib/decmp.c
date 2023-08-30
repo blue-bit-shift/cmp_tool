@@ -119,6 +119,7 @@ static unsigned int rice_decoder(uint32_t code_word, uint32_t m, uint32_t log2_m
 	cw_len = q + 1 + rl; /* Number of 1's + following 0 + remainder length */
 
 	/* get remainder code  */
+	/* mask shift to prevented undefined behaviour in error case cw_len > 32 */
 	code_word >>= (32 - cw_len) & 0x1FU;
 	r = code_word & ((1U << rl) - 1);
 
