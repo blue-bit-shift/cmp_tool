@@ -460,9 +460,9 @@ int cmp_cfg_gen_par_is_invalid(const struct cmp_cfg *cfg, enum check_opt opt)
 /**
  * @brief check if the ICU buffer parameters are invalid
  *
-* @param cfg	pointer to the compressor configuration
-*
-* @returns 0 if the buffer parameters are valid, otherwise invalid
+ * @param cfg	pointer to the compressor configuration
+ *
+ * @returns 0 if the buffer parameters are valid, otherwise invalid
  */
 
 int cmp_cfg_icu_buffers_is_invalid(const struct cmp_cfg *cfg)
@@ -533,9 +533,9 @@ int cmp_cfg_icu_buffers_is_invalid(const struct cmp_cfg *cfg)
 /**
  * @brief check if all entries in the max_used_bits structure are in the allowed range
  *
-* @param max_used_bits	pointer to max_used_bits structure to check
-*
-* @returns 0 if all entries are valid, otherwise one or more entries are invalid
+ * @param max_used_bits	pointer to max_used_bits structure to check
+ *
+ * @returns 0 if all entries are valid, otherwise one or more entries are invalid
  */
 
 
@@ -669,6 +669,9 @@ static int cmp_pars_are_invalid(uint32_t cmp_par, uint32_t spill, enum cmp_mode 
 		break;
 	}
 
+#ifdef SKIP_CMP_PAR_CHECK
+	return 0;
+#endif
 	return cfg_invalid;
 }
 
