@@ -325,15 +325,15 @@ static uint32_t map_to_pos(uint32_t value_to_map, unsigned int max_data_bits)
 
 
 /**
- * @brief put the value of up to 32 bits into a bitstream
+ * @brief put the value of up to 32 bits into a big endian bitstream
  *
- * @param value			the value to put
- * @param n_bits		number of bits to put in the bitstream
+ * @param value			the value to put into the bitstream
+ * @param n_bits		number of bits to put into the bitstream
  * @param bit_offset		bit index where the bits will be put, seen from
  *				the very beginning of the bitstream
  * @param bitstream_adr		this is the pointer to the beginning of the
  *				bitstream (can be NULL)
- * @param max_stream_len	maximum length of the bitstream in bits; is
+ * @param max_stream_len	maximum length of the bitstream in *bits*; is
  *				ignored if bitstream_adr is NULL
  *
  * @returns length in bits of the generated bitstream on success; returns
@@ -344,10 +344,22 @@ static uint32_t map_to_pos(uint32_t value_to_map, unsigned int max_data_bits)
 static int put_n_bits32(uint32_t value, unsigned int n_bits, int bit_offset,
 			uint32_t *bitstream_adr, unsigned int max_stream_len)
 {
+	/*
+	 *                               UNSEGMENTED
+	 * |-----------|XXXXXX|---------------|--------------------------------|
+	 * |-bits_left-|n_bits|-------------------bits_right-------------------|
+	 * ^
+	 * local_adr
+	 *                               SEGMENTED
+	 * |-----------------------------|XXX|XXX|-----------------------------|
+	 * |----------bits_left----------|n_bits-|---------bits_right----------|
+	 */
+	unsigned int bits_left = bit_offset & 0x1F;
+	unsigned int bits_right = 64 - bits_left - n_bits;
+	unsigned int shift_left = 32 - n_bits;
+	int stream_len = (int)(n_bits + (unsigned int)bit_offset);
 	uint32_t *local_adr;
 	uint32_t mask;
-	unsigned int shiftRight, shiftLeft, bitsLeft, bitsRight;
-	int stream_len = (int)(n_bits + (unsigned int)bit_offset); /* overflow results in a negative return value */
 
 	/* Leave in case of erroneous input */
 	if (bit_offset < 0)
@@ -356,11 +368,10 @@ static int put_n_bits32(uint32_t value, unsigned int n_bits, int bit_offset,
 	if (n_bits == 0)
 		return stream_len;
 
-	if (n_bits > 32)
+	if ((int)shift_left < 0)  /* check n_bits <= 32 */
 		return -1;
 
-	/* Do we need to write data to the bitstream? */
-	if (!bitstream_adr)
+	if (!bitstream_adr)  /* Do we need to write data to the bitstream? */
 		return stream_len;
 
 	/* Check if bitstream buffer is large enough */
@@ -369,87 +380,25 @@ static int put_n_bits32(uint32_t value, unsigned int n_bits, int bit_offset,
 		return CMP_ERROR_SMALL_BUF;
 	}
 
-	/* (M) is the n_bits parameter large enough to cover all value bits; the
-	 * calculations can be re-used in the unsegmented code, so we have no overhead
-	 */
-	shiftRight = 32 - n_bits;
-	mask = 0xFFFFFFFFU >> shiftRight;
-	value &= mask;
-
-	/* Separate the bit_offset into word offset (set local_adr pointer) and local bit offset (bitsLeft) */
 	local_adr = bitstream_adr + (bit_offset >> 5);
-	bitsLeft = bit_offset & 0x1F;
 
-	/* Calculate the bitsRight for the unsegmented case. If bitsRight is
-	 * negative we need to split the value over two words
-	 */
-	bitsRight = shiftRight - bitsLeft;
+	/* clear the destination with inverse mask */
+	mask = (0XFFFFFFFFU << shift_left) >> bits_left;
+	*(local_adr) &= ~mask;
 
-	if ((int)bitsRight >= 0) {
-		/*         UNSEGMENTED
-		 *
-		 *|-----------|XXXXX|----------------|
-		 *   bitsLeft    n       bitsRight
-		 *
-		 *  -> to get the mask:
-		 *  shiftRight = bitsLeft + bitsRight = 32 - n
-		 *  shiftLeft = bitsRight = 32 - n - bitsLeft = shiftRight - bitsLeft
-		 */
+	/* put (the first part of) the value into the bitstream */
+	*(local_adr) |= (value << shift_left) >> bits_left;
 
-		shiftLeft = bitsRight;
-
-		/* generate the mask, the bits for the values will be true
-		 * shiftRight = 32 - n_bits; see (M) above!
-		 * mask = (0XFFFFFFFF >> shiftRight) << shiftLeft; see (M) above!
-		 */
-		mask <<= shiftLeft;
-		value <<= shiftLeft;
-
-		/* clear the destination with inverse mask */
-		*(local_adr) &= ~mask;
-
-		/* assign the value */
-		*(local_adr) |= value;
-
-	} else {
-		/*                             SEGMENTED
-		 *
-		 *|-----------------------------|XXX| |XX|------------------------------|
-		 *          bitsLeft              n1   n2          bitsRight
-		 *
-		 *  -> to get the mask part 1:
-		 *  shiftRight = bitsLeft
-		 *  n1 = n - (bitsLeft + n - 32) = 32 - bitsLeft
-		 *
-		 *  -> to get the mask part 2:
-		 *  n2 = bitsLeft + n - 32 = -(32 - n - bitsLeft) = -(bitsRight_UNSEGMENTED)
-		 *  shiftLeft = 32 - n2 = 32 - (bitsLeft + n - 32) = 64 - bitsLeft - n
-		 *
-		 */
-
-		unsigned int n2 = -bitsRight;
-
-		/* part 1: */
-		shiftRight = bitsLeft;
-		mask = 0XFFFFFFFFU >> shiftRight;
-
-		/* clear the destination with inverse mask */
-		*(local_adr) &= ~mask;
-
-		/* assign the value part 1 */
-		*(local_adr) |= (value >> n2);
-
-		/* part 2: */
-		/* adjust address */
-		local_adr += 1;
-		shiftLeft = 32 - n2;
-		mask = 0XFFFFFFFFU >> n2;
+	/* Do we need to split the value over two words (SEGMENTED case) */
+	if (bits_right < 32) {
+		local_adr++;  /* adjust address */
 
 		/* clear the destination */
-		*(local_adr) &= mask;
+		mask = 0XFFFFFFFFU << bits_right;
+		*(local_adr) &= ~mask;
 
-		/* assign the value part 2 */
-		*(local_adr) |= (value << shiftLeft);
+		/* put the 2nd part of the value into the bitstream */
+		*(local_adr) |= value << bits_right;
 	}
 	return stream_len;
 }
