@@ -172,8 +172,10 @@ uint32_t cmp_cfg_icu_buffers(struct cmp_cfg *cfg, void *data_to_compress,
 
 int cmp_cfg_icu_max_used_bits(struct cmp_cfg *cfg, const struct cmp_max_used_bits *max_used_bits)
 {
-	if (cfg)
-		cfg->max_used_bits = max_used_bits;
+	if (!cfg)
+		return -1;
+
+	cfg->max_used_bits = max_used_bits;
 
 	if (cmp_cfg_icu_max_used_bits_out_of_limit(max_used_bits))
 		return -1;
@@ -202,7 +204,10 @@ int cmp_cfg_icu_imagette(struct cmp_cfg *cfg, uint32_t cmp_par,
 	cfg->golomb_par = cmp_par;
 	cfg->spill = spillover_par;
 
-	return cmp_cfg_imagette_is_invalid(cfg, ICU_CHECK);
+	if (cmp_cfg_imagette_is_invalid(cfg, ICU_CHECK))
+		return -1;
+
+	return 0;
 }
 
 
@@ -253,7 +258,10 @@ int cmp_cfg_fx_cob(struct cmp_cfg *cfg,
 	cfg->spill_ecob = spillover_ecob;
 	cfg->spill_fx_cob_variance = spillover_fx_cob_variance;
 
-	return cmp_cfg_fx_cob_is_invalid(cfg);
+	if (cmp_cfg_fx_cob_is_invalid(cfg))
+		return -1;
+
+	return 0;
 }
 
 
@@ -291,7 +299,10 @@ int cmp_cfg_aux(struct cmp_cfg *cfg,
 	cfg->spill_variance = spillover_variance;
 	cfg->spill_pixels_error = spillover_pixels_error;
 
-	return cmp_cfg_aux_is_invalid(cfg);
+	if (cmp_cfg_aux_is_invalid(cfg))
+		return -1;
+
+	return 0;
 }
 
 

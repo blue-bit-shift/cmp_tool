@@ -18,10 +18,34 @@
 
 
 #include <string.h>
+#include <dlfcn.h>
 
 #include <unity.h>
 
 #include <cmp_max_used_bits_list.h>
+
+/* if set the mock malloc will fail (return NULL) */
+static int malloc_fail;
+
+
+/*
+ * mock of the malloc function; can controlled with the global malloc_fail variable
+ * see:https://jayconrod.com/posts/23/tutorial--function-interposition-in-linux
+ */
+
+void* malloc(size_t size)
+{
+    static void* (*real_malloc)(size_t) = NULL;
+
+    if(malloc_fail)
+	    return NULL;
+
+    if (!real_malloc)
+        real_malloc = (void *(*)(size_t))dlsym(RTLD_NEXT, "malloc");
+
+    fprintf(stderr, "malloc(%zu)\n", size);
+    return real_malloc(size);
+}
 
 
 /**
@@ -150,4 +174,10 @@ void test_cmp_max_used_bits_list(void)
 	TEST_ASSERT(!memcmp(p, &i_23, sizeof(struct cmp_max_used_bits)));
 
 	cmp_max_used_bits_list_empty();
+
+	/* error case */
+	malloc_fail = 1;
+	return_val = cmp_max_used_bits_list_add(&i_23);
+	TEST_ASSERT_EQUAL_INT(return_val, -1);
+	malloc_fail = 0;
 }

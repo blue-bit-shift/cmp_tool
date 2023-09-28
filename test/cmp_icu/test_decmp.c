@@ -1197,7 +1197,7 @@ void test_cmp_ent_write_cmp_pars(void)
 	int error;
 	struct cmp_entity *ent;
 	struct cmp_cfg cfg = {0}, cfg_read = {0};
-	int cmp_size_bits;
+	int cmp_size_bits = 93; /* 12 bytes */
 	uint32_t size;
 	struct cmp_max_used_bits max_used_bits = MAX_USED_BITS_SAFE;
 
@@ -1205,7 +1205,6 @@ void test_cmp_ent_write_cmp_pars(void)
 	max_used_bits.version = 42;
 	cmp_max_used_bits_list_add(&max_used_bits);
 
-	cmp_size_bits = 93;
 	/** RAW mode test **/
 	/* create imagette raw mode configuration */
 	cfg.data_type = DATA_TYPE_IMAGETTE;
@@ -1419,7 +1418,7 @@ void test_cmp_ent_write_cmp_pars(void)
 	cfg.cmp_par_mean = 7;
 	cfg.cmp_par_variance = 8;
 	cfg.cmp_par_pixels_error = 9;
-	cfg.max_used_bits = cmp_max_used_bits_list_get(42);
+	cfg.max_used_bits = NULL; /* test without max_used_bits registry */
 
 	/* create a compression entity */
 	size = cmp_ent_create(NULL, cfg.data_type, cfg.cmp_mode == CMP_MODE_RAW, 12);
@@ -1438,7 +1437,7 @@ void test_cmp_ent_write_cmp_pars(void)
 	TEST_ASSERT_EQUAL_INT(cmp_cal_size_of_data(cfg.samples, cfg.data_type), cmp_ent_get_original_size(ent));
 	TEST_ASSERT_EQUAL_INT(cfg.cmp_mode, cmp_ent_get_cmp_mode(ent));
 	TEST_ASSERT_EQUAL_INT(cfg.model_value, cmp_ent_get_model_value(ent));
-	TEST_ASSERT_EQUAL_INT(max_used_bits.version, cmp_ent_get_max_used_bits_version(ent));
+	TEST_ASSERT_EQUAL_INT(0, cmp_ent_get_max_used_bits_version(ent));
 	TEST_ASSERT_EQUAL_INT(cfg.round, cmp_ent_get_lossy_cmp_par(ent));
 
 
@@ -1459,6 +1458,7 @@ void test_cmp_ent_write_cmp_pars(void)
 	TEST_ASSERT_FALSE(error);
 	cfg.icu_output_buf = cmp_ent_get_data_buf(ent); /* quick fix that both cfg are equal */
 	cfg.buffer_length = 12; /* quick fix that both cfg are equal */
+	cfg.max_used_bits = &MAX_USED_BITS_SAFE; /* quick fix that both cfg are equal */
 	TEST_ASSERT_EQUAL_MEMORY(&cfg, &cfg_read, sizeof(struct cmp_cfg));
 
 	free(ent);
