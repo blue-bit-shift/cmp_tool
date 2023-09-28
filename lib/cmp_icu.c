@@ -705,26 +705,15 @@ static uint32_t cmp_buffer_length_to_bits(uint32_t buffer_length, enum cmp_data_
  * @param max_data_bits	how many bits are needed to represent the highest possible value
  * @param cfg		pointer to the compression configuration structure
  *
- * @returns 0 on success; otherwise error
+ * @warning input parameters are not checked for validity
  */
 
-static int configure_encoder_setup(struct encoder_setupt *setup,
-				   uint32_t cmp_par, uint32_t spillover,
-				   uint32_t lossy_par, uint32_t max_data_bits,
-				   const struct cmp_cfg *cfg)
+static void configure_encoder_setup(struct encoder_setupt *setup,
+				    uint32_t cmp_par, uint32_t spillover,
+				    uint32_t lossy_par, uint32_t max_data_bits,
+				    const struct cmp_cfg *cfg)
 {
-	if (!setup)
-		return -1;
-
-	if (!cfg)
-		return -1;
-
-	if (max_data_bits > 32) {
-		debug_print("Error: max_data_bits parameter is bigger than 32 bits.\n");
-		return -1;
-	}
-
-	memset(setup, 0, sizeof(*setup));
+	memset(setup, 0, sizeof(struct encoder_setupt));
 
 	setup->encoder_par1 = cmp_par;
 	setup->max_data_bits = max_data_bits;
@@ -733,10 +722,7 @@ static int configure_encoder_setup(struct encoder_setupt *setup,
 	setup->max_stream_len = cmp_buffer_length_to_bits(cfg->buffer_length, cfg->data_type);
 
 	if (cfg->cmp_mode != CMP_MODE_STUFF) {
-		if (ilog_2(cmp_par) == -1U)
-			return -1;
 		setup->encoder_par2 = ilog_2(cmp_par);
-
 		setup->spillover_par = spillover;
 
 		/* for encoder_par1 which are a power of two we can use the faster rice_encoder */
@@ -759,13 +745,12 @@ static int configure_encoder_setup(struct encoder_setupt *setup,
 		setup->encode_method_f = &encode_value_none;
 		setup->max_data_bits = cmp_par;
 		break;
+	/* LCOV_EXCL_START */
 	case CMP_MODE_RAW:
-	default:
-		return -1;
+		/* CMP_MODE_RAW is already handled before; nothing to do here */
+		break;
+	/* LCOV_EXCL_STOP */
 	}
-
-
-	return 0;
 }
 
 
@@ -782,10 +767,10 @@ static int configure_encoder_setup(struct encoder_setupt *setup,
 
 static int compress_imagette(const struct cmp_cfg *cfg)
 {
-	int err;
 	int stream_len = 0;
 	size_t i;
 	struct encoder_setupt setup;
+	uint32_t max_data_bits;
 
 	uint16_t *data_buf = cfg->input_buf;
 	uint16_t *model_buf = cfg->model_buf;
@@ -799,10 +784,24 @@ static int compress_imagette(const struct cmp_cfg *cfg)
 		up_model_buf = cfg->icu_new_model_buf;
 	}
 
-	err = configure_encoder_setup(&setup, cfg->golomb_par, cfg->spill,
-				      cfg->round, cfg->max_used_bits->nc_imagette, cfg);
-	if (err)
-		return -1;
+	switch (cfg->data_type) {
+	case DATA_TYPE_IMAGETTE:
+	case DATA_TYPE_IMAGETTE_ADAPTIVE:
+		max_data_bits = cfg->max_used_bits->nc_imagette;
+		break;
+	case DATA_TYPE_SAT_IMAGETTE:
+	case DATA_TYPE_SAT_IMAGETTE_ADAPTIVE:
+		max_data_bits = cfg->max_used_bits->saturated_imagette;
+		break;
+	default:
+	case DATA_TYPE_F_CAM_IMAGETTE:
+	case DATA_TYPE_F_CAM_IMAGETTE_ADAPTIVE:
+		max_data_bits = cfg->max_used_bits->fc_imagette;
+		break;
+	}
+
+	configure_encoder_setup(&setup, cfg->golomb_par, cfg->spill, cfg->round,
+				max_data_bits, cfg);
 
 	for (i = 0;; i++) {
 		stream_len = encode_value(data_buf[i], model, stream_len, &setup);
@@ -870,7 +869,6 @@ static int compress_multi_entry_hdr(void **data, void **model, void **up_model,
 
 static int compress_s_fx(const struct cmp_cfg *cfg)
 {
-	int err;
 	int stream_len = 0;
 	size_t i;
 
@@ -895,14 +893,10 @@ static int compress_s_fx(const struct cmp_cfg *cfg)
 		next_model_p = data_buf;
 	}
 
-	err = configure_encoder_setup(&setup_exp_flag, cfg->cmp_par_exp_flags, cfg->spill_exp_flags,
-				      cfg->round, cfg->max_used_bits->s_exp_flags, cfg);
-	if (err)
-		return -1;
-	err = configure_encoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
-				      cfg->round, cfg->max_used_bits->s_fx, cfg);
-	if (err)
-		return -1;
+	configure_encoder_setup(&setup_exp_flag, cfg->cmp_par_exp_flags, cfg->spill_exp_flags,
+				cfg->round, cfg->max_used_bits->s_exp_flags, cfg);
+	configure_encoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
+				cfg->round, cfg->max_used_bits->s_fx, cfg);
 
 	for (i = 0;; i++) {
 		stream_len = encode_value(data_buf[i].exp_flags, model.exp_flags,
@@ -942,7 +936,6 @@ static int compress_s_fx(const struct cmp_cfg *cfg)
 
 static int compress_s_fx_efx(const struct cmp_cfg *cfg)
 {
-	int err;
 	int stream_len = 0;
 	size_t i;
 
@@ -967,18 +960,12 @@ static int compress_s_fx_efx(const struct cmp_cfg *cfg)
 		next_model_p = data_buf;
 	}
 
-	err = configure_encoder_setup(&setup_exp_flag, cfg->cmp_par_exp_flags, cfg->spill_exp_flags,
-				      cfg->round, cfg->max_used_bits->s_exp_flags, cfg);
-	if (err)
-		return -1;
-	err = configure_encoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
-				      cfg->round, cfg->max_used_bits->s_fx, cfg);
-	if (err)
-		return -1;
-	err = configure_encoder_setup(&setup_efx, cfg->cmp_par_efx, cfg->spill_efx,
-				      cfg->round, cfg->max_used_bits->s_efx, cfg);
-	if (err)
-		return -1;
+	configure_encoder_setup(&setup_exp_flag, cfg->cmp_par_exp_flags, cfg->spill_exp_flags,
+				cfg->round, cfg->max_used_bits->s_exp_flags, cfg);
+	configure_encoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
+				cfg->round, cfg->max_used_bits->s_fx, cfg);
+	configure_encoder_setup(&setup_efx, cfg->cmp_par_efx, cfg->spill_efx,
+				cfg->round, cfg->max_used_bits->s_efx, cfg);
 
 	for (i = 0;; i++) {
 		stream_len = encode_value(data_buf[i].exp_flags, model.exp_flags,
@@ -1024,8 +1011,7 @@ static int compress_s_fx_efx(const struct cmp_cfg *cfg)
 
 static int compress_s_fx_ncob(const struct cmp_cfg *cfg)
 {
-	int err;
-	int stream_len = 0;
+		int stream_len = 0;
 	size_t i;
 
 	struct s_fx_ncob *data_buf = cfg->input_buf;
@@ -1049,18 +1035,12 @@ static int compress_s_fx_ncob(const struct cmp_cfg *cfg)
 		next_model_p = data_buf;
 	}
 
-	err = configure_encoder_setup(&setup_exp_flag, cfg->cmp_par_exp_flags, cfg->spill_exp_flags,
-				      cfg->round, cfg->max_used_bits->s_exp_flags, cfg);
-	if (err)
-		return -1;
-	err = configure_encoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
-				      cfg->round, cfg->max_used_bits->s_fx, cfg);
-	if (err)
-		return -1;
-	err = configure_encoder_setup(&setup_ncob, cfg->cmp_par_ncob, cfg->spill_ncob,
-				      cfg->round, cfg->max_used_bits->s_ncob, cfg);
-	if (err)
-		return -1;
+	configure_encoder_setup(&setup_exp_flag, cfg->cmp_par_exp_flags, cfg->spill_exp_flags,
+				cfg->round, cfg->max_used_bits->s_exp_flags, cfg);
+	configure_encoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
+				cfg->round, cfg->max_used_bits->s_fx, cfg);
+	configure_encoder_setup(&setup_ncob, cfg->cmp_par_ncob, cfg->spill_ncob,
+				cfg->round, cfg->max_used_bits->s_ncob, cfg);
 
 	for (i = 0;; i++) {
 		stream_len = encode_value(data_buf[i].exp_flags, model.exp_flags,
@@ -1112,7 +1092,6 @@ static int compress_s_fx_ncob(const struct cmp_cfg *cfg)
 
 static int compress_s_fx_efx_ncob_ecob(const struct cmp_cfg *cfg)
 {
-	int err;
 	int stream_len = 0;
 	size_t i;
 
@@ -1138,26 +1117,16 @@ static int compress_s_fx_efx_ncob_ecob(const struct cmp_cfg *cfg)
 		next_model_p = data_buf;
 	}
 
-	err = configure_encoder_setup(&setup_exp_flag, cfg->cmp_par_exp_flags, cfg->spill_exp_flags,
-				      cfg->round, cfg->max_used_bits->s_exp_flags, cfg);
-	if (err)
-		return -1;
-	err = configure_encoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
-				      cfg->round, cfg->max_used_bits->s_fx, cfg);
-	if (err)
-		return -1;
-	err = configure_encoder_setup(&setup_ncob, cfg->cmp_par_ncob, cfg->spill_ncob,
-				      cfg->round, cfg->max_used_bits->s_ncob, cfg);
-	if (err)
-		return -1;
-	err = configure_encoder_setup(&setup_efx, cfg->cmp_par_efx, cfg->spill_efx,
-				      cfg->round, cfg->max_used_bits->s_efx, cfg);
-	if (err)
-		return -1;
-	err = configure_encoder_setup(&setup_ecob, cfg->cmp_par_ecob, cfg->spill_ecob,
-				      cfg->round, cfg->max_used_bits->s_ecob, cfg);
-	if (err)
-		return -1;
+	configure_encoder_setup(&setup_exp_flag, cfg->cmp_par_exp_flags, cfg->spill_exp_flags,
+				cfg->round, cfg->max_used_bits->s_exp_flags, cfg);
+	configure_encoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
+				cfg->round, cfg->max_used_bits->s_fx, cfg);
+	configure_encoder_setup(&setup_ncob, cfg->cmp_par_ncob, cfg->spill_ncob,
+				cfg->round, cfg->max_used_bits->s_ncob, cfg);
+	configure_encoder_setup(&setup_efx, cfg->cmp_par_efx, cfg->spill_efx,
+				cfg->round, cfg->max_used_bits->s_efx, cfg);
+	configure_encoder_setup(&setup_ecob, cfg->cmp_par_ecob, cfg->spill_ecob,
+				cfg->round, cfg->max_used_bits->s_ecob, cfg);
 
 	for (i = 0;; i++) {
 		stream_len = encode_value(data_buf[i].exp_flags, model.exp_flags,
@@ -1227,7 +1196,6 @@ static int compress_s_fx_efx_ncob_ecob(const struct cmp_cfg *cfg)
 
 static int compress_f_fx(const struct cmp_cfg *cfg)
 {
-	int err;
 	int stream_len = 0;
 	size_t i;
 
@@ -1252,10 +1220,8 @@ static int compress_f_fx(const struct cmp_cfg *cfg)
 		next_model_p = data_buf;
 	}
 
-	err = configure_encoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
-				      cfg->round, cfg->max_used_bits->f_fx, cfg);
-	if (err)
-		return -1;
+	configure_encoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
+				cfg->round, cfg->max_used_bits->f_fx, cfg);
 
 	for (i = 0;; i++) {
 		stream_len = encode_value(data_buf[i].fx, model.fx, stream_len,
@@ -1289,7 +1255,6 @@ static int compress_f_fx(const struct cmp_cfg *cfg)
 
 static int compress_f_fx_efx(const struct cmp_cfg *cfg)
 {
-	int err;
 	int stream_len = 0;
 	size_t i;
 
@@ -1314,14 +1279,10 @@ static int compress_f_fx_efx(const struct cmp_cfg *cfg)
 		next_model_p = data_buf;
 	}
 
-	err = configure_encoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
-				      cfg->round, cfg->max_used_bits->f_fx, cfg);
-	if (err)
-		return -1;
-	err = configure_encoder_setup(&setup_efx, cfg->cmp_par_efx, cfg->spill_efx,
-				      cfg->round, cfg->max_used_bits->f_efx, cfg);
-	if (err)
-		return -1;
+	configure_encoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
+				cfg->round, cfg->max_used_bits->f_fx, cfg);
+	configure_encoder_setup(&setup_efx, cfg->cmp_par_efx, cfg->spill_efx,
+				cfg->round, cfg->max_used_bits->f_efx, cfg);
 
 	for (i = 0;; i++) {
 		stream_len = encode_value(data_buf[i].fx, model.fx, stream_len,
@@ -1361,7 +1322,6 @@ static int compress_f_fx_efx(const struct cmp_cfg *cfg)
 
 static int compress_f_fx_ncob(const struct cmp_cfg *cfg)
 {
-	int err;
 	int stream_len = 0;
 	size_t i;
 
@@ -1386,14 +1346,10 @@ static int compress_f_fx_ncob(const struct cmp_cfg *cfg)
 		next_model_p = data_buf;
 	}
 
-	err = configure_encoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
-				      cfg->round, cfg->max_used_bits->f_fx, cfg);
-	if (err)
-		return -1;
-	err = configure_encoder_setup(&setup_ncob, cfg->cmp_par_ncob, cfg->spill_ncob,
-				      cfg->round, cfg->max_used_bits->f_ncob, cfg);
-	if (err)
-		return -1;
+	configure_encoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
+				cfg->round, cfg->max_used_bits->f_fx, cfg);
+	configure_encoder_setup(&setup_ncob, cfg->cmp_par_ncob, cfg->spill_ncob,
+				cfg->round, cfg->max_used_bits->f_ncob, cfg);
 
 	for (i = 0;; i++) {
 		stream_len = encode_value(data_buf[i].fx, model.fx, stream_len,
@@ -1439,7 +1395,6 @@ static int compress_f_fx_ncob(const struct cmp_cfg *cfg)
 
 static int compress_f_fx_efx_ncob_ecob(const struct cmp_cfg *cfg)
 {
-	int err;
 	int stream_len = 0;
 	size_t i;
 
@@ -1464,22 +1419,14 @@ static int compress_f_fx_efx_ncob_ecob(const struct cmp_cfg *cfg)
 		next_model_p = data_buf;
 	}
 
-	err = configure_encoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
-				      cfg->round, cfg->max_used_bits->f_fx, cfg);
-	if (err)
-		return -1;
-	err = configure_encoder_setup(&setup_ncob, cfg->cmp_par_ncob, cfg->spill_ncob,
-				      cfg->round, cfg->max_used_bits->f_ncob, cfg);
-	if (err)
-		return -1;
-	err = configure_encoder_setup(&setup_efx, cfg->cmp_par_efx, cfg->spill_efx,
-				      cfg->round, cfg->max_used_bits->f_efx, cfg);
-	if (err)
-		return -1;
-	err = configure_encoder_setup(&setup_ecob, cfg->cmp_par_ecob, cfg->spill_ecob,
-				      cfg->round, cfg->max_used_bits->f_ecob, cfg);
-	if (err)
-		return -1;
+	configure_encoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
+				cfg->round, cfg->max_used_bits->f_fx, cfg);
+	configure_encoder_setup(&setup_ncob, cfg->cmp_par_ncob, cfg->spill_ncob,
+				cfg->round, cfg->max_used_bits->f_ncob, cfg);
+	configure_encoder_setup(&setup_efx, cfg->cmp_par_efx, cfg->spill_efx,
+				cfg->round, cfg->max_used_bits->f_efx, cfg);
+	configure_encoder_setup(&setup_ecob, cfg->cmp_par_ecob, cfg->spill_ecob,
+				cfg->round, cfg->max_used_bits->f_ecob, cfg);
 
 	for (i = 0;; i++) {
 		stream_len = encode_value(data_buf[i].fx, model.fx, stream_len,
@@ -1543,7 +1490,6 @@ static int compress_f_fx_efx_ncob_ecob(const struct cmp_cfg *cfg)
 
 static int compress_l_fx(const struct cmp_cfg *cfg)
 {
-	int err;
 	int stream_len = 0;
 	size_t i;
 
@@ -1568,18 +1514,12 @@ static int compress_l_fx(const struct cmp_cfg *cfg)
 		next_model_p = data_buf;
 	}
 
-	err = configure_encoder_setup(&setup_exp_flag, cfg->cmp_par_exp_flags, cfg->spill_exp_flags,
-				      cfg->round, cfg->max_used_bits->l_exp_flags, cfg);
-	if (err)
-		return -1;
-	err = configure_encoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
-				      cfg->round, cfg->max_used_bits->l_fx, cfg);
-	if (err)
-		return -1;
-	err = configure_encoder_setup(&setup_fx_var, cfg->cmp_par_fx_cob_variance, cfg->spill_fx_cob_variance,
-				      cfg->round, cfg->max_used_bits->l_fx_variance, cfg);
-	if (err)
-		return -1;
+	configure_encoder_setup(&setup_exp_flag, cfg->cmp_par_exp_flags, cfg->spill_exp_flags,
+				cfg->round, cfg->max_used_bits->l_exp_flags, cfg);
+	configure_encoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
+				cfg->round, cfg->max_used_bits->l_fx, cfg);
+	configure_encoder_setup(&setup_fx_var, cfg->cmp_par_fx_cob_variance, cfg->spill_fx_cob_variance,
+				cfg->round, cfg->max_used_bits->l_fx_variance, cfg);
 
 	for (i = 0;; i++) {
 		stream_len = encode_value(data_buf[i].exp_flags, model.exp_flags,
@@ -1625,7 +1565,6 @@ static int compress_l_fx(const struct cmp_cfg *cfg)
 
 static int compress_l_fx_efx(const struct cmp_cfg *cfg)
 {
-	int err;
 	int stream_len = 0;
 	size_t i;
 
@@ -1650,22 +1589,14 @@ static int compress_l_fx_efx(const struct cmp_cfg *cfg)
 		next_model_p = data_buf;
 	}
 
-	err = configure_encoder_setup(&setup_exp_flag, cfg->cmp_par_exp_flags, cfg->spill_exp_flags,
-				      cfg->round, cfg->max_used_bits->l_exp_flags, cfg);
-	if (err)
-		return -1;
-	err = configure_encoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
-				      cfg->round, cfg->max_used_bits->l_fx, cfg);
-	if (err)
-		return -1;
-	err = configure_encoder_setup(&setup_efx, cfg->cmp_par_efx, cfg->spill_efx,
-				      cfg->round, cfg->max_used_bits->l_efx, cfg);
-	if (err)
-		return -1;
-	err = configure_encoder_setup(&setup_fx_var, cfg->cmp_par_fx_cob_variance, cfg->spill_fx_cob_variance,
-				      cfg->round, cfg->max_used_bits->l_fx_variance, cfg);
-	if (err)
-		return -1;
+	configure_encoder_setup(&setup_exp_flag, cfg->cmp_par_exp_flags, cfg->spill_exp_flags,
+				cfg->round, cfg->max_used_bits->l_exp_flags, cfg);
+	configure_encoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
+				cfg->round, cfg->max_used_bits->l_fx, cfg);
+	configure_encoder_setup(&setup_efx, cfg->cmp_par_efx, cfg->spill_efx,
+				cfg->round, cfg->max_used_bits->l_efx, cfg);
+	configure_encoder_setup(&setup_fx_var, cfg->cmp_par_fx_cob_variance, cfg->spill_fx_cob_variance,
+				cfg->round, cfg->max_used_bits->l_fx_variance, cfg);
 
 	for (i = 0;; i++) {
 		stream_len = encode_value(data_buf[i].exp_flags, model.exp_flags,
@@ -1717,7 +1648,6 @@ static int compress_l_fx_efx(const struct cmp_cfg *cfg)
 
 static int compress_l_fx_ncob(const struct cmp_cfg *cfg)
 {
-	int err;
 	int stream_len = 0;
 	size_t i;
 
@@ -1743,27 +1673,17 @@ static int compress_l_fx_ncob(const struct cmp_cfg *cfg)
 		next_model_p = data_buf;
 	}
 
-	err = configure_encoder_setup(&setup_exp_flag, cfg->cmp_par_exp_flags, cfg->spill_exp_flags,
-				      cfg->round, cfg->max_used_bits->l_exp_flags, cfg);
-	if (err)
-		return -1;
-	err = configure_encoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
-				      cfg->round, cfg->max_used_bits->l_fx, cfg);
-	if (err)
-		return -1;
-	err = configure_encoder_setup(&setup_ncob, cfg->cmp_par_ncob, cfg->spill_ncob,
-				      cfg->round, cfg->max_used_bits->l_ncob, cfg);
-	if (err)
-		return -1;
+	configure_encoder_setup(&setup_exp_flag, cfg->cmp_par_exp_flags, cfg->spill_exp_flags,
+				cfg->round, cfg->max_used_bits->l_exp_flags, cfg);
+	configure_encoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
+				cfg->round, cfg->max_used_bits->l_fx, cfg);
+	configure_encoder_setup(&setup_ncob, cfg->cmp_par_ncob, cfg->spill_ncob,
+				cfg->round, cfg->max_used_bits->l_ncob, cfg);
 	/* we use compression parameter for both variance data fields */
-	err = configure_encoder_setup(&setup_fx_var, cfg->cmp_par_fx_cob_variance, cfg->spill_fx_cob_variance,
-				      cfg->round, cfg->max_used_bits->l_fx_variance, cfg);
-	if (err)
-		return -1;
-	err = configure_encoder_setup(&setup_cob_var, cfg->cmp_par_fx_cob_variance, cfg->spill_fx_cob_variance,
-				      cfg->round, cfg->max_used_bits->l_cob_variance, cfg);
-	if (err)
-		return -1;
+	configure_encoder_setup(&setup_fx_var, cfg->cmp_par_fx_cob_variance, cfg->spill_fx_cob_variance,
+				cfg->round, cfg->max_used_bits->l_fx_variance, cfg);
+	configure_encoder_setup(&setup_cob_var, cfg->cmp_par_fx_cob_variance, cfg->spill_fx_cob_variance,
+				cfg->round, cfg->max_used_bits->l_cob_variance, cfg);
 
 	for (i = 0;; i++) {
 		stream_len = encode_value(data_buf[i].exp_flags, model.exp_flags,
@@ -1833,7 +1753,6 @@ static int compress_l_fx_ncob(const struct cmp_cfg *cfg)
 
 static int compress_l_fx_efx_ncob_ecob(const struct cmp_cfg *cfg)
 {
-	int err;
 	int stream_len = 0;
 	size_t i;
 
@@ -1859,35 +1778,21 @@ static int compress_l_fx_efx_ncob_ecob(const struct cmp_cfg *cfg)
 		next_model_p = data_buf;
 	}
 
-	err = configure_encoder_setup(&setup_exp_flag, cfg->cmp_par_exp_flags, cfg->spill_exp_flags,
-				      cfg->round, cfg->max_used_bits->l_exp_flags, cfg);
-	if (err)
-		return -1;
-	err = configure_encoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
-				      cfg->round, cfg->max_used_bits->l_fx, cfg);
-	if (err)
-		return -1;
-	err = configure_encoder_setup(&setup_ncob, cfg->cmp_par_ncob, cfg->spill_ncob,
-				      cfg->round, cfg->max_used_bits->l_ncob, cfg);
-	if (err)
-		return -1;
-	err = configure_encoder_setup(&setup_efx, cfg->cmp_par_efx, cfg->spill_efx,
-				      cfg->round, cfg->max_used_bits->l_efx, cfg);
-	if (err)
-		return -1;
-	err = configure_encoder_setup(&setup_ecob, cfg->cmp_par_ecob, cfg->spill_ecob,
-				      cfg->round, cfg->max_used_bits->l_ecob, cfg);
-	if (err)
-		return -1;
+	configure_encoder_setup(&setup_exp_flag, cfg->cmp_par_exp_flags, cfg->spill_exp_flags,
+				cfg->round, cfg->max_used_bits->l_exp_flags, cfg);
+	configure_encoder_setup(&setup_fx, cfg->cmp_par_fx, cfg->spill_fx,
+				cfg->round, cfg->max_used_bits->l_fx, cfg);
+	configure_encoder_setup(&setup_ncob, cfg->cmp_par_ncob, cfg->spill_ncob,
+				cfg->round, cfg->max_used_bits->l_ncob, cfg);
+	configure_encoder_setup(&setup_efx, cfg->cmp_par_efx, cfg->spill_efx,
+				cfg->round, cfg->max_used_bits->l_efx, cfg);
+	configure_encoder_setup(&setup_ecob, cfg->cmp_par_ecob, cfg->spill_ecob,
+				cfg->round, cfg->max_used_bits->l_ecob, cfg);
 	/* we use compression parameter for both variance data fields */
-	err = configure_encoder_setup(&setup_fx_var, cfg->cmp_par_fx_cob_variance, cfg->spill_fx_cob_variance,
-				      cfg->round, cfg->max_used_bits->l_fx_variance, cfg);
-	if (err)
-		return -1;
-	err = configure_encoder_setup(&setup_cob_var, cfg->cmp_par_fx_cob_variance, cfg->spill_fx_cob_variance,
-				      cfg->round, cfg->max_used_bits->l_cob_variance, cfg);
-	if (err)
-		return -1;
+	configure_encoder_setup(&setup_fx_var, cfg->cmp_par_fx_cob_variance, cfg->spill_fx_cob_variance,
+				cfg->round, cfg->max_used_bits->l_fx_variance, cfg);
+	configure_encoder_setup(&setup_cob_var, cfg->cmp_par_fx_cob_variance, cfg->spill_fx_cob_variance,
+				cfg->round, cfg->max_used_bits->l_cob_variance, cfg);
 
 	for (i = 0;; i++) {
 		stream_len = encode_value(data_buf[i].exp_flags, model.exp_flags,
@@ -1974,7 +1879,6 @@ static int compress_l_fx_efx_ncob_ecob(const struct cmp_cfg *cfg)
 
 static int compress_nc_offset(const struct cmp_cfg *cfg)
 {
-	int err;
 	int stream_len = 0;
 	size_t i;
 
@@ -1999,14 +1903,10 @@ static int compress_nc_offset(const struct cmp_cfg *cfg)
 		next_model_p = data_buf;
 	}
 
-	err = configure_encoder_setup(&setup_mean, cfg->cmp_par_mean, cfg->spill_mean,
-				      cfg->round, cfg->max_used_bits->nc_offset_mean, cfg);
-	if (err)
-		return -1;
-	err = configure_encoder_setup(&setup_var, cfg->cmp_par_variance, cfg->spill_variance,
-				      cfg->round, cfg->max_used_bits->nc_offset_variance, cfg);
-	if (err)
-		return -1;
+	configure_encoder_setup(&setup_mean, cfg->cmp_par_mean, cfg->spill_mean,
+				cfg->round, cfg->max_used_bits->nc_offset_mean, cfg);
+	configure_encoder_setup(&setup_var, cfg->cmp_par_variance, cfg->spill_variance,
+				cfg->round, cfg->max_used_bits->nc_offset_variance, cfg);
 
 	for (i = 0;; i++) {
 		stream_len = encode_value(data_buf[i].mean, model.mean,
@@ -2045,7 +1945,6 @@ static int compress_nc_offset(const struct cmp_cfg *cfg)
 
 static int compress_nc_background(const struct cmp_cfg *cfg)
 {
-	int err;
 	int stream_len = 0;
 	size_t i;
 
@@ -2070,18 +1969,12 @@ static int compress_nc_background(const struct cmp_cfg *cfg)
 		next_model_p = data_buf;
 	}
 
-	err = configure_encoder_setup(&setup_mean, cfg->cmp_par_mean, cfg->spill_mean,
-				      cfg->round, cfg->max_used_bits->nc_background_mean, cfg);
-	if (err)
-		return -1;
-	err = configure_encoder_setup(&setup_var, cfg->cmp_par_variance, cfg->spill_variance,
-				      cfg->round, cfg->max_used_bits->nc_background_variance, cfg);
-	if (err)
-		return -1;
-	err = configure_encoder_setup(&setup_pix, cfg->cmp_par_pixels_error, cfg->spill_pixels_error,
-				      cfg->round, cfg->max_used_bits->nc_background_outlier_pixels, cfg);
-	if (err)
-		return -1;
+	configure_encoder_setup(&setup_mean, cfg->cmp_par_mean, cfg->spill_mean,
+				cfg->round, cfg->max_used_bits->nc_background_mean, cfg);
+	configure_encoder_setup(&setup_var, cfg->cmp_par_variance, cfg->spill_variance,
+				cfg->round, cfg->max_used_bits->nc_background_variance, cfg);
+	configure_encoder_setup(&setup_pix, cfg->cmp_par_pixels_error, cfg->spill_pixels_error,
+				cfg->round, cfg->max_used_bits->nc_background_outlier_pixels, cfg);
 
 	for (i = 0;; i++) {
 		stream_len = encode_value(data_buf[i].mean, model.mean,
@@ -2127,7 +2020,6 @@ static int compress_nc_background(const struct cmp_cfg *cfg)
 
 static int compress_smearing(const struct cmp_cfg *cfg)
 {
-	int err;
 	int stream_len = 0;
 	size_t i;
 
@@ -2152,18 +2044,12 @@ static int compress_smearing(const struct cmp_cfg *cfg)
 		next_model_p = data_buf;
 	}
 
-	err = configure_encoder_setup(&setup_mean, cfg->cmp_par_mean, cfg->spill_mean,
-				      cfg->round, cfg->max_used_bits->smearing_mean, cfg);
-	if (err)
-		return -1;
-	err = configure_encoder_setup(&setup_var_mean, cfg->cmp_par_variance, cfg->spill_variance,
-				      cfg->round, cfg->max_used_bits->smearing_variance_mean, cfg);
-	if (err)
-		return -1;
-	err = configure_encoder_setup(&setup_pix, cfg->cmp_par_pixels_error, cfg->spill_pixels_error,
-				      cfg->round, cfg->max_used_bits->smearing_outlier_pixels, cfg);
-	if (err)
-		return -1;
+	configure_encoder_setup(&setup_mean, cfg->cmp_par_mean, cfg->spill_mean,
+				cfg->round, cfg->max_used_bits->smearing_mean, cfg);
+	configure_encoder_setup(&setup_var_mean, cfg->cmp_par_variance, cfg->spill_variance,
+				cfg->round, cfg->max_used_bits->smearing_variance_mean, cfg);
+	configure_encoder_setup(&setup_pix, cfg->cmp_par_pixels_error, cfg->spill_pixels_error,
+				cfg->round, cfg->max_used_bits->smearing_outlier_pixels, cfg);
 
 	for (i = 0;; i++) {
 		stream_len = encode_value(data_buf[i].mean, model.mean,
