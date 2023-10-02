@@ -21,7 +21,6 @@
 
 
 #include <stdlib.h>
-#include <assert.h>
 
 #include <list.h>
 #include <cmp_max_used_bits.h>

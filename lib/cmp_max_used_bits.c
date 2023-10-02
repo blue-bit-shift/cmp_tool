@@ -18,9 +18,9 @@
 
 
 #include <stdint.h>
-#include <stdio.h>
 
 #include <cmp_data_types.h>
+
 
 #define MAX_USED_NC_IMAGETTE_BITS		16
 #define MAX_USED_SATURATED_IMAGETTE_BITS	16 /* TBC */
