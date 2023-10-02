@@ -469,7 +469,7 @@ void generate_random_cmp_par(struct cmp_cfg *cfg)
 void compression_decompression(struct cmp_cfg *cfg)
 {
 	int cmp_size_bits, s, error;
-	int data_size, cmp_data_size;
+	uint32_t data_size, cmp_data_size, cmp_ent_size;
 	struct cmp_entity *ent;
 	void *decompressed_data;
 	static void *model_of_data;
@@ -488,14 +488,14 @@ void compression_decompression(struct cmp_cfg *cfg)
 
 	/* create a compression entity */
 	cmp_data_size = cmp_cal_size_of_data(cfg->buffer_length, cfg->data_type);
-	cmp_data_size &= ~0x3; /* the size of the compressed data should be a multiple of 4 */
+	cmp_data_size &= ~0x3U; /* the size of the compressed data should be a multiple of 4 */
 	TEST_ASSERT_NOT_EQUAL_INT(0, cmp_data_size);
 
-	s = cmp_ent_create(NULL, cfg->data_type, cfg->cmp_mode == CMP_MODE_RAW, cmp_data_size);
-	TEST_ASSERT_NOT_EQUAL_INT(0, s);
-	ent = malloc(s); TEST_ASSERT_TRUE(ent);
-	s = cmp_ent_create(ent, cfg->data_type, cfg->cmp_mode == CMP_MODE_RAW, cmp_data_size);
-	TEST_ASSERT_NOT_EQUAL_INT(0, s);
+	cmp_ent_size = cmp_ent_create(NULL, cfg->data_type, cfg->cmp_mode == CMP_MODE_RAW, cmp_data_size);
+	TEST_ASSERT_NOT_EQUAL_UINT(0, cmp_ent_size);
+	ent = malloc(cmp_ent_size); TEST_ASSERT_TRUE(ent);
+	cmp_ent_size = cmp_ent_create(ent, cfg->data_type, cfg->cmp_mode == CMP_MODE_RAW, cmp_data_size);
+	TEST_ASSERT_NOT_EQUAL_UINT(0, cmp_ent_size);
 
 	/* we put the coompressed data direct into the compression entity */
 	cfg->icu_output_buf = cmp_ent_get_data_buf(ent);
@@ -512,7 +512,7 @@ void compression_decompression(struct cmp_cfg *cfg)
 	/* allocate the buffers for decompression */
 	TEST_ASSERT_NOT_EQUAL_INT(0, data_size);
 	s = decompress_cmp_entiy(ent, model_of_data, NULL, NULL);
-	decompressed_data = malloc(s); TEST_ASSERT_NOT_NULL(decompressed_data);
+	decompressed_data = malloc((size_t)s); TEST_ASSERT_NOT_NULL(decompressed_data);
 
 	if (model_mode_is_used(cfg->cmp_mode)) {
 		updated_model = malloc(data_size);
@@ -560,7 +560,7 @@ void test_random_compression_decompression(void)
 	enum cmp_data_type data_type;
 	enum cmp_mode cmp_mode;
 	struct cmp_cfg cfg;
-	int cmp_buffer_size;
+	uint32_t cmp_buffer_size;
 
 	/* TODO: extend test for DATA_TYPE_F_CAM_BACKGROUND, DATA_TYPE_F_CAM_OFFSET  */
 	for (data_type = 1; data_type <= DATA_TYPE_F_CAM_IMAGETTE_ADAPTIVE; data_type++) {
@@ -587,7 +587,7 @@ void test_random_compression_decompression(void)
 				cmp_buffer_size = cmp_cfg_icu_buffers(&cfg, data_to_compress2,
 					samples, data_to_compress1, updated_model, NULL, samples*CMP_BUFFER_FAKTOR);
 
-			TEST_ASSERT_EQUAL_INT(cmp_buffer_size, cmp_cal_size_of_data(CMP_BUFFER_FAKTOR*samples, data_type));
+			TEST_ASSERT_EQUAL_UINT(cmp_buffer_size, cmp_cal_size_of_data(CMP_BUFFER_FAKTOR*samples, data_type));
 
 			compression_decompression(&cfg);
 		}
@@ -622,7 +622,7 @@ void test_random_compression_decompression2(void)
 
 	cmp_size_bits = icu_compress_data(&cfg);
 	TEST_ASSERT(cmp_size_bits > 0);
-	info.cmp_size = cmp_size_bits;
+	info.cmp_size = (uint32_t)cmp_size_bits;
 	info.cmp_mode_used = (uint8_t)cfg.cmp_mode;
 	info.model_value_used = (uint8_t)cfg.model_value;
 	info.round_used = (uint8_t)cfg.round;
@@ -634,7 +634,7 @@ void test_random_compression_decompression2(void)
 
 	s = decompress_rdcu_data(compressed_data, &info, NULL, NULL, NULL);
 	TEST_ASSERT(s > 0);
-	decompressed_data = malloc(s);
+	decompressed_data = malloc((size_t)s);
 	s = decompress_rdcu_data(compressed_data, &info, NULL, NULL, decompressed_data);
 	TEST_ASSERT(s > 0);
 
