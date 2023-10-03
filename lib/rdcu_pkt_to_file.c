@@ -116,7 +116,7 @@ static int32_t rmap_tx_to_file(const void *hdr, uint32_t hdr_size,
 	static int n_pkt = 1; /* number of packets */
 	static char tc_folder_dir_old[MAX_TC_FOLDER_DIR_LEN] = {0};
 	uint8_t *blob = NULL;
-	int n, i;
+	uint32_t n, i;
 	FILE *fp;
 
 	if (hdr == NULL)
@@ -148,16 +148,16 @@ static int32_t rmap_tx_to_file(const void *hdr, uint32_t hdr_size,
 	}
 
 	n = rdcu_package(NULL, hdr, hdr_size, non_crc_bytes, data, data_size);
-	if (n <= 0)
+	if (!n)
 		return -1;
-	blob = malloc((unsigned int)n);
+	blob = malloc(n);
 	if (!blob) {
 		printf("malloc for tx_pkt failed\n");
 		return -1;
 	}
 
 	n = rdcu_package(blob, hdr, hdr_size, non_crc_bytes, data, data_size);
-	if (n <= 0) {
+	if (!n) {
 		free(blob);
 		return -1;
 	}

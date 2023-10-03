@@ -295,11 +295,20 @@ static int rdcu_process_rx(void)
 			/* convert endianness if needed */
 #if (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
 			{
-				unsigned int i;
-				uint32_t *p = (uint32_t *) rp->data;
+				uint32_t i;
 
-				for (i = 0; i < (rp->data_len / 4); i++)
-					be32_to_cpus(&p[i]);
+				for (i = 0; i < rp->data_len; i+=4) {
+					uint32_t tmp = rp->data[i];
+
+					tmp |= (uint32_t)rp->data[i+1] << 8;
+					tmp |= (uint32_t)rp->data[i+2] << 16;
+					tmp |= (uint32_t)rp->data[i+3] << 24;
+
+					rp->data[i] = tmp >> 24 ;
+					rp->data[i+1] = (tmp >> 16) & 0xFFU;
+					rp->data[i+2] = (tmp >> 8) & 0xFFU;
+					rp->data[i+3] = tmp & 0xFFU;
+				}
 			}
 #endif /* __BYTE_ORDER__ */
 
@@ -335,8 +344,8 @@ static int rdcu_process_rx(void)
  * @returns 0 on success, otherwise error
  */
 
-int rdcu_submit_tx(const uint8_t *cmd,  int cmd_size,
-		   const uint8_t *data, int data_size)
+int rdcu_submit_tx(const uint8_t *cmd,  uint32_t cmd_size,
+		   const uint8_t *data, uint32_t data_size)
 {
 	/* try to process pending responses */
 	rdcu_process_rx();
@@ -399,12 +408,12 @@ int rdcu_gen_cmd(uint16_t trans_id, uint8_t *cmd,
 	/* determine header size */
 	n = rmap_build_hdr(pkt, NULL);
 
-	if (!cmd) {
+	if (!cmd || n <= 0) {
 		rmap_erase_packet(pkt);
 		return n;
 	}
 
-	memset(cmd, 0, n);  /* clear command buffer */
+	memset(cmd, 0, (size_t)n);  /* clear command buffer */
 
 	n = rmap_build_hdr(pkt, cmd);
 
@@ -432,7 +441,7 @@ int rdcu_gen_cmd(uint16_t trans_id, uint8_t *cmd,
 
 
 int rdcu_sync(int (*fn)(uint16_t trans_id, uint8_t *cmd),
-	      void *addr, int data_len)
+	      void *addr, uint32_t data_len)
 {
 	int n;
 	int slot;
@@ -444,22 +453,26 @@ int rdcu_sync(int (*fn)(uint16_t trans_id, uint8_t *cmd),
 		return -1;
 
 	slot = trans_log_grab_slot(addr);
-	if (slot < 0)
+	if (slot < 0 || slot > UINT16_MAX)
 		return -1;
 
 
 	/* determine size of command */
-	n = fn(slot, NULL);
+	n = fn((uint16_t)slot, NULL);
+	if (n <= 0) {
+		printf("Error creating command packet\n");
+		return -1;
+	}
 
-	rmap_cmd = (uint8_t *) malloc(n);
+	rmap_cmd = (uint8_t *)malloc((size_t)n);
 	if (!rmap_cmd) {
 		printf("Error allocating rmap cmd");
 		return -1;
 	}
 
 	/* now fill actual command */
-	n = fn(slot, rmap_cmd);
-	if (!n) {
+	n = fn((uint16_t)slot, rmap_cmd);
+	if (n <= 0) {
 		printf("Error creating command packet\n");
 		free(rmap_cmd);
 		return -1;
@@ -468,9 +481,9 @@ int rdcu_sync(int (*fn)(uint16_t trans_id, uint8_t *cmd),
 	/* convert endianness if needed */
 #if (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
 	if (data_len) {
-		int i;
+		uint32_t i;
 		uint32_t *tmp_buf = alloca(data_len);
-		uint32_t *p = (uint32_t *) addr;
+		uint32_t *p = (uint32_t *)addr;
 
 		for (i = 0; i < (data_len / 4); i++)
 			tmp_buf[i] = cpu_to_be32(p[i]);
@@ -479,7 +492,7 @@ int rdcu_sync(int (*fn)(uint16_t trans_id, uint8_t *cmd),
 	}
 #endif /* __BYTE_ORDER__ */
 
-	n = rdcu_submit_tx(rmap_cmd, n, addr, data_len);
+	n = rdcu_submit_tx(rmap_cmd, (uint32_t)n, addr, data_len);
 	free(rmap_cmd);
 
 	return n;
@@ -514,12 +527,10 @@ int rdcu_sync_data(int (*fn)(uint16_t trans_id, uint8_t *cmd,
 
 	uint8_t *rmap_cmd;
 
-
-
 	rdcu_process_rx();
 
 	slot = trans_log_grab_slot(data);
-	if (slot < 0) {
+	if (slot < 0 || slot > UINT16_MAX) {
 		if (RDCU_CONFIG_DEBUG)
 			printf("Error: all slots busy!\n");
 		return 1;
@@ -527,26 +538,31 @@ int rdcu_sync_data(int (*fn)(uint16_t trans_id, uint8_t *cmd,
 
 
 	/* determine size of command */
-	n = fn(slot, NULL, addr, data_len);
+	n = fn((uint16_t)slot, NULL, addr, data_len);
+	if (n <= 0) {
+		printf("Error creating command packet\n");
+		return -1;
+	}
 
-	rmap_cmd = (uint8_t *) malloc(n);
+
+	rmap_cmd = (uint8_t *)malloc((size_t)n);
 	if (!rmap_cmd) {
 		printf("Error allocating rmap cmd");
 		return -1;
 	}
 
 	/* now fill actual command */
-	n = fn(slot, rmap_cmd, addr, data_len);
-	if (!n) {
+	n = fn((uint16_t)slot, rmap_cmd, addr, data_len);
+	if (n <= 0) {
 		printf("Error creating command packet\n");
 		free(rmap_cmd);
 		return -1;
 	}
 
 	if (read)
-		n = rdcu_submit_tx(rmap_cmd, n, NULL, 0);
+		n = rdcu_submit_tx(rmap_cmd, (uint32_t)n, NULL, 0);
 	else
-		n = rdcu_submit_tx(rmap_cmd, n, data, data_len);
+		n = rdcu_submit_tx(rmap_cmd, (uint32_t)n, data, data_len);
 
 	free(rmap_cmd);
 
@@ -574,12 +590,12 @@ int rdcu_sync_data(int (*fn)(uint16_t trans_id, uint8_t *cmd,
  * @returns the size of the blob or 0 on error
  */
 
-int rdcu_package(uint8_t *blob,
-		 const uint8_t *cmd,  uint32_t cmd_size,
-		 const uint8_t non_crc_bytes,
-		 const uint8_t *data, uint32_t data_size)
+uint32_t rdcu_package(uint8_t *blob,
+		      const uint8_t *cmd, uint32_t cmd_size,
+		      const uint8_t non_crc_bytes,
+		      const uint8_t *data, uint32_t data_size)
 {
-	int n;
+	uint32_t n;
 	int has_data_crc = 0;
 	const struct rmap_instruction *ri;
 
