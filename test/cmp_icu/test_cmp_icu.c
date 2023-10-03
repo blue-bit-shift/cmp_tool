@@ -2388,7 +2388,8 @@ void test_compress_imagette_stuff(void)
 void test_compress_imagette_raw(void)
 {
 	uint16_t data[] = {0x0, 0x1, 0x23, 0x42, (uint16_t)INT16_MIN, INT16_MAX, UINT16_MAX};
-	uint16_t output_buf[7] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+	uint32_t *output_buf = malloc(7*sizeof(uint16_t));
+	uint16_t cmp_data[7];
 	struct cmp_cfg cfg = {0};
 	int cmp_size;
 
@@ -2397,18 +2398,19 @@ void test_compress_imagette_raw(void)
 	cfg.model_buf = NULL;
 	cfg.input_buf = data;
 	cfg.samples = 7;
-	cfg.icu_output_buf = (uint32_t *)output_buf;
+	cfg.icu_output_buf = output_buf;
 	cfg.buffer_length = 7;
 
 	cmp_size = icu_compress_data(&cfg);
+	memcpy(cmp_data, output_buf, sizeof(cmp_data));
 	TEST_ASSERT_EQUAL_INT(7*16, cmp_size);
-	TEST_ASSERT_EQUAL_HEX16(0x0, be16_to_cpu(output_buf[0]));
-	TEST_ASSERT_EQUAL_HEX16(0x1, be16_to_cpu(output_buf[1]));
-	TEST_ASSERT_EQUAL_HEX16(0x23, be16_to_cpu(output_buf[2]));
-	TEST_ASSERT_EQUAL_HEX16(0x42, be16_to_cpu(output_buf[3]));
-	TEST_ASSERT_EQUAL_HEX16(INT16_MIN, be16_to_cpu(output_buf[4]));
-	TEST_ASSERT_EQUAL_HEX16(INT16_MAX, be16_to_cpu(output_buf[5]));
-	TEST_ASSERT_EQUAL_HEX16(UINT16_MAX, be16_to_cpu(output_buf[6]));
+	TEST_ASSERT_EQUAL_HEX16(0x0, be16_to_cpu(cmp_data[0]));
+	TEST_ASSERT_EQUAL_HEX16(0x1, be16_to_cpu(cmp_data[1]));
+	TEST_ASSERT_EQUAL_HEX16(0x23, be16_to_cpu(cmp_data[2]));
+	TEST_ASSERT_EQUAL_HEX16(0x42, be16_to_cpu(cmp_data[3]));
+	TEST_ASSERT_EQUAL_HEX16(INT16_MIN, be16_to_cpu(cmp_data[4]));
+	TEST_ASSERT_EQUAL_HEX16(INT16_MAX, be16_to_cpu(cmp_data[5]));
+	TEST_ASSERT_EQUAL_HEX16(UINT16_MAX, be16_to_cpu(cmp_data[6]));
 
 
 	/* compressed data buf = NULL test */
@@ -2429,7 +2431,7 @@ void test_compress_imagette_raw(void)
 	cfg.data_type = DATA_TYPE_IMAGETTE;
 	cfg.input_buf = NULL; /* no data to compress */
 	cfg.samples = 7;
-	cfg.icu_output_buf = (uint32_t *)output_buf;
+	cfg.icu_output_buf = output_buf;
 	cfg.buffer_length = 7;
 	cfg.max_used_bits = &MAX_USED_BITS_SAFE;
 
@@ -2442,12 +2444,14 @@ void test_compress_imagette_raw(void)
 	cfg.data_type = DATA_TYPE_IMAGETTE;
 	cfg.input_buf = data;
 	cfg.samples = 7;
-	cfg.icu_output_buf = (uint32_t *)output_buf;
+	cfg.icu_output_buf = output_buf;
 	cfg.buffer_length = 6; /* the buffer is to small */
 	cfg.max_used_bits = &MAX_USED_BITS_SAFE;
 
 	cmp_size = icu_compress_data(&cfg);
 	TEST_ASSERT_EQUAL_INT(CMP_ERROR_SMALL_BUF, cmp_size);
+
+	free(output_buf);
 }
 
 
