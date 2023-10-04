@@ -149,7 +149,8 @@ void test_cmp_input_size_to_samples(void)
 	TEST_ASSERT_EQUAL(-1, samples_get);
 }
 
-void check_endianness(void* data, size_t size, enum cmp_data_type data_type)
+
+static void check_endianness(void* data, size_t size, enum cmp_data_type data_type)
 {
 	int error;
 	uint8_t *p_8 = data;

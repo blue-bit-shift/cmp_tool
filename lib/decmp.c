@@ -42,7 +42,7 @@
 #define MAX_CW_LEN_ICU 32 /* maximum ICU Golomb code word bit length */
 
 
-const char *please_check_str = "Please check that the compression parameters match those used to compress the data and that the compressed data are not corrupted.\n";
+static const char *please_check_str = "Please check that the compression parameters match those used to compress the data and that the compressed data are not corrupted.\n";
 
 
 /**

@@ -31,7 +31,7 @@ struct list_item {
 	struct cmp_max_used_bits data;
 };
 
-LIST_HEAD(max_used_bits_list);
+static LIST_HEAD(max_used_bits_list);
 
 
 /**

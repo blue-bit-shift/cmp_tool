@@ -1495,41 +1495,6 @@ ssize_t read_file_cmp_entity(const char *file_name, struct cmp_entity *ent,
 }
 
 
-/**
- * @brief reads hex-encoded uint32_t samples from a file into a buffer
- *
- * @param file_name	data/model file name
- * @param buf		buffer to write the file content (can be NULL)
- * @param buf_size	size of the buf buffer in bytes
- * @param verbose_en	print verbose output if not zero
- *
- * @returns the size in bytes to store the file content; negative on error
- */
-
-ssize_t read_file32(const char *file_name, uint32_t *buf, uint32_t buf_size,
-		    int verbose_en)
-{
-	ssize_t size = read_file8(file_name, (uint8_t *)buf, buf_size, verbose_en);
-
-	if (size < 0)
-		return -1;
-
-	if (size & 0x3) {
-		fprintf(stderr, "%s: %s: Error: The data are not correct formatted. Expected multiple of 4 hex words.\n",
-				PROGRAM_NAME, file_name);
-		return -1;
-	}
-
-	if (buf) {
-		size_t i;
-		for (i = 0; i < buf_size/sizeof(uint32_t); i++)
-			be32_to_cpus(&buf[i]);
-	}
-
-	return size;
-}
-
-
 /*
  * @brief generate from the cmp_tool version string a version_id for the
  * compression entity header

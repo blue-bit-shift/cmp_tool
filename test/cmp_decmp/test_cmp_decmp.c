@@ -43,8 +43,6 @@
 #define IMAX_BITS(m) ((m)/((m)%255+1) / 255%255*8 + 7-86/((m)%255+12))
 #define RAND_MAX_WIDTH IMAX_BITS(RAND_MAX)
 
-#define set_n_bits(n)  (n != 32 ? ~(~0UL << (n)):0xFFFFFFFF)
-
 
 /**
  * @brief  Seeds the pseudo-random number generator used by rand()
@@ -66,26 +64,6 @@ void setUp(void)
 		cmp_rand_seed(seed);
 		printf("seed: %"PRIu64"\n", seed);
 	}
-}
-
-
-/**
- * @brief generate a uint32_t random number
- *
- * @return a "random" uint32_t value
- * @see https://stackoverflow.com/a/33021408
- */
-
-uint32_t rand32(void)
-{
-	int i;
-	uint32_t r = 0;
-
-	for (i = 0; i < 32; i += RAND_MAX_WIDTH) {
-		r <<= RAND_MAX_WIDTH;
-		r ^= (unsigned int) rand();
-	}
-	return r;
 }
 
 

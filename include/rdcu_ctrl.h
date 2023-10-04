@@ -139,6 +139,7 @@ uint16_t rdcu_get_fpga_version(void);
 
 uint32_t rdcu_get_rdcu_status_board_serial_number(void);
 uint32_t rdcu_get_rdcu_status_fpga_core_power_good(void);
+uint32_t rdcu_get_rdcu_status_core_power_good(void);
 uint32_t rdcu_get_rdcu_status_io_power_good(void);
 uint32_t rdcu_get_rdcu_status_reset_by_register(void);
 uint32_t rdcu_get_rdcu_status_power_on_reset(void);
