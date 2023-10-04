@@ -35,16 +35,19 @@ static int malloc_fail;
 
 void* malloc(size_t size)
 {
-    static void* (*real_malloc)(size_t) = NULL;
+	static void* (*real_malloc)(size_t size) = NULL;
 
-    if(malloc_fail)
-	    return NULL;
+	if(malloc_fail)
+		return NULL;
 
-    if (!real_malloc)
-        real_malloc = (void *(*)(size_t))dlsym(RTLD_NEXT, "malloc");
+	if (!real_malloc) {
+		*(void **)(&real_malloc) = dlsym(RTLD_NEXT, "malloc");
+		/* The cast removes a gcc warning https://stackoverflow.com/a/31528674 */
+		TEST_ASSERT_NOT_NULL(real_malloc);
+	}
 
-    fprintf(stderr, "malloc(%zu)\n", size);
-    return real_malloc(size);
+	fprintf(stderr, "malloc(%zu)\n", size);
+	return real_malloc(size);
 }
 
 
