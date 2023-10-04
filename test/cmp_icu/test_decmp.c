@@ -22,8 +22,10 @@
 
 #include "unity.h"
 
-#include "compiler.h"
-#include "cmp_entity.h"
+#include <compiler.h>
+#include <cmp_entity.h>
+#include <cmp_icu.h>
+#include <decmp.h>
 #include "../../lib/cmp_icu.c" /* .c file included to test static functions */
 #include "../../lib/decmp.c" /* .c file included to test static functions */
 

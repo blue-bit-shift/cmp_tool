@@ -17,9 +17,8 @@
  * @see FPGA Requirement Specification PLATO-IWF-PL-RS-005 Issue 0.6
  */
 
-
-#ifndef _RDCU_CTRL_H_
-#define _RDCU_CTRL_H_
+#ifndef RDCU_CTRL_H
+#define RDCU_CTRL_H
 
 #include <stdint.h>
 
@@ -290,5 +289,4 @@ int rdcu_write_sram_32(uint32_t *buf, uint32_t addr, uint32_t size);
 
 int rdcu_ctrl_init(void);
 
-
-#endif /* _RDCU_CTRL_H_ */
+#endif /* RDCU_CTRL_H */

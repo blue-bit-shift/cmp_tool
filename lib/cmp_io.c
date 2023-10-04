@@ -35,7 +35,6 @@
 #include <byteorder.h>
 #include <cmp_data_types.h>
 #include <my_inttypes.h>
-#include <cmp_io.h>
 
 
 /* directory to convert from data_type to string */

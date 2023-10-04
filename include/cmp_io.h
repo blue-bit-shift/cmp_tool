@@ -17,6 +17,10 @@
  * @brief compression tool input/output library header file
  */
 
+
+#ifndef CMP_IO_H
+#define CMP_IO_H
+
 #include <string.h>
 
 #include <cmp_support.h>
@@ -59,3 +63,5 @@ int cmp_mode_parse(const char *cmp_mode_str, enum cmp_mode *cmp_mode);
 
 enum cmp_data_type string2data_type(const char *data_type_str);
 const char *data_type2string(enum cmp_data_type data_type);
+
+#endif /* CMP_IO_H */
