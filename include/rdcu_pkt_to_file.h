@@ -16,8 +16,8 @@
  * @brief RDCU packets to file library header file
  */
 
-#ifndef _RDCU_PKT_TO_FILE_H_
-#define _RDCU_PKT_TO_FILE_H_
+#ifndef RDCU_PKT_TO_FILE_H
+#define RDCU_PKT_TO_FILE_H
 
 #include <cmp_support.h>
 
@@ -42,4 +42,4 @@ int gen_read_rdcu_pkts(const struct cmp_info *info);
 int gen_rdcu_parallel_pkts(const struct cmp_cfg *cfg,
 			   const struct cmp_info *last_info);
 
-#endif /* _RDCU_PKT_TO_FILE_H_ */
+#endif /* RDCU_PKT_TO_FILE_H */

@@ -17,6 +17,7 @@
  * @see Data Compression User Manual PLATO-UVIE-PL-UM-0001
  */
 
+#include <compiler.h>
 
 #include <cmp_support.h>
 #include <cmp_debug.h>
@@ -32,12 +33,12 @@
  * @returns the result of floor(log2(x))
  */
 
-int ilog_2(uint32_t x)
+unsigned int ilog_2(uint32_t x)
 {
 	if (!x)
-		return -1;
+		return -1U;
 
-	return 31 - __builtin_clz(x);
+	return 31 - (unsigned int)__builtin_clz(x);
 }
 
 
@@ -313,36 +314,6 @@ int cmp_aux_data_type_is_used(enum cmp_data_type data_type)
 
 
 /**
- * @brief implantation of the model update equation
- * @note check before that model_value is not greater than MAX_MODEL_VALUE
- *
- * @param data		data to process
- * @param model		(current) model of the data to process
- * @param model_value	model weighting parameter
- * @param round		routing parameter
- *
- * @returns (new) updated model
- */
-
-unsigned int cmp_up_model(unsigned int data, unsigned int model,
-			  unsigned int model_value, unsigned int round)
-
-{
-	uint64_t weighted_model, weighted_data;
-
-	/* round and round back input because for decompression the accurate
-	 * data values are not available
-	 */
-	data = round_inv(round_fwd(data, round), round);
-	/* cast uint64_t to prevent overflow in the multiplication */
-	weighted_model = (uint64_t)model * model_value;
-	weighted_data = (uint64_t)data * (MAX_MODEL_VALUE - model_value);
-	/* truncation is intended */
-	return (unsigned int)((weighted_model + weighted_data) / MAX_MODEL_VALUE);
-}
-
-
-/**
  * @brief get the maximum valid spill threshold value for a imagette
  *	compression in diff or model mode
  *
@@ -362,8 +333,7 @@ uint32_t cmp_ima_max_spill(unsigned int golomb_par)
 		452, 461, 470, 479, 488, 497, 506, 515, 524, 533, 542, 551, 560,
 		569, 578, 587, 596, 605, 614, 623 };
 
-
-	if (golomb_par > MAX_IMA_GOLOMB_PAR)
+	if (golomb_par >= ARRAY_SIZE(LUT_MAX_RDCU))
 		return 0;
 
 	return LUT_MAX_RDCU[golomb_par];
@@ -383,9 +353,9 @@ uint32_t cmp_ima_max_spill(unsigned int golomb_par)
 uint32_t cmp_icu_max_spill(unsigned int cmp_par)
 {
 	/* the ICU compressor can generate code words with a length of maximal 32 bits. */
-	unsigned int max_cw_bits = 32;
-	unsigned int cutoff = (1UL << (ilog_2(cmp_par)+1)) - cmp_par;
-	unsigned int max_n_sym_offset = max_cw_bits/2 - 1;
+	unsigned int const max_cw_bits = 32;
+	unsigned int const cutoff = (0x2U << (ilog_2(cmp_par) & 0x1FU)) - cmp_par;
+	unsigned int const max_n_sym_offset = max_cw_bits/2 - 1;
 
 	if (!cmp_par || cmp_par > MAX_NON_IMA_GOLOMB_PAR)
 		return 0;
@@ -432,7 +402,7 @@ int cmp_cfg_gen_par_is_invalid(const struct cmp_cfg *cfg, enum check_opt opt)
 	int unsupported_cmp_mode = 1;
 	int check_model_value = 1;
 	uint32_t max_round_value = 0;
-	char *str = "";
+	const char *str = "";
 
 	if (!cfg)
 		return 1;
@@ -453,6 +423,8 @@ int cmp_cfg_gen_par_is_invalid(const struct cmp_cfg *cfg, enum check_opt opt)
 		max_round_value = MAX_ICU_ROUND;
 		check_model_value = model_mode_is_used(cfg->cmp_mode);
 		break;
+	default:
+		return 1;
 	}
 
 	if (invalid_data_type) {
@@ -482,7 +454,6 @@ int cmp_cfg_gen_par_is_invalid(const struct cmp_cfg *cfg, enum check_opt opt)
 #ifdef SKIP_CMP_PAR_CHECK
 	return 0;
 #endif
-
 	return cfg_invalid;
 }
 
@@ -490,9 +461,9 @@ int cmp_cfg_gen_par_is_invalid(const struct cmp_cfg *cfg, enum check_opt opt)
 /**
  * @brief check if the ICU buffer parameters are invalid
  *
-* @param cfg	pointer to the compressor configuration
-*
-* @returns 0 if the buffer parameters are valid, otherwise invalid
+ * @param cfg	pointer to the compressor configuration
+ *
+ * @returns 0 if the buffer parameters are valid, otherwise invalid
  */
 
 int cmp_cfg_icu_buffers_is_invalid(const struct cmp_cfg *cfg)
@@ -563,9 +534,9 @@ int cmp_cfg_icu_buffers_is_invalid(const struct cmp_cfg *cfg)
 /**
  * @brief check if all entries in the max_used_bits structure are in the allowed range
  *
-* @param max_used_bits	pointer to max_used_bits structure to check
-*
-* @returns 0 if all entries are valid, otherwise one or more entries are invalid
+ * @param max_used_bits	pointer to max_used_bits structure to check
+ *
+ * @returns 0 if all entries are valid, otherwise one or more entries are invalid
  */
 
 
@@ -573,10 +544,10 @@ int cmp_cfg_icu_max_used_bits_out_of_limit(const struct cmp_max_used_bits *max_u
 {
 #define CHECK_MAX_USED_BITS_LIMIT(entry) \
 	do { \
-	if (max_used_bits->entry > MAX_USED_BITS_SAFE.entry) { \
-		debug_print("Error: The " #entry " entry in the max_used_bits structure is too large (actual: %x, max: %x).\n",  max_used_bits->entry, MAX_USED_BITS_SAFE.entry); \
-		error++; \
-	} \
+		if (max_used_bits->entry > MAX_USED_BITS_SAFE.entry) { \
+			debug_print("Error: The " #entry " entry in the max_used_bits structure is too large (actual: %x, max: %x).\n",  max_used_bits->entry, MAX_USED_BITS_SAFE.entry); \
+			error++; \
+		} \
 	} while (0)
 
 	int error = 0;
@@ -621,6 +592,8 @@ int cmp_cfg_icu_max_used_bits_out_of_limit(const struct cmp_max_used_bits *max_u
 	CHECK_MAX_USED_BITS_LIMIT(fc_background_outlier_pixels);
 
 	return error;
+
+#undef CHECK_MAX_USED_BITS_LIMIT
 }
 
 
@@ -638,7 +611,7 @@ int cmp_cfg_icu_max_used_bits_out_of_limit(const struct cmp_max_used_bits *max_u
  */
 
 static int cmp_pars_are_invalid(uint32_t cmp_par, uint32_t spill, enum cmp_mode cmp_mode,
-				enum cmp_data_type data_type, char *par_name)
+				enum cmp_data_type data_type, const char *par_name)
 {
 	int cfg_invalid = 0;
 	uint32_t min_golomb_par;
@@ -699,6 +672,9 @@ static int cmp_pars_are_invalid(uint32_t cmp_par, uint32_t spill, enum cmp_mode 
 		break;
 	}
 
+#ifdef SKIP_CMP_PAR_CHECK
+	return 0;
+#endif
 	return cfg_invalid;
 }
 

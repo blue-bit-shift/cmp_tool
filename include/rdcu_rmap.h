@@ -16,15 +16,15 @@
  * @brief RMAP RDCU link interface header file
  */
 
-#ifndef _RDCU_RMAP_H_
-#define _RDCU_RMAP_H_
+#ifndef RDCU_RMAP_H
+#define RDCU_RMAP_H
 
 #include <stdint.h>
 
 
 
-int rdcu_submit_tx(const uint8_t *cmd,  int cmd_size,
-		   const uint8_t *data, int data_size);
+int rdcu_submit_tx(const uint8_t *cmd,  uint32_t cmd_size,
+		   const uint8_t *data, uint32_t data_size);
 
 
 int rdcu_gen_cmd(uint16_t trans_id, uint8_t *cmd,
@@ -32,16 +32,16 @@ int rdcu_gen_cmd(uint16_t trans_id, uint8_t *cmd,
 		 uint32_t addr, uint32_t size);
 
 int rdcu_sync(int (*fn)(uint16_t trans_id, uint8_t *cmd),
-	      void *addr, int data_len);
+	      void *addr, uint32_t data_len);
 
 int rdcu_sync_data(int (*fn)(uint16_t trans_id, uint8_t *cmd,
 			     uint32_t addr, uint32_t data_len),
 		   uint32_t addr, void *data, uint32_t data_len, int read);
 
-int rdcu_package(uint8_t *blob,
-		 const uint8_t *cmd, uint32_t cmd_size,
-		 const uint8_t non_crc_bytes,
-		 const uint8_t *data, uint32_t data_size);
+uint32_t rdcu_package(uint8_t *blob,
+		      const uint8_t *cmd, uint32_t cmd_size,
+		      const uint8_t non_crc_bytes,
+		      const uint8_t *data, uint32_t data_size);
 
 void rdcu_set_destination_logical_address(uint8_t addr);
 
@@ -49,13 +49,13 @@ int rdcu_set_destination_path(uint8_t *path, uint8_t len);
 int rdcu_set_return_path(uint8_t *path, uint8_t len);
 void rdcu_set_source_logical_address(uint8_t addr);
 void rdcu_set_destination_key(uint8_t key);
-size_t rdcu_get_data_mtu(void);
+uint32_t rdcu_get_data_mtu(void);
 
 int rdcu_rmap_sync_status(void);
 
 void rdcu_rmap_reset_log(void);
 
-int rdcu_rmap_init(size_t mtu,
+int rdcu_rmap_init(uint32_t mtu,
 		   int32_t (*tx)(const void *hdr,  uint32_t hdr_size,
 				 const uint8_t non_crc_bytes,
 				 const void *data, uint32_t data_size),
@@ -63,4 +63,4 @@ int rdcu_rmap_init(size_t mtu,
 
 
 
-#endif /* _RDCU_RMAP_H_ */
+#endif /* RDCU_RMAP_H */

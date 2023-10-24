@@ -200,7 +200,7 @@ uint8_t rdcu_get_rmap_target_cmd_key(void)
 uint32_t rdcu_get_lvds_link_enabled(uint32_t link)
 {
 	if (link > 7)
-		return -1;
+		return -1U;
 
 	return (rdcu->lvds_core_status >> link) & 0x1UL;
 }
@@ -947,13 +947,13 @@ int rdcu_set_spillover_threshold(uint32_t spill)
 	if (spill < 2)
 		return -1;
 
-	if (spill > 16383)
+	if (spill > 0x3FFUL)
 		return -1;
 #endif /*SKIP_CMP_PAR_CHECK*/
 
 	/* clear and set */
-	rdcu->compressor_param2 &= ~(0x3FFFUL << 8);
-	rdcu->compressor_param2 |=  (spill    << 8);
+	rdcu->compressor_param2 &= ~(0x3FFUL << 8);
+	rdcu->compressor_param2 |=  (spill   << 8);
 
 	return 0;
 }
@@ -997,13 +997,13 @@ int rdcu_set_adaptive_1_spillover_threshold(uint32_t spill)
 	if (spill < 2)
 		return -1;
 
-	if (spill > 16383)
+	if (spill > 0x3FFUL)
 		return -1;
 #endif /*SKIP_CMP_PAR_CHECK*/
 
 	/* clear and set */
-	rdcu->adaptive_param1 &= ~(0x3FFFUL << 8);
-	rdcu->adaptive_param1 |=  (spill    << 8);
+	rdcu->adaptive_param1 &= ~(0x3FFUL << 8);
+	rdcu->adaptive_param1 |=  (spill   << 8);
 
 	return 0;
 }
@@ -1048,13 +1048,13 @@ int rdcu_set_adaptive_2_spillover_threshold(uint32_t spill)
 	if (spill < 2)
 		return -1;
 
-	if (spill > 16383)
+	if (spill > 0x3FFUL)
 		return -1;
 #endif /*SKIP_CMP_PAR_CHECK*/
 
 	/* clear and set */
-	rdcu->adaptive_param2 &= ~(0x3FFFUL << 8);
-	rdcu->adaptive_param2 |=  (spill    << 8);
+	rdcu->adaptive_param2 &= ~(0x3FFUL << 8);
+	rdcu->adaptive_param2 |=  (spill   << 8);
 
 	return 0;
 }
@@ -1274,7 +1274,7 @@ uint32_t rdcu_get_weighting_param(void)
 
 uint32_t rdcu_get_spillover_threshold(void)
 {
-	return (rdcu->used_param2 >> 8) & 0x3FFFUL;
+	return (rdcu->used_param2 >> 8) & 0x3FFUL;
 }
 
 
@@ -1564,7 +1564,7 @@ int rdcu_read_sram(void *buf, uint32_t addr, uint32_t size)
 	if (size > RDCU_SRAM_SIZE)
 		return -1;
 
-	if (addr + size > RDCU_SRAM_END)
+	if (addr + size > RDCU_SRAM_START + RDCU_SRAM_SIZE)
 		return -1;
 
 	if (buf)
@@ -1596,7 +1596,7 @@ int rdcu_write_sram(void *buf, uint32_t addr, uint32_t size)
 	if (size > RDCU_SRAM_SIZE)
 		return -1;
 
-	if (addr + size > RDCU_SRAM_END)
+	if (addr + size > RDCU_SRAM_START + RDCU_SRAM_SIZE)
 		return -1;
 
 	if (buf)
@@ -1650,7 +1650,7 @@ int rdcu_write_sram_16(uint16_t *buf, uint32_t addr, uint32_t size)
 	if (size > RDCU_SRAM_SIZE)
 		return -1;
 
-	if (addr + size > RDCU_SRAM_END)
+	if (addr + size > RDCU_SRAM_START + RDCU_SRAM_SIZE)
 		return -1;
 
 #if !(__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
@@ -1658,11 +1658,9 @@ int rdcu_write_sram_16(uint16_t *buf, uint32_t addr, uint32_t size)
 #else
 	{
 		uint32_t i;
-
-		for (i = 0; i < size/sizeof(uint16_t); i++) {
-			uint16_t *sram_buf = (uint16_t *)&rdcu->sram[addr];
-
-			sram_buf[i] = cpu_to_be16(buf[i]);
+		for (i = 0; i < size; i+=2) {
+			rdcu->sram[addr+i] = buf[i/2] >> 8;
+			rdcu->sram[addr+i+1] = buf[i/2] & 0xFFU;
 		}
 	}
 	return (int)size; /* lol */
@@ -1696,7 +1694,7 @@ int rdcu_write_sram_32(uint32_t *buf, uint32_t addr, uint32_t size)
 	if (size > RDCU_SRAM_SIZE)
 		return -1;
 
-	if (addr + size > RDCU_SRAM_END)
+	if (addr + size > RDCU_SRAM_START + RDCU_SRAM_SIZE)
 		return -1;
 
 #if !(__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
@@ -1704,11 +1702,11 @@ int rdcu_write_sram_32(uint32_t *buf, uint32_t addr, uint32_t size)
 #else
 	{
 		uint32_t i;
-
-		for (i = 0; i < size/sizeof(uint32_t); i++) {
-			uint32_t *sram_buf = (uint32_t *)&rdcu->sram[addr];
-
-			sram_buf[i] = cpu_to_be32(buf[i]);
+		for (i = 0; i < size; i+=4) {
+			rdcu->sram[addr+i] = buf[i/4] >> 24;
+			rdcu->sram[addr+i+1] = (buf[i/4] >> 16) & 0xFFU;
+			rdcu->sram[addr+i+2] = (buf[i/4] >> 8) & 0xFFU;
+			rdcu->sram[addr+i+3] = buf[i/4] & 0xFFU;
 		}
 	}
 	return (int)size; /* lol */
@@ -2260,7 +2258,7 @@ int rdcu_sync_mirror_to_sram(uint32_t addr, uint32_t size, uint32_t mtu)
 	if (size > RDCU_SRAM_SIZE)
 		return -1;
 
-	if ((addr + size) > (RDCU_SRAM_END + 1))
+	if (addr + size > RDCU_SRAM_START + RDCU_SRAM_SIZE)
 		return -1;
 
 
@@ -2334,7 +2332,7 @@ int rdcu_sync_sram_to_mirror(uint32_t addr, uint32_t size, uint32_t mtu)
 	if (size > RDCU_SRAM_SIZE)
 		return -1;
 
-	if ((addr + size) > (RDCU_SRAM_END + 1))
+	if (addr + size > RDCU_SRAM_START + RDCU_SRAM_SIZE)
 		return -1;
 
 
@@ -2528,7 +2526,7 @@ int rdcu_ctrl_init(void)
 		return -1;
 	}
 
-#if (__sparc__)
+#if defined(__sparc__)
 	rdcu->sram =  (uint8_t *) 0x60000000;
 #else /* assume PC */
 
