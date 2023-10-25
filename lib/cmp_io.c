@@ -34,7 +34,7 @@
 #include <rdcu_cmd.h>
 #include <byteorder.h>
 #include <cmp_data_types.h>
-#include <my_inttypes.h>
+#include <leon_inttypes.h>
 
 
 /* directory to convert from data_type to string */

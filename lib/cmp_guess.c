@@ -25,7 +25,7 @@
 #include <cmp_data_types.h>
 #include <cmp_icu.h>
 #include <cmp_guess.h>
-#include <my_inttypes.h>
+#include <leon_inttypes.h>
 
 #define CMP_GUESS_MAX_CAL_STEPS 20274
 

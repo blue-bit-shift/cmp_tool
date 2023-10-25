@@ -1,6 +1,6 @@
 #include <stdlib.h>
 
-#include <my_inttypes.h>
+#include <leon_inttypes.h>
 
 #include <cmp_io.h>
 #include <cmp_debug.h>
