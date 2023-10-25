@@ -79,9 +79,10 @@ int cmp_max_used_bits_list_add(struct cmp_max_used_bits const *item)
 
 	if (!item)
 		return -1;
-	if (item->version <= 16)
+	if (item->version < CMP_MAX_USED_BITS_RESERVED_VERSIONS)
 		return -1;
 
+	/* check for an existing entry */
 	list_for_each_entry(item_ptr, &max_used_bits_list, list) {
 		if (item_ptr->data.version == item->version) {
 			item_ptr->data = *item; /* replace existing list entry */
