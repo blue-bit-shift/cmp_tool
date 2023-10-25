@@ -1022,13 +1022,22 @@ void test_cmp_decmp_s_fx_diff(void)
 
 	struct cmp_entity *ent;
 	const uint32_t MAX_VALUE = ~(~0U << MAX_USED_BITS_V1.s_fx);
-	struct s_fx data_entry[DATA_SAMPLES] = {
-		{0, 0}, {1, 23}, {2, 42}, {3, MAX_VALUE}, {3, MAX_VALUE>>1} };
+	struct s_fx data_entry[DATA_SAMPLES];
 	uint8_t data_to_compress[MULTI_ENTRY_HDR_SIZE + sizeof(data_entry)];
 	struct s_fx *decompressed_data = NULL;
-	/* uint32_t *compressed_data = NULL; */
 	uint32_t compressed_data_len_samples = DATA_SAMPLES;
 	struct cmp_cfg cfg;
+
+	data_entry[0].exp_flags = 0;
+	data_entry[0].fx = 0;
+	data_entry[1].exp_flags = 1;
+	data_entry[1].fx = 23;
+	data_entry[2].exp_flags = 2;
+	data_entry[2].fx = 42;
+	data_entry[3].exp_flags = 3;
+	data_entry[3].fx = MAX_VALUE;
+	data_entry[4].exp_flags = 3;
+	data_entry[4].fx = MAX_VALUE>>1;
 
 	for (s = 0; s < MULTI_ENTRY_HDR_SIZE; s++)
 		data_to_compress[s] = (uint8_t)s;
@@ -1197,7 +1206,7 @@ void test_cmp_ent_write_cmp_pars(void)
 	int error;
 	struct cmp_entity *ent;
 	struct cmp_cfg cfg = {0}, cfg_read = {0};
-	int cmp_size_bits = 93; /* 12 bytes */
+	int cmp_size_bits;
 	uint32_t size;
 	struct cmp_max_used_bits max_used_bits = MAX_USED_BITS_SAFE;
 
@@ -1205,6 +1214,7 @@ void test_cmp_ent_write_cmp_pars(void)
 	max_used_bits.version = 42;
 	cmp_max_used_bits_list_add(&max_used_bits);
 
+	cmp_size_bits = 93;
 	/** RAW mode test **/
 	/* create imagette raw mode configuration */
 	cfg.data_type = DATA_TYPE_IMAGETTE;
