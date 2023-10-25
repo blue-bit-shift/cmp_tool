@@ -36,9 +36,9 @@
 #include <cmp_debug.h>
 #include <cmp_data_types.h>
 #include <cmp_support.h>
-#include <cmp_icu.h>
 #include <cmp_entity.h>
 
+#include <cmp_icu.h>
 
 
 /**
@@ -1022,7 +1022,7 @@ static int compress_s_fx_efx(const struct cmp_cfg *cfg)
 
 static int compress_s_fx_ncob(const struct cmp_cfg *cfg)
 {
-		int stream_len = 0;
+	int stream_len = 0;
 	size_t i;
 
 	struct s_fx_ncob *data_buf = cfg->input_buf;

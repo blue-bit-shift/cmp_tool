@@ -1,6 +1,6 @@
 #include <assert.h>
 
-#include <pcg_basic.h>
+#include "pcg_basic.h"
 
 
 void cmp_rand_seed(uint64_t seed)

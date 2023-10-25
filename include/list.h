@@ -1,5 +1,5 @@
 /**
- * @file include/list.h
+ * @file list.h
  * @ingroup linked_list
  *
  * @note This list implementation was shamelessly stolen and modified from the
@@ -112,6 +112,7 @@ static inline void INIT_LIST_HEAD(struct list_head *list)
  * @param ptr	the &struct list_head pointer.
  * @param type	the type of the struct this is embedded in.
  * @param member	the name of the list_struct within the struct.
+ * @note add (void *) cast to suppress wcast-align warning
  */
 #define list_entry(ptr, type, member) \
 	((type *)((void *)((char *)(ptr)-(unsigned long)(&((type *)0)->member))))
@@ -203,6 +204,7 @@ static inline void INIT_LIST_HEAD(struct list_head *list)
 	     n = list_entry(pos->member.next, __typeof__(*pos), member);\
 	     &pos->member != (head); 					\
 	     pos = n, n = list_entry(n->member.next, __typeof__(*pos), member))
+
 
 /**
  * @brief iterator wrapper start
