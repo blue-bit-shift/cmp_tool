@@ -1683,7 +1683,8 @@ static void write_cfg_internal(FILE *fp, const struct cmp_cfg *cfg)
 		fprintf(fp, "spill_variance = %" PRIu32 "\n", cfg->spill_variance);
 		fprintf(fp, "\n");
 		fprintf(fp, "#-------------------------------------------------------------------------------\n");
-		if (cfg->data_type != DATA_TYPE_OFFSET) {
+		if (cfg->data_type != DATA_TYPE_OFFSET &&
+		    cfg->data_type != DATA_TYPE_F_CAM_OFFSET) {
 			fprintf(fp, "# outlier pixels number compression parameter\n");
 			fprintf(fp, "\n");
 			fprintf(fp, "cmp_par_pixels_error = %" PRIu32 "\n", cfg->cmp_par_pixels_error);
@@ -1695,7 +1696,6 @@ static void write_cfg_internal(FILE *fp, const struct cmp_cfg *cfg)
 			fprintf(fp, "\n");
 			fprintf(fp, "#-------------------------------------------------------------------------------\n");
 		}
-		/* TODO: implemented DATA_TYPE_F_CAM_OFFSET, DATA_TYPE_F_CAM_BACKGROUND */
 	}
 
 	if (cmp_fx_cob_data_type_is_used(cfg->data_type)) {
