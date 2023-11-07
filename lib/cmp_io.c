@@ -165,7 +165,7 @@ static FILE *open_file(const char *dirname, const char *filename)
  * @returns 0 on success, error otherwise
  */
 
-int write_input_data_to_file(void *data, uint32_t data_size, enum cmp_data_type data_type,
+int write_input_data_to_file(const void *data, uint32_t data_size, enum cmp_data_type data_type,
 			     const char *output_prefix, const char *name_extension, int flags)
 {
 	size_t sample_size = size_of_a_sample(data_type);
@@ -474,7 +474,6 @@ const char *data_type2string(enum cmp_data_type data_type)
 
 int cmp_mode_parse(const char *cmp_mode_str, enum cmp_mode *cmp_mode)
 {
-	size_t j;
 	static const struct {
 		uint32_t cmp_mode;
 		const char *str;
@@ -497,6 +496,8 @@ int cmp_mode_parse(const char *cmp_mode_str, enum cmp_mode *cmp_mode)
 		return -1;
 
 	if (isalpha(cmp_mode_str[0])) {  /* check if mode is given as text */
+		size_t j;
+
 		for (j = 0; j < ARRAY_SIZE(conversion); j++) {
 			if (!strcmp(cmp_mode_str, conversion[j].str)) {
 				*cmp_mode = conversion[j].cmp_mode;
@@ -1577,7 +1578,7 @@ static void write_cfg_internal(FILE *fp, const struct cmp_cfg *cfg)
 	fprintf(fp, "# 3: model mode with multi escape symbol mechanism\n");
 	fprintf(fp, "# 4: 1d differencing mode without input model multi escape symbol mechanism\n");
 	fprintf(fp, "\n");
-	fprintf(fp, "cmp_mode = %u\n", cfg->cmp_mode);
+	fprintf(fp, "cmp_mode = %d\n", cfg->cmp_mode);
 	fprintf(fp, "\n");
 	fprintf(fp, "#-------------------------------------------------------------------------------\n");
 	fprintf(fp, "# Number of samples to compress, length of the data and model buffer\n");

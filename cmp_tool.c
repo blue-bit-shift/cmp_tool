@@ -299,7 +299,7 @@ int main(int argc, char **argv)
 	}
 
 	{
-		char str[] = "### PLATO Compression/Decompression Tool Version " CMP_TOOL_VERSION " ###\n";
+		const char str[] = "### PLATO Compression/Decompression Tool Version " CMP_TOOL_VERSION " ###\n";
 		size_t str_len = strlen(str) - 1; /* -1 for \n */
 		size_t i;
 		for (i = 0; i < str_len; ++i)
@@ -622,7 +622,7 @@ static int guess_cmp_pars(struct cmp_cfg *cfg, const char *guess_cmp_mode,
  * @brief generate packets to setup an RDCU compression
  */
 
-static int gen_rdcu_write_pkts(struct cmp_cfg *cfg)
+static int gen_rdcu_write_pkts(const struct cmp_cfg *cfg)
 {
 	int error;
 

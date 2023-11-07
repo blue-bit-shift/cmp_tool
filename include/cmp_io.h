@@ -52,7 +52,7 @@ uint32_t cmp_tool_gen_version_id(const char *version);
 
 int write_data_to_file(const void *buf, uint32_t buf_size, const char *output_prefix,
 		       const char *name_extension, int flags);
-int write_input_data_to_file(void *data, uint32_t data_size, enum cmp_data_type data_type,
+int write_input_data_to_file(const void *data, uint32_t data_size, enum cmp_data_type data_type,
 			     const char *output_prefix, const char *name_extension, int flags);
 int cmp_info_to_file(const struct cmp_info *info, const char *output_prefix, int rdcu_cfg);
 int cmp_cfg_fo_file(const struct cmp_cfg *cfg, const char *output_prefix, int verbose);
