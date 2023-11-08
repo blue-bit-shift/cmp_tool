@@ -283,7 +283,6 @@ static int rdcu_process_rx(void)
 
 		if (rp->data_len & 0x3) {
 			printf("Error: response packet data size is not a multiple of 4, transaction dropped\n");
-
 			trans_log_release_slot(rp->tr_id);
 			rmap_erase_packet(rp);
 			return -1;

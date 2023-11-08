@@ -28,7 +28,6 @@
 #include <rmap.h>
 
 
-
 /**
  * @brief valiidates a command code
  *

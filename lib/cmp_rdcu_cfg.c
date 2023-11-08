@@ -24,6 +24,7 @@
 #include <cmp_debug.h>
 #include <cmp_support.h>
 #include <rdcu_cmd.h>
+#include <cmp_rdcu_cfg.h>
 
 
 /**
