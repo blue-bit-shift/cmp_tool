@@ -291,22 +291,15 @@ static int rdcu_process_rx(void)
 		if (rp->data_len) {
 			uint8_t crc8;
 
-			/* convert endianness if needed */
+			/* convert endianness in-place if needed */
 #if (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
 			{
-				uint32_t i;
+				uint32_t i, tmp;
 
-				for (i = 0; i < rp->data_len; i+=4) {
-					uint32_t tmp = rp->data[i];
-
-					tmp |= (uint32_t)rp->data[i+1] << 8;
-					tmp |= (uint32_t)rp->data[i+2] << 16;
-					tmp |= (uint32_t)rp->data[i+3] << 24;
-
-					rp->data[i] = tmp >> 24 ;
-					rp->data[i+1] = (tmp >> 16) & 0xFFU;
-					rp->data[i+2] = (tmp >> 8) & 0xFFU;
-					rp->data[i+3] = tmp & 0xFFU;
+				for (i = 0; i < rp->data_len; i+=sizeof(tmp)) {
+					memcpy(&tmp, &rp->data[i], sizeof(tmp));
+					be32_to_cpus(&tmp);
+					memcpy(&rp->data[i], &tmp, sizeof(tmp));
 				}
 			}
 #endif /* __BYTE_ORDER__ */

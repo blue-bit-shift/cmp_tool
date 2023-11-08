@@ -1658,9 +1658,11 @@ int rdcu_write_sram_16(const uint16_t *buf, uint32_t addr, uint32_t size)
 #else
 	{
 		uint32_t i;
-		for (i = 0; i < size; i+=2) {
-			rdcu->sram[addr+i] = buf[i/2] >> 8;
-			rdcu->sram[addr+i+1] = buf[i/2] & 0xFFU;
+
+		for (i = 0; i < size/sizeof(uint16_t); i++) {
+			uint16_t tmp = cpu_to_be16(buf[i]);
+
+			memcpy(&rdcu->sram[addr+i*sizeof(tmp)], &tmp, sizeof(tmp));
 		}
 	}
 	return (int)size; /* lol */
@@ -1702,11 +1704,11 @@ int rdcu_write_sram_32(const uint32_t *buf, uint32_t addr, uint32_t size)
 #else
 	{
 		uint32_t i;
-		for (i = 0; i < size; i+=4) {
-			rdcu->sram[addr+i] = buf[i/4] >> 24;
-			rdcu->sram[addr+i+1] = (buf[i/4] >> 16) & 0xFFU;
-			rdcu->sram[addr+i+2] = (buf[i/4] >> 8) & 0xFFU;
-			rdcu->sram[addr+i+3] = buf[i/4] & 0xFFU;
+
+		for (i = 0; i < size/sizeof(uint32_t); i++) {
+			uint32_t tmp = cpu_to_be32(buf[i]);
+
+			memcpy(&rdcu->sram[addr+i*sizeof(tmp)], &tmp, sizeof(tmp));
 		}
 	}
 	return (int)size; /* lol */
