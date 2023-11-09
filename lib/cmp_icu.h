@@ -20,7 +20,7 @@
 #ifndef CMP_ICU_H
 #define CMP_ICU_H
 
-#include <cmp_support.h>
+#include "common/cmp_support.h"
 
 #define CMP_PAR_UNUSED 0
 

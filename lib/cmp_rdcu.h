@@ -20,8 +20,8 @@
 #ifndef CMP_RDCU_H
 #define CMP_RDCU_H
 
-#include <cmp_support.h>
-#include <cmp_rdcu_cfg.h>
+#include "common/cmp_support.h"
+#include "rdcu_compress/cmp_rdcu_cfg.h"
 
 
 /* Compression Error Register bits definition, see RDCU-FRS-FN-0952 */

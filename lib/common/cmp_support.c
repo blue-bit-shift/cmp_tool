@@ -17,11 +17,11 @@
  * @see Data Compression User Manual PLATO-UVIE-PL-UM-0001
  */
 
-#include <compiler.h>
+#include "compiler.h"
 
-#include <cmp_support.h>
-#include <cmp_debug.h>
-#include <leon_inttypes.h>
+#include "cmp_support.h"
+#include "cmp_debug.h"
+#include "leon_inttypes.h"
 
 
 /**

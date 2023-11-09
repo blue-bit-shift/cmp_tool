@@ -21,10 +21,10 @@
 #include <stdint.h>
 #include <string.h>
 
-#include <cmp_debug.h>
-#include <cmp_support.h>
-#include <rdcu_cmd.h>
-#include <cmp_rdcu_cfg.h>
+#include "../common/cmp_debug.h"
+#include "../common/cmp_support.h"
+#include "rdcu_cmd.h"
+#include "cmp_rdcu_cfg.h"
 
 
 /**

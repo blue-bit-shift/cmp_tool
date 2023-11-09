@@ -24,8 +24,8 @@
 
 #include <compiler.h>
 #include <cmp_entity.h>
-#include "../../lib/cmp_icu.c" /* .c file included to test static functions */
-#include "../../lib/decmp.c" /* .c file included to test static functions */
+#include "../../lib/icu_compress/cmp_icu.c" /* .c file included to test static functions */
+#include "../../lib/decompress//decmp.c" /* .c file included to test static functions */
 
 #define MAX_VALID_CW_LEM 32
 

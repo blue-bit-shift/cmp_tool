@@ -22,8 +22,8 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#include <cmp_max_used_bits.h>
-#include <cmp_cal_up_model.h>
+#include "cmp_max_used_bits.h"
+#include "cmp_cal_up_model.h"
 
 
 /* return code if the bitstream buffer is too small to store the whole bitstream */

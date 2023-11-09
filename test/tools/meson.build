@@ -15,6 +15,6 @@ if checkpatch.found()
     '--ignore', 'SPDX_LICENSE_TAG,PREFER_DEFINED_ATTRIBUTE_MACRO,EMBEDDED_FILENAME,BLOCK_COMMENT_STYLE,EMBEDDED_FUNCTION_NAME',
   ]
   run_target('syntax-check',
-  command : [checkpatch, checkpatch_args, main, cmplib_sources])
+  command : [checkpatch, checkpatch_args, cmp_tool_src, common_sources, decompress_sources, icu_compress_sources, rdcu_compress_sources])
 endif
 

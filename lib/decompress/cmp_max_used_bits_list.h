@@ -25,7 +25,7 @@
 
 #include <stdint.h>
 
-#include <cmp_data_types.h>
+#include "../common/cmp_data_types.h"
 
 
 struct cmp_max_used_bits *cmp_max_used_bits_list_get(uint8_t version);

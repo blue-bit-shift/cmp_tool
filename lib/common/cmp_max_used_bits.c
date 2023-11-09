@@ -19,7 +19,7 @@
 
 #include <stdint.h>
 
-#include <cmp_data_types.h>
+#include "cmp_data_types.h"
 
 
 #define MAX_USED_NC_IMAGETTE_BITS		16

@@ -28,14 +28,14 @@
 #include <string.h>
 #include <assert.h>
 
-#include <byteorder.h>
-#include <compiler.h>
+#include "../common/byteorder.h"
+#include "../common/compiler.h"
 
-#include <cmp_debug.h>
-#include <cmp_support.h>
-#include <cmp_entity.h>
-#include <cmp_max_used_bits.h>
-#include <cmp_max_used_bits_list.h>
+#include "../common/cmp_debug.h"
+#include "../common/cmp_support.h"
+#include "../common/cmp_entity.h"
+#include "../common/cmp_max_used_bits.h"
+#include "cmp_max_used_bits_list.h"
 
 
 #define MAX_CW_LEN_RDCU 16 /* maximum RDCU Golomb code word bit length */

@@ -36,8 +36,8 @@
 
 #include <stdint.h>
 
-#include <compiler.h>
-#include <cmp_support.h>
+#include "compiler.h"
+#include "../common/cmp_support.h"
 
 
 /* size of the source data header structure for multi entry packet */

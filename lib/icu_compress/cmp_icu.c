@@ -32,13 +32,13 @@
 #include <string.h>
 #include <limits.h>
 
-#include <byteorder.h>
-#include <cmp_debug.h>
-#include <cmp_data_types.h>
-#include <cmp_support.h>
-#include <cmp_entity.h>
+#include "../common/byteorder.h"
+#include "../common/cmp_debug.h"
+#include "../common/cmp_data_types.h"
+#include "../common/cmp_support.h"
+#include "../common/cmp_entity.h"
 
-#include <cmp_icu.h>
+#include "../cmp_icu.h"
 
 
 /**

@@ -19,7 +19,7 @@
 #ifndef CMP_RDCU_CFG_H
 #define CMP_RDCU_CFG_H
 
-#include <cmp_support.h>
+#include "../common/cmp_support.h"
 
 
 struct cmp_cfg rdcu_cfg_create(enum cmp_data_type data_type, enum cmp_mode cmp_mode,

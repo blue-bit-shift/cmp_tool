@@ -66,9 +66,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <byteorder.h>
-#include <rmap.h>
-#include <rdcu_rmap.h>
+#include "../common/byteorder.h"
+#include "rmap.h"
+#include "rdcu_rmap.h"
 
 #define RDCU_CONFIG_DEBUG 0
 

@@ -30,11 +30,11 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include <cmp_debug.h>
-#include <cmp_support.h>
-#include <cmp_rdcu_cfg.h>
-#include <rdcu_ctrl.h>
-#include <rdcu_rmap.h>
+#include "../common/cmp_debug.h"
+#include "../common/cmp_support.h"
+#include "cmp_rdcu_cfg.h"
+#include "rdcu_ctrl.h"
+#include "rdcu_rmap.h"
 
 
 #define RDCU_INTR_SIG_ENA 1 /* RDCU interrupt signal enabled */

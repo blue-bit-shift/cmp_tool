@@ -22,7 +22,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#include <compiler.h>
+#include "../common/compiler.h"
 
 /**
  * valid RMAP command codes, see Table 5-1 of ECSS‐E‐ST‐50‐52C

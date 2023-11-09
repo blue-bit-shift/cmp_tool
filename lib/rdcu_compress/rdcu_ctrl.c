@@ -62,10 +62,10 @@
 #include <stdint.h>
 #include <string.h>
 
-#include <byteorder.h>
-#include <rdcu_cmd.h>
-#include <rdcu_ctrl.h>
-#include <rdcu_rmap.h>
+#include "../common/byteorder.h"
+#include "rdcu_cmd.h"
+#include "rdcu_ctrl.h"
+#include "rdcu_rmap.h"
 
 
 static struct rdcu_mirror *rdcu;
