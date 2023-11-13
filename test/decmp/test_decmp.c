@@ -1773,6 +1773,9 @@ void test_cmp_ent_read_header_error_cases(void)
 	cmp_ent_set_data_type(ent, DATA_TYPE_UNKNOWN, 1);
 	error = cmp_ent_read_header(ent, &cfg);
 	TEST_ASSERT_TRUE(error);
+	cmp_ent_set_data_type(ent, (enum cmp_data_type)1000, 1);
+	error = cmp_ent_read_header(ent, &cfg);
+	TEST_ASSERT_TRUE(error);
 	/* unknown data type */
 	cmp_ent_set_data_type(ent, DATA_TYPE_F_CAM_BACKGROUND+1, 1);
 	error = cmp_ent_read_header(ent, &cfg);
