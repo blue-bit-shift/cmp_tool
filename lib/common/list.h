@@ -119,9 +119,9 @@ static inline void INIT_LIST_HEAD(struct list_head *list)
 
 /**
  * list_first_entry - get the first element from a list
- * @ptr		the list head to take the element from.
- * @type	the type of the struct this is embedded in.
- * @member	the name of the list_head within the struct.
+ * @param ptr		the list head to take the element from.
+ * @param type		the type of the struct this is embedded in.
+ * @param member	the name of the list_head within the struct.
  *
  * Note, that list is expected to be not empty.
  */
@@ -130,9 +130,9 @@ static inline void INIT_LIST_HEAD(struct list_head *list)
 
 /**
  * list_last_entry - get the last element from a list
- * @ptr		the list head to take the element from.
- * @type	the type of the struct this is embedded in.
- * @member	the name of the list_head within the struct.
+ * @param ptr		the list head to take the element from.
+ * @param type		the type of the struct this is embedded in.
+ * @param member	the name of the list_head within the struct.
  *
  * Note, that list is expected to be not empty.
  */
@@ -141,9 +141,9 @@ static inline void INIT_LIST_HEAD(struct list_head *list)
 
 /**
  * list_first_entry_or_null - get the first element from a list
- * @ptr		the list head to take the element from.
- * @type	the type of the struct this is embedded in.
- * @member	the name of the list_head within the struct.
+ * @param ptr		the list head to take the element from.
+ * @param type		the type of the struct this is embedded in.
+ * @param member	the name of the list_head within the struct.
  *
  * Note that if the list is empty, it returns NULL.
  */
@@ -155,8 +155,8 @@ static inline void INIT_LIST_HEAD(struct list_head *list)
 
 /**
  * list_next_entry - get the next element in list
- * @pos		the type * to cursor
- * @member	the name of the list_head within the struct.
+ * @param pos		the type * to cursor
+ * @param member	the name of the list_head within the struct.
  * @note modified to use __typeof__()
  */
 #define list_next_entry(pos, member) \
@@ -164,8 +164,8 @@ static inline void INIT_LIST_HEAD(struct list_head *list)
 
 /**
  * list_prev_entry - get the prev element in list
- * @pos		the type * to cursor
- * @member	the name of the list_head within the struct.
+ * @param pos		the type * to cursor
+ * @param member	the name of the list_head within the struct.
  */
 #define list_prev_entry(pos, member) \
 	list_entry((pos)->member.prev, typeof(*(pos)), member)
@@ -212,11 +212,11 @@ static inline void INIT_LIST_HEAD(struct list_head *list)
  * @param head	the head for your list.
  * @param member	the name of the list_struct within the struct.
  * @param type	the type of struct
- * @param warning	requires list_entry_while() to close statement
+ * @warning	requires list_entry_while() to close statement
  * @note this construction is necessary for a truly circular list that is "headless"
  *	and can be iterated from any starting element without additional overhead
  *	compared to the LIST_HEAD/list_for_each_entry approach
- * @todo check if this is functional for all targets (confirmed: gcc 4.8.2)
+ * TODO: check if this is functional for all targets (confirmed: gcc 4.8.2)
  */
 
 #define list_entry_do(pos, head, member, type)		\
@@ -231,7 +231,7 @@ static inline void INIT_LIST_HEAD(struct list_head *list)
  * @param head	the head for your list.
  * @param member	the name of the list_struct within the struct.
  * @param type	the type of struct
- * @param warning	requires list_entry_do() to open statement
+ * @warning	requires list_entry_do() to open statement
  * @note see list_entry_while()
  */
 
