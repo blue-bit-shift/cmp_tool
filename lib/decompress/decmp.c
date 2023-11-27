@@ -35,6 +35,7 @@
 #include "../common/cmp_support.h"
 #include "../common/cmp_entity.h"
 #include "../common/cmp_max_used_bits.h"
+#include "read_bitstream.h"
 #include "cmp_max_used_bits_list.h"
 
 
@@ -72,19 +73,30 @@ struct decoder_setup {
 
 
 /**
- * @brief count leading 1-bits
+ * @brief decode a unary code word
  *
- * @param value	input vale to count
+ * @param dec		a pointer to a bit_DStream_t context
+ * @param unused_1	this parameter is not used
+ * @param unused_2	this parameter is not used
+ * @param decoded_cw	pointer where decoded value is written
  *
- * @returns the number of leading 1-bits in value, starting at the most
- *	significant bit position
+ * @returns the length of the decoded code word in bits (NOT the decoded value);
+ *	failure if the return value is larger than 32
  */
 
-static unsigned int count_leading_ones(uint32_t value)
+static __inline uint32_t unary_decoder(struct bit_decoder *dec, uint32_t unused_1,
+				       uint32_t unused_2, uint32_t *decoded_cw)
 {
-	if (unlikely(~value == 0))  /* __builtin_clz(0) is undefined. */
-		return 32;
-	return (unsigned int)__builtin_clz(~value);
+	uint32_t cw_len;
+
+	UNUSED(unused_1); /* we don't need this parameter */
+	UNUSED(unused_2); /* we don't need this parameter */
+
+	*decoded_cw = bit_count_leading_ones(dec); /* decode unary coding */
+	cw_len = *decoded_cw + 1; /* Number of 1's + following 0 */
+	bit_consume_bits(dec, cw_len);
+
+	return cw_len;
 }
 
 
@@ -100,32 +112,24 @@ static unsigned int count_leading_ones(uint32_t value)
  *	failure if the return value is larger than 32
  */
 
-static unsigned int rice_decoder(uint32_t code_word, uint32_t m, uint32_t log2_m,
+static unsigned int rice_decoder(struct bit_decoder *dec, uint32_t m, uint32_t log2_m,
 				 uint32_t *decoded_cw)
 {
 	uint32_t q; /* quotient code */
+	uint32_t ql; /* length of the quotient code */
 	uint32_t r; /* remainder code */
 	uint32_t rl = log2_m; /* length of the remainder code */
-	uint32_t cw_len; /* length of the decoded code word in bits */
-
-	(void)m; /* we don't need the Golomb parameter */
-
-	assert(log2_m < 32);
-	assert(decoded_cw != NULL);
 
 	/* decode quotient unary code part */
-	q = count_leading_ones(code_word);
-
-	cw_len = q + 1 + rl; /* Number of 1's + following 0 + remainder length */
+	ql = unary_decoder(dec, m, log2_m, &q);
 
 	/* get remainder code  */
-	/* mask shift to prevented undefined behaviour in error case cw_len > 32 */
-	code_word >>= (32 - cw_len) & 0x1FU;
-	r = code_word & ((1U << rl) - 1);
+	r = (uint32_t)bit_read_bits(dec, rl);
 
 	*decoded_cw = (q << rl) + r;
 
-	return cw_len;
+	return ql + rl;
+
 }
 
 
@@ -142,7 +146,7 @@ static unsigned int rice_decoder(uint32_t code_word, uint32_t m, uint32_t log2_m
  *	failure if the return value is larger than 32
  */
 
-static unsigned int golomb_decoder(uint32_t code_word, uint32_t m,
+static unsigned int golomb_decoder(struct bit_decoder *dec, uint32_t m,
 				   uint32_t log2_m, uint32_t *decoded_cw)
 {
 	uint32_t q;  /* quotient code */
@@ -156,26 +160,20 @@ static unsigned int golomb_decoder(uint32_t code_word, uint32_t m,
 	assert(log2_m == ilog_2(m) && log2_m < 32);
 	assert(decoded_cw != NULL);
 
-	q = count_leading_ones(code_word); /* decode quotient unary code part */
-
-	/* The behaviour is undefined if the right shift operand is greater than
-	 * or equal to the length in bits of the shifted left operand, so we mask
-	 * the right operand to avoid this case. (q = 32)
-	 */
-	code_word <<= (q & 0x1FU); /* shift out leading ones */
-	code_word <<= 1; /* shift out zero in the quotient unary code */
+	/* decode quotient unary code part */
+	ql = unary_decoder(dec, m, log2_m, &q);
 
 	/* get the remainder code for both cases */
-	r2 = code_word >> (32 - (log2_m + 1));
+	r2 = (uint32_t)bit_peek_bits(dec, log2_m +1);
 	r1 = r2 >> 1;
 
 	cutoff = (0x2U << log2_m) - m; /* = 2^(log2_m+1)-m */
 
 	if (r1 < cutoff) { /* remainder case 1: remainder length=log2_m */
-		cw_len = q + 1 + log2_m;
+		cw_len = ql + log2_m;
 		r = r1;
 	} else { /* remainder case 2: remainder length = log2_m+1 */
-		cw_len = q + 1 + log2_m + 1;
+		cw_len = ql + log2_m + 1;
 		r = r2 - cutoff;
 	}
 
