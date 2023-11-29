@@ -1091,7 +1091,7 @@ void test_cmp_decmp_s_fx_diff(void)
 	struct cmp_entity *ent;
 	const uint32_t MAX_VALUE = ~(~0U << MAX_USED_BITS_V1.s_fx);
 	struct s_fx data_entry[DATA_SAMPLES];
-	uint8_t data_to_compress[MULTI_ENTRY_HDR_SIZE + sizeof(data_entry)];
+	uint8_t data_to_compress[COLLECTION_HDR_SIZE + sizeof(data_entry)];
 	struct s_fx *decompressed_data = NULL;
 	uint32_t compressed_data_len_samples = DATA_SAMPLES;
 	struct cmp_cfg cfg;
@@ -1107,9 +1107,9 @@ void test_cmp_decmp_s_fx_diff(void)
 	data_entry[4].exp_flags = 3;
 	data_entry[4].fx = MAX_VALUE>>1;
 
-	for (s = 0; s < MULTI_ENTRY_HDR_SIZE; s++)
+	for (s = 0; s < COLLECTION_HDR_SIZE; s++)
 		data_to_compress[s] = (uint8_t)s;
-	memcpy(&data_to_compress[MULTI_ENTRY_HDR_SIZE], data_entry, sizeof(data_entry));
+	memcpy(&data_to_compress[COLLECTION_HDR_SIZE], data_entry, sizeof(data_entry));
 
 	cfg = cmp_cfg_icu_create(DATA_TYPE_S_FX, CMP_MODE_DIFF_MULTI,
 				 CMP_PAR_UNUSED, CMP_LOSSLESS);
@@ -1165,7 +1165,7 @@ void test_s_fx_diff(void)
 	};
 
 	uint8_t result_data[32] = {0};
-	struct multi_entry_hdr *hdr = (struct multi_entry_hdr *)result_data;
+	struct collection_hdr *hdr = (struct collection_hdr *)result_data;
 	struct s_fx *data = (struct s_fx *)hdr->entry;
 	uint8_t *decompressed_data;
 
@@ -1211,12 +1211,12 @@ void test_s_fx_model(void)
 	uint8_t exp_data_buf[32] = {0}; /* expected uncompressed data */
 	uint8_t exp_up_model_buf[32] = {0};
 
-	struct multi_entry_hdr *model_collection = (struct multi_entry_hdr *)model_buf;
+	struct collection_hdr *model_collection = (struct collection_hdr *)model_buf;
 	struct s_fx *model_data = (struct s_fx *)model_collection->entry;
 
-	struct multi_entry_hdr *exp_data_collection;
+	struct collection_hdr *exp_data_collection;
 	struct s_fx *exp_data;
-	struct multi_entry_hdr *exp_up_model_collection;
+	struct collection_hdr *exp_up_model_collection;
 	struct s_fx *exp_updated_model_data;
 
 	memset(model_collection, 0xFF, sizeof(*model_collection));
@@ -1229,7 +1229,7 @@ void test_s_fx_model(void)
 	model_data[3].exp_flags = 3;
 	model_data[3].fx = 0xFFFFFF;
 
-	exp_data_collection = (struct multi_entry_hdr *)exp_data_buf;
+	exp_data_collection = (struct collection_hdr *)exp_data_buf;
 	exp_data = (struct s_fx *)exp_data_collection->entry;
 	/* put some dummy data in the header */
 	for (i = 0; i < sizeof(*exp_data_collection); i++)
@@ -1243,7 +1243,7 @@ void test_s_fx_model(void)
 	exp_data[3].exp_flags = 0;
 	exp_data[3].fx = 0;
 
-	exp_up_model_collection = (struct multi_entry_hdr *)exp_up_model_buf;
+	exp_up_model_collection = (struct collection_hdr *)exp_up_model_buf;
 	exp_updated_model_data = (struct s_fx *)exp_up_model_collection->entry;
 	/* put some dummy data in the header*/
 	for (i = 0; i < sizeof(*exp_up_model_collection); i++)

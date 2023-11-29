@@ -2685,10 +2685,10 @@ void test_compress_imagette_error_cases(void)
 void test_compress_multi_entry_hdr(void)
 {
 	int stream_len;
-	uint8_t data[MULTI_ENTRY_HDR_SIZE];
-	uint8_t model[MULTI_ENTRY_HDR_SIZE];
-	uint8_t up_model[MULTI_ENTRY_HDR_SIZE];
-	uint8_t cmp_data[MULTI_ENTRY_HDR_SIZE];
+	uint8_t data[COLLECTION_HDR_SIZE];
+	uint8_t model[COLLECTION_HDR_SIZE];
+	uint8_t up_model[COLLECTION_HDR_SIZE];
+	uint8_t cmp_data[COLLECTION_HDR_SIZE];
 	uint8_t *data_p = NULL;
 	uint8_t *model_p = NULL;
 	uint8_t *up_model_p = NULL;
@@ -2706,8 +2706,8 @@ void test_compress_multi_entry_hdr(void)
 	stream_len = compress_multi_entry_hdr((void **)&data_p, (void **)&model_p,
 					      (void **)&up_model_p, cmp_data);
 	TEST_ASSERT_EQUAL_INT(96, stream_len);
-	TEST_ASSERT_FALSE(memcmp(cmp_data, data, MULTI_ENTRY_HDR_SIZE));
-	TEST_ASSERT_EQUAL(data_p-data, MULTI_ENTRY_HDR_SIZE);
+	TEST_ASSERT_FALSE(memcmp(cmp_data, data, COLLECTION_HDR_SIZE));
+	TEST_ASSERT_EQUAL(data_p-data, COLLECTION_HDR_SIZE);
 
 	/* no up_model */
 	memset(cmp_data, 0, sizeof(cmp_data));
@@ -2717,9 +2717,9 @@ void test_compress_multi_entry_hdr(void)
 	stream_len = compress_multi_entry_hdr((void **)&data_p, (void **)&model_p,
 					      (void **)&up_model_p, cmp_data);
 	TEST_ASSERT_EQUAL_INT(96, stream_len);
-	TEST_ASSERT_FALSE(memcmp(cmp_data, data, MULTI_ENTRY_HDR_SIZE));
-	TEST_ASSERT_EQUAL(data_p-data, MULTI_ENTRY_HDR_SIZE);
-	TEST_ASSERT_EQUAL(model_p-model, MULTI_ENTRY_HDR_SIZE);
+	TEST_ASSERT_FALSE(memcmp(cmp_data, data, COLLECTION_HDR_SIZE));
+	TEST_ASSERT_EQUAL(data_p-data, COLLECTION_HDR_SIZE);
+	TEST_ASSERT_EQUAL(model_p-model, COLLECTION_HDR_SIZE);
 
 	/* all buffer test */
 	memset(cmp_data, 0, sizeof(cmp_data));
@@ -2729,11 +2729,11 @@ void test_compress_multi_entry_hdr(void)
 	stream_len = compress_multi_entry_hdr((void **)&data_p, (void **)&model_p,
 					      (void **)&up_model_p, cmp_data);
 	TEST_ASSERT_EQUAL_INT(96, stream_len);
-	TEST_ASSERT_FALSE(memcmp(cmp_data, data, MULTI_ENTRY_HDR_SIZE));
-	TEST_ASSERT_FALSE(memcmp(up_model, data, MULTI_ENTRY_HDR_SIZE));
-	TEST_ASSERT_EQUAL(data_p-data, MULTI_ENTRY_HDR_SIZE);
-	TEST_ASSERT_EQUAL(model_p-model, MULTI_ENTRY_HDR_SIZE);
-	TEST_ASSERT_EQUAL(up_model_p-up_model, MULTI_ENTRY_HDR_SIZE);
+	TEST_ASSERT_FALSE(memcmp(cmp_data, data, COLLECTION_HDR_SIZE));
+	TEST_ASSERT_FALSE(memcmp(up_model, data, COLLECTION_HDR_SIZE));
+	TEST_ASSERT_EQUAL(data_p-data, COLLECTION_HDR_SIZE);
+	TEST_ASSERT_EQUAL(model_p-model, COLLECTION_HDR_SIZE);
+	TEST_ASSERT_EQUAL(up_model_p-up_model, COLLECTION_HDR_SIZE);
 
 	/* all buffer test; no cmp_data */
 	memset(cmp_data, 0, sizeof(cmp_data));
@@ -2743,10 +2743,10 @@ void test_compress_multi_entry_hdr(void)
 	stream_len = compress_multi_entry_hdr((void **)&data_p, (void **)&model_p,
 					      (void **)&up_model_p, NULL);
 	TEST_ASSERT_EQUAL_INT(96, stream_len);
-	TEST_ASSERT_FALSE(memcmp(up_model, data, MULTI_ENTRY_HDR_SIZE));
-	TEST_ASSERT_EQUAL(data_p-data, MULTI_ENTRY_HDR_SIZE);
-	TEST_ASSERT_EQUAL(model_p-model, MULTI_ENTRY_HDR_SIZE);
-	TEST_ASSERT_EQUAL(up_model_p-up_model, MULTI_ENTRY_HDR_SIZE);
+	TEST_ASSERT_FALSE(memcmp(up_model, data, COLLECTION_HDR_SIZE));
+	TEST_ASSERT_EQUAL(data_p-data, COLLECTION_HDR_SIZE);
+	TEST_ASSERT_EQUAL(model_p-model, COLLECTION_HDR_SIZE);
+	TEST_ASSERT_EQUAL(up_model_p-up_model, COLLECTION_HDR_SIZE);
 
 	/* no data, use up_model test */
 	memset(cmp_data, 0, sizeof(cmp_data));
@@ -2756,8 +2756,8 @@ void test_compress_multi_entry_hdr(void)
 	stream_len = compress_multi_entry_hdr((void **)&data_p, (void **)&model_p,
 					      (void **)&up_model_p, NULL);
 	TEST_ASSERT_EQUAL_INT(96, stream_len);
-	TEST_ASSERT_EQUAL(model_p-model, MULTI_ENTRY_HDR_SIZE);
-	TEST_ASSERT_EQUAL(up_model_p-up_model, MULTI_ENTRY_HDR_SIZE);
+	TEST_ASSERT_EQUAL(model_p-model, COLLECTION_HDR_SIZE);
+	TEST_ASSERT_EQUAL(up_model_p-up_model, COLLECTION_HDR_SIZE);
 }
 
 
@@ -2767,7 +2767,7 @@ void test_compress_s_fx_raw(void)
 	struct cmp_cfg cfg = {0};
 	int cmp_size, cmp_size_exp;
 	size_t i;
-	struct multi_entry_hdr *hdr;
+	struct collection_hdr *hdr;
 
 	cfg.data_type = DATA_TYPE_S_FX;
 	cfg.model_buf = NULL;
@@ -2794,18 +2794,18 @@ void test_compress_s_fx_raw(void)
 	data[6].fx = UINT32_MAX;
 
 	hdr = cfg.input_buf;
-	memset(hdr, 0x42, sizeof(struct multi_entry_hdr));
+	memset(hdr, 0x42, sizeof(struct collection_hdr));
 	memcpy(hdr->entry, data, sizeof(data));
 
 	cmp_size = icu_compress_data(&cfg);
 
-	cmp_size_exp = (sizeof(data) + sizeof(struct multi_entry_hdr)) * CHAR_BIT;
+	cmp_size_exp = (sizeof(data) + sizeof(struct collection_hdr)) * CHAR_BIT;
 	TEST_ASSERT_EQUAL_INT(cmp_size_exp, cmp_size);
 
 	for (i = 0; i < ARRAY_SIZE(data); i++) {
 		struct s_fx *p;
 
-		hdr = (struct multi_entry_hdr *)cfg.icu_output_buf;
+		hdr = (struct collection_hdr *)cfg.icu_output_buf;
 		p = (struct s_fx *)hdr->entry;
 
 		TEST_ASSERT_EQUAL_HEX(data[i].exp_flags, p[i].exp_flags);
@@ -2822,7 +2822,7 @@ void test_compress_s_fx_staff(void)
 	struct s_fx data[5];
 	struct cmp_cfg cfg = {0};
 	int cmp_size, cmp_size_exp;
-	struct multi_entry_hdr *hdr;
+	struct collection_hdr *hdr;
 	uint32_t *cmp_data;
 
 	/* setup configuration */
@@ -2841,7 +2841,7 @@ void test_compress_s_fx_staff(void)
 	/* generate input data */
 	hdr = cfg.input_buf;
 	/* use dummy data for the header */
-	memset(hdr, 0x42, sizeof(struct multi_entry_hdr));
+	memset(hdr, 0x42, sizeof(struct collection_hdr));
 	data[0].exp_flags = 0x0;
 	data[0].fx = 0x0;
 	data[1].exp_flags = 0x1;
@@ -2856,9 +2856,9 @@ void test_compress_s_fx_staff(void)
 
 	cmp_size = icu_compress_data(&cfg);
 
-	cmp_size_exp = 5 * (2 + 21) + MULTI_ENTRY_HDR_SIZE * CHAR_BIT;
+	cmp_size_exp = 5 * (2 + 21) + COLLECTION_HDR_SIZE * CHAR_BIT;
 	TEST_ASSERT_EQUAL_INT(cmp_size_exp, cmp_size);
-	TEST_ASSERT_FALSE(memcmp(cfg.input_buf, cfg.icu_output_buf, MULTI_ENTRY_HDR_SIZE));
+	TEST_ASSERT_FALSE(memcmp(cfg.input_buf, cfg.icu_output_buf, COLLECTION_HDR_SIZE));
 	hdr = (void *)cfg.icu_output_buf;
 	cmp_data = calloc(4, sizeof(*cmp_data));
 	memcpy(cmp_data, hdr->entry, 4 * sizeof(*cmp_data));
@@ -2879,7 +2879,7 @@ void test_compress_s_fx_model_multi(void)
 	struct s_fx *up_model_buf;
 	struct cmp_cfg cfg = {0};
 	int cmp_size;
-	struct multi_entry_hdr *hdr;
+	struct collection_hdr *hdr;
 	uint32_t *cmp_data;
 	struct cmp_max_used_bits my_max_used_bits;
 
@@ -2906,7 +2906,7 @@ void test_compress_s_fx_model_multi(void)
 	/* generate input data */
 	hdr = cfg.input_buf;
 	/* use dummy data for the header */
-	memset(hdr, 0x42, sizeof(struct multi_entry_hdr));
+	memset(hdr, 0x42, sizeof(struct collection_hdr));
 	data[0].exp_flags = 0x0;
 	data[0].fx = 0x0;
 	data[1].exp_flags = 0x1;
@@ -2924,7 +2924,7 @@ void test_compress_s_fx_model_multi(void)
 	/* generate model data */
 	hdr = cfg.model_buf;
 	/* use dummy data for the header */
-	memset(hdr, 0x41, sizeof(struct multi_entry_hdr));
+	memset(hdr, 0x41, sizeof(struct collection_hdr));
 	model[0].exp_flags = 0x0;
 	model[0].fx = 0x0;
 	model[1].exp_flags = 0x3;
@@ -2947,15 +2947,15 @@ void test_compress_s_fx_model_multi(void)
 	cmp_size = icu_compress_data(&cfg);
 
 	TEST_ASSERT_EQUAL_INT(166, cmp_size);
-	TEST_ASSERT_FALSE(memcmp(cfg.input_buf, cfg.icu_output_buf, MULTI_ENTRY_HDR_SIZE));
-	cmp_data = &cfg.icu_output_buf[MULTI_ENTRY_HDR_SIZE/sizeof(uint32_t)];
+	TEST_ASSERT_FALSE(memcmp(cfg.input_buf, cfg.icu_output_buf, COLLECTION_HDR_SIZE));
+	cmp_data = &cfg.icu_output_buf[COLLECTION_HDR_SIZE/sizeof(uint32_t)];
 	TEST_ASSERT_EQUAL_HEX(0x1C77FFA6, be32_to_cpu(cmp_data[0]));
 	TEST_ASSERT_EQUAL_HEX(0xAFFF4DE5, be32_to_cpu(cmp_data[1]));
 	TEST_ASSERT_EQUAL_HEX(0xCC000000, be32_to_cpu(cmp_data[2]));
 
 	hdr = cfg.icu_new_model_buf;
 	up_model_buf = (struct s_fx *)hdr->entry;
-	TEST_ASSERT_FALSE(memcmp(hdr, cfg.icu_output_buf, MULTI_ENTRY_HDR_SIZE));
+	TEST_ASSERT_FALSE(memcmp(hdr, cfg.icu_output_buf, COLLECTION_HDR_SIZE));
 	TEST_ASSERT_EQUAL_HEX(0x0, up_model_buf[0].exp_flags);
 	TEST_ASSERT_EQUAL_HEX(0x0, up_model_buf[0].fx);
 	TEST_ASSERT_EQUAL_HEX(0x2, up_model_buf[1].exp_flags);
@@ -2989,10 +2989,10 @@ void test_compress_s_fx_error_cases(void)
 	uint32_t spillover_exp_flags = 6;
 	uint32_t cmp_par_fx = 2;
 	uint32_t spillover_fx = 8;
-	uint8_t data_to_compress[MULTI_ENTRY_HDR_SIZE+3*sizeof(struct s_fx)] = {0};
-	uint8_t compressed_data[MULTI_ENTRY_HDR_SIZE+1*sizeof(struct s_fx)] = {0};
+	uint8_t data_to_compress[COLLECTION_HDR_SIZE+3*sizeof(struct s_fx)] = {0};
+	uint8_t compressed_data[COLLECTION_HDR_SIZE+1*sizeof(struct s_fx)] = {0};
 	struct cmp_max_used_bits my_max_used_bits = MAX_USED_BITS_SAFE;
-	struct s_fx *data_p = (struct s_fx *)&data_to_compress[MULTI_ENTRY_HDR_SIZE];
+	struct s_fx *data_p = (struct s_fx *)&data_to_compress[COLLECTION_HDR_SIZE];
 
 	cfg = cmp_cfg_icu_create(DATA_TYPE_S_FX, CMP_MODE_DIFF_ZERO, 0, CMP_LOSSLESS);
 	TEST_ASSERT(cfg.data_type != DATA_TYPE_UNKNOWN);
@@ -3053,10 +3053,10 @@ void test_compress_s_fx_efx_error_cases(void)
 	uint32_t spillover_fx = 8;
 	uint32_t cmp_par_efx = MAX_NON_IMA_GOLOMB_PAR;
 	uint32_t spillover_efx = cmp_icu_max_spill(MAX_NON_IMA_GOLOMB_PAR);
-	uint8_t data_to_compress[MULTI_ENTRY_HDR_SIZE+2*sizeof(struct s_fx_efx)] = {0};
-	uint8_t compressed_data[MULTI_ENTRY_HDR_SIZE+1*sizeof(struct s_fx_efx)] = {0};
+	uint8_t data_to_compress[COLLECTION_HDR_SIZE+2*sizeof(struct s_fx_efx)] = {0};
+	uint8_t compressed_data[COLLECTION_HDR_SIZE+1*sizeof(struct s_fx_efx)] = {0};
 	struct cmp_max_used_bits my_max_used_bits = MAX_USED_BITS_SAFE;
-	struct s_fx_efx *data_p = (struct s_fx_efx *)&data_to_compress[MULTI_ENTRY_HDR_SIZE];
+	struct s_fx_efx *data_p = (struct s_fx_efx *)&data_to_compress[COLLECTION_HDR_SIZE];
 
 	cfg = cmp_cfg_icu_create(DATA_TYPE_S_FX_EFX, CMP_MODE_DIFF_MULTI, 0, CMP_LOSSLESS);
 	TEST_ASSERT(cfg.data_type != DATA_TYPE_UNKNOWN);
@@ -3130,11 +3130,11 @@ void test_compress_s_fx_ncob_error_cases(void)
 	uint32_t spillover_fx = 8;
 	uint32_t cmp_par_ncob = MAX_NON_IMA_GOLOMB_PAR;
 	uint32_t spillover_ncob = cmp_icu_max_spill(MAX_NON_IMA_GOLOMB_PAR);
-	uint8_t data_to_compress[MULTI_ENTRY_HDR_SIZE+3*sizeof(struct s_fx_ncob)] = {0};
-	uint8_t model_data[MULTI_ENTRY_HDR_SIZE+3*sizeof(struct s_fx_ncob)] = {0};
-	uint8_t compressed_data[MULTI_ENTRY_HDR_SIZE+1*sizeof(struct s_fx_ncob)] = {0};
+	uint8_t data_to_compress[COLLECTION_HDR_SIZE+3*sizeof(struct s_fx_ncob)] = {0};
+	uint8_t model_data[COLLECTION_HDR_SIZE+3*sizeof(struct s_fx_ncob)] = {0};
+	uint8_t compressed_data[COLLECTION_HDR_SIZE+1*sizeof(struct s_fx_ncob)] = {0};
 	struct cmp_max_used_bits my_max_used_bits = MAX_USED_BITS_SAFE;
-	struct s_fx_ncob *data_p = (struct s_fx_ncob *)&data_to_compress[MULTI_ENTRY_HDR_SIZE];
+	struct s_fx_ncob *data_p = (struct s_fx_ncob *)&data_to_compress[COLLECTION_HDR_SIZE];
 
 
 	my_max_used_bits.s_exp_flags = 2;
@@ -3218,11 +3218,11 @@ void test_compress_s_fx_efx_ncob_ecob_error_cases(void)
 	uint32_t spillover_efx =  cmp_icu_max_spill(MAX_NON_IMA_GOLOMB_PAR);
 	uint32_t cmp_par_ecob = 23;
 	uint32_t spillover_ecob = cmp_icu_max_spill(23);
-	uint8_t data_to_compress[MULTI_ENTRY_HDR_SIZE+3*sizeof(struct s_fx_efx_ncob_ecob)] = {0};
-	uint8_t model_data[MULTI_ENTRY_HDR_SIZE+3*sizeof(struct s_fx_efx_ncob_ecob)] = {0};
-	uint8_t compressed_data[MULTI_ENTRY_HDR_SIZE+1*sizeof(struct s_fx_efx_ncob_ecob)] = {0};
+	uint8_t data_to_compress[COLLECTION_HDR_SIZE+3*sizeof(struct s_fx_efx_ncob_ecob)] = {0};
+	uint8_t model_data[COLLECTION_HDR_SIZE+3*sizeof(struct s_fx_efx_ncob_ecob)] = {0};
+	uint8_t compressed_data[COLLECTION_HDR_SIZE+1*sizeof(struct s_fx_efx_ncob_ecob)] = {0};
 	struct cmp_max_used_bits my_max_used_bits = MAX_USED_BITS_SAFE;
-	struct s_fx_efx_ncob_ecob *data_p = (struct s_fx_efx_ncob_ecob *)&data_to_compress[MULTI_ENTRY_HDR_SIZE];
+	struct s_fx_efx_ncob_ecob *data_p = (struct s_fx_efx_ncob_ecob *)&data_to_compress[COLLECTION_HDR_SIZE];
 
 
 	cfg = cmp_cfg_icu_create(DATA_TYPE_S_FX_EFX_NCOB_ECOB, CMP_MODE_MODEL_ZERO, 0, CMP_LOSSLESS);
@@ -3328,8 +3328,8 @@ void test_compress_f_fx_error_cases(void)
 	struct cmp_cfg cfg = {0};
 	uint32_t cmp_par_fx = MAX_NON_IMA_GOLOMB_PAR;
 	uint32_t spillover_fx = 8;
-	uint8_t data_to_compress[MULTI_ENTRY_HDR_SIZE+3*sizeof(struct f_fx)] = {0};
-	uint8_t compressed_data[MULTI_ENTRY_HDR_SIZE+1*sizeof(struct f_fx)] = {0};
+	uint8_t data_to_compress[COLLECTION_HDR_SIZE+3*sizeof(struct f_fx)] = {0};
+	uint8_t compressed_data[COLLECTION_HDR_SIZE+1*sizeof(struct f_fx)] = {0};
 	struct cmp_max_used_bits my_max_used_bits = MAX_USED_BITS_SAFE;
 
 	my_max_used_bits.f_fx = 23;
@@ -3372,10 +3372,10 @@ void test_compress_f_fx_efx_error_cases(void)
 	uint32_t spillover_fx = 8;
 	uint32_t cmp_par_efx = 1;
 	uint32_t spillover_efx = 8;
-	uint8_t data_to_compress[MULTI_ENTRY_HDR_SIZE+2*sizeof(struct f_fx_efx)] = {0};
-	uint8_t compressed_data[MULTI_ENTRY_HDR_SIZE+1*sizeof(struct f_fx_efx)] = {0};
+	uint8_t data_to_compress[COLLECTION_HDR_SIZE+2*sizeof(struct f_fx_efx)] = {0};
+	uint8_t compressed_data[COLLECTION_HDR_SIZE+1*sizeof(struct f_fx_efx)] = {0};
 	struct cmp_max_used_bits my_max_used_bits = MAX_USED_BITS_SAFE;
-	struct f_fx_efx *data_p = (struct f_fx_efx *)&data_to_compress[MULTI_ENTRY_HDR_SIZE];
+	struct f_fx_efx *data_p = (struct f_fx_efx *)&data_to_compress[COLLECTION_HDR_SIZE];
 
 	my_max_used_bits.f_fx = 23;
 	my_max_used_bits.f_efx = 31;
@@ -3441,10 +3441,10 @@ void test_compress_f_fx_ncob_error_cases(void)
 	uint32_t spillover_fx = 8;
 	uint32_t cmp_par_ncob = 1;
 	uint32_t spillover_ncob = 8;
-	uint8_t data_to_compress[MULTI_ENTRY_HDR_SIZE+2*sizeof(struct f_fx_ncob)] = {0};
-	uint8_t compressed_data[MULTI_ENTRY_HDR_SIZE+1*sizeof(struct f_fx_ncob)] = {0};
+	uint8_t data_to_compress[COLLECTION_HDR_SIZE+2*sizeof(struct f_fx_ncob)] = {0};
+	uint8_t compressed_data[COLLECTION_HDR_SIZE+1*sizeof(struct f_fx_ncob)] = {0};
 	struct cmp_max_used_bits my_max_used_bits = MAX_USED_BITS_SAFE;
-	struct f_fx_ncob *data_p = (struct f_fx_ncob *)&data_to_compress[MULTI_ENTRY_HDR_SIZE];
+	struct f_fx_ncob *data_p = (struct f_fx_ncob *)&data_to_compress[COLLECTION_HDR_SIZE];
 
 	my_max_used_bits.f_fx = 31;
 	my_max_used_bits.f_ncob = 23;
@@ -3510,10 +3510,10 @@ void test_compress_f_fx_efx_ncob_ecob(void)
 	uint32_t spillover_efx = 44;
 	uint32_t cmp_par_ecob = 5;
 	uint32_t spillover_ecob = 55;
-	uint8_t data_to_compress[MULTI_ENTRY_HDR_SIZE+4*sizeof(struct f_fx_efx_ncob_ecob)] = {0};
-	uint8_t compressed_data[MULTI_ENTRY_HDR_SIZE+1*sizeof(struct f_fx_efx_ncob_ecob)] = {0};
+	uint8_t data_to_compress[COLLECTION_HDR_SIZE+4*sizeof(struct f_fx_efx_ncob_ecob)] = {0};
+	uint8_t compressed_data[COLLECTION_HDR_SIZE+1*sizeof(struct f_fx_efx_ncob_ecob)] = {0};
 	struct cmp_max_used_bits my_max_used_bits = MAX_USED_BITS_SAFE;
-	struct f_fx_efx_ncob_ecob *data_p = (struct f_fx_efx_ncob_ecob *)&data_to_compress[MULTI_ENTRY_HDR_SIZE];
+	struct f_fx_efx_ncob_ecob *data_p = (struct f_fx_efx_ncob_ecob *)&data_to_compress[COLLECTION_HDR_SIZE];
 
 	cfg = cmp_cfg_icu_create(DATA_TYPE_F_FX_EFX_NCOB_ECOB, CMP_MODE_DIFF_ZERO, 0, CMP_LOSSLESS);
 	TEST_ASSERT(cfg.data_type != DATA_TYPE_UNKNOWN);
@@ -3605,10 +3605,10 @@ void test_compress_l_fx_error_cases(void)
 	uint32_t spillover_fx = 8;
 	uint32_t cmp_par_fx_cob_variance = 30;
 	uint32_t spillover_fx_cob_variance = 8;
-	uint8_t data_to_compress[MULTI_ENTRY_HDR_SIZE+3*sizeof(struct l_fx)] = {0};
-	uint8_t compressed_data[MULTI_ENTRY_HDR_SIZE+1*sizeof(struct l_fx)] = {0};
+	uint8_t data_to_compress[COLLECTION_HDR_SIZE+3*sizeof(struct l_fx)] = {0};
+	uint8_t compressed_data[COLLECTION_HDR_SIZE+1*sizeof(struct l_fx)] = {0};
 	struct cmp_max_used_bits my_max_used_bits = MAX_USED_BITS_SAFE;
-	struct l_fx *data_p = (struct l_fx *)&data_to_compress[MULTI_ENTRY_HDR_SIZE];
+	struct l_fx *data_p = (struct l_fx *)&data_to_compress[COLLECTION_HDR_SIZE];
 
 	cfg = cmp_cfg_icu_create(DATA_TYPE_L_FX, CMP_MODE_DIFF_ZERO, 0, CMP_LOSSLESS);
 	TEST_ASSERT(cfg.data_type != DATA_TYPE_UNKNOWN);
@@ -3682,10 +3682,10 @@ void test_compress_l_fx_efx_error_cases(void)
 	uint32_t spillover_efx = 44;
 	uint32_t cmp_par_fx_cob_variance = 30;
 	uint32_t spillover_fx_cob_variance = 8;
-	uint8_t data_to_compress[MULTI_ENTRY_HDR_SIZE+3*sizeof(struct l_fx_efx)] = {0};
-	uint8_t compressed_data[MULTI_ENTRY_HDR_SIZE+1*sizeof(struct l_fx_efx)] = {0};
+	uint8_t data_to_compress[COLLECTION_HDR_SIZE+3*sizeof(struct l_fx_efx)] = {0};
+	uint8_t compressed_data[COLLECTION_HDR_SIZE+1*sizeof(struct l_fx_efx)] = {0};
 	struct cmp_max_used_bits my_max_used_bits = MAX_USED_BITS_SAFE;
-	struct l_fx_efx *data_p = (struct l_fx_efx *)&data_to_compress[MULTI_ENTRY_HDR_SIZE];
+	struct l_fx_efx *data_p = (struct l_fx_efx *)&data_to_compress[COLLECTION_HDR_SIZE];
 
 	cfg = cmp_cfg_icu_create(DATA_TYPE_L_FX_EFX, CMP_MODE_DIFF_ZERO, 0, CMP_LOSSLESS);
 	TEST_ASSERT(cfg.data_type != DATA_TYPE_UNKNOWN);
@@ -3770,10 +3770,10 @@ void test_compress_l_fx_ncob_error_cases(void)
 	uint32_t spillover_ncob = 10;
 	uint32_t cmp_par_fx_cob_variance = 30;
 	uint32_t spillover_fx_cob_variance = 8;
-	uint8_t data_to_compress[MULTI_ENTRY_HDR_SIZE+3*sizeof(struct l_fx_ncob)] = {0};
-	uint8_t compressed_data[MULTI_ENTRY_HDR_SIZE+1*sizeof(struct l_fx_ncob)] = {0};
+	uint8_t data_to_compress[COLLECTION_HDR_SIZE+3*sizeof(struct l_fx_ncob)] = {0};
+	uint8_t compressed_data[COLLECTION_HDR_SIZE+1*sizeof(struct l_fx_ncob)] = {0};
 	struct cmp_max_used_bits my_max_used_bits = MAX_USED_BITS_SAFE;
-	struct l_fx_ncob *data_p = (struct l_fx_ncob *)&data_to_compress[MULTI_ENTRY_HDR_SIZE];
+	struct l_fx_ncob *data_p = (struct l_fx_ncob *)&data_to_compress[COLLECTION_HDR_SIZE];
 
 	cfg = cmp_cfg_icu_create(DATA_TYPE_L_FX_NCOB, CMP_MODE_DIFF_ZERO, 0, CMP_LOSSLESS);
 	TEST_ASSERT(cfg.data_type != DATA_TYPE_UNKNOWN);
@@ -3884,10 +3884,10 @@ void test_compress_l_fx_efx_ncob_ecob_error_cases(void)
 	uint32_t spillover_ecob = 55;
 	uint32_t cmp_par_fx_cob_variance = 30;
 	uint32_t spillover_fx_cob_variance = 8;
-	uint8_t data_to_compress[MULTI_ENTRY_HDR_SIZE+3*sizeof(struct l_fx_efx_ncob_ecob)] = {0};
-	uint8_t compressed_data[MULTI_ENTRY_HDR_SIZE+1*sizeof(struct l_fx_efx_ncob_ecob)] = {0};
+	uint8_t data_to_compress[COLLECTION_HDR_SIZE+3*sizeof(struct l_fx_efx_ncob_ecob)] = {0};
+	uint8_t compressed_data[COLLECTION_HDR_SIZE+1*sizeof(struct l_fx_efx_ncob_ecob)] = {0};
 	struct cmp_max_used_bits my_max_used_bits = MAX_USED_BITS_SAFE;
-	struct l_fx_efx_ncob_ecob *data_p = (struct l_fx_efx_ncob_ecob *)&data_to_compress[MULTI_ENTRY_HDR_SIZE];
+	struct l_fx_efx_ncob_ecob *data_p = (struct l_fx_efx_ncob_ecob *)&data_to_compress[COLLECTION_HDR_SIZE];
 
 	cfg = cmp_cfg_icu_create(DATA_TYPE_L_FX_EFX_NCOB_ECOB, CMP_MODE_DIFF_ZERO, 0, CMP_LOSSLESS);
 	TEST_ASSERT(cfg.data_type != DATA_TYPE_UNKNOWN);
@@ -4019,10 +4019,10 @@ void test_compress_offset_error_cases(void)
 	uint32_t spillover_mean = 2;
 	uint32_t cmp_par_variance = MAX_NON_IMA_GOLOMB_PAR;
 	uint32_t spillover_variance = cmp_icu_max_spill(MAX_NON_IMA_GOLOMB_PAR);
-	uint8_t data_to_compress[MULTI_ENTRY_HDR_SIZE+3*sizeof(struct offset)] = {0};
-	uint8_t compressed_data[MULTI_ENTRY_HDR_SIZE+1*sizeof(struct offset)] = {0};
+	uint8_t data_to_compress[COLLECTION_HDR_SIZE+3*sizeof(struct offset)] = {0};
+	uint8_t compressed_data[COLLECTION_HDR_SIZE+1*sizeof(struct offset)] = {0};
 	struct cmp_max_used_bits my_max_used_bits = MAX_USED_BITS_SAFE;
-	struct offset *data_p = (struct offset *)&data_to_compress[MULTI_ENTRY_HDR_SIZE];
+	struct offset *data_p = (struct offset *)&data_to_compress[COLLECTION_HDR_SIZE];
 
 	cfg = cmp_cfg_icu_create(DATA_TYPE_OFFSET, CMP_MODE_DIFF_MULTI, 0, CMP_LOSSLESS);
 	TEST_ASSERT(cfg.data_type != DATA_TYPE_UNKNOWN);
@@ -4093,10 +4093,10 @@ void test_compress_background_error_cases(void)
 	uint32_t spillover_variance = cmp_icu_max_spill(MAX_NON_IMA_GOLOMB_PAR);
 	uint32_t cmp_par_pixels_error = 23;
 	uint32_t spillover_pixels_error = 42;
-	uint8_t data_to_compress[MULTI_ENTRY_HDR_SIZE+3*sizeof(struct background)] = {0};
-	uint8_t compressed_data[MULTI_ENTRY_HDR_SIZE+1*sizeof(struct background)] = {0};
+	uint8_t data_to_compress[COLLECTION_HDR_SIZE+3*sizeof(struct background)] = {0};
+	uint8_t compressed_data[COLLECTION_HDR_SIZE+1*sizeof(struct background)] = {0};
 	struct cmp_max_used_bits my_max_used_bits = MAX_USED_BITS_SAFE;
-	struct background *data_p = (struct background *)&data_to_compress[MULTI_ENTRY_HDR_SIZE];
+	struct background *data_p = (struct background *)&data_to_compress[COLLECTION_HDR_SIZE];
 
 	cfg = cmp_cfg_icu_create(DATA_TYPE_BACKGROUND, CMP_MODE_DIFF_MULTI, 0, CMP_LOSSLESS);
 	TEST_ASSERT(cfg.data_type != DATA_TYPE_UNKNOWN);
@@ -4185,10 +4185,10 @@ void test_compress_smearing_error_cases(void)
 	uint32_t spillover_variance = cmp_icu_max_spill(MAX_NON_IMA_GOLOMB_PAR);
 	uint32_t cmp_par_pixels_error = 23;
 	uint32_t spillover_pixels_error = 42;
-	uint8_t data_to_compress[MULTI_ENTRY_HDR_SIZE+3*sizeof(struct smearing)] = {0};
-	uint8_t compressed_data[MULTI_ENTRY_HDR_SIZE+1*sizeof(struct smearing)] = {0};
+	uint8_t data_to_compress[COLLECTION_HDR_SIZE+3*sizeof(struct smearing)] = {0};
+	uint8_t compressed_data[COLLECTION_HDR_SIZE+1*sizeof(struct smearing)] = {0};
 	struct cmp_max_used_bits my_max_used_bits = MAX_USED_BITS_SAFE;
-	struct smearing *data_p = (struct smearing *)&data_to_compress[MULTI_ENTRY_HDR_SIZE];
+	struct smearing *data_p = (struct smearing *)&data_to_compress[COLLECTION_HDR_SIZE];
 
 	cfg = cmp_cfg_icu_create(DATA_TYPE_SMEARING, CMP_MODE_DIFF_MULTI, 0, CMP_LOSSLESS);
 	TEST_ASSERT(cfg.data_type != DATA_TYPE_UNKNOWN);

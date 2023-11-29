@@ -865,20 +865,20 @@ static int compress_multi_entry_hdr(void **data, void **model, void **up_model,
 {
 	if (*up_model) {
 		if (*data)
-			memcpy(*up_model, *data, MULTI_ENTRY_HDR_SIZE);
-		*up_model = (uint8_t *)*up_model + MULTI_ENTRY_HDR_SIZE;
+			memcpy(*up_model, *data, COLLECTION_HDR_SIZE);
+		*up_model = (uint8_t *)*up_model + COLLECTION_HDR_SIZE;
 	}
 
 	if (*data) {
 		if (compressed_data)
-			memcpy(compressed_data, *data, MULTI_ENTRY_HDR_SIZE);
-		*data = (uint8_t *)*data + MULTI_ENTRY_HDR_SIZE;
+			memcpy(compressed_data, *data, COLLECTION_HDR_SIZE);
+		*data = (uint8_t *)*data + COLLECTION_HDR_SIZE;
 	}
 
 	if (*model)
-		*model = (uint8_t *)*model + MULTI_ENTRY_HDR_SIZE;
+		*model = (uint8_t *)*model + COLLECTION_HDR_SIZE;
 
-	return MULTI_ENTRY_HDR_SIZE * CHAR_BIT;
+	return COLLECTION_HDR_SIZE * CHAR_BIT;
 }
 
 
@@ -2212,8 +2212,8 @@ static int cmp_data_to_big_endian(const struct cmp_cfg *cfg, int cmp_size)
 		if (rdcu_supported_data_type_is_used(cfg->data_type)) {
 			p = cfg->icu_output_buf;
 		} else {
-			p = &cfg->icu_output_buf[MULTI_ENTRY_HDR_SIZE/sizeof(uint32_t)];
-			s -= MULTI_ENTRY_HDR_SIZE * CHAR_BIT;
+			p = &cfg->icu_output_buf[COLLECTION_HDR_SIZE/sizeof(uint32_t)];
+			s -= COLLECTION_HDR_SIZE * CHAR_BIT;
 		}
 
 		for (i = 0; i < cmp_bit_to_4byte(s)/sizeof(uint32_t); i++)

@@ -479,28 +479,28 @@ static int decompress_imagette(struct cmp_cfg *cfg, struct bit_decoder *dec)
 static int decompress_multi_entry_hdr(void **data, void **model, void **up_model,
 				      const struct cmp_cfg *cfg)
 {
-	if (cfg->buffer_length < MULTI_ENTRY_HDR_SIZE)
+	if (cfg->buffer_length < COLLECTION_HDR_SIZE)
 		return -1;
 
 	if (*data) {
 		if (cfg->icu_output_buf)
-			memcpy(*data, cfg->icu_output_buf, MULTI_ENTRY_HDR_SIZE);
-		*data = (uint8_t *)*data + MULTI_ENTRY_HDR_SIZE;
+			memcpy(*data, cfg->icu_output_buf, COLLECTION_HDR_SIZE);
+		*data = (uint8_t *)*data + COLLECTION_HDR_SIZE;
 	}
 
 	if (*model) {
 		if (cfg->icu_output_buf)
-			memcpy(*model, cfg->icu_output_buf, MULTI_ENTRY_HDR_SIZE);
-		*model = (uint8_t *)*model + MULTI_ENTRY_HDR_SIZE;
+			memcpy(*model, cfg->icu_output_buf, COLLECTION_HDR_SIZE);
+		*model = (uint8_t *)*model + COLLECTION_HDR_SIZE;
 	}
 
 	if (*up_model) {
 		if (cfg->icu_output_buf)
-			memcpy(*up_model, cfg->icu_output_buf, MULTI_ENTRY_HDR_SIZE);
-		*up_model = (uint8_t *)*up_model + MULTI_ENTRY_HDR_SIZE;
+			memcpy(*up_model, cfg->icu_output_buf, COLLECTION_HDR_SIZE);
+		*up_model = (uint8_t *)*up_model + COLLECTION_HDR_SIZE;
 	}
 
-	return MULTI_ENTRY_HDR_SIZE * CHAR_BIT;
+	return COLLECTION_HDR_SIZE * CHAR_BIT;
 }
 
 

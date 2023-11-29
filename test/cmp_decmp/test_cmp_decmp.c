@@ -335,8 +335,8 @@ void *generate_random_test_data(uint32_t samples, enum cmp_data_type data_type,
 	if (!rdcu_supported_data_type_is_used(data_type)) {
 		int i;
 
-		TEST_ASSERT(data_size > MULTI_ENTRY_HDR_SIZE);
-		for (i = 0; i < MULTI_ENTRY_HDR_SIZE; ++i)
+		TEST_ASSERT(data_size > COLLECTION_HDR_SIZE);
+		for (i = 0; i < COLLECTION_HDR_SIZE; ++i)
 			*p++ = (uint8_t)cmp_rand32();
 		data = p;
 	}
