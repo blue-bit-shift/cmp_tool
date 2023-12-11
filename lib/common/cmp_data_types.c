@@ -714,6 +714,7 @@ int cmp_input_big_to_cpu_endianness(void *data, uint32_t data_size_byte,
 		return -1;
 	}
 
+#if (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
 	/* we do not convert the endianness of the collection header */
 	if (!rdcu_supported_data_type_is_used(data_type))
 		data = (uint8_t *)data + COLLECTION_HDR_SIZE;
@@ -781,6 +782,7 @@ int cmp_input_big_to_cpu_endianness(void *data, uint32_t data_size_byte,
 		return -1;
 	/* LCOV_EXCL_STOP */
 	}
+#endif /*__BYTE_ORDER__ */
 
 	return 0;
 }

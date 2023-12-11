@@ -384,7 +384,7 @@ static int put_n_bits32(uint32_t value, unsigned int n_bits, int bit_offset,
 	unsigned int shift_left = 32 - n_bits;
 	int stream_len = (int)(n_bits + (unsigned int)bit_offset);
 	uint32_t *local_adr;
-	uint32_t mask;
+	uint32_t mask, tmp;
 
 	/* Leave in case of erroneous input */
 	if (bit_offset < 0)
@@ -409,10 +409,11 @@ static int put_n_bits32(uint32_t value, unsigned int n_bits, int bit_offset,
 
 	/* clear the destination with inverse mask */
 	mask = (0XFFFFFFFFU << shift_left) >> bits_left;
-	*(local_adr) &= ~mask;
+	tmp = be32_to_cpu(*local_adr) & ~mask;
 
 	/* put (the first part of) the value into the bitstream */
-	*(local_adr) |= (value << shift_left) >> bits_left;
+	tmp |= (value << shift_left) >> bits_left;
+	*local_adr = cpu_to_be32(tmp);
 
 	/* Do we need to split the value over two words (SEGMENTED case) */
 	if (bits_right < 32) {
@@ -420,10 +421,11 @@ static int put_n_bits32(uint32_t value, unsigned int n_bits, int bit_offset,
 
 		/* clear the destination */
 		mask = 0XFFFFFFFFU << bits_right;
-		*(local_adr) &= ~mask;
+		tmp = be32_to_cpu(*local_adr) & ~mask;
 
 		/* put the 2nd part of the value into the bitstream */
-		*(local_adr) |= value << bits_right;
+		tmp |= value << bits_right;
+		*local_adr = cpu_to_be32(tmp);
 	}
 	return stream_len;
 }
@@ -2181,53 +2183,6 @@ static int pad_bitstream(const struct cmp_cfg *cfg, int cmp_size)
 
 
 /**
- * @brief change the endianness of the compressed data to big-endian
- *
- * @param cfg		pointer to the compression configuration structure
- * @param cmp_size	length of the bitstream in bits
- *
- * @returns 0 on success; non-zero on failure
- */
-
-static int cmp_data_to_big_endian(const struct cmp_cfg *cfg, int cmp_size)
-{
-#if (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
-	size_t i;
-	uint32_t *p;
-	uint32_t s = (uint32_t)cmp_size;
-
-	if (cmp_size < 0)
-		return cmp_size;
-
-	if (!cfg->icu_output_buf)
-		return cmp_size;
-
-	if (cfg->cmp_mode == CMP_MODE_RAW) {
-		if (s & 0x7) /* size must be a multiple of 8 in RAW mode */
-			return -1;
-		if (cmp_input_big_to_cpu_endianness(cfg->icu_output_buf,
-						    s/CHAR_BIT, cfg->data_type))
-			cmp_size = -1;
-	} else {
-		if (rdcu_supported_data_type_is_used(cfg->data_type)) {
-			p = cfg->icu_output_buf;
-		} else {
-			p = &cfg->icu_output_buf[COLLECTION_HDR_SIZE/sizeof(uint32_t)];
-			s -= COLLECTION_HDR_SIZE * CHAR_BIT;
-		}
-
-		for (i = 0; i < cmp_bit_to_4byte(s)/sizeof(uint32_t); i++)
-			cpu_to_be32s(&p[i]);
-	}
-#else
-	/* do nothing data are already in big-endian */
-	(void)cfg;
-#endif /*__BYTE_ORDER__ */
-	return cmp_size;
-}
-
-
-/**
  * @brief compress data on the ICU in software
  *
  * @param cfg	pointer to a compression configuration (created with the
@@ -2263,8 +2218,11 @@ int icu_compress_data(const struct cmp_cfg *cfg)
 	if (raw_mode_is_used(cfg->cmp_mode)) {
 		uint32_t raw_size = cmp_cal_size_of_data(cfg->samples, cfg->data_type);
 
-		if (cfg->icu_output_buf)
+		if (cfg->icu_output_buf) {
 			memcpy(cfg->icu_output_buf, cfg->input_buf, raw_size);
+			if (cmp_input_big_to_cpu_endianness(cfg->icu_output_buf, raw_size, cfg->data_type))
+				return -1;
+		}
 		bitsize = (int)raw_size * CHAR_BIT; /* convert to bits */
 	} else {
 		if (cfg->icu_output_buf && cfg->samples/3 > cfg->buffer_length)
@@ -2341,7 +2299,6 @@ int icu_compress_data(const struct cmp_cfg *cfg)
 	}
 
 	bitsize = pad_bitstream(cfg, bitsize);
-	bitsize = cmp_data_to_big_endian(cfg, bitsize);
 
 	return bitsize;
 }
