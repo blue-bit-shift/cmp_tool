@@ -513,8 +513,21 @@ void compression_decompression(struct cmp_cfg *cfg)
 	TEST_ASSERT(cmp_size_bits > 0);
 
 	/* put the compression parameters in the entity header */
-	error = cmp_ent_write_cmp_pars(ent, cfg, cmp_size_bits);
-	TEST_ASSERT_FALSE(error);
+	{
+		/* mock values */
+		uint32_t version_id = ~0U;
+		uint64_t start_time = 32;
+		uint64_t end_time = 42;
+		uint16_t model_id = 0xCAFE;
+		uint8_t model_counter = 0;
+		uint32_t ent_size;
+
+		ent_size = cmp_ent_build(ent, version_id, start_time, end_time,
+					 model_id, model_counter, cfg, cmp_size_bits);
+		TEST_ASSERT_NOT_EQUAL_UINT(0, ent_size);
+		error = cmp_ent_set_size(ent, ent_size);
+		TEST_ASSERT_FALSE(error);
+	}
 
 	/* allocate the buffers for decompression */
 	TEST_ASSERT_NOT_EQUAL_INT(0, data_size);
@@ -604,8 +617,8 @@ void test_random_compression_decompression(void)
 	compression_decompression(NULL);
 }
 
-#define N_SAMPLES 5
 
+#define N_SAMPLES 5
 void test_random_compression_decompression2(void)
 {
 	struct cmp_cfg cfg;

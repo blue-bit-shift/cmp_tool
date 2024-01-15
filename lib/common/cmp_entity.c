@@ -1816,7 +1816,7 @@ int cmp_ent_write_cmp_pars(struct cmp_entity *ent, const struct cmp_cfg *cfg,
 	ent_cmp_data_size = cmp_ent_get_cmp_data_size(ent);
 
 	/* check if the entity can hold the compressed data */
-	if (ent_cmp_data_size < cmp_bit_to_4byte((unsigned int)cmp_size_bits)) {
+	if (ent_cmp_data_size < cmp_bit_to_byte((unsigned int)cmp_size_bits)) {
 		debug_print("Error: The entity size is to small to hold the compressed data.\n");
 		return -2;
 	}
@@ -1985,7 +1985,7 @@ int cmp_ent_write_rdcu_cmp_pars(struct cmp_entity *ent, const struct cmp_info *i
 
 	/* check if the entity can hold the compressed data */
 	ent_cmp_data_size = cmp_ent_get_cmp_data_size(ent);
-	if (ent_cmp_data_size < cmp_bit_to_4byte(info->cmp_size)) {
+	if (ent_cmp_data_size < cmp_bit_to_byte(info->cmp_size)) {
 		debug_print("Error: The entity size is to small to hold the compressed data.\n");
 		return -2;
 	}
@@ -2106,7 +2106,7 @@ uint32_t cmp_ent_build(struct cmp_entity *ent, uint32_t version_id,
 		       uint64_t start_time, uint64_t end_time, uint16_t model_id,
 		       uint8_t model_counter, const struct cmp_cfg *cfg, int cmp_size_bits)
 {
-	uint32_t cmp_size_bytes = cmp_bit_to_4byte((unsigned int)cmp_size_bits); /* TODO: do we need to round up to 4 bytes? */
+	uint32_t cmp_size_bytes = cmp_bit_to_byte((unsigned int)cmp_size_bits);
 	uint32_t hdr_size;
 
 	if (!cfg)

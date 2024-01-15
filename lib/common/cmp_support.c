@@ -366,12 +366,26 @@ uint32_t cmp_icu_max_spill(unsigned int cmp_par)
  * @param cmp_size_bit	compressed data size, measured in bits
  *
  * @returns the size in bytes to store the hole bitstream
+ */
+
+unsigned int cmp_bit_to_byte(unsigned int cmp_size_bit)
+{
+	return (cmp_size_bit + 7) / 8;
+}
+
+
+/**
+ * @brief calculate the need bytes to hold a bitstream
  * @note we round up the result to multiples of 4 bytes
+ *
+ * @param cmp_size_bit	compressed data size, measured in bits
+ *
+ * @returns the size in bytes to store the hole bitstream
  */
 
 unsigned int cmp_bit_to_4byte(unsigned int cmp_size_bit)
 {
-	return (((cmp_size_bit + 7) / 8) + 3) & ~0x3UL;
+	return (cmp_bit_to_byte(cmp_size_bit) + 3) & ~0x3UL;
 }
 
 

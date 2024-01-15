@@ -425,11 +425,11 @@ def test_compression_diff():
                             if arg == " --no_header" else "")(add_arg))
                    )
              # check compressed data
-            cmp_data = "44 44 40 00 \n"
+            cmp_data = "44 44 40 \n"
             with open(output_prefix+".cmp", encoding='utf-8') as f:
                 if add_arg == " --no_header":
                     # check compressed data file
-                    assert(f.read() == "44 44 40 00 \n")
+                    assert(f.read() == cmp_data)
                     # check info file
                     with open(output_prefix+".info", encoding='utf-8') as f:
                         info = parse_key_value(f.read())
@@ -444,7 +444,7 @@ def test_compression_diff():
                 else:
                     header = read_in_cmp_header(f.read())
                     assert(header['asw_version_id']['value'] == VERSION.split('-')[0])
-                    assert(header['cmp_ent_size']['value'] == IMAGETTE_HEADER_SIZE+4)
+                    assert(header['cmp_ent_size']['value'] == IMAGETTE_HEADER_SIZE+3)
                     assert(header['original_size']['value'] == 10)
                     # todo
                     assert(header['start_time']['value'] < cuc_timestamp(datetime.utcnow()))
@@ -458,7 +458,7 @@ def test_compression_diff():
                     assert(header['lossy_cmp_par_used']['value'] == 0)
                     assert(header['spill_used']['value'] == 60)
                     assert(header['golomb_par_used']['value'] == 7)
-                    assert(header['compressed_data']['value'] == "44444000")
+                    assert(header['compressed_data']['value'] == "444440")
 
             # decompression
             if add_arg == " --no_header":
@@ -553,7 +553,7 @@ def test_model_compression():
         if "--no_header" in add_arg:
             # check compressed data
             with open(output_prefix1+".cmp", encoding='utf-8') as f:
-                assert(f.read() == "49 24 00 00 \n")
+                assert(f.read() == "49 24 \n")
             # check info file
             with open(output_prefix1+".info", encoding='utf-8') as f:
                 info = parse_key_value(f.read())
@@ -579,7 +579,7 @@ def test_model_compression():
                         header = read_in_cmp_header(bytearray(f.read()).hex())
 
                 assert(header['asw_version_id']['value'] == VERSION.split('-')[0])
-                assert(header['cmp_ent_size']['value'] == IMAGETTE_ADAPTIVE_HEADER_SIZE+4)
+                assert(header['cmp_ent_size']['value'] == IMAGETTE_ADAPTIVE_HEADER_SIZE+2)
                 assert(header['original_size']['value'] == 10)
                 # todo
                 assert(header['start_time']['value'] < cuc_timestamp(datetime.utcnow()))
@@ -593,7 +593,7 @@ def test_model_compression():
                 assert(header['lossy_cmp_par_used']['value'] == int(cfg['round']))
                 assert(header['spill_used']['value'] == int(cfg['spill']))
                 assert(header['golomb_par_used']['value'] == int(cfg['golomb_par']))
-                assert(header['compressed_data']['value'] == "49240000")
+                assert(header['compressed_data']['value'] == "4924")
 
             # decompression
             if "--no_header" in add_arg:
@@ -688,7 +688,7 @@ def test_raw_mode_compression():
                 else:
                     header = read_in_cmp_header(f.read())
                     assert(header['asw_version_id']['value'] == VERSION.split('-')[0])
-                    assert(header['cmp_ent_size']['value'] == GENERIC_HEADER_SIZE+12)
+                    assert(header['cmp_ent_size']['value'] == GENERIC_HEADER_SIZE+10)
                     assert(header['original_size']['value'] == 10)
                     # todo
                     assert(header['start_time']['value'] < cuc_timestamp(datetime.utcnow()))
@@ -702,7 +702,7 @@ def test_raw_mode_compression():
                     assert(header['lossy_cmp_par_used']['value'] == 0)
                     # assert(header['spill_used']['value'] == 60)
                     # assert(header['golomb_par_used']['value'] == 7)
-                    assert(header['compressed_data']['value'] == data[:-1].replace(" ","")+"0000")
+                    assert(header['compressed_data']['value'] == data[:-1].replace(" ",""))
 
             # decompression
             if "--no_header" in arg:
@@ -768,13 +768,13 @@ def test_guess_option():
                     exp_out = ('', '2', '', '7.27')
                 elif sub_test == 'guess_RDCU_model':
                     exp_out = (
-                        'Importing model file model.dat ... DONE\n', '2', '', str(round((5*2)/(IMAGETTE_ADAPTIVE_HEADER_SIZE + 4), 2)))
-                        #cmp_size:15bit-> 4byte cmp_data + 40byte header -> 16bit*5/(44Byte*8) '5.33'
+                        'Importing model file model.dat ... DONE\n', '2', '', str(round((5*2)/(IMAGETTE_ADAPTIVE_HEADER_SIZE + 2), 2)))
+                        #cmp_size:15bit-> 2byte cmp_data + 40byte header -> 16bit*5/(42Byte*8)
                 elif sub_test == 'guess_level_3':
                     exp_out = (
                         '', '3', ' 0%... 6%... 13%... 19%... 25%... 32%... 38%... 44%... 50%... 57%... 64%... 72%... 80%... 88%... 94%... 100%',
-                        str(round((5*2)/(IMAGETTE_HEADER_SIZE + 4), 2))) #11.43
-                    # cmp_size:7 bit -> 4byte cmp_data + 34 byte header -> 16bit*5/(40Byte*8)
+                        str(round((5*2)/(IMAGETTE_HEADER_SIZE + 1), 3))) #11.43
+                    # cmp_size:7 bit -> 1byte cmp_data + 34 byte header -> 16bit*5/(35Byte*8)
                 else:
                     exp_out = ('', '', '')
 
@@ -1081,7 +1081,7 @@ def test_cmp_entity_not_4_byte_aligned():
 
     version_id = 0x8001_0042
     cmp_ent_size = IMAGETTE_HEADER_SIZE + len(cmp_data)//2
-    original_size = 0xA
+    original_size = 0xC
 
     start_time = cuc_timestamp(datetime.utcnow())
     end_time = cuc_timestamp(datetime.utcnow())
@@ -1103,9 +1103,9 @@ def test_cmp_entity_not_4_byte_aligned():
     ima_header = build_imagette_header(spill_used, golomb_par_used)
     cmp_data_header = generic_header + ima_header + cmp_data
 
-    data_exp = '00 01 00 02 00 03 00 04 00 05 \n'
+    data_exp = '00 01 00 02 00 03 00 04 00 05 00 06 \n'
     info = ("cmp_size = 20\n" + "golomb_par_used = 7\n" + "spill_used = 60\n"
-            + "cmp_mode_used = 2\n" +"samples_used=5\n")
+            + "cmp_mode_used = 2\n" +"samples_used=6\n")
 
     cmp_file_name = 'unaligned_cmp_size.cmp'
     info_file_name = 'unaligned_cmp_size.info'
@@ -1136,9 +1136,7 @@ def test_cmp_entity_not_4_byte_aligned():
                        "Write decompressed data to file %s.dat ... DONE\n" % (output_prefix))
             else:
                 assert(stdout == CMP_START_STR_DECMP +
-                       "Importing compressed data file %s ... \n" % (cmp_file_name) +
-                       "The size of the compression entity is not a multiple of 4 bytes. Padding the compression entity to a multiple of 4 bytes.\n" +
-                       "DONE\n" +
+                       "Importing compressed data file %s ... DONE\n" % (cmp_file_name) +
                        "Decompress data ... DONE\n"+
                        "Write decompressed data to file %s.dat ... DONE\n" % (output_prefix))
 
@@ -1173,7 +1171,7 @@ def test_header_wrong_formatted():
 def test_header_read_in():
     cmp_file_name = 'test_header_read_in.cmp'
 
-    cmp_data = '44444400'
+    cmp_data = '444444'
 
     version_id = 0x8001_0042
     cmp_ent_size = IMAGETTE_HEADER_SIZE + len(cmp_data)//2
@@ -1209,7 +1207,7 @@ def test_header_read_in():
                "Importing compressed data file %s ... FAILED\n" % (cmp_file_name))
         assert(stderr == "cmp_tool: %s: The size of the compression entity set in the "
                "header of the compression entity is not the same size as the read-in "
-               "file has. Expected: 0x28, has 0x26.\n" %(cmp_file_name))
+               "file has. Expected: 0x27, has 0x25.\n" %(cmp_file_name))
 
         # false data type
         data_type = 0x7FFE
@@ -1380,7 +1378,7 @@ def test_rdcu_pkt():
 
             # check compressed data
             with open(output_prefix1+".cmp", encoding='utf-8') as f:
-                assert(f.read() == "49 24 00 00 \n")
+                assert(f.read() == "49 24 \n")
             # check info file
             with open(output_prefix1+".info", encoding='utf-8') as f:
                 info = parse_key_value(f.read())

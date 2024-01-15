@@ -649,7 +649,7 @@ int rdcu_compress_data_parallel(const struct cmp_cfg *cfg,
 			return -1;
 
 		/* calculate the need bytes for the bitstream */
-		cmp_size_4byte = ((last_info->cmp_size >> 3) + 3) & ~0x3U;
+		cmp_size_4byte = cmp_bit_to_4byte(last_info->cmp_size);
 
 		/* parallel read compressed data and write input data from sram
 		 * to mirror */

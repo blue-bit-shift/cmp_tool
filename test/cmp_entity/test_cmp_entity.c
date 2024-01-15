@@ -1860,10 +1860,10 @@ void test_cmp_ent_build(void)
 	cmp_size_bits = 2;
 	size = cmp_ent_build(NULL, version_id, start_time, end_time, model_id,
 			     model_counter, &cfg, cmp_size_bits);
-	TEST_ASSERT_EQUAL_UINT(IMAGETTE_ADAPTIVE_HEADER_SIZE+4, size);
+	TEST_ASSERT_EQUAL_UINT(IMAGETTE_ADAPTIVE_HEADER_SIZE+cmp_bit_to_byte((unsigned int)cmp_size_bits), size);
 	size = cmp_ent_build(ent, version_id, start_time, end_time, model_id,
 			     model_counter, &cfg, cmp_size_bits);
-	TEST_ASSERT_EQUAL_UINT(IMAGETTE_ADAPTIVE_HEADER_SIZE+4, size);
+	TEST_ASSERT_EQUAL_UINT(IMAGETTE_ADAPTIVE_HEADER_SIZE+cmp_bit_to_byte((unsigned int)cmp_size_bits), size);
 
 	/** error cases **/
 	/* cfg = NULL */
