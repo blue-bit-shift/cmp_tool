@@ -1043,7 +1043,7 @@ void test_decompress_imagette_model(void)
 	uint16_t data[5]  = {0};
 	uint16_t model[5] = {0, 1, 2, 3, 4};
 	uint16_t up_model[5]  = {0};
-	uint32_t cmp_data[] = {0};
+	uint32_t cmp_data[2] = {0};
 	struct cmp_cfg cfg = {0};
 	struct bit_decoder dec;
 	int err;

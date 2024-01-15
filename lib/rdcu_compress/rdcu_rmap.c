@@ -296,7 +296,7 @@ static int rdcu_process_rx(void)
 			{
 				uint32_t i, tmp;
 
-				for (i = 0; i < rp->data_len; i+=sizeof(tmp)) {
+				for (i = 0; i < rp->data_len; i += sizeof(tmp)) {
 					memcpy(&tmp, &rp->data[i], sizeof(tmp));
 					be32_to_cpus(&tmp);
 					memcpy(&rp->data[i], &tmp, sizeof(tmp));

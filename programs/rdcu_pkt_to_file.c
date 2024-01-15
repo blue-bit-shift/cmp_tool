@@ -71,7 +71,7 @@ void set_tc_folder_dir(const char *dir_name)
  * @see https://developers.redhat.com/blog/2018/05/24/detecting-string-truncation-with-gcc-8/
  */
 
-static FILE *open_file(const char *dir_name, int n_tc)
+static FILE *open_file_tc(const char *dir_name, int n_tc)
 {
 	char *pathname;
 	FILE *fp;
@@ -162,7 +162,7 @@ static int32_t rmap_tx_to_file(const void *hdr, uint32_t hdr_size,
 		return -1;
 	}
 
-	fp = open_file(tc_folder_dir, n_pkt);
+	fp = open_file_tc(tc_folder_dir, n_pkt);
 
 	if (fp == NULL) {
 		perror("fopen()");
