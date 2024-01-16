@@ -45,6 +45,7 @@
 #include <string.h>
 
 #include "../common/byteorder.h"
+#include "../common/compiler.h"
 
 
 
@@ -123,13 +124,17 @@ static __inline uint64_t bit_read_unaligned_64be(const void *ptr)
 static __inline size_t bit_init_decoder(struct bit_decoder *dec, const void *buf,
 					size_t buf_size)
 {
-	if (buf_size < 1) {
-		memset(dec, 0, sizeof(*dec));
-		dec->bits_consumed = sizeof(dec->bit_container)*8;
-		return 0;
-	}
+	assert(dec != NULL);
+	assert(buf != NULL);
 
 	dec->cursor = (const uint8_t *)buf;
+
+	if (buf_size < 1) {
+		dec->bits_consumed = sizeof(dec->bit_container)*8;
+		dec->bit_container = 0;
+		dec->limit_ptr = (const uint8_t *)buf;
+		return 0;
+	}
 
 	if (buf_size >= sizeof(dec->bit_container)) {  /* normal case */
 		dec->bits_consumed = 0;
@@ -320,7 +325,7 @@ static __inline int bit_refill(struct bit_decoder *dec)
 {
 	unsigned int const bytes_consumed = dec->bits_consumed >> 3;
 
-	if (dec->bits_consumed > sizeof(dec->bit_container)*8)
+	if (unlikely(dec->bits_consumed > sizeof(dec->bit_container)*8))
 		return BIT_OVERFLOW;
 
 	if (dec->cursor + bytes_consumed < dec->limit_ptr) {
