@@ -35,11 +35,12 @@ jobs:
       with:
         python-version: '3.x'
     - name: Install packages
-    - run: pip install meson ninja
+      run: pip install meson ninja
     - name: MacOS build and run tests
-    - run: meson setup --buildtype=debugoptimized builddir
-    - run: meson compile -C builddir/ cmp_tool
-    - run: meson test -C builddir/ --print-errorlogs
+      run: |
+        meson setup --buildtype=debugoptimized builddir
+        meson compile -C builddir/ cmp_tool
+        meson test -C builddir/ --print-errorlogs
     - uses: actions/upload-artifact@v4
       if: failure()
       with:
