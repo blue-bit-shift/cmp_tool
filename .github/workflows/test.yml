@@ -20,7 +20,7 @@ jobs:
           --buildtype=debugoptimized \
           builddir
         meson compile -C builddir/ cmp_tool
-        ./builddir/programs/cmp_tool
+        meson test -C builddir/ --print-errorlogs
     - uses: actions/upload-artifact@v4
       if: failure()
       with:
@@ -39,7 +39,9 @@ jobs:
       run: pip install meson ninja
     - name: MacOS build and run tests
       run: |
-        meson setup --buildtype=debugoptimized builddir
+        meson setup \
+          --buildtype=debugoptimized \
+          builddir
         meson compile -C builddir/ cmp_tool
         meson test -C builddir/ --print-errorlogs
     - uses: actions/upload-artifact@v4
