@@ -2,7 +2,8 @@ name: Test
 
 on: [push]
 
-permissions: read-all
+permissions:
+  contents: read
 
 jobs:
   linux-build-test:
@@ -94,6 +95,7 @@ jobs:
         --native-file=mingw-w64-64.txt \
         --buildtype=debugoptimized \
         builddir
+        meson compile -C builddir/ cmp_tool
         meson test -C builddir/ --print-errorlogs --timeout-multiplier 3
     - uses: actions/upload-artifact@v4
       if: failure()
