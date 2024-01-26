@@ -22,23 +22,23 @@ feature_argument_input_mode = get_option('argument_input_mode')
 cc_flags = ['-DDEBUGLEVEL=@0@'.format(debug_level)]
 if use_debug
   debug_flags = [
-    '-Wstrict-aliasing=1',
-    '-Wcast-align',
-    '-Wredundant-decls',
-    '-Wundef',
-    '-Wshadow',
-    '-Wdeclaration-after-statement',
-    '-Wstrict-prototypes',
-    '-Wpointer-arith',
-    '-Wvla',
-    '-Wformat=2',
-    '-Winit-self',
-    '-Wfloat-equal',
-    '-Wwrite-strings',
-    '-Wold-style-definition',
-    '-Waggregate-return',
-    '-Wmissing-declarations',
-    '-Wmissing-include-dirs'
+    # '-Wstrict-aliasing=1',
+    # '-Wcast-align',
+    # '-Wredundant-decls',
+    # '-Wundef',
+    # '-Wshadow',
+    # '-Wdeclaration-after-statement',
+    # '-Wstrict-prototypes',
+    # '-Wpointer-arith',
+    # '-Wvla',
+    # '-Wformat=2',
+    # '-Winit-self',
+    # '-Wfloat-equal',
+    # '-Wwrite-strings',
+    # '-Wold-style-definition',
+    # '-Waggregate-return',
+    # '-Wmissing-declarations',
+    # '-Wmissing-include-dirs'
   ]
   cc_flags += cc.get_supported_arguments(debug_flags)
 endif
