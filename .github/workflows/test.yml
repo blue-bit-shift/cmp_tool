@@ -60,7 +60,7 @@ jobs:
         python-version: '3.x'
     - name: Install packages
       run: |
-        pip install meson ninja
+        pip install meson ninja pytest
         sudo apt-get update
         sudo apt-get install gcc-mingw-w64 wine64
     - name: mingw cross-compilation and testing
@@ -76,3 +76,26 @@ jobs:
       with:
         name: MinGW_cross_compile_Meson_Testlog
         path: builddir_cross_win/meson-logs/testlog.txt
+
+
+  windows:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+    - name: Install packages
+      run: pip install meson ninja pytest
+    - name: Windows build and run tests
+      run: |
+        meson setup \
+          --native-file=mingw-w64-64.txt \
+          --buildtype=debugoptimized \
+          builddir
+        meson test -C builddir/ --print-errorlogs
+    - uses: actions/upload-artifact@v4
+      if: failure()
+      with:
+        name: Windows_Meson_Testlog
+        path: builddir/meson-logs/testlog.txt
