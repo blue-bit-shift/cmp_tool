@@ -20,5 +20,5 @@ jobs:
             --buildtype=debugoptimized \
             -Dc_args=-Werror \
             builddir
-          meson compile cmp_tool
+          meson compile -C builddir/ cmp_tool
           meson test -C builddir/ --print-errorlogs
