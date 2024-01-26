@@ -1,4 +1,4 @@
-name: test_workflow
+name: Test
 
 on: [push]
 
@@ -85,6 +85,12 @@ jobs:
     - uses: actions/setup-python@v5
       with:
         python-version: '3.x'
+    - name: Display the path
+      run: echo ${env:PATH}; gcc --version
+    - name: "Setup"
+      shell: bash
+      run: |
+          gcc --version
     - name: Install packages
       run: pip install meson ninja pytest
     - name: Windows build and run tests
