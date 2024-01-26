@@ -13,7 +13,7 @@ jobs:
     - name: Install packages
       run: |
         sudo apt-get update
-        sudo apt-get -y install build-essential python3-pip ninja-build lcov
+        sudo apt-get -y install build-essential python3-pip ninja-build lcov gcov
         pip install --pre meson pytest
     - name: Linux coverage report
       run: |
