@@ -21,3 +21,23 @@ jobs:
             builddir
           meson compile -C builddir/ cmp_tool
           meson test -C builddir/ --print-errorlogs
+
+  macos-build-test:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+    - run: pip install meson ninja
+      run: |
+        meson setup \
+          --buildtype=debugoptimized \
+          builddir
+        meson compile -C builddir/ cmp_tool
+        meson test -C builddir/ --print-errorlogs
+    - uses: actions/upload-artifact@v4
+      if: failure()
+      with:
+        name: MacOS_Meson_Testlog
+        path: builddir/meson-logs/testlog.txt
