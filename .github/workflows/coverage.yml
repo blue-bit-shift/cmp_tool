@@ -13,7 +13,7 @@ jobs:
     - name: Install packages
       run: |
         sudo apt-get update
-        sudo apt-get -y install build-essential python3-pip ninja-build lcov gcov
+        sudo apt-get -y install build-essential python3-pip ninja-build lcov
         pip install --pre meson pytest
     - name: Linux coverage report
       run: |
@@ -22,7 +22,7 @@ jobs:
           -Dc_args=-DNDEBUG \
           builddir
         meson test -C builddir/ --print-errorlogs --timeout-multiplier 3
-        ninja -C builddir coverage-xml
+        ninja -C builddir coverage
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v3
       with:
