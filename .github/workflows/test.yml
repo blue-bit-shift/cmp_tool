@@ -1,0 +1,24 @@
+name: test_workflow
+
+on: [push]
+
+permissions: read-all
+
+jobs:
+  linux-build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install packages
+        run: |
+          sudo apt-get update
+          sudo apt-get -y install build-essential python3-pip ninja-build
+          pip install --pre meson pytest
+      - name: Linux library + build + tests
+        run: |
+          meson setup \
+            --buildtype=debugoptimized \
+            -Dc_args=-Werror \
+            builddir
+          meson compile cmp_tool
+          meson test -C builddir/ --print-errorlogs
