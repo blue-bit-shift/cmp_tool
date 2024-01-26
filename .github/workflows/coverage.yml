@@ -22,13 +22,13 @@ jobs:
           -Dc_args=-DNDEBUG \
           builddir
         meson test -C builddir/ --print-errorlogs --timeout-multiplier 3
-        ninja -C builddir coverage
+        ninja -C builddir coverage-text
         ls builddir/meson-logs
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v3
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-        files: builddir/meson-logs/coverage.xml
+        files: builddir/meson-logs/coverage.txt
         flags: unittests
         name: "linux [unit tests]"
         fail_ci_if_error: true
