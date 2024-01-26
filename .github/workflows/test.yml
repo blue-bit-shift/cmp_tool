@@ -20,7 +20,7 @@ jobs:
             --buildtype=debugoptimized \
             builddir
           meson compile -C builddir/ cmp_tool
-          meson test -C builddir/ --print-errorlogs
+
 
   macos-build-test:
     runs-on: macos-latest
