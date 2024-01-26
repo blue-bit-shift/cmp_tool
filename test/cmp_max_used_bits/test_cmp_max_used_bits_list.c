@@ -16,6 +16,9 @@
  * @brief max_used_bits list tests
  */
 
+#ifndef __sparc__
+#  define _GNU_SOURCE
+#endif
 
 #include <string.h>
 
@@ -30,7 +33,7 @@ static int malloc_fail;
 
 /*
  * mock of the malloc function; can controlled with the global malloc_fail variable
- * see:https://jayconrod.com/posts/23/tutorial--function-interposition-in-linux
+ * see: https://jayconrod.com/posts/23/tutorial--function-interposition-in-linux
  */
 #include <dlfcn.h>
 
@@ -46,8 +49,6 @@ void* malloc(size_t size)
 		/* The cast removes a gcc warning https://stackoverflow.com/a/31528674 */
 		TEST_ASSERT_NOT_NULL(real_malloc);
 	}
-
-	fprintf(stderr, "malloc(%zu)\n", size);
 	return real_malloc(size);
 }
 #endif
