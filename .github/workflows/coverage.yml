@@ -23,6 +23,7 @@ jobs:
           builddir
         meson test -C builddir/ --print-errorlogs --timeout-multiplier 3
         ninja -C builddir coverage
+        ls builddir/meson-logs
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v3
       with:
