@@ -8,18 +8,23 @@ jobs:
   linux-build-test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Install packages
-        run: |
-          sudo apt-get update
-          sudo apt-get -y install build-essential python3-pip ninja-build
-          pip install --pre meson pytest
-      - name: Linux library + build + tests
-        run: |
-          meson setup \
-            --buildtype=debugoptimized \
-            builddir
-          meson compile -C builddir/ cmp_tool
+    - uses: actions/checkout@v4
+    - name: Install packages
+      run: |
+        sudo apt-get update
+        sudo apt-get -y install build-essential python3-pip ninja-build
+        pip install --pre meson pytest
+    - name: Linux build and run tests
+      run: |
+        meson setup \
+          --buildtype=debugoptimized \
+          builddir
+        meson compile -C builddir/ cmp_tool
+    - uses: actions/upload-artifact@v4
+      if: failure()
+      with:
+        name: Linux_Meson_Testlog
+        path: builddir/meson-logs/testlog.txt
 
 
   macos-build-test:
@@ -29,7 +34,9 @@ jobs:
     - uses: actions/setup-python@v5
       with:
         python-version: '3.x'
+    - name: Install packages
     - run: pip install meson ninja
+    - name: MacOS build and run tests
     - run: meson setup --buildtype=debugoptimized builddir
     - run: meson compile -C builddir/ cmp_tool
     - run: meson test -C builddir/ --print-errorlogs
