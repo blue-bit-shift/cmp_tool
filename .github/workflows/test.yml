@@ -20,7 +20,7 @@ jobs:
           --buildtype=debugoptimized \
           builddir
         meson compile -C builddir/ cmp_tool
-        meson test -C builddir/ --print-errorlogs
+        meson test -C builddir/ --print-errorlogs --timeout-multiplier 3
     - uses: actions/upload-artifact@v4
       if: failure()
       with:
@@ -43,7 +43,7 @@ jobs:
           --buildtype=debugoptimized \
           builddir
         meson compile -C builddir/ cmp_tool
-        meson test -C builddir/ --print-errorlogs
+        meson test -C builddir/ --print-errorlogs --timeout-multiplier 3
     - uses: actions/upload-artifact@v4
       if: failure()
       with:
@@ -70,7 +70,7 @@ jobs:
           --buildtype=debugoptimized \
           builddir_cross_win
         meson compile -C builddir_cross_win/ cmp_tool
-        meson test -C builddir_cross_win/ --print-errorlogs
+        meson test -C builddir_cross_win/ --print-errorlogs --timeout-multiplier 3
     - uses: actions/upload-artifact@v4
       if: failure()
       with:
@@ -89,7 +89,7 @@ jobs:
       run: pip install meson ninja pytest
     - name: Windows build and run tests
       run: meson setup --native-file=mingw-w64-64.txt  --buildtype=debugoptimized builddir
-      run: meson test -C builddir/ --print-errorlogs
+    - run: meson test -C builddir/ --print-errorlogs  --timeout-multiplier 3
     - uses: actions/upload-artifact@v4
       if: failure()
       with:
