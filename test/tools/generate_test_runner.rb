@@ -221,12 +221,12 @@ class UnityTestRunnerGenerator
     if @options[:header_file] && !@options[:header_file].empty?
       output.puts("#include \"#{File.basename(@options[:header_file])}\"")
     else
-      @options[:includes].flatten.uniq.compact.each do |inc|
-        output.puts("#include #{inc.include?('<') ? inc : "\"#{inc}\""}")
-      end
-      testfile_includes.each do |inc|
-        output.puts("#include #{inc.include?('<') ? inc : "\"#{inc}\""}")
-      end
+      # @options[:includes].flatten.uniq.compact.each do |inc|
+      #   output.puts("#include #{inc.include?('<') ? inc : "\"#{inc}\""}")
+      # end
+      # testfile_includes.each do |inc|
+      #   output.puts("#include #{inc.include?('<') ? inc : "\"#{inc}\""}")
+      # end
     end
     mocks.each do |mock|
       output.puts("#include \"#{mock}\"")
