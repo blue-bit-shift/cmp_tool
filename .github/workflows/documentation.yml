@@ -12,9 +12,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    - name: Install Doxygen
-      run: sudo apt-get install doxygen graphviz -y
-      shell: bash
+    - name: Install packages
+      run: |
+        sudo apt-get update
+        sudo apt-get -y install build-essential python3-pip ninja-build \
+          doxygen graphviz
+        pip install --pre meson pytest
     - name: Generate Doxygen Documentation
       run : |
         meson setup builddir
