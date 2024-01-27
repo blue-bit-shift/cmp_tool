@@ -1,8 +1,10 @@
 # PLATO Compression/Decompression Tool
-
 If you find a bug or have a feature request please file an [issue](https://gitlab.phaidra.org/loidoltd15/cmp_tool/-/issues) or send
 me an [email](mailto:dominik.loidolt@univie.ac.at?subject=%5BIssue%5D%20cmp_tool).  
 Compiled executables can be found [here](https://gitlab.phaidra.org/loidoltd15/cmp_tool/-/releases). The building instructions can be found [here](INSTALL.md).
+
+[![Test](https://github.com/blue-bit-shift/cmp_tool/actions/workflows/test.yml/badge.svg)](https://github.com/blue-bit-shift/cmp_tool/actions/workflows/test.yml)
+[![codecov](https://codecov.io/gh/blue-bit-shift/cmp_tool/graph/badge.svg?token=WK58GCPEY9)](https://codecov.io/gh/blue-bit-shift/cmp_tool)
 
 ## Usage
 
