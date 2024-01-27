@@ -1,0 +1,29 @@
+# Make docs with Doxygen then deploy the generated HTML to GitHub pages
+name: 'Doxygen GitHub Pages Deploy Action'
+
+on: [push]
+
+permissions:
+  contents: write
+
+
+jobs:
+  Documentation:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install Doxygen
+      run: sudo apt-get install doxygen graphviz -y
+      shell: bash
+    - name: Generate Doxygen Documentation
+      run : |
+        meson setup builddir
+        meson compile -C builddir doc
+    - name: Create .nojekyll (ensures pages with underscores work on gh pages)
+      run: touch builddir/generated_documentation/html/.nojekyll
+      shell: bash
+
+    - name: Deploy to GitHub Pages
+      uses: JamesIves/github-pages-deploy-action@v4
+      with:
+          folder: builddir/generated_documentation/html
