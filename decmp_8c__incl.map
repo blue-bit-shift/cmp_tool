@@ -1,0 +1,18 @@
+<map id="decmp.c" name="decmp.c">
+<area shape="rect" id="node1" title="software decompression library" alt="" coords="635,5,713,32"/>
+<area shape="rect" id="node2" title=" " alt="" coords="637,393,708,420"/>
+<area shape="rect" id="node3" title=" " alt="" coords="145,80,216,107"/>
+<area shape="rect" id="node4" title=" " alt="" coords="199,162,269,189"/>
+<area shape="rect" id="node5" title=" " alt="" coords="395,162,470,189"/>
+<area shape="rect" id="node6" href="$byteorder_8h.html" title="This is a set of macros for consistent endianness conversion. They work for both little and big endia..." alt="" coords="5,162,175,189"/>
+<area shape="rect" id="node7" href="$compiler_8h.html" title="a collection of preprocessor macros" alt="" coords="561,244,723,271"/>
+<area shape="rect" id="node8" href="$read__bitstream_8h.html" title="this library handles the reading from an MSB&#45;first bitstream" alt="" coords="291,80,425,107"/>
+<area shape="rect" id="node10" href="$cmp__max__used__bits__list_8h.html" title="Implement a list that can hold an arbitrary number of different cmp_max_used_bits structs." alt="" coords="510,80,705,107"/>
+<area shape="rect" id="node12" href="$cmp__support_8h.html" title="compression/decompression helper functions" alt="" coords="748,244,939,271"/>
+<area shape="rect" id="node13" href="$cmp__max__used__bits_8h.html" title="definition and consents of the cmp_max_used_bits structure" alt="" coords="893,319,1060,345"/>
+<area shape="rect" id="node15" href="$cmp__debug_8h.html" title="compression/decompression debugging defines" alt="" coords="1027,80,1209,107"/>
+<area shape="rect" id="node16" href="$cmp__entity_8h.html" title="functions and definition to handle a compression entity" alt="" coords="830,162,1009,189"/>
+<area shape="rect" id="node9" title=" " alt="" coords="561,319,635,345"/>
+<area shape="rect" id="node11" href="$cmp__data__types_8h.html" title="definition of the different compression data types" alt="" coords="545,155,704,196"/>
+<area shape="rect" id="node14" href="$cmp__cal__up__model_8h.html" title="functions to calculate the update (new) model" alt="" coords="711,319,869,345"/>
+</map>

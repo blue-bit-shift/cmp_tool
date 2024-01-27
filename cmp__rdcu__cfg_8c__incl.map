@@ -1,0 +1,12 @@
+<map id="cmp_rdcu_cfg.c" name="cmp_rdcu_cfg.c">
+<area shape="rect" id="node1" title="hardware compressor configuration library" alt="" coords="211,5,334,32"/>
+<area shape="rect" id="node2" title=" " alt="" coords="261,304,332,331"/>
+<area shape="rect" id="node3" title=" " alt="" coords="22,80,93,107"/>
+<area shape="rect" id="node4" href="$cmp__debug_8h.html" title="compression/decompression debugging defines" alt="" coords="117,80,300,107"/>
+<area shape="rect" id="node5" href="$cmp__support_8h.html" title="compression/decompression helper functions" alt="" coords="221,155,412,181"/>
+<area shape="rect" id="node9" href="$rdcu__cmd_8h.html" title="RMAP RDCU RMAP command library header file." alt="" coords="525,155,622,181"/>
+<area shape="rect" id="node10" href="$cmp__rdcu__cfg_8h.html" title="hardware compressor configuration library" alt="" coords="376,80,500,107"/>
+<area shape="rect" id="node6" title=" " alt="" coords="114,229,188,256"/>
+<area shape="rect" id="node7" href="$cmp__max__used__bits_8h.html" title="definition and consents of the cmp_max_used_bits structure" alt="" coords="213,229,380,256"/>
+<area shape="rect" id="node8" href="$cmp__cal__up__model_8h.html" title="functions to calculate the update (new) model" alt="" coords="404,229,562,256"/>
+</map>

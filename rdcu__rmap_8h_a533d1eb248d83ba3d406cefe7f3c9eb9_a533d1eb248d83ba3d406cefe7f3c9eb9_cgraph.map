@@ -1,0 +1,19 @@
+<map id="rdcu_sync" name="rdcu_sync">
+<area shape="rect" id="node1" title="submit a sync command" alt="" coords="5,69,92,96"/>
+<area shape="rect" id="node2" href="$test__cmp__max__used__bits__list_8c_a7ac38fce3243a7dcf448301ee9ffd392.html#a7ac38fce3243a7dcf448301ee9ffd392" title=" " alt="" coords="783,5,850,32"/>
+<area shape="rect" id="node3" href="$rdcu__rmap_8c_a95fad3cd9b6bbe562e1a73e3f1c108a8.html#a95fad3cd9b6bbe562e1a73e3f1c108a8" title="submit an rmap command transaction" alt="" coords="153,69,276,96"/>
+<area shape="rect" id="node17" href="$rdcu__rmap_8c_a36f44335aa66dd49fb4903f7269bc5b1.html#a36f44335aa66dd49fb4903f7269bc5b1" title="grab a slot in the transaction log" alt="" coords="140,120,289,147"/>
+<area shape="rect" id="node4" href="$rdcu__rmap_8c_a1a064554031c2fa2dcb65541e0765c0f.html#a1a064554031c2fa2dcb65541e0765c0f" title="n rmap command transaction" alt="" coords="337,132,464,159"/>
+<area shape="rect" id="node5" href="$rmap_8c_abf1868ec6873f9f189050cadc7e64a3b.html#abf1868ec6873f9f189050cadc7e64a3b" title="calculate the CRC8 of a given buffer" alt="" coords="551,107,641,133"/>
+<area shape="rect" id="node6" href="$rmap_8c_a1def9af549819e7fdbda12af8bdc9c0e.html#a1def9af549819e7fdbda12af8bdc9c0e" title="completely destroys an RMAP packet" alt="" coords="521,157,671,184"/>
+<area shape="rect" id="node7" href="$rmap_8c_a5e88a29337404518eceedf9b4af285bf.html#a5e88a29337404518eceedf9b4af285bf" title=" " alt="" coords="533,208,659,235"/>
+<area shape="rect" id="node12" href="$rmap_8c_a46d3271304c12df042b57dbebaba67e1.html#a46d3271304c12df042b57dbebaba67e1" title="create an rmap packet from a buffer" alt="" coords="513,56,679,83"/>
+<area shape="rect" id="node15" href="$rdcu__rmap_8c_acf9b176d8d9b24e9d07711f56aebccc0.html#acf9b176d8d9b24e9d07711f56aebccc0" title="get the local address for a slot" alt="" coords="523,259,669,285"/>
+<area shape="rect" id="node16" href="$rdcu__rmap_8c_a7012f58a1862cf07b00e299d24c199c2.html#a7012f58a1862cf07b00e299d24c199c2" title="release a slot in the transaction log" alt="" coords="512,309,680,336"/>
+<area shape="rect" id="node8" href="$rmap_8c_abb4e19c17c7223212c3904bc4c0189d2.html#abb4e19c17c7223212c3904bc4c0189d2" title=" " alt="" coords="743,157,891,184"/>
+<area shape="rect" id="node9" href="$rmap_8c_a20aa8b91dfb1bbad819759f97b853054.html#a20aa8b91dfb1bbad819759f97b853054" title=" " alt="" coords="735,208,898,235"/>
+<area shape="rect" id="node10" href="$rmap_8c_adef42426b46ee5ad5176ee76cff35c22.html#adef42426b46ee5ad5176ee76cff35c22" title=" " alt="" coords="733,259,900,285"/>
+<area shape="rect" id="node11" href="$rmap_8c_a2ff278a5e094a9f585865d4d838e0e0e.html#a2ff278a5e094a9f585865d4d838e0e0e" title=" " alt="" coords="953,259,1143,285"/>
+<area shape="rect" id="node13" href="$rmap_8c_aba944cf978de0b264ea5bb3a784bce0f.html#aba944cf978de0b264ea5bb3a784bce0f" title="create an RMAP packet and set defaults" alt="" coords="739,56,894,83"/>
+<area shape="rect" id="node14" href="$rmap_8c_a0ec3c28e83818f02e00d4c79d82d938a.html#a0ec3c28e83818f02e00d4c79d82d938a" title="get the minimum header size given the RMAP instruction" alt="" coords="728,107,905,133"/>
+</map>

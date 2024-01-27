@@ -1,0 +1,12 @@
+<map id="rdcu_sync_data" name="rdcu_sync_data">
+<area shape="rect" id="node1" title="submit a data sync command" alt="" coords="933,108,1056,135"/>
+<area shape="rect" id="node2" href="$rdcu__ctrl_8c_ad5c3a06d535b0f8aa6d5bcaadfdca1f3.html#ad5c3a06d535b0f8aa6d5bcaadfdca1f3" title="sync a range of 32 bit words of the local mirror to the remote SRAM" alt="" coords="691,184,885,211"/>
+<area shape="rect" id="node7" href="$rdcu__ctrl_8c_a6633b7b026950cffc57092377e3350ec.html#a6633b7b026950cffc57092377e3350ec" title="sync a range of 32 bit words of the remote SRAM to the local mirror and form the local mirror to the ..." alt="" coords="701,21,875,62"/>
+<area shape="rect" id="node8" href="$rdcu__ctrl_8c_a37c5108b5eb07978b60235fbe040c47d.html#a37c5108b5eb07978b60235fbe040c47d" title="sync a range of 32 bit words of the remote SRAM to the local mirror" alt="" coords="448,108,643,135"/>
+<area shape="rect" id="node3" href="$cmp__rdcu_8c_ab69cf44ac326e0cebdef002e8f2ea2cb.html#ab69cf44ac326e0cebdef002e8f2ea2cb" title="compressing data with the help of the RDCU hardware compressor; read data from the last compression b..." alt="" coords="5,126,161,167"/>
+<area shape="rect" id="node4" href="$cmp__rdcu_8c_af59f75c76a057d49a54b54800dc59556.html#af59f75c76a057d49a54b54800dc59556" title="inject a SRAM edac multi bit error into the RDCU SRAM" alt="" coords="220,159,389,185"/>
+<area shape="rect" id="node5" href="$cmp__rdcu_8c_aa257971c693045ef23e6c79879b32473.html#aa257971c693045ef23e6c79879b32473" title="set up RDCU SRAM for compression" alt="" coords="471,209,619,236"/>
+<area shape="rect" id="node6" href="$cmp__rdcu_8h_a85aeb890a333d637dd7ffba03729e93a.html#a85aeb890a333d637dd7ffba03729e93a" title="compressing data with the help of the RDCU hardware compressor" alt="" coords="227,209,383,236"/>
+<area shape="rect" id="node9" href="$cmp__rdcu_8h_a468b8082ee6e0134519743425b2194c4.html#a468b8082ee6e0134519743425b2194c4" title="read the compressed bitstream from the RDCU SRAM" alt="" coords="209,108,400,135"/>
+<area shape="rect" id="node10" href="$cmp__rdcu_8h_ae37779561352f0c47d0c51fcc9789cc9.html#ae37779561352f0c47d0c51fcc9789cc9" title="read the updated model from the RDCU SRAM" alt="" coords="237,57,372,84"/>
+</map>

@@ -1,0 +1,13 @@
+<map id="test_cmp_cfg_icu_imagette" name="test_cmp_cfg_icu_imagette">
+<area shape="rect" id="node1" title=" " alt="" coords="5,118,207,145"/>
+<area shape="rect" id="node2" href="$cmp__icu_8h_adcfa752f5f3682b35323bdf5052216ab.html#adcfa752f5f3682b35323bdf5052216ab" title="create an ICU compression configuration" alt="" coords="264,67,415,94"/>
+<area shape="rect" id="node3" href="$cmp__icu_8h_a082ccf34e05b75012bf85c098f0a7ba0.html#a082ccf34e05b75012bf85c098f0a7ba0" title="set up the configuration parameters for an ICU imagette compression" alt="" coords="255,118,424,145"/>
+<area shape="rect" id="node11" href="$cmp__support_8c_a743a6fcf9ff9d9c86e5dcd2521694472.html#a743a6fcf9ff9d9c86e5dcd2521694472" title="get the maximum valid spill threshold value for a imagette compression in diff or model mode" alt="" coords="922,173,1074,199"/>
+<area shape="rect" id="node4" href="$cmp__support_8c_a6f2fb8760a0168031bcd7bc9cda97d1e.html#a6f2fb8760a0168031bcd7bc9cda97d1e" title="check if the imagette specific compression parameters are invalid" alt="" coords="472,85,633,127"/>
+<area shape="rect" id="node5" href="$cmp__support_8c_a1eff9dab3c3ab66953c329fa1bf38bb5.html#a1eff9dab3c3ab66953c329fa1bf38bb5" title="check if an adaptive imagette compression data type is used" alt="" coords="681,5,856,47"/>
+<area shape="rect" id="node6" href="$cmp__support_8c_a01181fec3ef69e316b4d77de4df9865f.html#a01181fec3ef69e316b4d77de4df9865f" title="check if an imagette compression data type is used" alt="" coords="904,56,1092,97"/>
+<area shape="rect" id="node8" href="$cmp__support_8c_adbae174c7bd594fd05723ddc667f5b54.html#adbae174c7bd594fd05723ddc667f5b54" title="check if the combination of the different compression parameters is invalid" alt="" coords="687,122,851,149"/>
+<area shape="rect" id="node7" href="$cmp__support_8c_a9197caa657b3d84615c0d323dc96c502.html#a9197caa657b3d84615c0d323dc96c502" title="check if the data product data type is supported by the RDCU compressor" alt="" coords="1140,56,1299,97"/>
+<area shape="rect" id="node9" href="$cmp__support_8c_aefdc949ff52e4920859d0bd82f5aa5aa.html#aefdc949ff52e4920859d0bd82f5aa5aa" title="get the maximum valid spill threshold value for a non&#45;imagette compression in diff or model mode" alt="" coords="925,122,1071,149"/>
+<area shape="rect" id="node10" href="$cmp__support_8c_a67b0e38ca0e68c282c89552daa61ffdf.html#a67b0e38ca0e68c282c89552daa61ffdf" title="implementation of the logarithm base of floor(log2(x)) for integers" alt="" coords="1189,122,1250,149"/>
+</map>

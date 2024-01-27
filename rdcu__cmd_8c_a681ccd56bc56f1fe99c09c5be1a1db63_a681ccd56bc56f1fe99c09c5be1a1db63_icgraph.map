@@ -1,0 +1,4 @@
+<map id="rdcu_read_cmd_rmap_last_err" name="rdcu_read_cmd_rmap_last_err">
+<area shape="rect" id="node1" title="create a command to read the RDCU RMAP last error register" alt="" coords="237,5,400,47"/>
+<area shape="rect" id="node2" href="$rdcu__ctrl_8c_a01b5e21760932f6003f23a176302bb94.html#a01b5e21760932f6003f23a176302bb94" title="sync the RMAP Last Error register (read only)" alt="" coords="5,13,189,39"/>
+</map>

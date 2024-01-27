@@ -1,0 +1,5 @@
+<map id="rdcu_get_compr_data_adaptive_1_size_bit" name="rdcu_get_compr_data_adaptive_1_size_bit">
+<area shape="rect" id="node1" title="get compressed data adaptive 1 size in bits" alt="" coords="224,35,387,76"/>
+<area shape="rect" id="node2" href="$rdcu__ctrl_8c_ad11bde1425421bd9521ebf4dcdf2adaa.html#ad11bde1425421bd9521ebf4dcdf2adaa" title="get compressed data adaptive 1 size in bytes" alt="" coords="5,5,176,47"/>
+<area shape="rect" id="node3" href="$cmp__rdcu_8h_afb2e10f8b9d9e433d1b4a6a96f930097.html#afb2e10f8b9d9e433d1b4a6a96f930097" title="read out the metadata of an RDCU compression" alt="" coords="14,71,167,98"/>
+</map>

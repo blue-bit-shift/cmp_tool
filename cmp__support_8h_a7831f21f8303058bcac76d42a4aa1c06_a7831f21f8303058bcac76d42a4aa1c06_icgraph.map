@@ -1,0 +1,52 @@
+<map id="is_a_pow_of_2" name="is_a_pow_of_2">
+<area shape="rect" id="node1" title="determining if an integer is a power of 2" alt="" coords="1033,655,1151,681"/>
+<area shape="rect" id="node2" href="$cmp__icu_8c_a5434cde7ebe64a734bcd3029e0755d39.html#a5434cde7ebe64a734bcd3029e0755d39" title="configure an encoder setup structure to have a setup to encode a vale" alt="" coords="801,411,985,437"/>
+<area shape="rect" id="node28" href="$decmp_8c_ac57439dd4b34cf8fb663756f2b7b2549.html#ac57439dd4b34cf8fb663756f2b7b2549" title="select the decoder based on the used Golomb parameter" alt="" coords="833,899,953,925"/>
+<area shape="rect" id="node3" href="$cmp__icu_8c_adcd70e1df20dbd835f12f1518e0e5913.html#adcd70e1df20dbd835f12f1518e0e5913" title="compress background data from the normal and fast cameras" alt="" coords="558,5,726,32"/>
+<area shape="rect" id="node13" href="$cmp__icu_8c_a6579c62abdb392078ff769daed82e3de.html#a6579c62abdb392078ff769daed82e3de" title="compress F_FX data" alt="" coords="583,56,701,83"/>
+<area shape="rect" id="node14" href="$cmp__icu_8c_a62fbfd95fc2341952d7bea6e3254524e.html#a62fbfd95fc2341952d7bea6e3254524e" title="compress F_FX_EFX data" alt="" coords="569,107,715,133"/>
+<area shape="rect" id="node15" href="$cmp__icu_8c_a3df4e4d9132cd8f7b230390c2e652b98.html#a3df4e4d9132cd8f7b230390c2e652b98" title="compress F_FX_EFX_NCOB_ECOB data" alt="" coords="531,157,753,184"/>
+<area shape="rect" id="node16" href="$cmp__icu_8c_a4012970a57d0030a74668735dea00172.html#a4012970a57d0030a74668735dea00172" title="compress F_FX_NCOB data" alt="" coords="565,208,719,235"/>
+<area shape="rect" id="node17" href="$cmp__icu_8c_a0c612434a54dd796d5abc627c29c9421.html#a0c612434a54dd796d5abc627c29c9421" title="compress imagette data" alt="" coords="567,259,717,285"/>
+<area shape="rect" id="node18" href="$cmp__icu_8c_a7b02a8c025e95748452f82c4f49a6711.html#a7b02a8c025e95748452f82c4f49a6711" title="compress L_FX data" alt="" coords="584,309,700,336"/>
+<area shape="rect" id="node19" href="$cmp__icu_8c_af7a379568d317e90a948422d1c82c2e7.html#af7a379568d317e90a948422d1c82c2e7" title="compress L_FX_EFX data" alt="" coords="570,360,714,387"/>
+<area shape="rect" id="node20" href="$cmp__icu_8c_a90da3140eac89a1fe4522b65fb1eecee.html#a90da3140eac89a1fe4522b65fb1eecee" title="compress L_FX_EFX_NCOB_ECOB data" alt="" coords="532,411,752,437"/>
+<area shape="rect" id="node21" href="$cmp__icu_8c_a6b4967380e8feb9f200bb1c003ae7634.html#a6b4967380e8feb9f200bb1c003ae7634" title="compress L_FX_NCOB data" alt="" coords="565,461,719,488"/>
+<area shape="rect" id="node22" href="$cmp__icu_8c_af3e5138bea93ccc58461e13005e2ce87.html#af3e5138bea93ccc58461e13005e2ce87" title="compress offset data from the normal and fast cameras" alt="" coords="577,512,707,539"/>
+<area shape="rect" id="node23" href="$cmp__icu_8c_ac63c050c284112dacbe08e7da30fffad.html#ac63c050c284112dacbe08e7da30fffad" title="compress short normal light flux (S_FX) data" alt="" coords="583,563,701,589"/>
+<area shape="rect" id="node24" href="$cmp__icu_8c_a3f02fb050979064fad15ac11a9fa5791.html#a3f02fb050979064fad15ac11a9fa5791" title="compress S_FX_EFX data" alt="" coords="569,613,715,640"/>
+<area shape="rect" id="node25" href="$cmp__icu_8c_a0bca92c3e03d7205757caa6c343115ef.html#a0bca92c3e03d7205757caa6c343115ef" title="compress S_FX_EFX_NCOB_ECOB data" alt="" coords="531,664,753,691"/>
+<area shape="rect" id="node26" href="$cmp__icu_8c_a83109917c7706135b6138872f59efb27.html#a83109917c7706135b6138872f59efb27" title="compress S_FX_NCOB data" alt="" coords="563,715,721,741"/>
+<area shape="rect" id="node27" href="$cmp__icu_8c_a64f1fb77431a3aebac4dd5be4872805b.html#a64f1fb77431a3aebac4dd5be4872805b" title="compress smearing data from the normal cameras" alt="" coords="565,765,719,792"/>
+<area shape="rect" id="node4" href="$cmp__icu_8h_a08bf8ccacb449aba08db5e51d532d834.html#a08bf8ccacb449aba08db5e51d532d834" title="compress data on the ICU in software" alt="" coords="317,360,464,387"/>
+<area shape="rect" id="node5" href="$test__cmp__decmp_8c_a50ba26014079160ca77b7d7fa76ce0f4.html#a50ba26014079160ca77b7d7fa76ce0f4" title="compress the given configuration and decompress it afterwards; finally compare the results" alt="" coords="23,168,233,195"/>
+<area shape="rect" id="node6" href="$test__decmp_8c_a2d642d4d482b9ec7eca4568a95f5bdd4.html#a2d642d4d482b9ec7eca4568a95f5bdd4" title=" " alt="" coords="32,219,224,245"/>
+<area shape="rect" id="node7" href="$test__decmp_8c_a6e7a5e150e2c829836db3c42cdec2eec.html#a6e7a5e150e2c829836db3c42cdec2eec" title=" " alt="" coords="5,269,251,296"/>
+<area shape="rect" id="node8" href="$test__cmp__icu_8c_aca32c7d039600004c9cc5c6fe19b8ec5.html#aca32c7d039600004c9cc5c6fe19b8ec5" title=" " alt="" coords="28,321,228,362"/>
+<area shape="rect" id="node9" href="$test__cmp__icu_8c_a64b46c032fdef8789190209bd9c3c49b.html#a64b46c032fdef8789190209bd9c3c49b" title=" " alt="" coords="53,386,203,427"/>
+<area shape="rect" id="node10" href="$test__cmp__icu_8c_acd4ce1f38ffbf0d6258b81668836d96b.html#acd4ce1f38ffbf0d6258b81668836d96b" title=" " alt="" coords="53,451,203,493"/>
+<area shape="rect" id="node11" href="$test__cmp__icu_8c_a5fdfb76e3f52d4283fdcbf5e05ac7dd9.html#a5fdfb76e3f52d4283fdcbf5e05ac7dd9" title=" " alt="" coords="53,517,203,558"/>
+<area shape="rect" id="node12" href="$test__cmp__icu_8c_ad6a880fe71de66a8a98a3f97d9e736da.html#ad6a880fe71de66a8a98a3f97d9e736da" title=" " alt="" coords="53,582,203,623"/>
+<area shape="rect" id="node29" href="$decmp_8c_ac9a6281c5fcfbf077cc63e0494274f20.html#ac9a6281c5fcfbf077cc63e0494274f20" title="configure a decoder setup structure to have a setup to decode a vale" alt="" coords="550,899,734,925"/>
+<area shape="rect" id="node50" href="$test__decmp_8c_a478c7a73858ab89879bbf135b15af825.html#a478c7a73858ab89879bbf135b15af825" title=" " alt="" coords="566,949,718,976"/>
+<area shape="rect" id="node30" href="$decmp_8c_ae8bbe9e530e670af67db5d739f15f120.html#ae8bbe9e530e670af67db5d739f15f120" title="decompress N&#45;CAM background data" alt="" coords="299,411,483,437"/>
+<area shape="rect" id="node31" href="$decmp_8c_ac44d884cb830d9b0dbbca34c6db2de7d.html#ac44d884cb830d9b0dbbca34c6db2de7d" title="decompress fast normal light flux (F_FX) data" alt="" coords="324,461,457,488"/>
+<area shape="rect" id="node32" href="$decmp_8c_a84e912fefa1f49f27885af0d855a4989.html#a84e912fefa1f49f27885af0d855a4989" title="decompress F_FX_EFX data" alt="" coords="310,512,471,539"/>
+<area shape="rect" id="node33" href="$decmp_8c_aac2934ca104c49490be71c4966d2b173.html#aac2934ca104c49490be71c4966d2b173" title="decompress short F_FX_NCOB_ECOB data" alt="" coords="310,563,471,605"/>
+<area shape="rect" id="node34" href="$decmp_8c_a8310f64826697fb15c590854c08b3ad9.html#a8310f64826697fb15c590854c08b3ad9" title="decompress short F_FX_NCOB data" alt="" coords="305,629,476,656"/>
+<area shape="rect" id="node35" href="$decmp_8c_a62e230570f1d23f56fbe10fb238dbf1d.html#a62e230570f1d23f56fbe10fb238dbf1d" title="decompress imagette data" alt="" coords="307,680,474,707"/>
+<area shape="rect" id="node36" href="$decmp_8c_a75f3c5c08234bce92e84d07a93e9a77d.html#a75f3c5c08234bce92e84d07a93e9a77d" title="decompress long normal light flux (L_FX) data" alt="" coords="325,731,457,757"/>
+<area shape="rect" id="node37" href="$decmp_8c_aa06fff345fa7fd62fb4fd7a619c118fe.html#aa06fff345fa7fd62fb4fd7a619c118fe" title="decompress L_FX_EFX data" alt="" coords="311,781,471,808"/>
+<area shape="rect" id="node38" href="$decmp_8c_a36a5692cbd5d1e46805ba3f1dac23f60.html#a36a5692cbd5d1e46805ba3f1dac23f60" title="decompress L_FX_EFX_NCOB_ECOB data" alt="" coords="311,833,471,874"/>
+<area shape="rect" id="node39" href="$decmp_8c_a5883c910a0e8e829e60844e78da88e96.html#a5883c910a0e8e829e60844e78da88e96" title="decompress L_FX_NCOB data" alt="" coords="305,899,476,925"/>
+<area shape="rect" id="node40" href="$decmp_8c_a47d0a8b2f718f7d4659a34a6b516c79d.html#a47d0a8b2f718f7d4659a34a6b516c79d" title="decompress N&#45;CAM and F&#45;CAM offset data" alt="" coords="318,949,463,976"/>
+<area shape="rect" id="node41" href="$decmp_8c_ad57c4f63787216adcca82dca5a2c99ae.html#ad57c4f63787216adcca82dca5a2c99ae" title="decompress short normal light flux (S_FX) data" alt="" coords="323,1000,458,1027"/>
+<area shape="rect" id="node42" href="$decmp_8c_ae950fe1a6eeb3224f3491439a7149a1f.html#ae950fe1a6eeb3224f3491439a7149a1f" title="decompress S_FX_EFX data" alt="" coords="309,1051,472,1077"/>
+<area shape="rect" id="node43" href="$decmp_8c_aee9e79676f49da2b257ad810955e4f09.html#aee9e79676f49da2b257ad810955e4f09" title="decompress short S_FX_NCOB_ECOB data" alt="" coords="309,1102,472,1143"/>
+<area shape="rect" id="node44" href="$decmp_8c_a5075a002558af814210bd1c186a244f0.html#a5075a002558af814210bd1c186a244f0" title="decompress short S_FX_NCOB data" alt="" coords="304,1168,477,1195"/>
+<area shape="rect" id="node45" href="$decmp_8c_ab043a8a939e8818cf2875aecec205bb9.html#ab043a8a939e8818cf2875aecec205bb9" title="decompress N&#45;CAM smearing data" alt="" coords="306,1219,475,1245"/>
+<area shape="rect" id="node46" href="$test__decmp_8c_a2cf11f635ba073b682cac0e4ef9dfdbc.html#a2cf11f635ba073b682cac0e4ef9dfdbc" title=" " alt="" coords="319,1269,462,1296"/>
+<area shape="rect" id="node47" href="$test__decmp_8c_a7ada560b6c0070a378eeff45b9dae044.html#a7ada560b6c0070a378eeff45b9dae044" title=" " alt="" coords="323,1320,459,1347"/>
+<area shape="rect" id="node48" href="$test__decmp_8c_a29cac1eb3ce172274827f3bb9481294c.html#a29cac1eb3ce172274827f3bb9481294c" title=" " alt="" coords="301,1371,480,1397"/>
+<area shape="rect" id="node49" href="$test__decmp_8c_a58e183d189a8362c6690c0a6205b6dcc.html#a58e183d189a8362c6690c0a6205b6dcc" title=" " alt="" coords="304,1421,477,1448"/>
+</map>

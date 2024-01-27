@@ -1,0 +1,4 @@
+<map id="rdcu_read_cmd_lvds_core_status" name="rdcu_read_cmd_lvds_core_status">
+<area shape="rect" id="node1" title="create a command to read the RDCU LVDS core status register" alt="" coords="209,5,364,47"/>
+<area shape="rect" id="node2" href="$rdcu__ctrl_8c_a232b6401a8c7c7f13afba798abe704f5.html#a232b6401a8c7c7f13afba798abe704f5" title="sync the LVDS core status register (read only)" alt="" coords="5,5,161,47"/>
+</map>

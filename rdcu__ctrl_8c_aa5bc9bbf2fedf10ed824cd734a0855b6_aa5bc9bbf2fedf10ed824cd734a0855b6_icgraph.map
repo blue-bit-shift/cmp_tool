@@ -1,0 +1,10 @@
+<map id="rdcu_write_sram" name="rdcu_write_sram">
+<area shape="rect" id="node1" title="write arbitrary big&#45;endian data to the local SRAM mirror" alt="" coords="824,81,955,108"/>
+<area shape="rect" id="node2" href="$cmp__rdcu_8c_af59f75c76a057d49a54b54800dc59556.html#af59f75c76a057d49a54b54800dc59556" title="inject a SRAM edac multi bit error into the RDCU SRAM" alt="" coords="209,5,379,32"/>
+<area shape="rect" id="node3" href="$rdcu__ctrl_8c_ad28ee26aa15994bf9d5105568df7f73d.html#ad28ee26aa15994bf9d5105568df7f73d" title="write uint16_t formatted data to the local SRAM mirror. This function is endian&#45;safe." alt="" coords="623,56,776,83"/>
+<area shape="rect" id="node7" href="$rdcu__ctrl_8c_aacefb7ea910aedfd80880bd2457c2c24.html#aacefb7ea910aedfd80880bd2457c2c24" title="write uint32_t formatted data to the local SRAM mirror. This function is endian&#45;safe." alt="" coords="623,107,776,133"/>
+<area shape="rect" id="node8" href="$rdcu__ctrl_8c_aca1686604c635243d9fd475c773c80ba.html#aca1686604c635243d9fd475c773c80ba" title="write uint8_t formatted data to the local SRAM mirror. (This function is endian&#45;safe...." alt="" coords="627,157,772,184"/>
+<area shape="rect" id="node4" href="$cmp__rdcu_8c_ab69cf44ac326e0cebdef002e8f2ea2cb.html#ab69cf44ac326e0cebdef002e8f2ea2cb" title="compressing data with the help of the RDCU hardware compressor; read data from the last compression b..." alt="" coords="5,74,161,115"/>
+<area shape="rect" id="node5" href="$cmp__rdcu_8c_aa257971c693045ef23e6c79879b32473.html#aa257971c693045ef23e6c79879b32473" title="set up RDCU SRAM for compression" alt="" coords="427,56,575,83"/>
+<area shape="rect" id="node6" href="$cmp__rdcu_8h_a85aeb890a333d637dd7ffba03729e93a.html#a85aeb890a333d637dd7ffba03729e93a" title="compressing data with the help of the RDCU hardware compressor" alt="" coords="216,56,372,83"/>
+</map>

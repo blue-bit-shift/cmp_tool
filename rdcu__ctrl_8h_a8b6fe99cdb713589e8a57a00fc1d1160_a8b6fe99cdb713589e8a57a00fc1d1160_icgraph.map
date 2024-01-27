@@ -1,0 +1,4 @@
+<map id="rdcu_sync_compr_status" name="rdcu_sync_compr_status">
+<area shape="rect" id="node1" title="sync the Compressor Status register (read only)" alt="" coords="221,5,404,32"/>
+<area shape="rect" id="node2" href="$cmp__rdcu_8h_ab9573ccdf850671c2f0c6f90d39677e3.html#ab9573ccdf850671c2f0c6f90d39677e3" title="read out the status register of the RDCU compressor" alt="" coords="5,5,173,32"/>
+</map>

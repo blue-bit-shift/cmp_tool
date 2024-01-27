@@ -1,0 +1,13 @@
+<map id="cmp_ent_parese_specific_header" name="cmp_ent_parese_specific_header">
+<area shape="rect" id="node1" title="parse the specific compressed entity header" alt="" coords="5,167,191,208"/>
+<area shape="rect" id="node2" href="$cmp__entity_8c_a2f2b18a1db94847afbfc30a8e7f142cf.html#a2f2b18a1db94847afbfc30a8e7f142cf" title="get data_type from the compression entity header" alt="" coords="247,82,425,109"/>
+<area shape="rect" id="node3" href="$cmp__entity_8c_a8edb7fa093195536f03038be2a5341a4.html#a8edb7fa093195536f03038be2a5341a4" title="get the raw bit from the data_type field of the compression entity header" alt="" coords="247,133,425,175"/>
+<area shape="rect" id="node4" href="$cmp__entity_8c_a61045ef2115730b0239b706dd5343123.html#a61045ef2115730b0239b706dd5343123" title="parse the adaptive imagette specific compressed entity header" alt="" coords="239,199,433,240"/>
+<area shape="rect" id="node11" href="$cmp__entity_8c_aaede38985258a040864878e893c97620.html#aaede38985258a040864878e893c97620" title="parse the imagette specific compressed entity header" alt="" coords="239,264,433,305"/>
+<area shape="rect" id="node5" href="$cmp__entity_8c_aa6064dd377742b3a23f4aa1e9d29ca1d.html#aa6064dd377742b3a23f4aa1e9d29ca1d" title="get the used adaptive 1 Golomb parameter from adaptive imagette specific compression entity header" alt="" coords="508,136,677,177"/>
+<area shape="rect" id="node6" href="$cmp__entity_8c_a2cc8ea3ff464c3bd20a08370f5fe88ad.html#a2cc8ea3ff464c3bd20a08370f5fe88ad" title="get the used adaptive 1 spillover threshold parameter from the adaptive imagette specific compression..." alt="" coords="508,201,677,243"/>
+<area shape="rect" id="node7" href="$cmp__entity_8c_aba889dd69b3ae248265c79d975d377e9.html#aba889dd69b3ae248265c79d975d377e9" title="get the used adaptive 2 spillover threshold parameter from the adaptive imagette specific compression..." alt="" coords="508,5,677,47"/>
+<area shape="rect" id="node8" href="$cmp__entity_8c_a701c7c0bd296b17280619127a7ab4e89.html#a701c7c0bd296b17280619127a7ab4e89" title="get the used adaptive 2 spillover threshold parameter from the adaptive imagette specific compression..." alt="" coords="508,71,677,112"/>
+<area shape="rect" id="node9" href="$cmp__entity_8c_a4e4c9b1046c031cc9bbce7dff640e393.html#a4e4c9b1046c031cc9bbce7dff640e393" title="get the used Golomb parameter from the (adaptive) imagette specific compression entity header" alt="" coords="481,267,704,294"/>
+<area shape="rect" id="node10" href="$cmp__entity_8c_a58239f749d3abbbc019231ce70c60e19.html#a58239f749d3abbbc019231ce70c60e19" title="get the used spillover threshold parameter from the (adaptive) imagette specific compression entity h..." alt="" coords="507,318,679,345"/>
+</map>

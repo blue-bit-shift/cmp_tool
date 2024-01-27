@@ -1,0 +1,8 @@
+<map id="cmp_ent_get_fine_end_time" name="cmp_ent_get_fine_end_time">
+<area shape="rect" id="node1" title="get the fine time from the compression end timestamp in the compression entity header" alt="" coords="608,71,813,98"/>
+<area shape="rect" id="node2" href="$cmp__entity_8c_a2437ba690b73b4c212cd7962819b24ce.html#a2437ba690b73b4c212cd7962819b24ce" title="parses the generic compressed entity header" alt="" coords="380,5,556,47"/>
+<area shape="rect" id="node5" href="$test__cmp__entity_8c_a6ee6e9dd79281888c6f4b14eab4a48ad.html#a6ee6e9dd79281888c6f4b14eab4a48ad" title=" " alt="" coords="376,71,560,98"/>
+<area shape="rect" id="node6" href="$test__cmp__entity_8c_a773f07944f2b73a77ec5986fb3627857.html#a773f07944f2b73a77ec5986fb3627857" title=" " alt="" coords="381,122,555,149"/>
+<area shape="rect" id="node3" href="$cmp__entity_8c_a1f4478c4d9938fa6f5631e88298ed816.html#a1f4478c4d9938fa6f5631e88298ed816" title="parse the compressed entity header" alt="" coords="207,13,328,39"/>
+<area shape="rect" id="node4" href="$test__cmp__entity_8c_a893444224bcd50fbb99e42e85989b4a6.html#a893444224bcd50fbb99e42e85989b4a6" title=" " alt="" coords="5,13,159,39"/>
+</map>

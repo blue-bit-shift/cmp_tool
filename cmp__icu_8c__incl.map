@@ -1,0 +1,16 @@
+<map id="cmp_icu.c" name="cmp_icu.c">
+<area shape="rect" id="node1" title="software compression library" alt="" coords="708,5,795,32"/>
+<area shape="rect" id="node2" title=" " alt="" coords="508,319,579,345"/>
+<area shape="rect" id="node3" title=" " alt="" coords="840,87,911,114"/>
+<area shape="rect" id="node4" title=" " alt="" coords="935,87,1005,114"/>
+<area shape="rect" id="node5" href="$byteorder_8h.html" title="This is a set of macros for consistent endianness conversion. They work for both little and big endia..." alt="" coords="789,169,959,196"/>
+<area shape="rect" id="node6" href="$cmp__debug_8h.html" title="compression/decompression debugging defines" alt="" coords="1029,87,1212,114"/>
+<area shape="rect" id="node7" href="$cmp__data__types_8h.html" title="definition of the different compression data types" alt="" coords="555,80,713,121"/>
+<area shape="rect" id="node9" href="$cmp__support_8h.html" title="compression/decompression helper functions" alt="" coords="181,169,372,196"/>
+<area shape="rect" id="node13" href="$cmp__entity_8h.html" title="functions and definition to handle a compression entity" alt="" coords="351,87,530,114"/>
+<area shape="rect" id="node14" href="$cmp__icu_8h.html" title="software compression library" alt="" coords="227,87,327,114"/>
+<area shape="rect" id="node8" href="$compiler_8h.html" title="a collection of preprocessor macros" alt="" coords="573,169,663,196"/>
+<area shape="rect" id="node10" title=" " alt="" coords="239,244,314,271"/>
+<area shape="rect" id="node11" href="$cmp__max__used__bits_8h.html" title="definition and consents of the cmp_max_used_bits structure" alt="" coords="339,244,505,271"/>
+<area shape="rect" id="node12" href="$cmp__cal__up__model_8h.html" title="functions to calculate the update (new) model" alt="" coords="5,244,164,271"/>
+</map>

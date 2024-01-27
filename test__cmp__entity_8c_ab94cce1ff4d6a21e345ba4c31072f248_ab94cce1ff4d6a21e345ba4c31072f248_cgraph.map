@@ -1,0 +1,8 @@
+<map id="test_cmp_ent_cal_hdr_size" name="test_cmp_ent_cal_hdr_size">
+<area shape="rect" id="node1" title=" " alt="" coords="5,71,203,98"/>
+<area shape="rect" id="node2" href="$cmp__support_8c_a1eff9dab3c3ab66953c329fa1bf38bb5.html#a1eff9dab3c3ab66953c329fa1bf38bb5" title="check if an adaptive imagette compression data type is used" alt="" coords="257,5,432,47"/>
+<area shape="rect" id="node3" href="$cmp__entity_8c_ac4f3e5eb03e7dc0f1a646dd150543af5.html#ac4f3e5eb03e7dc0f1a646dd150543af5" title="calculate the size of the compression entity header based on a compression data product type" alt="" coords="262,71,427,98"/>
+<area shape="rect" id="node5" href="$cmp__support_8c_a01181fec3ef69e316b4d77de4df9865f.html#a01181fec3ef69e316b4d77de4df9865f" title="check if an imagette compression data type is used" alt="" coords="251,123,439,164"/>
+<area shape="rect" id="node4" href="$cmp__support_8c_af2129b98a4b5c7f856e97776962d7881.html#af2129b98a4b5c7f856e97776962d7881" title="check if the compression entity data product type is supported" alt="" coords="487,71,677,98"/>
+<area shape="rect" id="node6" href="$cmp__support_8c_a9197caa657b3d84615c0d323dc96c502.html#a9197caa657b3d84615c0d323dc96c502" title="check if the data product data type is supported by the RDCU compressor" alt="" coords="503,123,661,164"/>
+</map>

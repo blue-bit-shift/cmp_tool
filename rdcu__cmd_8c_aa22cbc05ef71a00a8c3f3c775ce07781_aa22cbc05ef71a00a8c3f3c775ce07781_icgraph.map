@@ -1,0 +1,9 @@
+<map id="rdcu_read_cmd_used_param1" name="rdcu_read_cmd_used_param1">
+<area shape="rect" id="node1" title="create a command to read the RDCU used parameter 1 register" alt="" coords="872,27,1031,69"/>
+<area shape="rect" id="node2" href="$rdcu__ctrl_8c_ac466d05abe2b0f350a6f1971f0b57e83.html#ac466d05abe2b0f350a6f1971f0b57e83" title="sync the Used Parameter 1 (read only)" alt="" coords="641,35,824,61"/>
+<area shape="rect" id="node3" href="$cmp__rdcu_8h_afb2e10f8b9d9e433d1b4a6a96f930097.html#afb2e10f8b9d9e433d1b4a6a96f930097" title="read out the metadata of an RDCU compression" alt="" coords="433,5,587,32"/>
+<area shape="rect" id="node4" href="$cmp__rdcu_8c_a1b450ab652a1da5f914786ce577458f9.html#a1b450ab652a1da5f914786ce577458f9" title="set up RDCU compression register" alt="" coords="427,57,593,98"/>
+<area shape="rect" id="node5" href="$cmp__rdcu_8h_a85aeb890a333d637dd7ffba03729e93a.html#a85aeb890a333d637dd7ffba03729e93a" title="compressing data with the help of the RDCU hardware compressor" alt="" coords="216,13,372,40"/>
+<area shape="rect" id="node6" href="$cmp__rdcu_8c_ab69cf44ac326e0cebdef002e8f2ea2cb.html#ab69cf44ac326e0cebdef002e8f2ea2cb" title="compressing data with the help of the RDCU hardware compressor; read data from the last compression b..." alt="" coords="5,31,161,73"/>
+<area shape="rect" id="node7" href="$cmp__rdcu_8c_af59f75c76a057d49a54b54800dc59556.html#af59f75c76a057d49a54b54800dc59556" title="inject a SRAM edac multi bit error into the RDCU SRAM" alt="" coords="209,115,379,141"/>
+</map>

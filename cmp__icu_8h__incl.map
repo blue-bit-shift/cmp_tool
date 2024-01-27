@@ -1,0 +1,8 @@
+<map id="cmp_icu.h" name="cmp_icu.h">
+<area shape="rect" id="node1" title="software compression library" alt="" coords="89,5,177,32"/>
+<area shape="rect" id="node2" href="$cmp__support_8h.html" title="compression/decompression helper functions" alt="" coords="44,80,223,107"/>
+<area shape="rect" id="node3" title=" " alt="" coords="171,229,242,256"/>
+<area shape="rect" id="node4" title=" " alt="" coords="24,155,99,181"/>
+<area shape="rect" id="node5" href="$cmp__max__used__bits_8h.html" title="definition and consents of the cmp_max_used_bits structure" alt="" coords="123,155,290,181"/>
+<area shape="rect" id="node6" href="$cmp__cal__up__model_8h.html" title="functions to calculate the update (new) model" alt="" coords="314,155,473,181"/>
+</map>

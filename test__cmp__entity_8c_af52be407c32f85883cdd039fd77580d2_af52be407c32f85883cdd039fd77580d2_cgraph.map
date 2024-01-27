@@ -1,0 +1,5 @@
+<map id="test_ent_lossy_cmp_par" name="test_ent_lossy_cmp_par">
+<area shape="rect" id="node1" title=" " alt="" coords="5,31,184,57"/>
+<area shape="rect" id="node2" href="$cmp__entity_8c_ab31cd21b349cdafee02ca3e63be57f5a.html#ab31cd21b349cdafee02ca3e63be57f5a" title="get the used lossy compression parameter from the compression entity header" alt="" coords="232,5,443,32"/>
+<area shape="rect" id="node3" href="$cmp__entity_8c_a9a96fdc3bd0053e965c962eb99e2dc2e.html#a9a96fdc3bd0053e965c962eb99e2dc2e" title="set the used lossy compression parameter in the compression entity header" alt="" coords="233,56,442,83"/>
+</map>

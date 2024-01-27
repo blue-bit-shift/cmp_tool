@@ -1,0 +1,5 @@
+<map id="unary_decoder" name="unary_decoder">
+<area shape="rect" id="node1" title="decode the next unary code word in the bitstream" alt="" coords="5,31,124,57"/>
+<area shape="rect" id="node2" href="$read__bitstream_8h_ad1aa8029b694397da24a84fcdc75acab.html#ad1aa8029b694397da24a84fcdc75acab" title="mark next n bits in the local register as consumed" alt="" coords="189,5,325,32"/>
+<area shape="rect" id="node3" href="$read__bitstream_8h_a08b1899a09b0b72856f441efae758d76.html#a08b1899a09b0b72856f441efae758d76" title="count the leading ones in the local register; local register is not modified" alt="" coords="172,56,343,83"/>
+</map>

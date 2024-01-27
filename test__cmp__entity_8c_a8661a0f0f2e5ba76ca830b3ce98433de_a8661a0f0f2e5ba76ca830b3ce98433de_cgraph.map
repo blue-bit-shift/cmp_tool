@@ -1,0 +1,5 @@
+<map id="test_ent_max_used_bits_version" name="test_ent_max_used_bits_version">
+<area shape="rect" id="node1" title=" " alt="" coords="5,39,185,80"/>
+<area shape="rect" id="node2" href="$cmp__entity_8c_a6cc350bd5767000f1a0b858e008e4c18.html#a6cc350bd5767000f1a0b858e008e4c18" title="get the version identifier for the maximum used bits registry from the compression entity header" alt="" coords="233,5,413,47"/>
+<area shape="rect" id="node3" href="$cmp__entity_8c_aaf83e1291af78fdd1d6d3ce5b8e2e9da.html#aaf83e1291af78fdd1d6d3ce5b8e2e9da" title="set version identifier for the maximum used bits registry in the compression entity header" alt="" coords="234,71,413,112"/>
+</map>

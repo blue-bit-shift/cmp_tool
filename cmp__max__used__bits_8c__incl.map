@@ -1,0 +1,10 @@
+<map id="cmp_max_used_bits.c" name="cmp_max_used_bits.c">
+<area shape="rect" id="node1" title="definition and consents of the cmp_max_used_bits structure" alt="" coords="5,5,172,32"/>
+<area shape="rect" id="node2" title=" " alt="" coords="101,304,172,331"/>
+<area shape="rect" id="node3" href="$cmp__data__types_8h.html" title="definition of the different compression data types" alt="" coords="85,80,226,107"/>
+<area shape="rect" id="node4" href="$compiler_8h.html" title="a collection of preprocessor macros" alt="" coords="123,155,214,181"/>
+<area shape="rect" id="node5" href="$cmp__support_8h.html" title="compression/decompression helper functions" alt="" coords="239,155,429,181"/>
+<area shape="rect" id="node6" title=" " alt="" coords="174,229,249,256"/>
+<area shape="rect" id="node7" href="$cmp__max__used__bits_8h.html" title="definition and consents of the cmp_max_used_bits structure" alt="" coords="273,229,440,256"/>
+<area shape="rect" id="node8" href="$cmp__cal__up__model_8h.html" title="functions to calculate the update (new) model" alt="" coords="464,229,623,256"/>
+</map>

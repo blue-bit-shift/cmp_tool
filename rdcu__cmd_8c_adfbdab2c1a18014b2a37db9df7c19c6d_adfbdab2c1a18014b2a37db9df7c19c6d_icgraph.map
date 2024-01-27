@@ -1,0 +1,8 @@
+<map id="rdcu_write_cmd_compr_data_buf_len" name="rdcu_write_cmd_compr_data_buf_len">
+<area shape="rect" id="node1" title="create a command to write the RDCU compressed data buffer length register" alt="" coords="860,49,1033,90"/>
+<area shape="rect" id="node2" href="$rdcu__ctrl_8c_a0dbd3a93474cc6ddad6fa719b67a3e30.html#a0dbd3a93474cc6ddad6fa719b67a3e30" title="sync the Compressed Data Buffer Length (write only)" alt="" coords="641,49,812,90"/>
+<area shape="rect" id="node3" href="$cmp__rdcu_8c_a1b450ab652a1da5f914786ce577458f9.html#a1b450ab652a1da5f914786ce577458f9" title="set up RDCU compression register" alt="" coords="427,49,593,90"/>
+<area shape="rect" id="node4" href="$cmp__rdcu_8h_a85aeb890a333d637dd7ffba03729e93a.html#a85aeb890a333d637dd7ffba03729e93a" title="compressing data with the help of the RDCU hardware compressor" alt="" coords="216,5,372,32"/>
+<area shape="rect" id="node5" href="$cmp__rdcu_8c_ab69cf44ac326e0cebdef002e8f2ea2cb.html#ab69cf44ac326e0cebdef002e8f2ea2cb" title="compressing data with the help of the RDCU hardware compressor; read data from the last compression b..." alt="" coords="5,23,161,65"/>
+<area shape="rect" id="node6" href="$cmp__rdcu_8c_af59f75c76a057d49a54b54800dc59556.html#af59f75c76a057d49a54b54800dc59556" title="inject a SRAM edac multi bit error into the RDCU SRAM" alt="" coords="209,107,379,133"/>
+</map>

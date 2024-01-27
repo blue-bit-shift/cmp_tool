@@ -1,0 +1,4 @@
+<map id="rdcu_get_rdcu_interrupt_enabled" name="rdcu_get_rdcu_interrupt_enabled">
+<area shape="rect" id="node1" title="get RDCU Interrupt status" alt="" coords="221,5,397,47"/>
+<area shape="rect" id="node2" href="$cmp__rdcu_8h_ab9573ccdf850671c2f0c6f90d39677e3.html#ab9573ccdf850671c2f0c6f90d39677e3" title="read out the status register of the RDCU compressor" alt="" coords="5,13,173,39"/>
+</map>

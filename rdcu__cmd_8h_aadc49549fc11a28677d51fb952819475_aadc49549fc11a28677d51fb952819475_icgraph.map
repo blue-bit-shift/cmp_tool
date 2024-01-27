@@ -1,0 +1,5 @@
+<map id="rdcu_read_cmd_sram_edac_status" name="rdcu_read_cmd_sram_edac_status">
+<area shape="rect" id="node1" title="create a command to read the SRAM EDAC Status register" alt="" coords="436,5,597,47"/>
+<area shape="rect" id="node2" href="$rdcu__ctrl_8c_a9fe5ad61776fab9bd7c922610039ea63.html#a9fe5ad61776fab9bd7c922610039ea63" title="sync the SRAM EDAC Status (read only)" alt="" coords="223,5,388,47"/>
+<area shape="rect" id="node3" href="$cmp__rdcu_8c_af59f75c76a057d49a54b54800dc59556.html#af59f75c76a057d49a54b54800dc59556" title="inject a SRAM edac multi bit error into the RDCU SRAM" alt="" coords="5,13,175,39"/>
+</map>

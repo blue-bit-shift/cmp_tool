@@ -1,0 +1,5 @@
+<map id="rdcu_read_cmd_compr_data_size" name="rdcu_read_cmd_compr_data_size">
+<area shape="rect" id="node1" title="create a command to read the RDCU compressed data size register" alt="" coords="459,5,628,47"/>
+<area shape="rect" id="node2" href="$rdcu__ctrl_8c_a45a520766308d3f7c8e338f5dd9893b6.html#a45a520766308d3f7c8e338f5dd9893b6" title="sync the Compressed Data Start Size (read only)" alt="" coords="207,13,411,39"/>
+<area shape="rect" id="node3" href="$cmp__rdcu_8h_afb2e10f8b9d9e433d1b4a6a96f930097.html#afb2e10f8b9d9e433d1b4a6a96f930097" title="read out the metadata of an RDCU compression" alt="" coords="5,13,159,39"/>
+</map>

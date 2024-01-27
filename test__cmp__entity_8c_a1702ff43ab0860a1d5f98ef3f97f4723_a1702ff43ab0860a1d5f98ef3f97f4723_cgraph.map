@@ -1,0 +1,5 @@
+<map id="test_ent_ima_golomb_par" name="test_ent_ima_golomb_par">
+<area shape="rect" id="node1" title=" " alt="" coords="5,31,196,57"/>
+<area shape="rect" id="node2" href="$cmp__entity_8c_a4e4c9b1046c031cc9bbce7dff640e393.html#a4e4c9b1046c031cc9bbce7dff640e393" title="get the used Golomb parameter from the (adaptive) imagette specific compression entity header" alt="" coords="244,5,467,32"/>
+<area shape="rect" id="node3" href="$cmp__entity_8c_ae8a6e666a0ecf3bde65cefa3ae38dd21.html#ae8a6e666a0ecf3bde65cefa3ae38dd21" title="set used Golomb parameter in the (adaptive) imagette specific compression entity header" alt="" coords="245,56,466,83"/>
+</map>

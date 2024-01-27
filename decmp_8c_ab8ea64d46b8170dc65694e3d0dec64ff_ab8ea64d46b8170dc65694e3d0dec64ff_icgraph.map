@@ -1,0 +1,38 @@
+<map id="golomb_decoder" name="golomb_decoder">
+<area shape="rect" id="node1" title="decode the next Golomb code word in the bitstream" alt="" coords="1699,577,1829,603"/>
+<area shape="rect" id="node2" href="$decmp_8c_ac57439dd4b34cf8fb663756f2b7b2549.html#ac57439dd4b34cf8fb663756f2b7b2549" title="select the decoder based on the used Golomb parameter" alt="" coords="1509,526,1629,553"/>
+<area shape="rect" id="node35" href="$test__decmp_8c_a478c7a73858ab89879bbf135b15af825.html#a478c7a73858ab89879bbf135b15af825" title=" " alt="" coords="1272,577,1424,603"/>
+<area shape="rect" id="node36" href="$test__decmp_8c_a0a6312a9d1b013bc9f35096fc9fbe3b9.html#a0a6312a9d1b013bc9f35096fc9fbe3b9" title=" " alt="" coords="1488,627,1651,654"/>
+<area shape="rect" id="node3" href="$decmp_8c_ac9a6281c5fcfbf077cc63e0494274f20.html#ac9a6281c5fcfbf077cc63e0494274f20" title="configure a decoder setup structure to have a setup to decode a vale" alt="" coords="1256,526,1440,553"/>
+<area shape="rect" id="node4" href="$decmp_8c_ae8bbe9e530e670af67db5d739f15f120.html#ae8bbe9e530e670af67db5d739f15f120" title="decompress N&#45;CAM background data" alt="" coords="1024,63,1208,90"/>
+<area shape="rect" id="node15" href="$decmp_8c_ac44d884cb830d9b0dbbca34c6db2de7d.html#ac44d884cb830d9b0dbbca34c6db2de7d" title="decompress fast normal light flux (F_FX) data" alt="" coords="1049,114,1183,141"/>
+<area shape="rect" id="node16" href="$decmp_8c_a84e912fefa1f49f27885af0d855a4989.html#a84e912fefa1f49f27885af0d855a4989" title="decompress F_FX_EFX data" alt="" coords="1035,165,1197,191"/>
+<area shape="rect" id="node17" href="$decmp_8c_aac2934ca104c49490be71c4966d2b173.html#aac2934ca104c49490be71c4966d2b173" title="decompress short F_FX_NCOB_ECOB data" alt="" coords="1035,216,1197,257"/>
+<area shape="rect" id="node18" href="$decmp_8c_a8310f64826697fb15c590854c08b3ad9.html#a8310f64826697fb15c590854c08b3ad9" title="decompress short F_FX_NCOB data" alt="" coords="1031,282,1201,309"/>
+<area shape="rect" id="node19" href="$decmp_8c_a62e230570f1d23f56fbe10fb238dbf1d.html#a62e230570f1d23f56fbe10fb238dbf1d" title="decompress imagette data" alt="" coords="1033,13,1199,39"/>
+<area shape="rect" id="node21" href="$decmp_8c_a75f3c5c08234bce92e84d07a93e9a77d.html#a75f3c5c08234bce92e84d07a93e9a77d" title="decompress long normal light flux (L_FX) data" alt="" coords="1050,333,1182,359"/>
+<area shape="rect" id="node22" href="$decmp_8c_aa06fff345fa7fd62fb4fd7a619c118fe.html#aa06fff345fa7fd62fb4fd7a619c118fe" title="decompress L_FX_EFX data" alt="" coords="1036,383,1196,410"/>
+<area shape="rect" id="node23" href="$decmp_8c_a36a5692cbd5d1e46805ba3f1dac23f60.html#a36a5692cbd5d1e46805ba3f1dac23f60" title="decompress L_FX_EFX_NCOB_ECOB data" alt="" coords="1036,435,1196,476"/>
+<area shape="rect" id="node24" href="$decmp_8c_a5883c910a0e8e829e60844e78da88e96.html#a5883c910a0e8e829e60844e78da88e96" title="decompress L_FX_NCOB data" alt="" coords="1031,501,1201,527"/>
+<area shape="rect" id="node25" href="$decmp_8c_a47d0a8b2f718f7d4659a34a6b516c79d.html#a47d0a8b2f718f7d4659a34a6b516c79d" title="decompress N&#45;CAM and F&#45;CAM offset data" alt="" coords="1043,551,1189,578"/>
+<area shape="rect" id="node26" href="$decmp_8c_ad57c4f63787216adcca82dca5a2c99ae.html#ad57c4f63787216adcca82dca5a2c99ae" title="decompress short normal light flux (S_FX) data" alt="" coords="1049,602,1183,629"/>
+<area shape="rect" id="node27" href="$decmp_8c_ae950fe1a6eeb3224f3491439a7149a1f.html#ae950fe1a6eeb3224f3491439a7149a1f" title="decompress S_FX_EFX data" alt="" coords="1035,653,1197,679"/>
+<area shape="rect" id="node28" href="$decmp_8c_aee9e79676f49da2b257ad810955e4f09.html#aee9e79676f49da2b257ad810955e4f09" title="decompress short S_FX_NCOB_ECOB data" alt="" coords="1035,704,1197,745"/>
+<area shape="rect" id="node29" href="$decmp_8c_a5075a002558af814210bd1c186a244f0.html#a5075a002558af814210bd1c186a244f0" title="decompress short S_FX_NCOB data" alt="" coords="1029,770,1203,797"/>
+<area shape="rect" id="node30" href="$decmp_8c_ab043a8a939e8818cf2875aecec205bb9.html#ab043a8a939e8818cf2875aecec205bb9" title="decompress N&#45;CAM smearing data" alt="" coords="1031,821,1201,847"/>
+<area shape="rect" id="node31" href="$test__decmp_8c_a2cf11f635ba073b682cac0e4ef9dfdbc.html#a2cf11f635ba073b682cac0e4ef9dfdbc" title=" " alt="" coords="1045,871,1187,898"/>
+<area shape="rect" id="node32" href="$test__decmp_8c_a7ada560b6c0070a378eeff45b9dae044.html#a7ada560b6c0070a378eeff45b9dae044" title=" " alt="" coords="1048,922,1184,949"/>
+<area shape="rect" id="node33" href="$test__decmp_8c_a29cac1eb3ce172274827f3bb9481294c.html#a29cac1eb3ce172274827f3bb9481294c" title=" " alt="" coords="1027,973,1205,999"/>
+<area shape="rect" id="node34" href="$test__decmp_8c_a58e183d189a8362c6690c0a6205b6dcc.html#a58e183d189a8362c6690c0a6205b6dcc" title=" " alt="" coords="1029,1023,1203,1050"/>
+<area shape="rect" id="node5" href="$decmp_8c_a74c8bbd7b2130f44b6672e960475f4be.html#a74c8bbd7b2130f44b6672e960475f4be" title="decompress the data based on a compression configuration" alt="" coords="765,413,976,439"/>
+<area shape="rect" id="node6" href="$decmp_8h_aefe0fa39fdc295432f5e2e0f91f0b87f.html#aefe0fa39fdc295432f5e2e0f91f0b87f" title="decompress a compression entity" alt="" coords="541,358,717,385"/>
+<area shape="rect" id="node13" href="$decmp_8h_aa89132cfd22be6ede8bc4344e9c3336a.html#aa89132cfd22be6ede8bc4344e9c3336a" title="decompress RDCU compressed data without a compression entity header" alt="" coords="543,438,715,465"/>
+<area shape="rect" id="node7" href="$test__cmp__decmp_8c_a50ba26014079160ca77b7d7fa76ce0f4.html#a50ba26014079160ca77b7d7fa76ce0f4" title="compress the given configuration and decompress it afterwards; finally compare the results" alt="" coords="265,231,476,258"/>
+<area shape="rect" id="node9" href="$test__decmp_8c_a6e7a5e150e2c829836db3c42cdec2eec.html#a6e7a5e150e2c829836db3c42cdec2eec" title=" " alt="" coords="248,282,493,309"/>
+<area shape="rect" id="node10" href="$test__decmp_8c_a1a33e2fcbf484c79dfe661b280386f6b.html#a1a33e2fcbf484c79dfe661b280386f6b" title=" " alt="" coords="273,333,468,359"/>
+<area shape="rect" id="node11" href="$test__decmp_8c_acfebf2fa7515f5449e0cfa594457b66b.html#acfebf2fa7515f5449e0cfa594457b66b" title=" " alt="" coords="316,383,425,410"/>
+<area shape="rect" id="node12" href="$test__decmp_8c_a953eeaad914985c0816dde26d47ffef0.html#a953eeaad914985c0816dde26d47ffef0" title=" " alt="" coords="306,434,435,461"/>
+<area shape="rect" id="node8" href="$test__cmp__decmp_8c_af3c162694b40683e0aa25c61a49cdafc.html#af3c162694b40683e0aa25c61a49cdafc" title="random compression decompression test" alt="" coords="5,224,200,265"/>
+<area shape="rect" id="node14" href="$test__cmp__decmp_8c_abb20ed18a3c6ba0fc67ecef2d629dec0.html#abb20ed18a3c6ba0fc67ecef2d629dec0" title=" " alt="" coords="273,485,468,527"/>
+<area shape="rect" id="node20" href="$test__decmp_8c_a86f0175a42bc3897a2544ead6d1e3d5a.html#a86f0175a42bc3897a2544ead6d1e3d5a" title=" " alt="" coords="771,5,970,47"/>
+</map>

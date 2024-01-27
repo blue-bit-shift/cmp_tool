@@ -1,0 +1,39 @@
+<map id="rdcu_read_model" name="rdcu_read_model">
+<area shape="rect" id="node1" title="read the updated model from the RDCU SRAM" alt="" coords="5,292,140,319"/>
+<area shape="rect" id="node2" href="$rdcu__rmap_8c_a75b7464f649df6eda5387fe5132e9525.html#a75b7464f649df6eda5387fe5132e9525" title="get the configured data MTU" alt="" coords="212,216,359,243"/>
+<area shape="rect" id="node3" href="$rdcu__ctrl_8c_a356b2a56add56b78fabc682c521b30ba.html#a356b2a56add56b78fabc682c521b30ba" title="read data from the local SRAM mirror" alt="" coords="222,267,349,293"/>
+<area shape="rect" id="node4" href="$rdcu__ctrl_8c_a37c5108b5eb07978b60235fbe040c47d.html#a37c5108b5eb07978b60235fbe040c47d" title="sync a range of 32 bit words of the remote SRAM to the local mirror" alt="" coords="188,317,383,344"/>
+<area shape="rect" id="node37" href="$cmp__rdcu_8c_a308f44d7c916a3a601dd4f007dd8873c.html#a308f44d7c916a3a601dd4f007dd8873c" title="save repeating 3 lines of code..." alt="" coords="232,368,339,395"/>
+<area shape="rect" id="node5" href="$rdcu__cmd_8c_a0529d01908536a90bebeb44f114342c7.html#a0529d01908536a90bebeb44f114342c7" title="create a command to read arbitrary data to the RDCU" alt="" coords="439,317,597,344"/>
+<area shape="rect" id="node23" href="$rdcu__rmap_8c_a2650ed06998d198567938a9e933e1761.html#a2650ed06998d198567938a9e933e1761" title="get the RDCU &lt;&#45;&gt; ICU mirror RMAP synchronisation status" alt="" coords="431,368,605,395"/>
+<area shape="rect" id="node34" href="$rdcu__rmap_8c_a9494bec87a3b44e5a6bb06a76193806e.html#a9494bec87a3b44e5a6bb06a76193806e" title="submit a data sync command" alt="" coords="457,208,579,235"/>
+<area shape="rect" id="node6" href="$rdcu__cmd_8c_abe170ae0642edcb2e3db4ffded12cc89.html#abe170ae0642edcb2e3db4ffded12cc89" title="create a command to read arbitrary data to the RDCU (internal)" alt="" coords="653,310,811,351"/>
+<area shape="rect" id="node7" href="$rdcu__rmap_8c_ab224927e85a7cec5b6f90292c7de36c4.html#ab224927e85a7cec5b6f90292c7de36c4" title="generate an rmap command packet" alt="" coords="864,664,980,691"/>
+<area shape="rect" id="node8" href="$rmap_8c_aa17375d153cc3473cbbe4dfe1056c527.html#aa17375d153cc3473cbbe4dfe1056c527" title="build an rmap header" alt="" coords="1056,563,1179,589"/>
+<area shape="rect" id="node10" href="$rmap_8c_aba944cf978de0b264ea5bb3a784bce0f.html#aba944cf978de0b264ea5bb3a784bce0f" title="create an RMAP packet and set defaults" alt="" coords="1267,677,1421,704"/>
+<area shape="rect" id="node11" href="$rmap_8c_a1def9af549819e7fdbda12af8bdc9c0e.html#a1def9af549819e7fdbda12af8bdc9c0e" title="completely destroys an RMAP packet" alt="" coords="1043,360,1192,387"/>
+<area shape="rect" id="node12" href="$rmap_8c_aab7e23f061291d39568ad2df700bc777.html#aab7e23f061291d39568ad2df700bc777" title="set an RMAP command" alt="" coords="1058,816,1177,843"/>
+<area shape="rect" id="node14" href="$rmap_8c_acf641aae92829ae864b6c3d8f94d86e2.html#acf641aae92829ae864b6c3d8f94d86e2" title="set a data address" alt="" coords="1040,664,1195,691"/>
+<area shape="rect" id="node15" href="$rmap_8c_a6833f065640f652aa1a929309e592f7a.html#a6833f065640f652aa1a929309e592f7a" title="set an RMAP command" alt="" coords="1044,715,1191,741"/>
+<area shape="rect" id="node16" href="$rmap_8c_a5f0081b9928da5e50fc8b231b57f3a80.html#a5f0081b9928da5e50fc8b231b57f3a80" title="set the destination address path" alt="" coords="1040,411,1195,437"/>
+<area shape="rect" id="node18" href="$rmap_8c_a2da8e7b48411d382b54848795f85795d.html#a2da8e7b48411d382b54848795f85795d" title="set the destination (target) logical address" alt="" coords="1062,867,1173,893"/>
+<area shape="rect" id="node19" href="$rmap_8c_a15021c9dfccddc44786dfd37834bcd7e.html#a15021c9dfccddc44786dfd37834bcd7e" title="set the command authorisation key" alt="" coords="1061,917,1174,944"/>
+<area shape="rect" id="node20" href="$rmap_8c_a56c47830e67d01e469231e5e7e1d3a34.html#a56c47830e67d01e469231e5e7e1d3a34" title="set the reply address path" alt="" coords="1038,461,1197,488"/>
+<area shape="rect" id="node21" href="$rmap_8c_adae0030440ca4e7ad34622e505acbb2c.html#adae0030440ca4e7ad34622e505acbb2c" title="set the source (initiator) logical address" alt="" coords="1063,968,1172,995"/>
+<area shape="rect" id="node22" href="$rmap_8c_a7b4c31714493ce6cc19d4aa825ab50aa.html#a7b4c31714493ce6cc19d4aa825ab50aa" title="set an RMAP transaction identifier" alt="" coords="1058,613,1177,640"/>
+<area shape="rect" id="node9" href="$rmap_8c_a0ec3c28e83818f02e00d4c79d82d938a.html#a0ec3c28e83818f02e00d4c79d82d938a" title="get the minimum header size given the RMAP instruction" alt="" coords="1255,537,1433,564"/>
+<area shape="rect" id="node13" href="$rmap_8c_a667ce871110961f2a611d0244791e20f.html#a667ce871110961f2a611d0244791e20f" title="valiidates a command code" alt="" coords="1249,816,1439,843"/>
+<area shape="rect" id="node17" href="$test__cmp__max__used__bits__list_8c_a7ac38fce3243a7dcf448301ee9ffd392.html#a7ac38fce3243a7dcf448301ee9ffd392" title=" " alt="" coords="1311,411,1377,437"/>
+<area shape="rect" id="node24" href="$rdcu__rmap_8c_a1a064554031c2fa2dcb65541e0765c0f.html#a1a064554031c2fa2dcb65541e0765c0f" title="n rmap command transaction" alt="" coords="859,259,985,285"/>
+<area shape="rect" id="node25" href="$rmap_8c_abf1868ec6873f9f189050cadc7e64a3b.html#abf1868ec6873f9f189050cadc7e64a3b" title="calculate the CRC8 of a given buffer" alt="" coords="1072,157,1163,184"/>
+<area shape="rect" id="node26" href="$rmap_8c_a5e88a29337404518eceedf9b4af285bf.html#a5e88a29337404518eceedf9b4af285bf" title=" " alt="" coords="1054,56,1181,83"/>
+<area shape="rect" id="node31" href="$rmap_8c_a46d3271304c12df042b57dbebaba67e1.html#a46d3271304c12df042b57dbebaba67e1" title="create an rmap packet from a buffer" alt="" coords="1034,512,1201,539"/>
+<area shape="rect" id="node32" href="$rdcu__rmap_8c_acf9b176d8d9b24e9d07711f56aebccc0.html#acf9b176d8d9b24e9d07711f56aebccc0" title="get the local address for a slot" alt="" coords="1044,259,1191,285"/>
+<area shape="rect" id="node33" href="$rdcu__rmap_8c_a7012f58a1862cf07b00e299d24c199c2.html#a7012f58a1862cf07b00e299d24c199c2" title="release a slot in the transaction log" alt="" coords="1033,208,1201,235"/>
+<area shape="rect" id="node27" href="$rmap_8c_abb4e19c17c7223212c3904bc4c0189d2.html#abb4e19c17c7223212c3904bc4c0189d2" title=" " alt="" coords="1270,56,1418,83"/>
+<area shape="rect" id="node28" href="$rmap_8c_a20aa8b91dfb1bbad819759f97b853054.html#a20aa8b91dfb1bbad819759f97b853054" title=" " alt="" coords="1263,107,1425,133"/>
+<area shape="rect" id="node29" href="$rmap_8c_adef42426b46ee5ad5176ee76cff35c22.html#adef42426b46ee5ad5176ee76cff35c22" title=" " alt="" coords="1261,5,1427,32"/>
+<area shape="rect" id="node30" href="$rmap_8c_a2ff278a5e094a9f585865d4d838e0e0e.html#a2ff278a5e094a9f585865d4d838e0e0e" title=" " alt="" coords="1487,5,1676,32"/>
+<area shape="rect" id="node35" href="$rdcu__rmap_8c_a95fad3cd9b6bbe562e1a73e3f1c108a8.html#a95fad3cd9b6bbe562e1a73e3f1c108a8" title="submit an rmap command transaction" alt="" coords="671,259,793,285"/>
+<area shape="rect" id="node36" href="$rdcu__rmap_8c_a36f44335aa66dd49fb4903f7269bc5b1.html#a36f44335aa66dd49fb4903f7269bc5b1" title="grab a slot in the transaction log" alt="" coords="657,157,807,184"/>
+</map>

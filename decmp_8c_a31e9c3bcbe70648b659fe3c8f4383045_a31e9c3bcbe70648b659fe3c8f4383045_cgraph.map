@@ -1,0 +1,9 @@
+<map id="rice_decoder" name="rice_decoder">
+<area shape="rect" id="node1" title="decode the next Rice code word in the bitstream" alt="" coords="5,31,111,57"/>
+<area shape="rect" id="node2" href="$read__bitstream_8h_ad3b2702183e32bb737d84c8accd73066.html#ad3b2702183e32bb737d84c8accd73066" title="same as bit_read_bits32() but only returns 32 bit" alt="" coords="159,5,281,32"/>
+<area shape="rect" id="node6" href="$decmp_8c_ad77fca4bf62b97dc9fe6edabb0086709.html#ad77fca4bf62b97dc9fe6edabb0086709" title="decode the next unary code word in the bitstream" alt="" coords="161,56,279,83"/>
+<area shape="rect" id="node3" href="$read__bitstream_8h_acf4864b9e402d8b801c0d3a8cd5dac3d.html#acf4864b9e402d8b801c0d3a8cd5dac3d" title="read and consume next n bits from the local register" alt="" coords="361,5,468,32"/>
+<area shape="rect" id="node4" href="$read__bitstream_8h_ad1aa8029b694397da24a84fcdc75acab.html#ad1aa8029b694397da24a84fcdc75acab" title="mark next n bits in the local register as consumed" alt="" coords="548,56,684,83"/>
+<area shape="rect" id="node5" href="$read__bitstream_8h_a12cac6ee9f16079c39d9fc7b61639597.html#a12cac6ee9f16079c39d9fc7b61639597" title="provides next n bits from local register; local register is not modified" alt="" coords="561,5,671,32"/>
+<area shape="rect" id="node7" href="$read__bitstream_8h_a08b1899a09b0b72856f441efae758d76.html#a08b1899a09b0b72856f441efae758d76" title="count the leading ones in the local register; local register is not modified" alt="" coords="329,107,500,133"/>
+</map>

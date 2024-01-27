@@ -1,0 +1,5 @@
+<map id="rdcu_read_cmd_compr_error" name="rdcu_read_cmd_compr_error">
+<area shape="rect" id="node1" title="create a command to read the RDCU compression error register" alt="" coords="428,5,597,47"/>
+<area shape="rect" id="node2" href="$rdcu__ctrl_8c_a6aa7a64160c8cd68b6a522b5a70c7f01.html#a6aa7a64160c8cd68b6a522b5a70c7f01" title="sync the Compression Error (read only)" alt="" coords="207,13,380,39"/>
+<area shape="rect" id="node3" href="$cmp__rdcu_8h_afb2e10f8b9d9e433d1b4a6a96f930097.html#afb2e10f8b9d9e433d1b4a6a96f930097" title="read out the metadata of an RDCU compression" alt="" coords="5,13,159,39"/>
+</map>

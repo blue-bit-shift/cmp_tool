@@ -1,0 +1,6 @@
+<map id="rmap_pkt_from_buffer" name="rmap_pkt_from_buffer">
+<area shape="rect" id="node1" title="create an rmap packet from a buffer" alt="" coords="5,56,172,83"/>
+<area shape="rect" id="node2" href="$test__cmp__max__used__bits__list_8c_a7ac38fce3243a7dcf448301ee9ffd392.html#a7ac38fce3243a7dcf448301ee9ffd392" title=" " alt="" coords="275,5,342,32"/>
+<area shape="rect" id="node3" href="$rmap_8c_aba944cf978de0b264ea5bb3a784bce0f.html#aba944cf978de0b264ea5bb3a784bce0f" title="create an RMAP packet and set defaults" alt="" coords="231,56,386,83"/>
+<area shape="rect" id="node4" href="$rmap_8c_a0ec3c28e83818f02e00d4c79d82d938a.html#a0ec3c28e83818f02e00d4c79d82d938a" title="get the minimum header size given the RMAP instruction" alt="" coords="220,107,397,133"/>
+</map>

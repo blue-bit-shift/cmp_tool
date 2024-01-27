@@ -1,0 +1,17 @@
+<map id="cmp_ent_set_ima_spill" name="cmp_ent_set_ima_spill">
+<area shape="rect" id="node1" title="set the used spillover threshold parameter in the (adaptive) imagette specific compression entity hea..." alt="" coords="1017,362,1188,389"/>
+<area shape="rect" id="node2" href="$cmp__entity_8c_a553b4a765f1cfcd37f82a818db2cf2b9.html#a553b4a765f1cfcd37f82a818db2cf2b9" title="write the compression parameters from a compression configuration into the compression entity header" alt="" coords="781,299,969,326"/>
+<area shape="rect" id="node14" href="$cmp__entity_8c_aac25fce5ba205dafed1781d24250c7b3.html#aac25fce5ba205dafed1781d24250c7b3" title="write the parameters from the RDCU decompression information structure in the compression entity head..." alt="" coords="799,355,952,396"/>
+<area shape="rect" id="node15" href="$test__cmp__entity_8c_aaa9f29c0d64664c7aa33cc83e2dc50fe.html#aaa9f29c0d64664c7aa33cc83e2dc50fe" title=" " alt="" coords="805,421,946,447"/>
+<area shape="rect" id="node3" href="$cmp__entity_8c_ac68e6942c21572a9513a9a7577126458.html#ac68e6942c21572a9513a9a7577126458" title="create a compression entity and set the header fields" alt="" coords="579,139,696,166"/>
+<area shape="rect" id="node10" href="$test__decmp_8c_a2d642d4d482b9ec7eca4568a95f5bdd4.html#a2d642d4d482b9ec7eca4568a95f5bdd4" title=" " alt="" coords="541,241,733,267"/>
+<area shape="rect" id="node12" href="$test__decmp_8c_a27e5a2b67e3e81da1be024826485b2e3.html#a27e5a2b67e3e81da1be024826485b2e3" title=" " alt="" coords="562,292,713,333"/>
+<area shape="rect" id="node13" href="$test__cmp__entity_8c_a8f7fd6d8b939382555507ecf2e74ec79.html#a8f7fd6d8b939382555507ecf2e74ec79" title=" " alt="" coords="562,357,713,399"/>
+<area shape="rect" id="node4" href="$test__cmp__decmp_8c_a50ba26014079160ca77b7d7fa76ce0f4.html#a50ba26014079160ca77b7d7fa76ce0f4" title="compress the given configuration and decompress it afterwards; finally compare the results" alt="" coords="265,13,476,39"/>
+<area shape="rect" id="node6" href="$test__decmp_8c_a6e7a5e150e2c829836db3c42cdec2eec.html#a6e7a5e150e2c829836db3c42cdec2eec" title=" " alt="" coords="248,63,493,90"/>
+<area shape="rect" id="node7" href="$test__cmp__entity_8c_a13c81359af8798146608574ab0e113fb.html#a13c81359af8798146608574ab0e113fb" title=" " alt="" coords="296,114,445,141"/>
+<area shape="rect" id="node8" href="$test__cmp__entity_8c_a893444224bcd50fbb99e42e85989b4a6.html#a893444224bcd50fbb99e42e85989b4a6" title=" " alt="" coords="294,165,447,191"/>
+<area shape="rect" id="node9" href="$test__cmp__entity_8c_a28c5d64d3c7c61100798fa39100d0f30.html#a28c5d64d3c7c61100798fa39100d0f30" title=" " alt="" coords="297,215,444,242"/>
+<area shape="rect" id="node5" href="$test__cmp__decmp_8c_af3c162694b40683e0aa25c61a49cdafc.html#af3c162694b40683e0aa25c61a49cdafc" title="random compression decompression test" alt="" coords="5,5,200,47"/>
+<area shape="rect" id="node11" href="$test__decmp_8c_a1a33e2fcbf484c79dfe661b280386f6b.html#a1a33e2fcbf484c79dfe661b280386f6b" title=" " alt="" coords="273,266,468,293"/>
+</map>

@@ -1,0 +1,6 @@
+<map id="encode_value_zero" name="encode_value_zero">
+<area shape="rect" id="node1" title="subtract the model from the data, encode the result and put it into bitstream, for encoding outlier u..." alt="" coords="5,56,152,83"/>
+<area shape="rect" id="node2" href="$cmp__icu_8c_a71aaf149c528b68d0c0ffc159acc0f98.html#a71aaf149c528b68d0c0ffc159acc0f98" title="generate a code word without an outlier mechanism and put in the bitstream" alt="" coords="200,5,323,32"/>
+<area shape="rect" id="node3" href="$cmp__icu_8c_afd32ccddf2e0986e9ff136ae55a11d35.html#afd32ccddf2e0986e9ff136ae55a11d35" title="put the value of up to 32 bits into a big endian bitstream" alt="" coords="371,31,476,57"/>
+<area shape="rect" id="node4" href="$cmp__icu_8c_a208c98e6a4b7423d5003ea0d1c3a4fe3.html#a208c98e6a4b7423d5003ea0d1c3a4fe3" title="map a signed value into a positive value range" alt="" coords="211,107,312,133"/>
+</map>

@@ -1,0 +1,5 @@
+<map id="test_ent_cmp_mode" name="test_ent_cmp_mode">
+<area shape="rect" id="node1" title=" " alt="" coords="5,31,160,57"/>
+<area shape="rect" id="node2" href="$cmp__entity_8c_aaf02d50957a9ff04726f0f98035c0572.html#aaf02d50957a9ff04726f0f98035c0572" title="get the used compression mode parameter from the compression entity header" alt="" coords="208,5,393,32"/>
+<area shape="rect" id="node3" href="$cmp__entity_8c_ad021295d7f4a0337c722d2231b1194b0.html#ad021295d7f4a0337c722d2231b1194b0" title="set the used compression mode in the compression entity header" alt="" coords="209,56,393,83"/>
+</map>

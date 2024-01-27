@@ -1,0 +1,5 @@
+<map id="test_re_map_to_pos" name="test_re_map_to_pos">
+<area shape="rect" id="node1" title=" " alt="" coords="5,31,159,57"/>
+<area shape="rect" id="node2" href="$cmp__icu_8c_a208c98e6a4b7423d5003ea0d1c3a4fe3.html#a208c98e6a4b7423d5003ea0d1c3a4fe3" title="map a signed value into a positive value range" alt="" coords="217,5,318,32"/>
+<area shape="rect" id="node3" href="$decmp_8c_a931b1f11894a7118817a8b8bb08644f9.html#a931b1f11894a7118817a8b8bb08644f9" title="remap an unsigned value back to a signed value" alt="" coords="207,56,328,83"/>
+</map>

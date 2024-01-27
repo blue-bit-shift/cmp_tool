@@ -1,0 +1,11 @@
+<map id="test_bitstream" name="test_bitstream">
+<area shape="rect" id="node1" title=" " alt="" coords="5,107,123,133"/>
+<area shape="rect" id="node2" href="$read__bitstream_8h_a360380cbe8adfd8785e9088c5ed58e45.html#a360380cbe8adfd8785e9088c5ed58e45" title="Check if the end of the bitstream has been reached." alt="" coords="171,5,313,32"/>
+<area shape="rect" id="node3" href="$read__bitstream_8h_aa1739fc7209fe65165c7262036a1969d.html#aa1739fc7209fe65165c7262036a1969d" title="initialize a bit_decoder" alt="" coords="179,56,305,83"/>
+<area shape="rect" id="node5" href="$read__bitstream_8h_acf4864b9e402d8b801c0d3a8cd5dac3d.html#acf4864b9e402d8b801c0d3a8cd5dac3d" title="read and consume next n bits from the local register" alt="" coords="401,171,507,197"/>
+<area shape="rect" id="node8" href="$read__bitstream_8h_ad3b2702183e32bb737d84c8accd73066.html#ad3b2702183e32bb737d84c8accd73066" title="same as bit_read_bits32() but only returns 32 bit" alt="" coords="181,208,303,235"/>
+<area shape="rect" id="node9" href="$read__bitstream_8h_a65b5e1cb1107340846d20cae42c8a00c.html#a65b5e1cb1107340846d20cae42c8a00c" title="refill the local register from the buffer previously set in bit_init_decoder()" alt="" coords="205,107,279,133"/>
+<area shape="rect" id="node4" href="$read__bitstream_8h_a4de9ebb7d031d3dcf638b7d0ae6f166d.html#a4de9ebb7d031d3dcf638b7d0ae6f166d" title="read 8 bytes of big&#45;endian data from an unaligned address" alt="" coords="361,95,547,121"/>
+<area shape="rect" id="node6" href="$read__bitstream_8h_ad1aa8029b694397da24a84fcdc75acab.html#ad1aa8029b694397da24a84fcdc75acab" title="mark next n bits in the local register as consumed" alt="" coords="595,145,731,172"/>
+<area shape="rect" id="node7" href="$read__bitstream_8h_a12cac6ee9f16079c39d9fc7b61639597.html#a12cac6ee9f16079c39d9fc7b61639597" title="provides next n bits from local register; local register is not modified" alt="" coords="608,196,717,223"/>
+</map>

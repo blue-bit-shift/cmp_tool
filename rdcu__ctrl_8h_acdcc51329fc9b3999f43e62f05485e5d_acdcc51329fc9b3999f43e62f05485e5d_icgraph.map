@@ -1,0 +1,4 @@
+<map id="rdcu_sync_compr_data_start_addr" name="rdcu_sync_compr_data_start_addr">
+<area shape="rect" id="node1" title="sync the Compressed Data Start Address (read only)" alt="" coords="207,5,377,47"/>
+<area shape="rect" id="node2" href="$cmp__rdcu_8h_afb2e10f8b9d9e433d1b4a6a96f930097.html#afb2e10f8b9d9e433d1b4a6a96f930097" title="read out the metadata of an RDCU compression" alt="" coords="5,13,159,39"/>
+</map>

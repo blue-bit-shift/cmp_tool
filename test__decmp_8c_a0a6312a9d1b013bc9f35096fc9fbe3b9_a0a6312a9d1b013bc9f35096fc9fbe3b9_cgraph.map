@@ -1,0 +1,12 @@
+<map id="test_golomb_decoder" name="test_golomb_decoder">
+<area shape="rect" id="node1" title=" " alt="" coords="5,81,168,108"/>
+<area shape="rect" id="node2" href="$read__bitstream_8h_aa1739fc7209fe65165c7262036a1969d.html#aa1739fc7209fe65165c7262036a1969d" title="initialize a bit_decoder" alt="" coords="218,5,345,32"/>
+<area shape="rect" id="node4" href="$read__bitstream_8h_a65b5e1cb1107340846d20cae42c8a00c.html#a65b5e1cb1107340846d20cae42c8a00c" title="refill the local register from the buffer previously set in bit_init_decoder()" alt="" coords="244,56,319,83"/>
+<area shape="rect" id="node5" href="$decmp_8c_ab8ea64d46b8170dc65694e3d0dec64ff.html#ab8ea64d46b8170dc65694e3d0dec64ff" title="decode the next Golomb code word in the bitstream" alt="" coords="216,107,347,133"/>
+<area shape="rect" id="node8" href="$cmp__support_8c_a67b0e38ca0e68c282c89552daa61ffdf.html#a67b0e38ca0e68c282c89552daa61ffdf" title="implementation of the logarithm base of floor(log2(x)) for integers" alt="" coords="457,208,518,235"/>
+<area shape="rect" id="node3" href="$read__bitstream_8h_a4de9ebb7d031d3dcf638b7d0ae6f166d.html#a4de9ebb7d031d3dcf638b7d0ae6f166d" title="read 8 bytes of big&#45;endian data from an unaligned address" alt="" coords="395,5,580,32"/>
+<area shape="rect" id="node6" href="$read__bitstream_8h_ad1aa8029b694397da24a84fcdc75acab.html#ad1aa8029b694397da24a84fcdc75acab" title="mark next n bits in the local register as consumed" alt="" coords="645,81,781,108"/>
+<area shape="rect" id="node7" href="$read__bitstream_8h_a12cac6ee9f16079c39d9fc7b61639597.html#a12cac6ee9f16079c39d9fc7b61639597" title="provides next n bits from local register; local register is not modified" alt="" coords="433,107,542,133"/>
+<area shape="rect" id="node9" href="$decmp_8c_ad77fca4bf62b97dc9fe6edabb0086709.html#ad77fca4bf62b97dc9fe6edabb0086709" title="decode the next unary code word in the bitstream" alt="" coords="428,157,547,184"/>
+<area shape="rect" id="node10" href="$read__bitstream_8h_a08b1899a09b0b72856f441efae758d76.html#a08b1899a09b0b72856f441efae758d76" title="count the leading ones in the local register; local register is not modified" alt="" coords="628,157,799,184"/>
+</map>

@@ -1,0 +1,6 @@
+<map id="rdcu_bit_to_byte" name="rdcu_bit_to_byte">
+<area shape="rect" id="node1" title="get the need bytes for the given bits" alt="" coords="224,78,355,105"/>
+<area shape="rect" id="node2" href="$rdcu__ctrl_8c_ad11bde1425421bd9521ebf4dcdf2adaa.html#ad11bde1425421bd9521ebf4dcdf2adaa" title="get compressed data adaptive 1 size in bytes" alt="" coords="5,5,176,47"/>
+<area shape="rect" id="node3" href="$rdcu__ctrl_8c_a2afeb796923de22a636404c0e19a07a1.html#a2afeb796923de22a636404c0e19a07a1" title="get compressed data adaptive 2 size in bytes" alt="" coords="5,71,176,112"/>
+<area shape="rect" id="node4" href="$rdcu__ctrl_8c_a4a3946c95d251569c864133b8756ef28.html#a4a3946c95d251569c864133b8756ef28" title="get compressed data size in bytes" alt="" coords="9,136,172,177"/>
+</map>

@@ -1,0 +1,5 @@
+<map id="cmp_ent_print_header" name="cmp_ent_print_header">
+<area shape="rect" id="node1" title="print the content of the compression entity header" alt="" coords="363,5,529,32"/>
+<area shape="rect" id="node2" href="$cmp__entity_8c_acb86c5ed513a665da74d6cfbc5db3874.html#acb86c5ed513a665da74d6cfbc5db3874" title="print the entire compressed entity header plus data" alt="" coords="200,5,315,32"/>
+<area shape="rect" id="node3" href="$test__cmp__entity_8c_a28c5d64d3c7c61100798fa39100d0f30.html#a28c5d64d3c7c61100798fa39100d0f30" title=" " alt="" coords="5,5,152,32"/>
+</map>

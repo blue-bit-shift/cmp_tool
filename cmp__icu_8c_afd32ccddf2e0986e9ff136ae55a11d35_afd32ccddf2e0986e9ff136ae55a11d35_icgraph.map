@@ -1,0 +1,52 @@
+<map id="put_n_bits32" name="put_n_bits32">
+<area shape="rect" id="node1" title="put the value of up to 32 bits into a big endian bitstream" alt="" coords="1397,812,1503,839"/>
+<area shape="rect" id="node2" href="$cmp__icu_8c_a71aaf149c528b68d0c0ffc159acc0f98.html#a71aaf149c528b68d0c0ffc159acc0f98" title="generate a code word without an outlier mechanism and put in the bitstream" alt="" coords="1213,711,1335,737"/>
+<area shape="rect" id="node3" href="$cmp__icu_8c_aaea9e8cb11d380bb6a6c11020a7c77f9.html#aaea9e8cb11d380bb6a6c11020a7c77f9" title="subtract the model from the data, encode the result and put it into bitstream, for encoding outlier u..." alt="" coords="997,660,1151,687"/>
+<area shape="rect" id="node44" href="$cmp__icu_8c_a441be2f84e386657cc72dc61b7769ff1.html#a441be2f84e386657cc72dc61b7769ff1" title="subtract the model from the data, encode the result and put it into bitstream, for encoding outlier u..." alt="" coords="1001,711,1147,737"/>
+<area shape="rect" id="node46" href="$cmp__icu_8c_aa3eee2af4deb902d63df587a6a15af13.html#aa3eee2af4deb902d63df587a6a15af13" title="put the value unencoded with setup&#45;&gt;cmp_par_1 bits without any changes in the bitstream" alt="" coords="1199,812,1349,839"/>
+<area shape="rect" id="node48" href="$cmp__icu_8c_a4bb1524d3e1c659eef6d81fd0bade559.html#a4bb1524d3e1c659eef6d81fd0bade559" title="fill the last part of the bitstream with zeros" alt="" coords="1216,939,1332,965"/>
+<area shape="rect" id="node49" href="$test__cmp__icu_8c_af431e1dbc20fecc55a057071298b491c.html#af431e1dbc20fecc55a057071298b491c" title=" " alt="" coords="1000,1065,1148,1092"/>
+<area shape="rect" id="node50" href="$test__cmp__icu_8c_a740ffe5c254c8998878c332eb19508a7.html#a740ffe5c254c8998878c332eb19508a7" title=" " alt="" coords="1205,1040,1343,1067"/>
+<area shape="rect" id="node4" href="$cmp__icu_8c_a5434cde7ebe64a734bcd3029e0755d39.html#a5434cde7ebe64a734bcd3029e0755d39" title="configure an encoder setup structure to have a setup to encode a vale" alt="" coords="765,660,949,687"/>
+<area shape="rect" id="node43" href="$test__cmp__icu_8c_ad0132e0109e115196d8623b4f2ffd54e.html#ad0132e0109e115196d8623b4f2ffd54e" title=" " alt="" coords="764,609,949,636"/>
+<area shape="rect" id="node5" href="$cmp__icu_8c_adcd70e1df20dbd835f12f1518e0e5913.html#adcd70e1df20dbd835f12f1518e0e5913" title="compress background data from the normal and fast cameras" alt="" coords="521,356,689,383"/>
+<area shape="rect" id="node28" href="$cmp__icu_8c_a6579c62abdb392078ff769daed82e3de.html#a6579c62abdb392078ff769daed82e3de" title="compress F_FX data" alt="" coords="546,407,663,433"/>
+<area shape="rect" id="node29" href="$cmp__icu_8c_a62fbfd95fc2341952d7bea6e3254524e.html#a62fbfd95fc2341952d7bea6e3254524e" title="compress F_FX_EFX data" alt="" coords="532,457,677,484"/>
+<area shape="rect" id="node30" href="$cmp__icu_8c_a3df4e4d9132cd8f7b230390c2e652b98.html#a3df4e4d9132cd8f7b230390c2e652b98" title="compress F_FX_EFX_NCOB_ECOB data" alt="" coords="494,508,715,535"/>
+<area shape="rect" id="node31" href="$cmp__icu_8c_a4012970a57d0030a74668735dea00172.html#a4012970a57d0030a74668735dea00172" title="compress F_FX_NCOB data" alt="" coords="527,559,682,585"/>
+<area shape="rect" id="node32" href="$cmp__icu_8c_a0c612434a54dd796d5abc627c29c9421.html#a0c612434a54dd796d5abc627c29c9421" title="compress imagette data" alt="" coords="529,609,680,636"/>
+<area shape="rect" id="node33" href="$cmp__icu_8c_a7b02a8c025e95748452f82c4f49a6711.html#a7b02a8c025e95748452f82c4f49a6711" title="compress L_FX data" alt="" coords="547,660,663,687"/>
+<area shape="rect" id="node34" href="$cmp__icu_8c_af7a379568d317e90a948422d1c82c2e7.html#af7a379568d317e90a948422d1c82c2e7" title="compress L_FX_EFX data" alt="" coords="533,711,677,737"/>
+<area shape="rect" id="node35" href="$cmp__icu_8c_a90da3140eac89a1fe4522b65fb1eecee.html#a90da3140eac89a1fe4522b65fb1eecee" title="compress L_FX_EFX_NCOB_ECOB data" alt="" coords="495,761,715,788"/>
+<area shape="rect" id="node36" href="$cmp__icu_8c_a6b4967380e8feb9f200bb1c003ae7634.html#a6b4967380e8feb9f200bb1c003ae7634" title="compress L_FX_NCOB data" alt="" coords="527,812,682,839"/>
+<area shape="rect" id="node37" href="$cmp__icu_8c_af3e5138bea93ccc58461e13005e2ce87.html#af3e5138bea93ccc58461e13005e2ce87" title="compress offset data from the normal and fast cameras" alt="" coords="540,863,669,889"/>
+<area shape="rect" id="node38" href="$cmp__icu_8c_ac63c050c284112dacbe08e7da30fffad.html#ac63c050c284112dacbe08e7da30fffad" title="compress short normal light flux (S_FX) data" alt="" coords="545,913,664,940"/>
+<area shape="rect" id="node39" href="$cmp__icu_8c_a3f02fb050979064fad15ac11a9fa5791.html#a3f02fb050979064fad15ac11a9fa5791" title="compress S_FX_EFX data" alt="" coords="531,964,678,991"/>
+<area shape="rect" id="node40" href="$cmp__icu_8c_a0bca92c3e03d7205757caa6c343115ef.html#a0bca92c3e03d7205757caa6c343115ef" title="compress S_FX_EFX_NCOB_ECOB data" alt="" coords="493,204,716,231"/>
+<area shape="rect" id="node41" href="$cmp__icu_8c_a83109917c7706135b6138872f59efb27.html#a83109917c7706135b6138872f59efb27" title="compress S_FX_NCOB data" alt="" coords="526,255,683,281"/>
+<area shape="rect" id="node42" href="$cmp__icu_8c_a64f1fb77431a3aebac4dd5be4872805b.html#a64f1fb77431a3aebac4dd5be4872805b" title="compress smearing data from the normal cameras" alt="" coords="528,305,681,332"/>
+<area shape="rect" id="node6" href="$cmp__icu_8h_a08bf8ccacb449aba08db5e51d532d834.html#a08bf8ccacb449aba08db5e51d532d834" title="compress data on the ICU in software" alt="" coords="299,609,445,636"/>
+<area shape="rect" id="node7" href="$test__cmp__decmp_8c_a50ba26014079160ca77b7d7fa76ce0f4.html#a50ba26014079160ca77b7d7fa76ce0f4" title="compress the given configuration and decompress it afterwards; finally compare the results" alt="" coords="23,5,233,32"/>
+<area shape="rect" id="node8" href="$test__decmp_8c_a2d642d4d482b9ec7eca4568a95f5bdd4.html#a2d642d4d482b9ec7eca4568a95f5bdd4" title=" " alt="" coords="32,56,224,83"/>
+<area shape="rect" id="node9" href="$test__decmp_8c_a6e7a5e150e2c829836db3c42cdec2eec.html#a6e7a5e150e2c829836db3c42cdec2eec" title=" " alt="" coords="5,107,251,133"/>
+<area shape="rect" id="node10" href="$test__cmp__icu_8c_aca32c7d039600004c9cc5c6fe19b8ec5.html#aca32c7d039600004c9cc5c6fe19b8ec5" title=" " alt="" coords="28,158,228,199"/>
+<area shape="rect" id="node11" href="$test__cmp__icu_8c_a64b46c032fdef8789190209bd9c3c49b.html#a64b46c032fdef8789190209bd9c3c49b" title=" " alt="" coords="53,223,203,265"/>
+<area shape="rect" id="node12" href="$test__cmp__icu_8c_acd4ce1f38ffbf0d6258b81668836d96b.html#acd4ce1f38ffbf0d6258b81668836d96b" title=" " alt="" coords="53,289,203,330"/>
+<area shape="rect" id="node13" href="$test__cmp__icu_8c_a5fdfb76e3f52d4283fdcbf5e05ac7dd9.html#a5fdfb76e3f52d4283fdcbf5e05ac7dd9" title=" " alt="" coords="53,354,203,395"/>
+<area shape="rect" id="node14" href="$test__cmp__icu_8c_ad6a880fe71de66a8a98a3f97d9e736da.html#ad6a880fe71de66a8a98a3f97d9e736da" title=" " alt="" coords="53,419,203,461"/>
+<area shape="rect" id="node15" href="$test__cmp__icu_8c_a99545cc4ea3f1aa22be006d201e43f6d.html#a99545cc4ea3f1aa22be006d201e43f6d" title=" " alt="" coords="23,485,233,512"/>
+<area shape="rect" id="node16" href="$test__cmp__icu_8c_a960bb1de38c5e353aa1d1d2fb25435e8.html#a960bb1de38c5e353aa1d1d2fb25435e8" title=" " alt="" coords="37,537,219,578"/>
+<area shape="rect" id="node17" href="$test__cmp__icu_8c_a7c1162f048c55a098b4e6c1d9a0a884e.html#a7c1162f048c55a098b4e6c1d9a0a884e" title=" " alt="" coords="37,602,219,643"/>
+<area shape="rect" id="node18" href="$test__cmp__icu_8c_a390abe2bb7591a75050558bdd4476593.html#a390abe2bb7591a75050558bdd4476593" title=" " alt="" coords="21,668,235,695"/>
+<area shape="rect" id="node19" href="$test__cmp__icu_8c_a3c859fa9247c65ae7a43e2bd682448e2.html#a3c859fa9247c65ae7a43e2bd682448e2" title=" " alt="" coords="37,719,219,761"/>
+<area shape="rect" id="node20" href="$test__cmp__icu_8c_a4d05bd6cb0b420d45886997161470259.html#a4d05bd6cb0b420d45886997161470259" title=" " alt="" coords="54,785,202,826"/>
+<area shape="rect" id="node21" href="$test__cmp__icu_8c_a0d3532f9e6f2e6e0c4392049e06c627f.html#a0d3532f9e6f2e6e0c4392049e06c627f" title=" " alt="" coords="24,850,232,891"/>
+<area shape="rect" id="node22" href="$test__cmp__icu_8c_a13a2a26bd2eac1bd622925c6dcfbfb2d.html#a13a2a26bd2eac1bd622925c6dcfbfb2d" title=" " alt="" coords="54,915,202,957"/>
+<area shape="rect" id="node23" href="$test__cmp__icu_8c_ab725960063dc032566560118d582b79e.html#ab725960063dc032566560118d582b79e" title=" " alt="" coords="54,981,202,1022"/>
+<area shape="rect" id="node24" href="$test__cmp__icu_8c_a13bf5ba0481601697942a0a485f7631c.html#a13bf5ba0481601697942a0a485f7631c" title=" " alt="" coords="47,1046,209,1087"/>
+<area shape="rect" id="node25" href="$test__cmp__icu_8c_a28f0f3239f94a5d75189300dd3ed35fc.html#a28f0f3239f94a5d75189300dd3ed35fc" title=" " alt="" coords="53,1111,203,1153"/>
+<area shape="rect" id="node26" href="$test__cmp__icu_8c_a90fd6057131bbf0c9b398c9c99bea3f2.html#a90fd6057131bbf0c9b398c9c99bea3f2" title=" " alt="" coords="24,1177,232,1218"/>
+<area shape="rect" id="node27" href="$test__cmp__icu_8c_aa29971f14aa8c01058cf5884ccfb0b46.html#aa29971f14aa8c01058cf5884ccfb0b46" title=" " alt="" coords="53,1242,203,1283"/>
+<area shape="rect" id="node45" href="$test__cmp__icu_8c_a7f405ba5813fad9584e4c13ded974244.html#a7f405ba5813fad9584e4c13ded974244" title=" " alt="" coords="767,711,946,737"/>
+<area shape="rect" id="node47" href="$test__cmp__icu_8c_ad695deb999367b003befa4fcb83d73f4.html#ad695deb999367b003befa4fcb83d73f4" title=" " alt="" coords="1002,812,1146,839"/>
+</map>

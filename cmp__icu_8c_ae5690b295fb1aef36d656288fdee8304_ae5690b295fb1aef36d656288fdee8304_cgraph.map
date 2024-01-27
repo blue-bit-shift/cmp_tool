@@ -1,0 +1,11 @@
+<map id="cmp_cfg_aux" name="cmp_cfg_aux">
+<area shape="rect" id="node1" title="set up the configuration parameters for an auxiliary science data compression" alt="" coords="5,31,113,57"/>
+<area shape="rect" id="node2" href="$cmp__support_8c_aa74762a714e9924a221e698601c5d0dc.html#aa74762a714e9924a221e698601c5d0dc" title="check if the auxiliary science specific compression parameters are invalid" alt="" coords="161,31,339,57"/>
+<area shape="rect" id="node3" href="$cmp__support_8c_ab7bfe528432579ce1b410441e03fd846.html#ab7bfe528432579ce1b410441e03fd846" title="check if an auxiliary science compression data type is used" alt="" coords="387,5,596,32"/>
+<area shape="rect" id="node4" href="$cmp__support_8c_adbae174c7bd594fd05723ddc667f5b54.html#adbae174c7bd594fd05723ddc667f5b54" title="check if the combination of the different compression parameters is invalid" alt="" coords="409,56,573,83"/>
+<area shape="rect" id="node5" href="$cmp__support_8c_aefdc949ff52e4920859d0bd82f5aa5aa.html#aefdc949ff52e4920859d0bd82f5aa5aa" title="get the maximum valid spill threshold value for a non&#45;imagette compression in diff or model mode" alt="" coords="665,5,811,32"/>
+<area shape="rect" id="node7" href="$cmp__support_8c_a743a6fcf9ff9d9c86e5dcd2521694472.html#a743a6fcf9ff9d9c86e5dcd2521694472" title="get the maximum valid spill threshold value for a imagette compression in diff or model mode" alt="" coords="662,56,814,83"/>
+<area shape="rect" id="node8" href="$cmp__support_8c_a01181fec3ef69e316b4d77de4df9865f.html#a01181fec3ef69e316b4d77de4df9865f" title="check if an imagette compression data type is used" alt="" coords="644,107,832,149"/>
+<area shape="rect" id="node6" href="$cmp__support_8c_a67b0e38ca0e68c282c89552daa61ffdf.html#a67b0e38ca0e68c282c89552daa61ffdf" title="implementation of the logarithm base of floor(log2(x)) for integers" alt="" coords="929,5,990,32"/>
+<area shape="rect" id="node9" href="$cmp__support_8c_a9197caa657b3d84615c0d323dc96c502.html#a9197caa657b3d84615c0d323dc96c502" title="check if the data product data type is supported by the RDCU compressor" alt="" coords="880,107,1039,149"/>
+</map>

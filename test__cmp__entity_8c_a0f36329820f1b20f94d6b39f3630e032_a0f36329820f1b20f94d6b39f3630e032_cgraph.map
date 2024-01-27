@@ -1,0 +1,5 @@
+<map id="test_ent_non_ima_cmp_par4" name="test_ent_non_ima_cmp_par4">
+<area shape="rect" id="node1" title=" " alt="" coords="5,46,215,73"/>
+<area shape="rect" id="node2" href="$cmp__entity_8c_af87c17183bdfb55b52ae44e634e7e8a2.html#af87c17183bdfb55b52ae44e634e7e8a2" title="get the used compression parameter 4 from the non&#45;imagette specific compression entity header" alt="" coords="263,5,432,47"/>
+<area shape="rect" id="node3" href="$cmp__entity_8c_aee11ab5bb119a37fbd63e7e7134acd7a.html#aee11ab5bb119a37fbd63e7e7134acd7a" title="set used compression parameter 4 in the non&#45;imagette specific compression entity header" alt="" coords="263,71,431,112"/>
+</map>

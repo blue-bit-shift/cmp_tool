@@ -1,0 +1,7 @@
+<map id="cmp_ent_create" name="cmp_ent_create">
+<area shape="rect" id="node1" title="create a compression entity by setting the size of the compression entity and the data product type i..." alt="" coords="5,56,132,83"/>
+<area shape="rect" id="node2" href="$cmp__entity_8c_ac4f3e5eb03e7dc0f1a646dd150543af5.html#ac4f3e5eb03e7dc0f1a646dd150543af5" title="calculate the size of the compression entity header based on a compression data product type" alt="" coords="186,5,351,32"/>
+<area shape="rect" id="node4" href="$cmp__entity_8c_a567aa2ec3b505398d8fd9308c67a388b.html#a567aa2ec3b505398d8fd9308c67a388b" title="set the compression data product type in the compression entity header" alt="" coords="180,56,357,83"/>
+<area shape="rect" id="node5" href="$cmp__entity_8c_ad51f7534273be20a0c2c36bda1fc98f5.html#ad51f7534273be20a0c2c36bda1fc98f5" title="set the size of the compression entity in the entity header" alt="" coords="199,107,338,133"/>
+<area shape="rect" id="node3" href="$cmp__support_8c_af2129b98a4b5c7f856e97776962d7881.html#af2129b98a4b5c7f856e97776962d7881" title="check if the compression entity data product type is supported" alt="" coords="405,5,596,32"/>
+</map>

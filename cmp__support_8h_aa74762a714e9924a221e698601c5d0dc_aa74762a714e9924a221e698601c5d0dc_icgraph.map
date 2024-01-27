@@ -1,0 +1,43 @@
+<map id="cmp_cfg_aux_is_invalid" name="cmp_cfg_aux_is_invalid">
+<area shape="rect" id="node1" title="check if the auxiliary science specific compression parameters are invalid" alt="" coords="1024,953,1201,980"/>
+<area shape="rect" id="node2" href="$cmp__icu_8h_ae5690b295fb1aef36d656288fdee8304.html#ae5690b295fb1aef36d656288fdee8304" title="set up the configuration parameters for an auxiliary science data compression" alt="" coords="575,129,683,156"/>
+<area shape="rect" id="node7" href="$cmp__support_8c_ac899115007a8c1aa9d82c1872b873655.html#ac899115007a8c1aa9d82c1872b873655" title="check if a compression configuration is invalid for a ICU compression" alt="" coords="785,928,957,955"/>
+<area shape="rect" id="node36" href="$test__cmp__icu_8c_aaa89e321d2d9f70cb59536438f4b6dff.html#aaa89e321d2d9f70cb59536438f4b6dff" title=" " alt="" coords="548,971,711,1013"/>
+<area shape="rect" id="node37" href="$decmp_8c_a74c8bbd7b2130f44b6672e960475f4be.html#a74c8bbd7b2130f44b6672e960475f4be" title="decompress the data based on a compression configuration" alt="" coords="765,1644,976,1671"/>
+<area shape="rect" id="node3" href="$test__cmp__icu_8c_aed9881c4fba85b79a035d585f4f47774.html#aed9881c4fba85b79a035d585f4f47774" title=" " alt="" coords="301,5,441,32"/>
+<area shape="rect" id="node4" href="$test__cmp__icu_8c_aca32c7d039600004c9cc5c6fe19b8ec5.html#aca32c7d039600004c9cc5c6fe19b8ec5" title=" " alt="" coords="271,57,471,98"/>
+<area shape="rect" id="node5" href="$test__cmp__icu_8c_a13bf5ba0481601697942a0a485f7631c.html#a13bf5ba0481601697942a0a485f7631c" title=" " alt="" coords="290,122,451,163"/>
+<area shape="rect" id="node6" href="$test__cmp__icu_8c_aee4858f3ea226c6da9e4a9ed54475b1d.html#aee4858f3ea226c6da9e4a9ed54475b1d" title=" " alt="" coords="278,187,463,229"/>
+<area shape="rect" id="node8" href="$cmp__icu_8h_a08bf8ccacb449aba08db5e51d532d834.html#a08bf8ccacb449aba08db5e51d532d834" title="compress data on the ICU in software" alt="" coords="556,920,703,947"/>
+<area shape="rect" id="node9" href="$test__cmp__decmp_8c_a50ba26014079160ca77b7d7fa76ce0f4.html#a50ba26014079160ca77b7d7fa76ce0f4" title="compress the given configuration and decompress it afterwards; finally compare the results" alt="" coords="265,1703,476,1729"/>
+<area shape="rect" id="node11" href="$test__decmp_8c_a2d642d4d482b9ec7eca4568a95f5bdd4.html#a2d642d4d482b9ec7eca4568a95f5bdd4" title=" " alt="" coords="275,828,467,855"/>
+<area shape="rect" id="node13" href="$test__decmp_8c_a6e7a5e150e2c829836db3c42cdec2eec.html#a6e7a5e150e2c829836db3c42cdec2eec" title=" " alt="" coords="248,1753,493,1780"/>
+<area shape="rect" id="node14" href="$test__cmp__icu_8c_a64b46c032fdef8789190209bd9c3c49b.html#a64b46c032fdef8789190209bd9c3c49b" title=" " alt="" coords="296,762,445,803"/>
+<area shape="rect" id="node15" href="$test__cmp__icu_8c_acd4ce1f38ffbf0d6258b81668836d96b.html#acd4ce1f38ffbf0d6258b81668836d96b" title=" " alt="" coords="296,879,445,921"/>
+<area shape="rect" id="node16" href="$test__cmp__icu_8c_a5fdfb76e3f52d4283fdcbf5e05ac7dd9.html#a5fdfb76e3f52d4283fdcbf5e05ac7dd9" title=" " alt="" coords="296,945,445,986"/>
+<area shape="rect" id="node17" href="$test__cmp__icu_8c_ad6a880fe71de66a8a98a3f97d9e736da.html#ad6a880fe71de66a8a98a3f97d9e736da" title=" " alt="" coords="296,1010,445,1051"/>
+<area shape="rect" id="node18" href="$test__cmp__icu_8c_a99545cc4ea3f1aa22be006d201e43f6d.html#a99545cc4ea3f1aa22be006d201e43f6d" title=" " alt="" coords="265,1076,476,1103"/>
+<area shape="rect" id="node19" href="$test__cmp__icu_8c_a960bb1de38c5e353aa1d1d2fb25435e8.html#a960bb1de38c5e353aa1d1d2fb25435e8" title=" " alt="" coords="279,1127,462,1169"/>
+<area shape="rect" id="node20" href="$test__cmp__icu_8c_a7c1162f048c55a098b4e6c1d9a0a884e.html#a7c1162f048c55a098b4e6c1d9a0a884e" title=" " alt="" coords="279,1193,462,1234"/>
+<area shape="rect" id="node21" href="$test__cmp__icu_8c_a390abe2bb7591a75050558bdd4476593.html#a390abe2bb7591a75050558bdd4476593" title=" " alt="" coords="263,1259,478,1285"/>
+<area shape="rect" id="node22" href="$test__cmp__icu_8c_a3c859fa9247c65ae7a43e2bd682448e2.html#a3c859fa9247c65ae7a43e2bd682448e2" title=" " alt="" coords="279,1310,462,1351"/>
+<area shape="rect" id="node23" href="$test__cmp__icu_8c_a4d05bd6cb0b420d45886997161470259.html#a4d05bd6cb0b420d45886997161470259" title=" " alt="" coords="297,1375,445,1417"/>
+<area shape="rect" id="node24" href="$test__cmp__icu_8c_a0d3532f9e6f2e6e0c4392049e06c627f.html#a0d3532f9e6f2e6e0c4392049e06c627f" title=" " alt="" coords="267,1441,475,1482"/>
+<area shape="rect" id="node25" href="$test__cmp__icu_8c_a13a2a26bd2eac1bd622925c6dcfbfb2d.html#a13a2a26bd2eac1bd622925c6dcfbfb2d" title=" " alt="" coords="297,1506,445,1547"/>
+<area shape="rect" id="node26" href="$test__cmp__icu_8c_ab725960063dc032566560118d582b79e.html#ab725960063dc032566560118d582b79e" title=" " alt="" coords="297,1571,445,1613"/>
+<area shape="rect" id="node27" href="$test__cmp__icu_8c_a28f0f3239f94a5d75189300dd3ed35fc.html#a28f0f3239f94a5d75189300dd3ed35fc" title=" " alt="" coords="295,253,446,294"/>
+<area shape="rect" id="node28" href="$test__cmp__icu_8c_a90fd6057131bbf0c9b398c9c99bea3f2.html#a90fd6057131bbf0c9b398c9c99bea3f2" title=" " alt="" coords="267,318,475,359"/>
+<area shape="rect" id="node29" href="$test__cmp__icu_8c_aa29971f14aa8c01058cf5884ccfb0b46.html#aa29971f14aa8c01058cf5884ccfb0b46" title=" " alt="" coords="295,383,446,425"/>
+<area shape="rect" id="node30" href="$test__cmp__icu_8c_afa54c8348f46913b7c39517424f7e547.html#afa54c8348f46913b7c39517424f7e547" title=" " alt="" coords="295,449,446,490"/>
+<area shape="rect" id="node31" href="$test__cmp__icu_8c_a70a6d23f621dd0ce0ffb110b9c77116f.html#a70a6d23f621dd0ce0ffb110b9c77116f" title=" " alt="" coords="295,514,446,555"/>
+<area shape="rect" id="node32" href="$test__cmp__icu_8c_ab9f5f00613d43e2b46aa130d472674cb.html#ab9f5f00613d43e2b46aa130d472674cb" title=" " alt="" coords="279,580,462,607"/>
+<area shape="rect" id="node33" href="$test__cmp__icu_8c_ad8cefbf7c0531178a3c5d00ed71cfe61.html#ad8cefbf7c0531178a3c5d00ed71cfe61" title=" " alt="" coords="295,631,446,673"/>
+<area shape="rect" id="node34" href="$test__cmp__icu_8c_a8db99614e8a5d384edb82fe466e15042.html#a8db99614e8a5d384edb82fe466e15042" title=" " alt="" coords="281,697,460,738"/>
+<area shape="rect" id="node35" href="$test__cmp__decmp_8c_abb20ed18a3c6ba0fc67ecef2d629dec0.html#abb20ed18a3c6ba0fc67ecef2d629dec0" title=" " alt="" coords="273,1637,468,1678"/>
+<area shape="rect" id="node10" href="$test__cmp__decmp_8c_af3c162694b40683e0aa25c61a49cdafc.html#af3c162694b40683e0aa25c61a49cdafc" title="random compression decompression test" alt="" coords="5,1695,200,1737"/>
+<area shape="rect" id="node12" href="$test__decmp_8c_a1a33e2fcbf484c79dfe661b280386f6b.html#a1a33e2fcbf484c79dfe661b280386f6b" title=" " alt="" coords="5,1783,200,1809"/>
+<area shape="rect" id="node38" href="$decmp_8h_aefe0fa39fdc295432f5e2e0f91f0b87f.html#aefe0fa39fdc295432f5e2e0f91f0b87f" title="decompress a compression entity" alt="" coords="541,1779,717,1805"/>
+<area shape="rect" id="node41" href="$decmp_8h_aa89132cfd22be6ede8bc4344e9c3336a.html#aa89132cfd22be6ede8bc4344e9c3336a" title="decompress RDCU compressed data without a compression entity header" alt="" coords="543,1644,715,1671"/>
+<area shape="rect" id="node39" href="$test__decmp_8c_acfebf2fa7515f5449e0cfa594457b66b.html#acfebf2fa7515f5449e0cfa594457b66b" title=" " alt="" coords="316,1855,425,1881"/>
+<area shape="rect" id="node40" href="$test__decmp_8c_a953eeaad914985c0816dde26d47ffef0.html#a953eeaad914985c0816dde26d47ffef0" title=" " alt="" coords="306,1905,435,1932"/>
+</map>

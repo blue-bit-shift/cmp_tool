@@ -1,0 +1,5 @@
+<map id="test_ent_coarse_end_time" name="test_ent_coarse_end_time">
+<area shape="rect" id="node1" title=" " alt="" coords="5,46,199,73"/>
+<area shape="rect" id="node2" href="$cmp__entity_8c_abbfa699c2382206b8340fd4e0758e15b.html#abbfa699c2382206b8340fd4e0758e15b" title="get the coarse time from the compression end timestamp in the compression entity header" alt="" coords="247,5,403,47"/>
+<area shape="rect" id="node3" href="$cmp__entity_8c_afd607308acab131e914bd8234d529986.html#afd607308acab131e914bd8234d529986" title="set the coarse time in the compression end timestamp in the compression entity header" alt="" coords="247,71,402,112"/>
+</map>

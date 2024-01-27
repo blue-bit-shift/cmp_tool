@@ -1,0 +1,4 @@
+<map id="rdcu_sync_samples_used" name="rdcu_sync_samples_used">
+<area shape="rect" id="node1" title="sync the Model Info Length (read only)" alt="" coords="207,5,393,32"/>
+<area shape="rect" id="node2" href="$cmp__rdcu_8h_afb2e10f8b9d9e433d1b4a6a96f930097.html#afb2e10f8b9d9e433d1b4a6a96f930097" title="read out the metadata of an RDCU compression" alt="" coords="5,5,159,32"/>
+</map>

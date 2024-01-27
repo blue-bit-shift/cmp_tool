@@ -1,0 +1,4 @@
+<map id="bit_read_bits32_sub_1" name="bit_read_bits32_sub_1">
+<area shape="rect" id="node1" title="same as bit_read_bits32() but subtract 1 from the extracted value" alt="" coords="5,5,172,32"/>
+<area shape="rect" id="node2" href="$read__bitstream_8h_ad1aa8029b694397da24a84fcdc75acab.html#ad1aa8029b694397da24a84fcdc75acab" title="mark next n bits in the local register as consumed" alt="" coords="220,5,356,32"/>
+</map>

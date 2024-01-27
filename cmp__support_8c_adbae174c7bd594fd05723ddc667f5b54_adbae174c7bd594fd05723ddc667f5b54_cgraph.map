@@ -1,0 +1,8 @@
+<map id="cmp_pars_are_invalid" name="cmp_pars_are_invalid">
+<area shape="rect" id="node1" title="check if the combination of the different compression parameters is invalid" alt="" coords="5,56,169,83"/>
+<area shape="rect" id="node2" href="$cmp__support_8c_aefdc949ff52e4920859d0bd82f5aa5aa.html#aefdc949ff52e4920859d0bd82f5aa5aa" title="get the maximum valid spill threshold value for a non&#45;imagette compression in diff or model mode" alt="" coords="238,5,385,32"/>
+<area shape="rect" id="node4" href="$cmp__support_8c_a743a6fcf9ff9d9c86e5dcd2521694472.html#a743a6fcf9ff9d9c86e5dcd2521694472" title="get the maximum valid spill threshold value for a imagette compression in diff or model mode" alt="" coords="235,56,387,83"/>
+<area shape="rect" id="node5" href="$cmp__support_8c_a01181fec3ef69e316b4d77de4df9865f.html#a01181fec3ef69e316b4d77de4df9865f" title="check if an imagette compression data type is used" alt="" coords="217,107,405,149"/>
+<area shape="rect" id="node3" href="$cmp__support_8c_a67b0e38ca0e68c282c89552daa61ffdf.html#a67b0e38ca0e68c282c89552daa61ffdf" title="implementation of the logarithm base of floor(log2(x)) for integers" alt="" coords="502,5,563,32"/>
+<area shape="rect" id="node6" href="$cmp__support_8c_a9197caa657b3d84615c0d323dc96c502.html#a9197caa657b3d84615c0d323dc96c502" title="check if the data product data type is supported by the RDCU compressor" alt="" coords="453,107,612,149"/>
+</map>

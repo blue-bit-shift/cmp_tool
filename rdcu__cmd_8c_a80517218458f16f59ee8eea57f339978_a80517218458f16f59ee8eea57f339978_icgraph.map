@@ -1,0 +1,4 @@
+<map id="rdcu_write_cmd_core_ctrl" name="rdcu_write_cmd_core_ctrl">
+<area shape="rect" id="node1" title="create a command to write the RDCU core control register" alt="" coords="204,5,392,32"/>
+<area shape="rect" id="node2" href="$rdcu__ctrl_8c_a8ffa1634e968164187ef7d7d00008d22.html#a8ffa1634e968164187ef7d7d00008d22" title="sync the Core Control register (write only)" alt="" coords="5,5,156,32"/>
+</map>

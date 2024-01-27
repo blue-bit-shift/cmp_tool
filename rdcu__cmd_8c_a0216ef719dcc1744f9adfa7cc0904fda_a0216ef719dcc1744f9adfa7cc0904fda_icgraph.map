@@ -1,0 +1,4 @@
+<map id="rdcu_read_cmd_adc_status" name="rdcu_read_cmd_adc_status">
+<area shape="rect" id="node1" title="create a command to read the RDCU ADC status register" alt="" coords="217,5,416,32"/>
+<area shape="rect" id="node2" href="$rdcu__ctrl_8c_a24ed4c63d8299e0c87567f0f980efdaa.html#a24ed4c63d8299e0c87567f0f980efdaa" title="sync the ADC Status register (read only)" alt="" coords="5,5,169,32"/>
+</map>

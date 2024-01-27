@@ -1,0 +1,4 @@
+<map id="rmap_pkt" name="rmap_pkt">
+<area shape="rect" id="node1" title="This structure holds the relevant contents of an RMAP packet." alt="" coords="18,189,126,413"/>
+<area shape="rect" id="node2" href="$structrmap__instruction.html" title="RMAP header instruction field definition." alt="" coords="5,5,139,127"/>
+</map>

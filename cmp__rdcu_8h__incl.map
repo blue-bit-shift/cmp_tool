@@ -1,0 +1,11 @@
+<map id="cmp_rdcu.h" name="cmp_rdcu.h">
+<area shape="rect" id="node1" title="hardware compressor control library" alt="" coords="343,5,440,32"/>
+<area shape="rect" id="node2" href="$cmp__support_8h.html" title="compression/decompression helper functions" alt="" coords="115,177,294,203"/>
+<area shape="rect" id="node7" href="$cmp__rdcu__cfg_8h.html" title="hardware compressor configuration library" alt="" coords="233,80,419,121"/>
+<area shape="rect" id="node8" href="$rdcu__ctrl_8h.html" title="RMAP RDCU control library header file." alt="" coords="381,169,533,211"/>
+<area shape="rect" id="node9" href="$rdcu__rmap_8h.html" title="RMAP RDCU link interface header file." alt="" coords="494,80,646,121"/>
+<area shape="rect" id="node3" title=" " alt="" coords="361,333,432,360"/>
+<area shape="rect" id="node4" title=" " alt="" coords="27,259,102,285"/>
+<area shape="rect" id="node5" href="$cmp__max__used__bits_8h.html" title="definition and consents of the cmp_max_used_bits structure" alt="" coords="127,259,293,285"/>
+<area shape="rect" id="node6" href="$cmp__cal__up__model_8h.html" title="functions to calculate the update (new) model" alt="" coords="317,259,476,285"/>
+</map>

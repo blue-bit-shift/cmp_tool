@@ -1,0 +1,11 @@
+<map id="cmp_ent_set_end_timestamp" name="cmp_ent_set_end_timestamp">
+<area shape="rect" id="node1" title="set the compression end timestamp in the compression entity header" alt="" coords="773,139,988,166"/>
+<area shape="rect" id="node2" href="$cmp__entity_8c_ac68e6942c21572a9513a9a7577126458.html#ac68e6942c21572a9513a9a7577126458" title="create a compression entity and set the header fields" alt="" coords="575,114,692,141"/>
+<area shape="rect" id="node9" href="$test__cmp__entity_8c_a6ee6e9dd79281888c6f4b14eab4a48ad.html#a6ee6e9dd79281888c6f4b14eab4a48ad" title=" " alt="" coords="541,165,725,191"/>
+<area shape="rect" id="node3" href="$test__cmp__decmp_8c_a50ba26014079160ca77b7d7fa76ce0f4.html#a50ba26014079160ca77b7d7fa76ce0f4" title="compress the given configuration and decompress it afterwards; finally compare the results" alt="" coords="265,13,476,39"/>
+<area shape="rect" id="node5" href="$test__decmp_8c_a6e7a5e150e2c829836db3c42cdec2eec.html#a6e7a5e150e2c829836db3c42cdec2eec" title=" " alt="" coords="248,63,493,90"/>
+<area shape="rect" id="node6" href="$test__cmp__entity_8c_a13c81359af8798146608574ab0e113fb.html#a13c81359af8798146608574ab0e113fb" title=" " alt="" coords="296,114,445,141"/>
+<area shape="rect" id="node7" href="$test__cmp__entity_8c_a893444224bcd50fbb99e42e85989b4a6.html#a893444224bcd50fbb99e42e85989b4a6" title=" " alt="" coords="294,165,447,191"/>
+<area shape="rect" id="node8" href="$test__cmp__entity_8c_a28c5d64d3c7c61100798fa39100d0f30.html#a28c5d64d3c7c61100798fa39100d0f30" title=" " alt="" coords="297,215,444,242"/>
+<area shape="rect" id="node4" href="$test__cmp__decmp_8c_af3c162694b40683e0aa25c61a49cdafc.html#af3c162694b40683e0aa25c61a49cdafc" title="random compression decompression test" alt="" coords="5,5,200,47"/>
+</map>

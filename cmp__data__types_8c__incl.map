@@ -1,0 +1,13 @@
+<map id="cmp_data_types.c" name="cmp_data_types.c">
+<area shape="rect" id="node1" title="collection of functions to handle the different compression data types" alt="" coords="106,5,246,32"/>
+<area shape="rect" id="node2" title=" " alt="" coords="163,304,234,331"/>
+<area shape="rect" id="node3" title=" " alt="" coords="22,80,93,107"/>
+<area shape="rect" id="node4" href="$byteorder_8h.html" title="This is a set of macros for consistent endianness conversion. They work for both little and big endia..." alt="" coords="52,155,148,181"/>
+<area shape="rect" id="node5" href="$cmp__debug_8h.html" title="compression/decompression debugging defines" alt="" coords="168,80,277,107"/>
+<area shape="rect" id="node6" href="$cmp__support_8h.html" title="compression/decompression helper functions" alt="" coords="253,155,371,181"/>
+<area shape="rect" id="node10" href="$cmp__data__types_8h.html" title="definition of the different compression data types" alt="" coords="448,80,589,107"/>
+<area shape="rect" id="node7" title=" " alt="" coords="127,229,201,256"/>
+<area shape="rect" id="node8" href="$cmp__max__used__bits_8h.html" title="definition and consents of the cmp_max_used_bits structure" alt="" coords="226,229,393,256"/>
+<area shape="rect" id="node9" href="$cmp__cal__up__model_8h.html" title="functions to calculate the update (new) model" alt="" coords="417,229,575,256"/>
+<area shape="rect" id="node11" href="$compiler_8h.html" title="a collection of preprocessor macros" alt="" coords="651,155,741,181"/>
+</map>

@@ -1,0 +1,6 @@
+<map id="cmp_entity" name="cmp_entity">
+<area shape="rect" id="node1" title="definition of the compression entity format" alt="" coords="195,351,385,589"/>
+<area shape="rect" id="node2" href="$structimagette__header.html" title="imagette specific part of compression entity" alt="" coords="5,27,188,251"/>
+<area shape="rect" id="node3" href="$structtimestamp__cmp__ent.html" title="PALTO CUC timestamp format." alt="" coords="212,93,368,185"/>
+<area shape="rect" id="node4" href="$structnon__imagette__header.html" title="non&#45;imagette specific part of compression entity" alt="" coords="392,5,556,273"/>
+</map>

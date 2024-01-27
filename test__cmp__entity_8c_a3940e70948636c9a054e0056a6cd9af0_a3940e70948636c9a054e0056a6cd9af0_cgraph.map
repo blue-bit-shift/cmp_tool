@@ -1,0 +1,5 @@
+<map id="test_ent_model_value" name="test_ent_model_value">
+<area shape="rect" id="node1" title=" " alt="" coords="5,31,172,57"/>
+<area shape="rect" id="node2" href="$cmp__entity_8c_a5e86a8dd71cf95ae9c3e5d80ccb17db0.html#a5e86a8dd71cf95ae9c3e5d80ccb17db0" title="get used model value from the compression entity header" alt="" coords="220,5,417,32"/>
+<area shape="rect" id="node3" href="$cmp__entity_8c_a62ce924b62513abc25d2c3a9f79890ac.html#a62ce924b62513abc25d2c3a9f79890ac" title="set the used model weighing value in the compression entity header" alt="" coords="221,56,417,83"/>
+</map>

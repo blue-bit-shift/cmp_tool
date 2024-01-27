@@ -1,0 +1,9 @@
+<map id="test_encode_value_multi" name="test_encode_value_multi">
+<area shape="rect" id="node1" title=" " alt="" coords="5,107,191,133"/>
+<area shape="rect" id="node2" href="$cmp__icu_8c_aaea9e8cb11d380bb6a6c11020a7c77f9.html#aaea9e8cb11d380bb6a6c11020a7c77f9" title="subtract the model from the data, encode the result and put it into bitstream, for encoding outlier u..." alt="" coords="239,56,392,83"/>
+<area shape="rect" id="node6" href="$cmp__icu_8c_ad1becd97051927d20474767867ce34a7.html#ad1becd97051927d20474767867ce34a7" title="forms a codeword according to the Golomb code" alt="" coords="250,107,381,133"/>
+<area shape="rect" id="node7" href="$cmp__support_8c_a67b0e38ca0e68c282c89552daa61ffdf.html#a67b0e38ca0e68c282c89552daa61ffdf" title="implementation of the logarithm base of floor(log2(x)) for integers" alt="" coords="285,157,346,184"/>
+<area shape="rect" id="node3" href="$cmp__icu_8c_a71aaf149c528b68d0c0ffc159acc0f98.html#a71aaf149c528b68d0c0ffc159acc0f98" title="generate a code word without an outlier mechanism and put in the bitstream" alt="" coords="440,5,563,32"/>
+<area shape="rect" id="node4" href="$cmp__icu_8c_afd32ccddf2e0986e9ff136ae55a11d35.html#afd32ccddf2e0986e9ff136ae55a11d35" title="put the value of up to 32 bits into a big endian bitstream" alt="" coords="611,31,716,57"/>
+<area shape="rect" id="node5" href="$cmp__icu_8c_a208c98e6a4b7423d5003ea0d1c3a4fe3.html#a208c98e6a4b7423d5003ea0d1c3a4fe3" title="map a signed value into a positive value range" alt="" coords="451,107,552,133"/>
+</map>

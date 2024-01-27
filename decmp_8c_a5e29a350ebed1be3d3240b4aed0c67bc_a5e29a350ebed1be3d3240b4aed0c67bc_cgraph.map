@@ -1,0 +1,11 @@
+<map id="decode_value" name="decode_value">
+<area shape="rect" id="node1" title="decompress the next code word in the bitstream and decorate it with the model" alt="" coords="5,81,117,108"/>
+<area shape="rect" id="node2" href="$decmp_8c_a071c03ef3d6f70f5be1e9aeb41fc157a.html#a071c03ef3d6f70f5be1e9aeb41fc157a" title="get the value unencoded with setup&#45;&gt;cmp_par_1 bits without any additional changes from the bitstream" alt="" coords="172,56,280,83"/>
+<area shape="rect" id="node9" href="$decmp_8c_a931b1f11894a7118817a8b8bb08644f9.html#a931b1f11894a7118817a8b8bb08644f9" title="remap an unsigned value back to a signed value" alt="" coords="165,107,287,133"/>
+<area shape="rect" id="node3" href="$read__bitstream_8h_ad3b2702183e32bb737d84c8accd73066.html#ad3b2702183e32bb737d84c8accd73066" title="same as bit_read_bits32() but only returns 32 bit" alt="" coords="335,31,457,57"/>
+<area shape="rect" id="node7" href="$read__bitstream_8h_a65b5e1cb1107340846d20cae42c8a00c.html#a65b5e1cb1107340846d20cae42c8a00c" title="refill the local register from the buffer previously set in bit_init_decoder()" alt="" coords="359,81,433,108"/>
+<area shape="rect" id="node4" href="$read__bitstream_8h_acf4864b9e402d8b801c0d3a8cd5dac3d.html#acf4864b9e402d8b801c0d3a8cd5dac3d" title="read and consume next n bits from the local register" alt="" coords="545,31,651,57"/>
+<area shape="rect" id="node5" href="$read__bitstream_8h_ad1aa8029b694397da24a84fcdc75acab.html#ad1aa8029b694397da24a84fcdc75acab" title="mark next n bits in the local register as consumed" alt="" coords="739,5,875,32"/>
+<area shape="rect" id="node6" href="$read__bitstream_8h_a12cac6ee9f16079c39d9fc7b61639597.html#a12cac6ee9f16079c39d9fc7b61639597" title="provides next n bits from local register; local register is not modified" alt="" coords="752,56,861,83"/>
+<area shape="rect" id="node8" href="$read__bitstream_8h_a4de9ebb7d031d3dcf638b7d0ae6f166d.html#a4de9ebb7d031d3dcf638b7d0ae6f166d" title="read 8 bytes of big&#45;endian data from an unaligned address" alt="" coords="505,81,691,108"/>
+</map>

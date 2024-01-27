@@ -1,0 +1,5 @@
+<map id="test_ent_model_id" name="test_ent_model_id">
+<area shape="rect" id="node1" title=" " alt="" coords="5,31,148,57"/>
+<area shape="rect" id="node2" href="$cmp__entity_8c_a811b2009dd4b83eda822d26460c07b74.html#a811b2009dd4b83eda822d26460c07b74" title="get model id from the compression entity header" alt="" coords="196,5,369,32"/>
+<area shape="rect" id="node3" href="$cmp__entity_8c_a22e5532a3ed65a5a0ebf7077ea3e0276.html#a22e5532a3ed65a5a0ebf7077ea3e0276" title="set model id in the compression entity header" alt="" coords="197,56,369,83"/>
+</map>

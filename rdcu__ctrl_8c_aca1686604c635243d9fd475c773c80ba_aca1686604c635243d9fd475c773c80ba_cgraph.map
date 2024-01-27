@@ -1,0 +1,4 @@
+<map id="rdcu_write_sram_8" name="rdcu_write_sram_8">
+<area shape="rect" id="node1" title="write uint8_t formatted data to the local SRAM mirror. (This function is endian&#45;safe...." alt="" coords="5,5,151,32"/>
+<area shape="rect" id="node2" href="$rdcu__ctrl_8c_aa5bc9bbf2fedf10ed824cd734a0855b6.html#aa5bc9bbf2fedf10ed824cd734a0855b6" title="write arbitrary big&#45;endian data to the local SRAM mirror" alt="" coords="199,5,329,32"/>
+</map>

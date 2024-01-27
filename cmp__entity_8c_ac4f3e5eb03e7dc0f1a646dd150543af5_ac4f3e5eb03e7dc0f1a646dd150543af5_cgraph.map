@@ -1,0 +1,4 @@
+<map id="cmp_ent_cal_hdr_size" name="cmp_ent_cal_hdr_size">
+<area shape="rect" id="node1" title="calculate the size of the compression entity header based on a compression data product type" alt="" coords="5,5,171,32"/>
+<area shape="rect" id="node2" href="$cmp__support_8c_af2129b98a4b5c7f856e97776962d7881.html#af2129b98a4b5c7f856e97776962d7881" title="check if the compression entity data product type is supported" alt="" coords="219,5,409,32"/>
+</map>

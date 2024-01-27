@@ -1,0 +1,20 @@
+<map id="rdcu_read_cmd_compr_data_adaptive_2_size" name="rdcu_read_cmd_compr_data_adaptive_2_size">
+<area shape="rect" id="node1" title="create a command to read the RDCU compressed data adaptive 2 size register" alt="" coords="5,277,176,318"/>
+<area shape="rect" id="node2" href="$rdcu__cmd_8c_a3274188041d4484130e893afc5f1630f.html#a3274188041d4484130e893afc5f1630f" title="generate a read command for an arbitrary register (internal)" alt="" coords="224,277,403,318"/>
+<area shape="rect" id="node3" href="$rdcu__rmap_8c_ab224927e85a7cec5b6f90292c7de36c4.html#ab224927e85a7cec5b6f90292c7de36c4" title="generate an rmap command packet" alt="" coords="451,284,567,311"/>
+<area shape="rect" id="node4" href="$rmap_8c_aa17375d153cc3473cbbe4dfe1056c527.html#aa17375d153cc3473cbbe4dfe1056c527" title="build an rmap header" alt="" coords="633,5,755,32"/>
+<area shape="rect" id="node6" href="$rmap_8c_aba944cf978de0b264ea5bb3a784bce0f.html#aba944cf978de0b264ea5bb3a784bce0f" title="create an RMAP packet and set defaults" alt="" coords="617,56,771,83"/>
+<area shape="rect" id="node7" href="$rmap_8c_a1def9af549819e7fdbda12af8bdc9c0e.html#a1def9af549819e7fdbda12af8bdc9c0e" title="completely destroys an RMAP packet" alt="" coords="619,107,769,133"/>
+<area shape="rect" id="node8" href="$rmap_8c_aab7e23f061291d39568ad2df700bc777.html#aab7e23f061291d39568ad2df700bc777" title="set an RMAP command" alt="" coords="635,157,753,184"/>
+<area shape="rect" id="node10" href="$rmap_8c_acf641aae92829ae864b6c3d8f94d86e2.html#acf641aae92829ae864b6c3d8f94d86e2" title="set a data address" alt="" coords="617,208,771,235"/>
+<area shape="rect" id="node11" href="$rmap_8c_a6833f065640f652aa1a929309e592f7a.html#a6833f065640f652aa1a929309e592f7a" title="set an RMAP command" alt="" coords="621,259,767,285"/>
+<area shape="rect" id="node12" href="$rmap_8c_a5f0081b9928da5e50fc8b231b57f3a80.html#a5f0081b9928da5e50fc8b231b57f3a80" title="set the destination address path" alt="" coords="617,309,771,336"/>
+<area shape="rect" id="node14" href="$rmap_8c_a2da8e7b48411d382b54848795f85795d.html#a2da8e7b48411d382b54848795f85795d" title="set the destination (target) logical address" alt="" coords="639,360,749,387"/>
+<area shape="rect" id="node15" href="$rmap_8c_a15021c9dfccddc44786dfd37834bcd7e.html#a15021c9dfccddc44786dfd37834bcd7e" title="set the command authorisation key" alt="" coords="637,411,751,437"/>
+<area shape="rect" id="node16" href="$rmap_8c_a56c47830e67d01e469231e5e7e1d3a34.html#a56c47830e67d01e469231e5e7e1d3a34" title="set the reply address path" alt="" coords="615,461,773,488"/>
+<area shape="rect" id="node17" href="$rmap_8c_adae0030440ca4e7ad34622e505acbb2c.html#adae0030440ca4e7ad34622e505acbb2c" title="set the source (initiator) logical address" alt="" coords="639,512,749,539"/>
+<area shape="rect" id="node18" href="$rmap_8c_a7b4c31714493ce6cc19d4aa825ab50aa.html#a7b4c31714493ce6cc19d4aa825ab50aa" title="set an RMAP transaction identifier" alt="" coords="635,563,753,589"/>
+<area shape="rect" id="node5" href="$rmap_8c_a0ec3c28e83818f02e00d4c79d82d938a.html#a0ec3c28e83818f02e00d4c79d82d938a" title="get the minimum header size given the RMAP instruction" alt="" coords="827,5,1005,32"/>
+<area shape="rect" id="node9" href="$rmap_8c_a667ce871110961f2a611d0244791e20f.html#a667ce871110961f2a611d0244791e20f" title="valiidates a command code" alt="" coords="821,157,1011,184"/>
+<area shape="rect" id="node13" href="$test__cmp__max__used__bits__list_8c_a7ac38fce3243a7dcf448301ee9ffd392.html#a7ac38fce3243a7dcf448301ee9ffd392" title=" " alt="" coords="883,385,949,412"/>
+</map>

@@ -1,0 +1,4 @@
+<map id="rdcu_read_cmd_fpga_version" name="rdcu_read_cmd_fpga_version">
+<area shape="rect" id="node1" title="create a command to read the RDCU FPGA version register" alt="" coords="232,5,389,47"/>
+<area shape="rect" id="node2" href="$rdcu__ctrl_8c_a17ee730e774df441b251f44cb882075a.html#a17ee730e774df441b251f44cb882075a" title="sync the FPGA version (read only)" alt="" coords="5,13,184,39"/>
+</map>

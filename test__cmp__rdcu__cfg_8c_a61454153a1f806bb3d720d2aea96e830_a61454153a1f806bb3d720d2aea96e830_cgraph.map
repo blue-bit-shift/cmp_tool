@@ -1,0 +1,15 @@
+<map id="test_rdcu_cfg_buffers_raw_diff" name="test_rdcu_cfg_buffers_raw_diff">
+<area shape="rect" id="node1" title=" " alt="" coords="5,137,167,178"/>
+<area shape="rect" id="node2" href="$cmp__rdcu__cfg_8c_a02c709d575e0c6a1279c99af709854fd.html#a02c709d575e0c6a1279c99af709854fd" title="setup of the different data buffers for an RDCU compression" alt="" coords="215,115,344,141"/>
+<area shape="rect" id="node7" href="$cmp__rdcu__cfg_8c_a67c328156978a58fd22ed3cc510e4f8b.html#a67c328156978a58fd22ed3cc510e4f8b" title="create an RDCU compression configuration" alt="" coords="217,169,342,196"/>
+<area shape="rect" id="node3" href="$cmp__rdcu__cfg_8c_ac1e86a9fa0666daed0aa76b5853a80c5.html#ac1e86a9fa0666daed0aa76b5853a80c5" title="check if RDCU buffer settings are invalid" alt="" coords="396,82,543,123"/>
+<area shape="rect" id="node4" href="$cmp__rdcu__cfg_8c_a44623195b1df75bdf1134277861f2e3b.html#a44623195b1df75bdf1134277861f2e3b" title="check if two buffers are overlapping" alt="" coords="629,5,751,32"/>
+<area shape="rect" id="node5" href="$cmp__support_8c_afba7806c424cfb8c7678c1b4cebdfcbb.html#afba7806c424cfb8c7678c1b4cebdfcbb" title="check if a model mode is selected" alt="" coords="609,107,771,133"/>
+<area shape="rect" id="node6" href="$cmp__rdcu__cfg_8c_aaa2275f0756d097ec8b94139ab116be4.html#aaa2275f0756d097ec8b94139ab116be4" title="check if a buffer is in outside the RDCU SRAM" alt="" coords="613,56,767,83"/>
+<area shape="rect" id="node8" href="$cmp__support_8c_ab626f2778774ee7f0e79f4d50e79917c.html#ab626f2778774ee7f0e79f4d50e79917c" title="check if the compression data type, compression mode, model value and the lossy rounding parameters a..." alt="" coords="392,169,547,210"/>
+<area shape="rect" id="node9" href="$cmp__support_8c_af2129b98a4b5c7f856e97776962d7881.html#af2129b98a4b5c7f856e97776962d7881" title="check if the compression entity data product type is supported" alt="" coords="595,157,785,184"/>
+<area shape="rect" id="node10" href="$cmp__support_8c_a01181fec3ef69e316b4d77de4df9865f.html#a01181fec3ef69e316b4d77de4df9865f" title="check if an imagette compression data type is used" alt="" coords="596,209,784,250"/>
+<area shape="rect" id="node12" href="$cmp__support_8c_ad4e56eab7fecee45319e02049a9a4c6d.html#ad4e56eab7fecee45319e02049a9a4c6d" title="check if the compression mode is supported for an ICU compression" alt="" coords="598,275,782,301"/>
+<area shape="rect" id="node13" href="$cmp__support_8c_a3cc1e5c26a34a931e37f7d9ddba2ebd3.html#a3cc1e5c26a34a931e37f7d9ddba2ebd3" title="check if the compression mode is supported by the RDCU compressor" alt="" coords="611,326,769,367"/>
+<area shape="rect" id="node11" href="$cmp__support_8c_a9197caa657b3d84615c0d323dc96c502.html#a9197caa657b3d84615c0d323dc96c502" title="check if the data product data type is supported by the RDCU compressor" alt="" coords="833,209,992,250"/>
+</map>

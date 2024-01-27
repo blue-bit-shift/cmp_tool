@@ -1,0 +1,18 @@
+<map id="rdcu_syncing" name="rdcu_syncing">
+<area shape="rect" id="node1" title="save repeating 3 lines of code..." alt="" coords="5,157,112,184"/>
+<area shape="rect" id="node2" href="$rdcu__rmap_8c_a2650ed06998d198567938a9e933e1761.html#a2650ed06998d198567938a9e933e1761" title="get the RDCU &lt;&#45;&gt; ICU mirror RMAP synchronisation status" alt="" coords="160,157,335,184"/>
+<area shape="rect" id="node3" href="$rdcu__rmap_8c_a1a064554031c2fa2dcb65541e0765c0f.html#a1a064554031c2fa2dcb65541e0765c0f" title="n rmap command transaction" alt="" coords="383,157,509,184"/>
+<area shape="rect" id="node4" href="$test__cmp__max__used__bits__list_8c_a7ac38fce3243a7dcf448301ee9ffd392.html#a7ac38fce3243a7dcf448301ee9ffd392" title=" " alt="" coords="829,5,895,32"/>
+<area shape="rect" id="node5" href="$rmap_8c_abf1868ec6873f9f189050cadc7e64a3b.html#abf1868ec6873f9f189050cadc7e64a3b" title="calculate the CRC8 of a given buffer" alt="" coords="596,107,687,133"/>
+<area shape="rect" id="node6" href="$rmap_8c_a1def9af549819e7fdbda12af8bdc9c0e.html#a1def9af549819e7fdbda12af8bdc9c0e" title="completely destroys an RMAP packet" alt="" coords="567,157,716,184"/>
+<area shape="rect" id="node7" href="$rmap_8c_a5e88a29337404518eceedf9b4af285bf.html#a5e88a29337404518eceedf9b4af285bf" title=" " alt="" coords="578,208,705,235"/>
+<area shape="rect" id="node12" href="$rmap_8c_a46d3271304c12df042b57dbebaba67e1.html#a46d3271304c12df042b57dbebaba67e1" title="create an rmap packet from a buffer" alt="" coords="558,56,725,83"/>
+<area shape="rect" id="node15" href="$rdcu__rmap_8c_acf9b176d8d9b24e9d07711f56aebccc0.html#acf9b176d8d9b24e9d07711f56aebccc0" title="get the local address for a slot" alt="" coords="568,259,715,285"/>
+<area shape="rect" id="node16" href="$rdcu__rmap_8c_a7012f58a1862cf07b00e299d24c199c2.html#a7012f58a1862cf07b00e299d24c199c2" title="release a slot in the transaction log" alt="" coords="557,309,725,336"/>
+<area shape="rect" id="node8" href="$rmap_8c_abb4e19c17c7223212c3904bc4c0189d2.html#abb4e19c17c7223212c3904bc4c0189d2" title=" " alt="" coords="788,157,936,184"/>
+<area shape="rect" id="node9" href="$rmap_8c_a20aa8b91dfb1bbad819759f97b853054.html#a20aa8b91dfb1bbad819759f97b853054" title=" " alt="" coords="781,208,943,235"/>
+<area shape="rect" id="node10" href="$rmap_8c_adef42426b46ee5ad5176ee76cff35c22.html#adef42426b46ee5ad5176ee76cff35c22" title=" " alt="" coords="779,259,945,285"/>
+<area shape="rect" id="node11" href="$rmap_8c_a2ff278a5e094a9f585865d4d838e0e0e.html#a2ff278a5e094a9f585865d4d838e0e0e" title=" " alt="" coords="999,259,1188,285"/>
+<area shape="rect" id="node13" href="$rmap_8c_aba944cf978de0b264ea5bb3a784bce0f.html#aba944cf978de0b264ea5bb3a784bce0f" title="create an RMAP packet and set defaults" alt="" coords="785,56,939,83"/>
+<area shape="rect" id="node14" href="$rmap_8c_a0ec3c28e83818f02e00d4c79d82d938a.html#a0ec3c28e83818f02e00d4c79d82d938a" title="get the minimum header size given the RMAP instruction" alt="" coords="773,107,951,133"/>
+</map>

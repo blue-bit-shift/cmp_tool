@@ -1,0 +1,5 @@
+<map id="test_ent_fine_start_time" name="test_ent_fine_start_time">
+<area shape="rect" id="node1" title=" " alt="" coords="5,31,185,57"/>
+<area shape="rect" id="node2" href="$cmp__entity_8c_ad9380d40fe23e0cae3dc0717f3ed1f98.html#ad9380d40fe23e0cae3dc0717f3ed1f98" title="get the fine time from the compression start timestamp in the compression entity header" alt="" coords="233,5,444,32"/>
+<area shape="rect" id="node3" href="$cmp__entity_8c_af069887bb40dc276e4a6bd0d3b615bb1.html#af069887bb40dc276e4a6bd0d3b615bb1" title="set the fine time in the compression start timestamp in the compression entity header" alt="" coords="233,56,444,83"/>
+</map>

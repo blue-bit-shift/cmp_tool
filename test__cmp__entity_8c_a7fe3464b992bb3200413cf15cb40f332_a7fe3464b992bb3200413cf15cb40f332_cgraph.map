@@ -1,0 +1,5 @@
+<map id="test_ent_original_size" name="test_ent_original_size">
+<area shape="rect" id="node1" title=" " alt="" coords="5,31,169,57"/>
+<area shape="rect" id="node2" href="$cmp__entity_8c_a40bf7e43aff5f4986069a1ee3bf4568f.html#a40bf7e43aff5f4986069a1ee3bf4568f" title="get the original data size from the compression entity header" alt="" coords="217,5,412,32"/>
+<area shape="rect" id="node3" href="$cmp__entity_8c_a11adb9fb51386d64d43236fdfe3302df.html#a11adb9fb51386d64d43236fdfe3302df" title="set the original size of the compressed data in the entity header" alt="" coords="217,56,412,83"/>
+</map>

@@ -1,0 +1,4 @@
+<map id="rdcu_read_cmd_spw_err_cntrs" name="rdcu_read_cmd_spw_err_cntrs">
+<area shape="rect" id="node1" title="create a command to read the RDCU SPW error counters register" alt="" coords="237,5,416,47"/>
+<area shape="rect" id="node2" href="$rdcu__ctrl_8c_ab84540a7a3768c4e3d158179c3095ad5.html#ab84540a7a3768c4e3d158179c3095ad5" title="sync the SpW Error Counter register (read only)" alt="" coords="5,13,189,39"/>
+</map>

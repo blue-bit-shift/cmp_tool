@@ -1,0 +1,11 @@
+<map id="cmp_cfg_fx_cob_is_invalid" name="cmp_cfg_fx_cob_is_invalid">
+<area shape="rect" id="node1" title="check if the flux/center of brightness specific compression parameters are invalid" alt="" coords="5,78,201,105"/>
+<area shape="rect" id="node2" href="$cmp__support_8c_a3e5913a05465353d3ae640cd2359f8d7.html#a3e5913a05465353d3ae640cd2359f8d7" title="get needed compression parameter pairs for a flux/center of brightness data type" alt="" coords="258,5,413,47"/>
+<area shape="rect" id="node3" href="$cmp__support_8c_a3af135761eadd1f28a5f58a35903d381.html#a3af135761eadd1f28a5f58a35903d381" title="check if a flux/center of brightness compression data type is used" alt="" coords="249,71,421,112"/>
+<area shape="rect" id="node4" href="$cmp__support_8c_adbae174c7bd594fd05723ddc667f5b54.html#adbae174c7bd594fd05723ddc667f5b54" title="check if the combination of the different compression parameters is invalid" alt="" coords="253,137,417,163"/>
+<area shape="rect" id="node5" href="$cmp__support_8c_aefdc949ff52e4920859d0bd82f5aa5aa.html#aefdc949ff52e4920859d0bd82f5aa5aa" title="get the maximum valid spill threshold value for a non&#45;imagette compression in diff or model mode" alt="" coords="490,86,637,113"/>
+<area shape="rect" id="node7" href="$cmp__support_8c_a743a6fcf9ff9d9c86e5dcd2521694472.html#a743a6fcf9ff9d9c86e5dcd2521694472" title="get the maximum valid spill threshold value for a imagette compression in diff or model mode" alt="" coords="487,137,639,163"/>
+<area shape="rect" id="node8" href="$cmp__support_8c_a01181fec3ef69e316b4d77de4df9865f.html#a01181fec3ef69e316b4d77de4df9865f" title="check if an imagette compression data type is used" alt="" coords="469,188,657,229"/>
+<area shape="rect" id="node6" href="$cmp__support_8c_a67b0e38ca0e68c282c89552daa61ffdf.html#a67b0e38ca0e68c282c89552daa61ffdf" title="implementation of the logarithm base of floor(log2(x)) for integers" alt="" coords="754,86,815,113"/>
+<area shape="rect" id="node9" href="$cmp__support_8c_a9197caa657b3d84615c0d323dc96c502.html#a9197caa657b3d84615c0d323dc96c502" title="check if the data product data type is supported by the RDCU compressor" alt="" coords="705,188,864,229"/>
+</map>

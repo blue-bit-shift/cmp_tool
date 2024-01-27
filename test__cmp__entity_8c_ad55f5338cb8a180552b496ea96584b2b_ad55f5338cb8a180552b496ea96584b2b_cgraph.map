@@ -1,0 +1,5 @@
+<map id="test_ent_model_counter" name="test_ent_model_counter">
+<area shape="rect" id="node1" title=" " alt="" coords="5,31,184,57"/>
+<area shape="rect" id="node2" href="$cmp__entity_8c_a70e0538a468bc488cd3be673c64bef6f.html#a70e0538a468bc488cd3be673c64bef6f" title="get the model counter from the compression entity header" alt="" coords="232,5,443,32"/>
+<area shape="rect" id="node3" href="$cmp__entity_8c_a586be0b1abdf6f196322d0047091c02a.html#a586be0b1abdf6f196322d0047091c02a" title="set model counter in the compression entity header" alt="" coords="233,56,442,83"/>
+</map>

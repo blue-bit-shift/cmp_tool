@@ -1,0 +1,13 @@
+<map id="decompress_s_fx_ncob" name="decompress_s_fx_ncob">
+<area shape="rect" id="node1" title="decompress short S_FX_NCOB data" alt="" coords="1024,194,1197,221"/>
+<area shape="rect" id="node2" href="$decmp_8c_a74c8bbd7b2130f44b6672e960475f4be.html#a74c8bbd7b2130f44b6672e960475f4be" title="decompress the data based on a compression configuration" alt="" coords="765,194,976,221"/>
+<area shape="rect" id="node3" href="$decmp_8h_aefe0fa39fdc295432f5e2e0f91f0b87f.html#aefe0fa39fdc295432f5e2e0f91f0b87f" title="decompress a compression entity" alt="" coords="541,139,717,166"/>
+<area shape="rect" id="node10" href="$decmp_8h_aa89132cfd22be6ede8bc4344e9c3336a.html#aa89132cfd22be6ede8bc4344e9c3336a" title="decompress RDCU compressed data without a compression entity header" alt="" coords="543,219,715,246"/>
+<area shape="rect" id="node4" href="$test__cmp__decmp_8c_a50ba26014079160ca77b7d7fa76ce0f4.html#a50ba26014079160ca77b7d7fa76ce0f4" title="compress the given configuration and decompress it afterwards; finally compare the results" alt="" coords="265,13,476,39"/>
+<area shape="rect" id="node6" href="$test__decmp_8c_a6e7a5e150e2c829836db3c42cdec2eec.html#a6e7a5e150e2c829836db3c42cdec2eec" title=" " alt="" coords="248,63,493,90"/>
+<area shape="rect" id="node7" href="$test__decmp_8c_a1a33e2fcbf484c79dfe661b280386f6b.html#a1a33e2fcbf484c79dfe661b280386f6b" title=" " alt="" coords="273,114,468,141"/>
+<area shape="rect" id="node8" href="$test__decmp_8c_acfebf2fa7515f5449e0cfa594457b66b.html#acfebf2fa7515f5449e0cfa594457b66b" title=" " alt="" coords="316,165,425,191"/>
+<area shape="rect" id="node9" href="$test__decmp_8c_a953eeaad914985c0816dde26d47ffef0.html#a953eeaad914985c0816dde26d47ffef0" title=" " alt="" coords="306,215,435,242"/>
+<area shape="rect" id="node5" href="$test__cmp__decmp_8c_af3c162694b40683e0aa25c61a49cdafc.html#af3c162694b40683e0aa25c61a49cdafc" title="random compression decompression test" alt="" coords="5,5,200,47"/>
+<area shape="rect" id="node11" href="$test__cmp__decmp_8c_abb20ed18a3c6ba0fc67ecef2d629dec0.html#abb20ed18a3c6ba0fc67ecef2d629dec0" title=" " alt="" coords="273,267,468,308"/>
+</map>

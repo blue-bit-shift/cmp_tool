@@ -1,0 +1,6 @@
+<map id="rdcu_cfg_buffers_is_invalid" name="rdcu_cfg_buffers_is_invalid">
+<area shape="rect" id="node1" title="check if RDCU buffer settings are invalid" alt="" coords="5,49,152,90"/>
+<area shape="rect" id="node2" href="$cmp__rdcu__cfg_8c_a44623195b1df75bdf1134277861f2e3b.html#a44623195b1df75bdf1134277861f2e3b" title="check if two buffers are overlapping" alt="" coords="220,5,343,32"/>
+<area shape="rect" id="node3" href="$cmp__support_8c_afba7806c424cfb8c7678c1b4cebdfcbb.html#afba7806c424cfb8c7678c1b4cebdfcbb" title="check if a model mode is selected" alt="" coords="200,56,363,83"/>
+<area shape="rect" id="node4" href="$cmp__rdcu__cfg_8c_aaa2275f0756d097ec8b94139ab116be4.html#aaa2275f0756d097ec8b94139ab116be4" title="check if a buffer is in outside the RDCU SRAM" alt="" coords="204,107,359,133"/>
+</map>

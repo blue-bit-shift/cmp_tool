@@ -1,0 +1,12 @@
+<map id="__list_del" name="__list_del">
+<area shape="rect" id="node1" title=" " alt="" coords="671,144,753,171"/>
+<area shape="rect" id="node2" href="$list_8h_aafaf36c0a2adaebb3ef5e301410a347f.html#aafaf36c0a2adaebb3ef5e301410a347f" title="deletes entry from list." alt="" coords="499,56,623,83"/>
+<area shape="rect" id="node5" href="$list_8h_ab1708206f0f7e0a56550b35372203ba5.html#ab1708206f0f7e0a56550b35372203ba5" title="deletes entry from list." alt="" coords="526,144,595,171"/>
+<area shape="rect" id="node9" href="$list_8h_a1c5ac6a6b04a03f5782e818daacf96e9.html#a1c5ac6a6b04a03f5782e818daacf96e9" title="delete from one list and add as another&#39;s tail" alt="" coords="503,195,618,221"/>
+<area shape="rect" id="node3" href="$list_8h_ae1cde0f50b85945cfff23be4fc1586f4.html#ae1cde0f50b85945cfff23be4fc1586f4" title="deletes entry from list and reinitialize it." alt="" coords="311,5,408,32"/>
+<area shape="rect" id="node4" href="$list_8h_aee8df43e41969c2272acfd6ed6e75d4c.html#aee8df43e41969c2272acfd6ed6e75d4c" title="delete from one list and add as another&#39;s head" alt="" coords="316,56,403,83"/>
+<area shape="rect" id="node6" href="$cmp__max__used__bits__list_8c_af542c0427f6c49599bf2b0468350c2bf.html#af542c0427f6c49599bf2b0468350c2bf" title="delete a max_used_bits item from the list" alt="" coords="268,107,451,149"/>
+<area shape="rect" id="node8" href="$list_8h_aa88ecc2b45985151e559c4bd0a0a2a09.html#aa88ecc2b45985151e559c4bd0a0a2a09" title="replace entry1 with entry2 and re&#45;add entry1 at entry2&#39;s position" alt="" coords="318,173,401,200"/>
+<area shape="rect" id="node7" href="$test__cmp__max__used__bits__list_8c_acd1ebf1cab2751d1420a94e2c50ba6ce.html#acd1ebf1cab2751d1420a94e2c50ba6ce" title=" " alt="" coords="5,115,220,141"/>
+<area shape="rect" id="node10" href="$list_8h_ace3524496c1d85a59486e73a292d0c84.html#ace3524496c1d85a59486e73a292d0c84" title="rotate the list to the left" alt="" coords="301,224,417,251"/>
+</map>

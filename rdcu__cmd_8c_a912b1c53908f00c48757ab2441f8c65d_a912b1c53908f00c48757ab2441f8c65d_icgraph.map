@@ -1,0 +1,4 @@
+<map id="rdcu_write_cmd_rdcu_reset" name="rdcu_write_cmd_rdcu_reset">
+<area shape="rect" id="node1" title="create a command to write the RDCU reset register" alt="" coords="216,5,376,47"/>
+<area shape="rect" id="node2" href="$rdcu__ctrl_8c_a9660d6f7e4887405295af590f0dca6ac.html#a9660d6f7e4887405295af590f0dca6ac" title="sync the RDCU Reset register (write only)" alt="" coords="5,13,168,39"/>
+</map>

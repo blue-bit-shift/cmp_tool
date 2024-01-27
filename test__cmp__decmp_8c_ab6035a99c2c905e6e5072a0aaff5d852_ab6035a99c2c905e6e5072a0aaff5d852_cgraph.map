@@ -1,0 +1,7 @@
+<map id="generate_random_cmp_par" name="generate_random_cmp_par">
+<area shape="rect" id="node1" title="generate random compression configuration" alt="" coords="5,56,205,83"/>
+<area shape="rect" id="node2" href="$cmp__support_8c_aefdc949ff52e4920859d0bd82f5aa5aa.html#aefdc949ff52e4920859d0bd82f5aa5aa" title="get the maximum valid spill threshold value for a non&#45;imagette compression in diff or model mode" alt="" coords="256,5,403,32"/>
+<area shape="rect" id="node4" href="$cmp__support_8c_a743a6fcf9ff9d9c86e5dcd2521694472.html#a743a6fcf9ff9d9c86e5dcd2521694472" title="get the maximum valid spill threshold value for a imagette compression in diff or model mode" alt="" coords="253,56,405,83"/>
+<area shape="rect" id="node5" href="$test__common_8c_a2d6143fbc199c7f383074b8171d37182.html#a2d6143fbc199c7f383074b8171d37182" title="generate a random number" alt="" coords="255,107,404,133"/>
+<area shape="rect" id="node3" href="$cmp__support_8c_a67b0e38ca0e68c282c89552daa61ffdf.html#a67b0e38ca0e68c282c89552daa61ffdf" title="implementation of the logarithm base of floor(log2(x)) for integers" alt="" coords="453,5,515,32"/>
+</map>

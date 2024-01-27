@@ -1,0 +1,52 @@
+<map id="test_random_compression_decompression" name="test_random_compression_decompression">
+<area shape="rect" id="node1" title="random compression decompression test" alt="" coords="5,1084,200,1125"/>
+<area shape="rect" id="node2" href="$cmp__data__types_8c_aafa65f72ed4d0fb99beb11c37f11ce52.html#aafa65f72ed4d0fb99beb11c37f11ce52" title="calculate the need bytes for the data" alt="" coords="1043,813,1208,839"/>
+<area shape="rect" id="node5" href="$cmp__icu_8h_a522a4086aef4920d08a232b7500635fa.html#a522a4086aef4920d08a232b7500635fa" title="set up the different data buffers for an ICU compression" alt="" coords="276,238,431,265"/>
+<area shape="rect" id="node7" href="$cmp__support_8c_afba7806c424cfb8c7678c1b4cebdfcbb.html#afba7806c424cfb8c7678c1b4cebdfcbb" title="check if a model mode is selected" alt="" coords="803,99,966,126"/>
+<area shape="rect" id="node11" href="$cmp__icu_8h_adcfa752f5f3682b35323bdf5052216ab.html#adcfa752f5f3682b35323bdf5052216ab" title="create an ICU compression configuration" alt="" coords="278,1395,429,1422"/>
+<area shape="rect" id="node12" href="$test__common_8c_a2d6143fbc199c7f383074b8171d37182.html#a2d6143fbc199c7f383074b8171d37182" title="generate a random number" alt="" coords="542,1978,691,2005"/>
+<area shape="rect" id="node13" href="$test__cmp__decmp_8c_a50ba26014079160ca77b7d7fa76ce0f4.html#a50ba26014079160ca77b7d7fa76ce0f4" title="compress the given configuration and decompress it afterwards; finally compare the results" alt="" coords="248,406,459,433"/>
+<area shape="rect" id="node28" href="$test__cmp__decmp_8c_ab6035a99c2c905e6e5072a0aaff5d852.html#ab6035a99c2c905e6e5072a0aaff5d852" title="generate random compression configuration" alt="" coords="253,2003,453,2030"/>
+<area shape="rect" id="node31" href="$test__cmp__decmp_8c_a0d580e207a67f65304cf796a19f906b9.html#a0d580e207a67f65304cf796a19f906b9" title="generate random test data" alt="" coords="251,1345,456,1371"/>
+<area shape="rect" id="node3" href="$cmp__support_8c_a9197caa657b3d84615c0d323dc96c502.html#a9197caa657b3d84615c0d323dc96c502" title="check if the data product data type is supported by the RDCU compressor" alt="" coords="1272,1316,1431,1357"/>
+<area shape="rect" id="node4" href="$cmp__data__types_8c_a0be8705b1dcc45f605abd8400dd5230b.html#a0be8705b1dcc45f605abd8400dd5230b" title="calculate the size of a sample for the different compression data type" alt="" coords="1282,813,1421,839"/>
+<area shape="rect" id="node6" href="$cmp__support_8c_a9ec155537cbf27999a57812e720182de.html#a9ec155537cbf27999a57812e720182de" title="check if the ICU buffer parameters are invalid" alt="" coords="539,151,694,192"/>
+<area shape="rect" id="node9" href="$cmp__entity_8c_ac4f3e5eb03e7dc0f1a646dd150543af5.html#ac4f3e5eb03e7dc0f1a646dd150543af5" title="calculate the size of the compression entity header based on a compression data product type" alt="" coords="1043,306,1208,333"/>
+<area shape="rect" id="node8" href="$cmp__support_8c_afa39b2f9cf3ed38c0d0277791e4b9aca.html#afa39b2f9cf3ed38c0d0277791e4b9aca" title="check if the raw mode is selected" alt="" coords="811,154,958,181"/>
+<area shape="rect" id="node10" href="$cmp__support_8c_af2129b98a4b5c7f856e97776962d7881.html#af2129b98a4b5c7f856e97776962d7881" title="check if the compression entity data product type is supported" alt="" coords="1256,306,1447,333"/>
+<area shape="rect" id="node14" href="$cmp__entity_8c_ac68e6942c21572a9513a9a7577126458.html#ac68e6942c21572a9513a9a7577126458" title="create a compression entity and set the header fields" alt="" coords="558,499,675,526"/>
+<area shape="rect" id="node16" href="$cmp__entity_8c_ae5d154b04722901866cadf9bcd523e03.html#ae5d154b04722901866cadf9bcd523e03" title="create a compression entity by setting the size of the compression entity and the data product type i..." alt="" coords="821,306,948,333"/>
+<area shape="rect" id="node17" href="$cmp__entity_8c_ad51f7534273be20a0c2c36bda1fc98f5.html#ad51f7534273be20a0c2c36bda1fc98f5" title="set the size of the compression entity in the entity header" alt="" coords="1056,255,1195,282"/>
+<area shape="rect" id="node24" href="$cmp__entity_8c_a00cca03217aff11fc4afdc43ca23c417.html#a00cca03217aff11fc4afdc43ca23c417" title="get the start address of the compressed data in the compression entity" alt="" coords="531,431,702,458"/>
+<area shape="rect" id="node25" href="$decmp_8h_aefe0fa39fdc295432f5e2e0f91f0b87f.html#aefe0fa39fdc295432f5e2e0f91f0b87f" title="decompress a compression entity" alt="" coords="529,381,705,407"/>
+<area shape="rect" id="node26" href="$cmp__icu_8h_a08bf8ccacb449aba08db5e51d532d834.html#a08bf8ccacb449aba08db5e51d532d834" title="compress data on the ICU in software" alt="" coords="543,217,690,243"/>
+<area shape="rect" id="node27" href="$test__cmp__max__used__bits__list_8c_a7ac38fce3243a7dcf448301ee9ffd392.html#a7ac38fce3243a7dcf448301ee9ffd392" title=" " alt="" coords="583,813,650,839"/>
+<area shape="rect" id="node15" href="$cmp__support_8c_a9b2702244ffc1d51b81f38b909ce84b4.html#a9b2702244ffc1d51b81f38b909ce84b4" title="calculate the need bytes to hold a bitstream" alt="" coords="1060,433,1191,459"/>
+<area shape="rect" id="node18" href="$cmp__entity_8c_a10639ed9811b6bfabc6dc65bf5e8744b.html#a10639ed9811b6bfabc6dc65bf5e8744b" title="set the compression end timestamp in the compression entity header" alt="" coords="777,509,992,535"/>
+<area shape="rect" id="node19" href="$cmp__entity_8c_a586be0b1abdf6f196322d0047091c02a.html#a586be0b1abdf6f196322d0047091c02a" title="set model counter in the compression entity header" alt="" coords="780,559,989,586"/>
+<area shape="rect" id="node20" href="$cmp__entity_8c_a22e5532a3ed65a5a0ebf7077ea3e0276.html#a22e5532a3ed65a5a0ebf7077ea3e0276" title="set model id in the compression entity header" alt="" coords="799,610,971,637"/>
+<area shape="rect" id="node21" href="$cmp__entity_8c_a9dacc85a69c9e1dc19cafd38fb618cd6.html#a9dacc85a69c9e1dc19cafd38fb618cd6" title="set the compression start timestamp in the compression entity header" alt="" coords="775,661,995,687"/>
+<area shape="rect" id="node22" href="$cmp__entity_8c_abaea240d281fab698cbe5966aa947ac9.html#abaea240d281fab698cbe5966aa947ac9" title="set ICU ASW Version ID in the compression entity header" alt="" coords="795,711,974,738"/>
+<area shape="rect" id="node23" href="$cmp__entity_8c_a553b4a765f1cfcd37f82a818db2cf2b9.html#a553b4a765f1cfcd37f82a818db2cf2b9" title="write the compression parameters from a compression configuration into the compression entity header" alt="" coords="791,458,979,485"/>
+<area shape="rect" id="node29" href="$cmp__support_8c_aefdc949ff52e4920859d0bd82f5aa5aa.html#aefdc949ff52e4920859d0bd82f5aa5aa" title="get the maximum valid spill threshold value for a non&#45;imagette compression in diff or model mode" alt="" coords="543,2029,690,2055"/>
+<area shape="rect" id="node30" href="$cmp__support_8c_a743a6fcf9ff9d9c86e5dcd2521694472.html#a743a6fcf9ff9d9c86e5dcd2521694472" title="get the maximum valid spill threshold value for a imagette compression in diff or model mode" alt="" coords="541,2079,693,2106"/>
+<area shape="rect" id="node32" href="$test__common_8c_a29c4e7749d8c4bd6d3e6bbab69b43db9.html#a29c4e7749d8c4bd6d3e6bbab69b43db9" title=" " alt="" coords="565,1522,668,1549"/>
+<area shape="rect" id="node33" href="$test__cmp__decmp_8c_a3c54bcccd3cb38d4b8434f0f6367efbd.html#a3c54bcccd3cb38d4b8434f0f6367efbd" title=" " alt="" coords="559,1573,674,1599"/>
+<area shape="rect" id="node34" href="$test__cmp__decmp_8c_a64b7c682f1479d812e08af3f04fab908.html#a64b7c682f1479d812e08af3f04fab908" title=" " alt="" coords="545,1623,688,1650"/>
+<area shape="rect" id="node35" href="$test__cmp__decmp_8c_a232e1b3acf58c29162b31b745f77ba83.html#a232e1b3acf58c29162b31b745f77ba83" title=" " alt="" coords="507,1674,726,1701"/>
+<area shape="rect" id="node36" href="$test__cmp__decmp_8c_a9bd3286aac657f6e3a97ec8afea1960e.html#a9bd3286aac657f6e3a97ec8afea1960e" title=" " alt="" coords="541,1725,693,1751"/>
+<area shape="rect" id="node37" href="$test__cmp__decmp_8c_ae281976f7be0b5dc77f6b2c9ec96ca8f.html#ae281976f7be0b5dc77f6b2c9ec96ca8f" title=" " alt="" coords="525,1826,709,1853"/>
+<area shape="rect" id="node38" href="$test__cmp__decmp_8c_a6882f5a2192ceec7d7e9c0cc13809abe.html#a6882f5a2192ceec7d7e9c0cc13809abe" title=" " alt="" coords="544,1877,689,1903"/>
+<area shape="rect" id="node39" href="$test__cmp__decmp_8c_aae532aef1d65f5db4fbe39d4184791cf.html#aae532aef1d65f5db4fbe39d4184791cf" title=" " alt="" coords="559,1927,674,1954"/>
+<area shape="rect" id="node40" href="$test__cmp__decmp_8c_af6d86a77fff20b8d8e82f613e5648d87.html#af6d86a77fff20b8d8e82f613e5648d87" title=" " alt="" coords="560,965,673,991"/>
+<area shape="rect" id="node41" href="$test__cmp__decmp_8c_af014e43ea5091f428f754eb057e53fa0.html#af014e43ea5091f428f754eb057e53fa0" title=" " alt="" coords="546,1015,687,1042"/>
+<area shape="rect" id="node42" href="$test__cmp__decmp_8c_a4264e3bd808242bdf2d267fce6994924.html#a4264e3bd808242bdf2d267fce6994924" title=" " alt="" coords="508,1066,725,1093"/>
+<area shape="rect" id="node43" href="$test__cmp__decmp_8c_ab72fd713b7a88a404a92364a6baead85.html#ab72fd713b7a88a404a92364a6baead85" title=" " alt="" coords="541,1117,692,1143"/>
+<area shape="rect" id="node44" href="$test__cmp__decmp_8c_a1ffa6e20bf28989c4ab4e564e2b2fffa.html#a1ffa6e20bf28989c4ab4e564e2b2fffa" title=" " alt="" coords="523,1167,710,1194"/>
+<area shape="rect" id="node45" href="$test__cmp__decmp_8c_aa3b50ac5503880f099ff76917c2860ce.html#aa3b50ac5503880f099ff76917c2860ce" title=" " alt="" coords="543,1218,691,1245"/>
+<area shape="rect" id="node46" href="$test__cmp__decmp_8c_a8cacfc374616751e0863eb0d73302ee7.html#a8cacfc374616751e0863eb0d73302ee7" title=" " alt="" coords="559,1269,675,1295"/>
+<area shape="rect" id="node47" href="$test__cmp__decmp_8c_a46988a510c6fc979c0aaea96882f5bf1.html#a46988a510c6fc979c0aaea96882f5bf1" title=" " alt="" coords="545,1319,689,1346"/>
+<area shape="rect" id="node48" href="$test__cmp__decmp_8c_a443d7e1ebe8aa033f3b586f1c2688eb7.html#a443d7e1ebe8aa033f3b586f1c2688eb7" title=" " alt="" coords="507,1370,727,1397"/>
+<area shape="rect" id="node49" href="$test__cmp__decmp_8c_a83fd46b71bc84bac3983533d96ca0209.html#a83fd46b71bc84bac3983533d96ca0209" title=" " alt="" coords="539,1421,694,1447"/>
+<area shape="rect" id="node50" href="$test__cmp__decmp_8c_a9bf96a978949d68749a5c0be7d07f2d4.html#a9bf96a978949d68749a5c0be7d07f2d4" title=" " alt="" coords="541,1471,692,1498"/>
+</map>

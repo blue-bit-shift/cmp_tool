@@ -1,0 +1,4 @@
+<map id="decoder_setup" name="decoder_setup">
+<area shape="rect" id="node1" title="structure to hold all parameters to decode a value" alt="" coords="5,204,159,355"/>
+<area shape="rect" id="node2" href="$structbit__decoder.html" title="bitstream decoder context type" alt="" coords="15,5,149,127"/>
+</map>

@@ -1,0 +1,23 @@
+<map id="cmp_input_big_to_cpu_endianness" name="cmp_input_big_to_cpu_endianness">
+<area shape="rect" id="node1" title="swap the endianness of uncompressed data form big endian to the cpu endianness (or the other way arou..." alt="" coords="5,457,172,498"/>
+<area shape="rect" id="node2" href="$cmp__data__types_8c_a3cace4e9842b36891df0b0ad489a5475.html#a3cace4e9842b36891df0b0ad489a5475" title=" " alt="" coords="263,5,382,32"/>
+<area shape="rect" id="node3" href="$cmp__data__types_8c_a4bb5dbbff3bf89cd00d45ecd69edae93.html#a4bb5dbbff3bf89cd00d45ecd69edae93" title=" " alt="" coords="233,56,412,83"/>
+<area shape="rect" id="node4" href="$cmp__data__types_8c_a481b3b5c195ed6a0bd27658afb68e199.html#a481b3b5c195ed6a0bd27658afb68e199" title=" " alt="" coords="259,107,386,133"/>
+<area shape="rect" id="node5" href="$cmp__data__types_8c_a6c9c6b78c008567749e667d4ef517af6.html#a6c9c6b78c008567749e667d4ef517af6" title=" " alt="" coords="245,157,400,184"/>
+<area shape="rect" id="node6" href="$cmp__data__types_8c_a9d11d34d069e6ba9ba8236b89402d428.html#a9d11d34d069e6ba9ba8236b89402d428" title=" " alt="" coords="245,209,400,250"/>
+<area shape="rect" id="node7" href="$cmp__data__types_8c_a4f82d8b8427f788ad604c14cadf18ca8.html#a4f82d8b8427f788ad604c14cadf18ca8" title=" " alt="" coords="240,275,405,301"/>
+<area shape="rect" id="node8" href="$cmp__data__types_8c_ae9302203cd6ebebbf199e488d8e42039.html#ae9302203cd6ebebbf199e488d8e42039" title=" " alt="" coords="259,325,386,352"/>
+<area shape="rect" id="node10" href="$cmp__data__types_8c_a400efed1c7b48988fba6974f6d2fc332.html#a400efed1c7b48988fba6974f6d2fc332" title=" " alt="" coords="245,376,400,403"/>
+<area shape="rect" id="node11" href="$cmp__data__types_8c_a20b4c948454832556538ff6335904ef5.html#a20b4c948454832556538ff6335904ef5" title=" " alt="" coords="245,427,400,469"/>
+<area shape="rect" id="node12" href="$cmp__data__types_8c_a0e82f77b5e2ff7dc6d88f30feaa3048c.html#a0e82f77b5e2ff7dc6d88f30feaa3048c" title=" " alt="" coords="241,493,405,520"/>
+<area shape="rect" id="node13" href="$cmp__data__types_8c_a18d9e97ef0ef8d9dc4f66cb6e90d42b4.html#a18d9e97ef0ef8d9dc4f66cb6e90d42b4" title=" " alt="" coords="253,544,392,571"/>
+<area shape="rect" id="node14" href="$cmp__data__types_8c_acb62fce2d42d1aea4985b6ef8102eeff.html#acb62fce2d42d1aea4985b6ef8102eeff" title=" " alt="" coords="258,595,387,621"/>
+<area shape="rect" id="node15" href="$cmp__data__types_8c_a1165a849fe375d4960616f9fc137f518.html#a1165a849fe375d4960616f9fc137f518" title=" " alt="" coords="244,645,401,672"/>
+<area shape="rect" id="node16" href="$cmp__data__types_8c_ac3c2a554642922567918b638bad3407d.html#ac3c2a554642922567918b638bad3407d" title=" " alt="" coords="244,697,401,738"/>
+<area shape="rect" id="node17" href="$cmp__data__types_8c_ab3ea383ccffc6bde1cb89bf8a67d9680.html#ab3ea383ccffc6bde1cb89bf8a67d9680" title=" " alt="" coords="239,763,406,789"/>
+<area shape="rect" id="node18" href="$cmp__data__types_8c_aea8cc68320de3ef12cafa62c01322aee.html#aea8cc68320de3ef12cafa62c01322aee" title=" " alt="" coords="241,813,404,840"/>
+<area shape="rect" id="node19" href="$cmp__data__types_8c_a8302ce6ba8de68ad01b50c592c5a2178.html#a8302ce6ba8de68ad01b50c592c5a2178" title="calculates the number of samples for a given data size for the different compression modes" alt="" coords="220,915,425,941"/>
+<area shape="rect" id="node20" href="$cmp__support_8c_a9197caa657b3d84615c0d323dc96c502.html#a9197caa657b3d84615c0d323dc96c502" title="check if the data product data type is supported by the RDCU compressor" alt="" coords="473,857,632,898"/>
+<area shape="rect" id="node9" href="$cmp__data__types_8c_a5416891baf024a201286ed2d6644ac8c.html#a5416891baf024a201286ed2d6644ac8c" title=" " alt="" coords="501,405,605,432"/>
+<area shape="rect" id="node21" href="$cmp__data__types_8c_a0be8705b1dcc45f605abd8400dd5230b.html#a0be8705b1dcc45f605abd8400dd5230b" title="calculate the size of a sample for the different compression data type" alt="" coords="483,923,622,949"/>
+</map>

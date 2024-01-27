@@ -1,0 +1,5 @@
+<map id="rdcu_read_cmd_samples_used" name="rdcu_read_cmd_samples_used">
+<area shape="rect" id="node1" title="create a command to read the RDCU used number of samples register" alt="" coords="441,5,663,32"/>
+<area shape="rect" id="node2" href="$rdcu__ctrl_8c_a5763b76d6fa138ad840f2dd81f9cd90e.html#a5763b76d6fa138ad840f2dd81f9cd90e" title="sync the Model Info Length (read only)" alt="" coords="207,5,393,32"/>
+<area shape="rect" id="node3" href="$cmp__rdcu_8h_afb2e10f8b9d9e433d1b4a6a96f930097.html#afb2e10f8b9d9e433d1b4a6a96f930097" title="read out the metadata of an RDCU compression" alt="" coords="5,5,159,32"/>
+</map>

@@ -1,0 +1,4 @@
+<map id="rdcu_read_cmd_spw_link_status" name="rdcu_read_cmd_spw_link_status">
+<area shape="rect" id="node1" title="create a command to read the RDCU SPW link status register" alt="" coords="204,5,389,47"/>
+<area shape="rect" id="node2" href="$rdcu__ctrl_8c_a0b0d764c5ac895712af09ffba256b308.html#a0b0d764c5ac895712af09ffba256b308" title="sync the SpW link status register (read only)" alt="" coords="5,5,156,47"/>
+</map>

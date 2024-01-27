@@ -1,0 +1,6 @@
+<map id="list_del" name="list_del">
+<area shape="rect" id="node1" title="deletes entry from list." alt="" coords="499,42,568,69"/>
+<area shape="rect" id="node2" href="$cmp__max__used__bits__list_8c_af542c0427f6c49599bf2b0468350c2bf.html#af542c0427f6c49599bf2b0468350c2bf" title="delete a max_used_bits item from the list" alt="" coords="268,5,451,47"/>
+<area shape="rect" id="node4" href="$list_8h_aa88ecc2b45985151e559c4bd0a0a2a09.html#aa88ecc2b45985151e559c4bd0a0a2a09" title="replace entry1 with entry2 and re&#45;add entry1 at entry2&#39;s position" alt="" coords="318,71,401,98"/>
+<area shape="rect" id="node3" href="$test__cmp__max__used__bits__list_8c_acd1ebf1cab2751d1420a94e2c50ba6ce.html#acd1ebf1cab2751d1420a94e2c50ba6ce" title=" " alt="" coords="5,13,220,39"/>
+</map>

@@ -1,0 +1,8 @@
+<map id="list_rotate_left" name="list_rotate_left">
+<area shape="rect" id="node1" title="rotate the list to the left" alt="" coords="5,31,121,57"/>
+<area shape="rect" id="node2" href="$list_8h_a0fce12be81e8f2677b3a272fee1652ac.html#a0fce12be81e8f2677b3a272fee1652ac" title="tests whether a list is empty" alt="" coords="181,5,272,32"/>
+<area shape="rect" id="node3" href="$list_8h_a1c5ac6a6b04a03f5782e818daacf96e9.html#a1c5ac6a6b04a03f5782e818daacf96e9" title="delete from one list and add as another&#39;s tail" alt="" coords="169,56,284,83"/>
+<area shape="rect" id="node4" href="$list_8h_a24b474717d65a296695e8b79b4adefda.html#a24b474717d65a296695e8b79b4adefda" title=" " alt="" coords="341,31,424,57"/>
+<area shape="rect" id="node5" href="$list_8h_a588bec046f1e9797b33a5c5ab250f447.html#a588bec046f1e9797b33a5c5ab250f447" title="add a new entry" alt="" coords="332,81,433,108"/>
+<area shape="rect" id="node6" href="$list_8h_a8a28f150a191624bf6923a48cdace7e3.html#a8a28f150a191624bf6923a48cdace7e3" title=" " alt="" coords="481,81,568,108"/>
+</map>

@@ -1,0 +1,5 @@
+<map id="rdcu_write_cmd_sram_edac_ctrl" name="rdcu_write_cmd_sram_edac_ctrl">
+<area shape="rect" id="node1" title="create a command to write the SRAM EDAC Control register" alt="" coords="464,5,629,47"/>
+<area shape="rect" id="node2" href="$rdcu__ctrl_8c_af5a6e9a83c561870e1c437c36c2bf9af.html#af5a6e9a83c561870e1c437c36c2bf9af" title="sync the SRAM EDAC Control (write only)" alt="" coords="223,13,416,39"/>
+<area shape="rect" id="node3" href="$cmp__rdcu_8c_af59f75c76a057d49a54b54800dc59556.html#af59f75c76a057d49a54b54800dc59556" title="inject a SRAM edac multi bit error into the RDCU SRAM" alt="" coords="5,13,175,39"/>
+</map>

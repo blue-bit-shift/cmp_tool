@@ -1,0 +1,4 @@
+<map id="cmp_cfg" name="cmp_cfg">
+<area shape="rect" id="node1" title="The cmp_cfg structure can contain the complete configuration of the HW as well as the SW compressor." alt="" coords="5,292,180,516"/>
+<area shape="rect" id="node2" href="$structcmp__max__used__bits.html" title="Structure holding the maximum length of the different data product types in bits." alt="" coords="15,5,170,229"/>
+</map>

@@ -1,0 +1,4 @@
+<map id="__swab32s" name="__swab32s">
+<area shape="rect" id="node1" title="byteswap a 32&#45;bit value in&#45;place" alt="" coords="5,5,99,32"/>
+<area shape="rect" id="node2" href="$byteorder_8h_a923933f70a6bd4c704fe4331a5d4a605.html#a923933f70a6bd4c704fe4331a5d4a605" title="return a byteswapped 32&#45;bit value from a pointer" alt="" coords="147,5,241,32"/>
+</map>

@@ -1,0 +1,4 @@
+<map id="rdcu_write_cmd_spw_link_ctrl" name="rdcu_write_cmd_spw_link_ctrl">
+<area shape="rect" id="node1" title="create a command to write the RDCU SPW link control register" alt="" coords="232,5,391,47"/>
+<area shape="rect" id="node2" href="$rdcu__ctrl_8c_af0f73c8eecde2434d94457fe2ae79d76.html#af0f73c8eecde2434d94457fe2ae79d76" title="sync the SpW Link Control register (write only)" alt="" coords="5,13,184,39"/>
+</map>

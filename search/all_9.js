@@ -1,0 +1,27 @@
+var searchData=
+[
+  ['icu_5faddr_526',['icu_addr',['../rdcu__rmap_8c_a0dfa251924dd81706fa49156c8ff65ee.html#a0dfa251924dd81706fa49156c8ff65ee',1,'rdcu_rmap.c']]],
+  ['icu_5fcheck_527',['ICU_CHECK',['../cmp__support_8h_acf61c4962d916c6c4420e23aec5c88bc.html#acf61c4962d916c6c4420e23aec5c88bca08aeadbb58ed4692ef3ce192a49177b5',1,'cmp_support.h']]],
+  ['icu_5fcompress_5fdata_528',['icu_compress_data',['../cmp__icu_8h_a08bf8ccacb449aba08db5e51d532d834.html#a08bf8ccacb449aba08db5e51d532d834',1,'icu_compress_data(const struct cmp_cfg *cfg):&#160;cmp_icu.c'],['../cmp__icu_8c_a08bf8ccacb449aba08db5e51d532d834.html#a08bf8ccacb449aba08db5e51d532d834',1,'icu_compress_data(const struct cmp_cfg *cfg):&#160;cmp_icu.c']]],
+  ['icu_5fcompress_5fdata_5fentity_529',['icu_compress_data_entity',['../test__decmp_8c_a2d642d4d482b9ec7eca4568a95f5bdd4.html#a2d642d4d482b9ec7eca4568a95f5bdd4',1,'test_decmp.c']]],
+  ['icu_5fnew_5fmodel_5fbuf_530',['icu_new_model_buf',['../structcmp__cfg_af6ff4aabd2ee963ca563dab50f812fe0.html#af6ff4aabd2ee963ca563dab50f812fe0',1,'cmp_cfg']]],
+  ['icu_5foutput_5fbuf_531',['icu_output_buf',['../structcmp__cfg_a3ad884ca485442ae4b7fd73f60cf1a42.html#a3ad884ca485442ae4b7fd73f60cf1a42',1,'cmp_cfg']]],
+  ['ilog_5f2_532',['ilog_2',['../cmp__support_8c_a67b0e38ca0e68c282c89552daa61ffdf.html#a67b0e38ca0e68c282c89552daa61ffdf',1,'ilog_2(uint32_t x):&#160;cmp_support.c'],['../cmp__support_8h_a67b0e38ca0e68c282c89552daa61ffdf.html#a67b0e38ca0e68c282c89552daa61ffdf',1,'ilog_2(uint32_t x):&#160;cmp_support.c']]],
+  ['ima_533',['ima',['../structcmp__entity_a26706b7ae0f56bd7fb702fcf73ed4dcb.html#a26706b7ae0f56bd7fb702fcf73ed4dcb',1,'cmp_entity::ima()'],['../cmp__entity_8h_a90affc757574dda517a2efb258b064c4.html#a90affc757574dda517a2efb258b064c4',1,'ima():&#160;cmp_entity.h']]],
+  ['ima_5fcmp_5fdat_534',['ima_cmp_dat',['../structimagette__header_a1c959b04fb99484ed4edffe4eb374665.html#a1c959b04fb99484ed4edffe4eb374665',1,'imagette_header::ima_cmp_dat()'],['../cmp__entity_8h_a3a1d558f71ec4351c10b52bdf2026456.html#a3a1d558f71ec4351c10b52bdf2026456',1,'ima_cmp_dat():&#160;cmp_entity.h']]],
+  ['ima_5fsam2byt_535',['IMA_SAM2BYT',['../cmp__support_8h_a9f39fd04561f07c5551b13fe0921fd27.html#a9f39fd04561f07c5551b13fe0921fd27',1,'cmp_support.h']]],
+  ['imagette_5fadaptive_5fheader_5fsize_536',['IMAGETTE_ADAPTIVE_HEADER_SIZE',['../cmp__entity_8h_aa675e889b55b55f3a32e0b5539303faa.html#aa675e889b55b55f3a32e0b5539303faa',1,'cmp_entity.h']]],
+  ['imagette_5fheader_537',['imagette_header',['../structimagette__header.html',1,'']]],
+  ['imagette_5fheader_5fsize_538',['IMAGETTE_HEADER_SIZE',['../cmp__entity_8h_a1e312d73bd04d5b9a769c93992475804.html#a1e312d73bd04d5b9a769c93992475804',1,'cmp_entity.h']]],
+  ['imax_5fbits_539',['IMAX_BITS',['../test__cmp__decmp_8c_ae37e81e09d56fe7deab9eecca6ae3540.html#ae37e81e09d56fe7deab9eecca6ae3540',1,'test_cmp_decmp.c']]],
+  ['in_5fuse_540',['in_use',['../rdcu__rmap_8c_a5461d0d6287407d3d0f525dbb834934d.html#a5461d0d6287407d3d0f525dbb834934d',1,'rdcu_rmap.c']]],
+  ['init_5flist_5fhead_541',['INIT_LIST_HEAD',['../list_8h_aea85dd50b9129ddaa3e3c67ed55804e4.html#aea85dd50b9129ddaa3e3c67ed55804e4',1,'list.h']]],
+  ['init_5fpb32_5farrays_542',['init_PB32_arrays',['../test__cmp__icu_8c_aebd8bd0f34d0b6dd6b7a18eab36f7698.html#aebd8bd0f34d0b6dd6b7a18eab36f7698',1,'test_cmp_icu.c']]],
+  ['input_5fbuf_543',['input_buf',['../structcmp__cfg_a5b6cf832363e05dd32e73a1f6a69fb10.html#a5b6cf832363e05dd32e73a1f6a69fb10',1,'cmp_cfg']]],
+  ['install_2emd_544',['INSTALL.md',['../_i_n_s_t_a_l_l_8md.html',1,'']]],
+  ['installation_20instructions_545',['Installation Instructions',['../md__home_runner_work_cmp_tool_cmp_tool__i_n_s_t_a_l_l.html',1,'']]],
+  ['instruction_546',['instruction',['../structrmap__pkt_abd51b72a98146960aa9831b8d6f0fc9d.html#abd51b72a98146960aa9831b8d6f0fc9d',1,'rmap_pkt']]],
+  ['interrupt_5fsignal_5fenabled_547',['interrupt_signal_enabled',['../cmp__rdcu_8c_a5e891a10068f4ce8f38401ac9c288ac3.html#a5e891a10068f4ce8f38401ac9c288ac3',1,'cmp_rdcu.c']]],
+  ['invalid_5faddress_5ferr_5fbit_548',['INVALID_ADDRESS_ERR_BIT',['../cmp__rdcu_8h_af9012720e325e88633303da2439926bb.html#af9012720e325e88633303da2439926bb',1,'cmp_rdcu.h']]],
+  ['is_5fa_5fpow_5fof_5f2_549',['is_a_pow_of_2',['../cmp__support_8c_a7831f21f8303058bcac76d42a4aa1c06.html#a7831f21f8303058bcac76d42a4aa1c06',1,'is_a_pow_of_2(unsigned int v):&#160;cmp_support.c'],['../cmp__support_8h_a7831f21f8303058bcac76d42a4aa1c06.html#a7831f21f8303058bcac76d42a4aa1c06',1,'is_a_pow_of_2(unsigned int v):&#160;cmp_support.c']]]
+];

@@ -1,0 +1,52 @@
+<map id="rdcu_read_cmp_info" name="rdcu_read_cmp_info">
+<area shape="rect" id="node1" title="read out the metadata of an RDCU compression" alt="" coords="5,643,159,670"/>
+<area shape="rect" id="node2" href="$rdcu__ctrl_8c_ab17e3ca87de8a82ba3a3e2952fd42923.html#ab17e3ca87de8a82ba3a3e2952fd42923" title="get compressed data adaptive 1 size in bits" alt="" coords="231,5,394,47"/>
+<area shape="rect" id="node3" href="$rdcu__ctrl_8c_a810b5670e42650fbd77dca0092bbe590.html#a810b5670e42650fbd77dca0092bbe590" title="get compressed data adaptive 2 size in bits" alt="" coords="231,71,394,112"/>
+<area shape="rect" id="node4" href="$rdcu__ctrl_8c_abfcb957ef5a3eb621b62597840109684.html#abfcb957ef5a3eb621b62597840109684" title="get compressed data size in bits" alt="" coords="231,136,394,177"/>
+<area shape="rect" id="node5" href="$rdcu__ctrl_8c_aabc659cc3b3fceb8891bf690182471a5.html#aabc659cc3b3fceb8891bf690182471a5" title="get compressed data start address" alt="" coords="231,201,394,243"/>
+<area shape="rect" id="node6" href="$rdcu__ctrl_8c_a977b6992fe313455b92ed66bb6a66d0b.html#a977b6992fe313455b92ed66bb6a66d0b" title="get compression error code" alt="" coords="231,267,395,294"/>
+<area shape="rect" id="node7" href="$rdcu__ctrl_8c_a3233b7b6c34bd35179ff770b0a0edcfd.html#a3233b7b6c34bd35179ff770b0a0edcfd" title="get compression mode" alt="" coords="207,318,419,345"/>
+<area shape="rect" id="node8" href="$rdcu__ctrl_8c_abe7cc30928adeca6e81b9b613b7d3453.html#abe7cc30928adeca6e81b9b613b7d3453" title="get spillover threshold for encoding outliers" alt="" coords="221,369,404,395"/>
+<area shape="rect" id="node9" href="$rdcu__ctrl_8c_ad52a43a307ad65523f856ca517acc0ab.html#ad52a43a307ad65523f856ca517acc0ab" title="get model info start address" alt="" coords="233,420,393,461"/>
+<area shape="rect" id="node10" href="$rdcu__ctrl_8c_aaa706a985858ed93c68f1b7e41b7a49b.html#aaa706a985858ed93c68f1b7e41b7a49b" title="get number of noise bits to be rounded" alt="" coords="237,485,388,527"/>
+<area shape="rect" id="node11" href="$rdcu__ctrl_8c_a73e421e3aa9f16592cb9392db1ab766b.html#a73e421e3aa9f16592cb9392db1ab766b" title="get model info length" alt="" coords="223,551,402,578"/>
+<area shape="rect" id="node12" href="$rdcu__ctrl_8c_aeccd5d78af8a32247d568435cd5e827e.html#aeccd5d78af8a32247d568435cd5e827e" title="get spillover threshold for encoding outliers" alt="" coords="242,603,383,644"/>
+<area shape="rect" id="node13" href="$rdcu__ctrl_8c_acc6a171efdbd024ecc17a4ee944d9f27.html#acc6a171efdbd024ecc17a4ee944d9f27" title="get weighting parameter" alt="" coords="238,668,387,709"/>
+<area shape="rect" id="node14" href="$rdcu__ctrl_8c_a7e7dfd56130b3305431545eb8a441f02.html#a7e7dfd56130b3305431545eb8a441f02" title="sync the Compressed Data Adaptive 1 Size (read only)" alt="" coords="227,785,398,827"/>
+<area shape="rect" id="node33" href="$rdcu__ctrl_8c_acfea116bb593a8eb113fd8d1a5a2c0e9.html#acfea116bb593a8eb113fd8d1a5a2c0e9" title="sync the Compressed Data Adaptive 2 Size (read only)" alt="" coords="227,851,398,892"/>
+<area shape="rect" id="node35" href="$rdcu__ctrl_8c_a45a520766308d3f7c8e338f5dd9893b6.html#a45a520766308d3f7c8e338f5dd9893b6" title="sync the Compressed Data Start Size (read only)" alt="" coords="211,917,415,943"/>
+<area shape="rect" id="node37" href="$rdcu__ctrl_8c_acdcc51329fc9b3999f43e62f05485e5d.html#acdcc51329fc9b3999f43e62f05485e5d" title="sync the Compressed Data Start Address (read only)" alt="" coords="227,1019,398,1060"/>
+<area shape="rect" id="node39" href="$rdcu__ctrl_8c_a6aa7a64160c8cd68b6a522b5a70c7f01.html#a6aa7a64160c8cd68b6a522b5a70c7f01" title="sync the Compression Error (read only)" alt="" coords="226,1085,399,1111"/>
+<area shape="rect" id="node41" href="$rdcu__ctrl_8c_a1a1d74548837b9254461e4976b04bf74.html#a1a1d74548837b9254461e4976b04bf74" title="sync the Model Info Start Address (read only)" alt="" coords="228,1136,397,1177"/>
+<area shape="rect" id="node43" href="$rdcu__ctrl_8c_a5763b76d6fa138ad840f2dd81f9cd90e.html#a5763b76d6fa138ad840f2dd81f9cd90e" title="sync the Model Info Length (read only)" alt="" coords="219,1202,406,1229"/>
+<area shape="rect" id="node45" href="$rdcu__ctrl_8c_ac466d05abe2b0f350a6f1971f0b57e83.html#ac466d05abe2b0f350a6f1971f0b57e83" title="sync the Used Parameter 1 (read only)" alt="" coords="221,1253,404,1279"/>
+<area shape="rect" id="node47" href="$rdcu__ctrl_8c_acd4f9a1b2f7c671a6ead44dd579814e5.html#acd4f9a1b2f7c671a6ead44dd579814e5" title="sync the Used Parameter 2 (read only)" alt="" coords="221,967,404,994"/>
+<area shape="rect" id="node49" href="$cmp__rdcu_8c_a308f44d7c916a3a601dd4f007dd8873c.html#a308f44d7c916a3a601dd4f007dd8873c" title="save repeating 3 lines of code..." alt="" coords="259,734,366,761"/>
+<area shape="rect" id="node15" href="$rdcu__cmd_8c_a72be2b85493e8b0898f5d2b5b0971e0a.html#a72be2b85493e8b0898f5d2b5b0971e0a" title="create a command to read the RDCU compressed data adaptive 1 size register" alt="" coords="492,771,663,812"/>
+<area shape="rect" id="node23" href="$rdcu__rmap_8c_a533d1eb248d83ba3d406cefe7f3c9eb9.html#a533d1eb248d83ba3d406cefe7f3c9eb9" title="submit a sync command" alt="" coords="534,967,621,994"/>
+<area shape="rect" id="node16" href="$rdcu__cmd_8c_a3274188041d4484130e893afc5f1630f.html#a3274188041d4484130e893afc5f1630f" title="generate a read command for an arbitrary register (internal)" alt="" coords="736,1117,915,1159"/>
+<area shape="rect" id="node17" href="$rdcu__rmap_8c_ab224927e85a7cec5b6f90292c7de36c4.html#ab224927e85a7cec5b6f90292c7de36c4" title="generate an rmap command packet" alt="" coords="968,1161,1084,1187"/>
+<area shape="rect" id="node18" href="$rmap_8c_aa17375d153cc3473cbbe4dfe1056c527.html#aa17375d153cc3473cbbe4dfe1056c527" title="build an rmap header" alt="" coords="1160,1135,1283,1162"/>
+<area shape="rect" id="node19" href="$rmap_8c_aba944cf978de0b264ea5bb3a784bce0f.html#aba944cf978de0b264ea5bb3a784bce0f" title="create an RMAP packet and set defaults" alt="" coords="1353,1110,1508,1137"/>
+<area shape="rect" id="node20" href="$rmap_8c_a1def9af549819e7fdbda12af8bdc9c0e.html#a1def9af549819e7fdbda12af8bdc9c0e" title="completely destroys an RMAP packet" alt="" coords="1147,1085,1296,1111"/>
+<area shape="rect" id="node21" href="$rmap_8c_aab7e23f061291d39568ad2df700bc777.html#aab7e23f061291d39568ad2df700bc777" title="set an RMAP command" alt="" coords="1162,1237,1281,1263"/>
+<area shape="rect" id="node22" href="$rmap_8c_acf641aae92829ae864b6c3d8f94d86e2.html#acf641aae92829ae864b6c3d8f94d86e2" title="set a data address" alt="" coords="1144,1287,1299,1314"/>
+<area shape="rect" id="node24" href="$test__cmp__max__used__bits__list_8c_a7ac38fce3243a7dcf448301ee9ffd392.html#a7ac38fce3243a7dcf448301ee9ffd392" title=" " alt="" coords="1397,781,1464,807"/>
+<area shape="rect" id="node25" href="$rdcu__rmap_8c_a95fad3cd9b6bbe562e1a73e3f1c108a8.html#a95fad3cd9b6bbe562e1a73e3f1c108a8" title="submit an rmap command transaction" alt="" coords="764,967,887,994"/>
+<area shape="rect" id="node32" href="$rdcu__rmap_8c_a36f44335aa66dd49fb4903f7269bc5b1.html#a36f44335aa66dd49fb4903f7269bc5b1" title="grab a slot in the transaction log" alt="" coords="751,917,900,943"/>
+<area shape="rect" id="node26" href="$rdcu__rmap_8c_a1a064554031c2fa2dcb65541e0765c0f.html#a1a064554031c2fa2dcb65541e0765c0f" title="n rmap command transaction" alt="" coords="963,933,1089,959"/>
+<area shape="rect" id="node27" href="$rmap_8c_abf1868ec6873f9f189050cadc7e64a3b.html#abf1868ec6873f9f189050cadc7e64a3b" title="calculate the CRC8 of a given buffer" alt="" coords="1176,831,1267,858"/>
+<area shape="rect" id="node28" href="$rmap_8c_a5e88a29337404518eceedf9b4af285bf.html#a5e88a29337404518eceedf9b4af285bf" title=" " alt="" coords="1158,882,1285,909"/>
+<area shape="rect" id="node29" href="$rmap_8c_a46d3271304c12df042b57dbebaba67e1.html#a46d3271304c12df042b57dbebaba67e1" title="create an rmap packet from a buffer" alt="" coords="1138,1034,1305,1061"/>
+<area shape="rect" id="node30" href="$rdcu__rmap_8c_acf9b176d8d9b24e9d07711f56aebccc0.html#acf9b176d8d9b24e9d07711f56aebccc0" title="get the local address for a slot" alt="" coords="1148,933,1295,959"/>
+<area shape="rect" id="node31" href="$rdcu__rmap_8c_a7012f58a1862cf07b00e299d24c199c2.html#a7012f58a1862cf07b00e299d24c199c2" title="release a slot in the transaction log" alt="" coords="1137,983,1305,1010"/>
+<area shape="rect" id="node34" href="$rdcu__cmd_8c_a74e516b7241b64b758f665052f1c5bf8.html#a74e516b7241b64b758f665052f1c5bf8" title="create a command to read the RDCU compressed data adaptive 2 size register" alt="" coords="492,836,663,877"/>
+<area shape="rect" id="node36" href="$rdcu__cmd_8c_a4bdc6be33663c0a5fe3cb92b30f9a38d.html#a4bdc6be33663c0a5fe3cb92b30f9a38d" title="create a command to read the RDCU compressed data size register" alt="" coords="493,901,662,943"/>
+<area shape="rect" id="node38" href="$rdcu__cmd_8c_a78501ca0e919698834cc00287d186d1e.html#a78501ca0e919698834cc00287d186d1e" title="create a command to read the RDCU compressed data start address register" alt="" coords="493,1084,662,1125"/>
+<area shape="rect" id="node40" href="$rdcu__cmd_8c_aec4806ecfa8d82569778cdc30d8854eb.html#aec4806ecfa8d82569778cdc30d8854eb" title="create a command to read the RDCU compression error register" alt="" coords="493,1149,662,1191"/>
+<area shape="rect" id="node42" href="$rdcu__cmd_8c_af2d361b4f536a99ae87968cf1f1a412b.html#af2d361b4f536a99ae87968cf1f1a412b" title="create a command to read the RDCU updated model start address register" alt="" coords="476,1215,679,1256"/>
+<area shape="rect" id="node44" href="$rdcu__cmd_8c_a9a23215025204062c5bfc18ea2947369.html#a9a23215025204062c5bfc18ea2947369" title="create a command to read the RDCU used number of samples register" alt="" coords="467,1281,688,1307"/>
+<area shape="rect" id="node46" href="$rdcu__cmd_8c_aa22cbc05ef71a00a8c3f3c775ce07781.html#aa22cbc05ef71a00a8c3f3c775ce07781" title="create a command to read the RDCU used parameter 1 register" alt="" coords="498,1332,657,1373"/>
+<area shape="rect" id="node48" href="$rdcu__cmd_8c_a94908117249b8e8c3434b03067948cfc.html#a94908117249b8e8c3434b03067948cfc" title="create a command to read the RDCU unused parameter 2 register" alt="" coords="498,1019,657,1060"/>
+<area shape="rect" id="node50" href="$rdcu__rmap_8c_a2650ed06998d198567938a9e933e1761.html#a2650ed06998d198567938a9e933e1761" title="get the RDCU &lt;&#45;&gt; ICU mirror RMAP synchronisation status" alt="" coords="738,806,913,833"/>
+</map>

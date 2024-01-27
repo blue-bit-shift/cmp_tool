@@ -1,0 +1,5 @@
+<map id="rdcu_read_cmd_used_param2" name="rdcu_read_cmd_used_param2">
+<area shape="rect" id="node1" title="create a command to read the RDCU unused parameter 2 register" alt="" coords="437,5,596,47"/>
+<area shape="rect" id="node2" href="$rdcu__ctrl_8c_acd4f9a1b2f7c671a6ead44dd579814e5.html#acd4f9a1b2f7c671a6ead44dd579814e5" title="sync the Used Parameter 2 (read only)" alt="" coords="207,13,389,39"/>
+<area shape="rect" id="node3" href="$cmp__rdcu_8h_afb2e10f8b9d9e433d1b4a6a96f930097.html#afb2e10f8b9d9e433d1b4a6a96f930097" title="read out the metadata of an RDCU compression" alt="" coords="5,13,159,39"/>
+</map>

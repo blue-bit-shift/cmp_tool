@@ -1,0 +1,7 @@
+<map id="decode_zero" name="decode_zero">
+<area shape="rect" id="node1" title="decode the next code word with zero escape system mechanism from the bitstream" alt="" coords="5,31,109,57"/>
+<area shape="rect" id="node2" href="$read__bitstream_8h_ae9b99a3b550a98eba08bba186159ff7b.html#ae9b99a3b550a98eba08bba186159ff7b" title="same as bit_read_bits32() but subtract 1 from the extracted value" alt="" coords="157,5,324,32"/>
+<area shape="rect" id="node4" href="$read__bitstream_8h_a65b5e1cb1107340846d20cae42c8a00c.html#a65b5e1cb1107340846d20cae42c8a00c" title="refill the local register from the buffer previously set in bit_init_decoder()" alt="" coords="203,56,278,83"/>
+<area shape="rect" id="node3" href="$read__bitstream_8h_ad1aa8029b694397da24a84fcdc75acab.html#ad1aa8029b694397da24a84fcdc75acab" title="mark next n bits in the local register as consumed" alt="" coords="397,5,533,32"/>
+<area shape="rect" id="node5" href="$read__bitstream_8h_a4de9ebb7d031d3dcf638b7d0ae6f166d.html#a4de9ebb7d031d3dcf638b7d0ae6f166d" title="read 8 bytes of big&#45;endian data from an unaligned address" alt="" coords="372,56,557,83"/>
+</map>

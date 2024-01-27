@@ -1,0 +1,4 @@
+<map id="rdcu_read_cmd_rmap_pckt_err_cntrs" name="rdcu_read_cmd_rmap_pckt_err_cntrs">
+<area shape="rect" id="node1" title="create a command to read the RDCU RMAP packet error counter register" alt="" coords="216,5,379,47"/>
+<area shape="rect" id="node2" href="$rdcu__ctrl_8c_ad75fae6e384d593a5c71543a299bac97.html#ad75fae6e384d593a5c71543a299bac97" title="sync the RMAP Packet Error Counter register (read only)" alt="" coords="5,5,168,47"/>
+</map>

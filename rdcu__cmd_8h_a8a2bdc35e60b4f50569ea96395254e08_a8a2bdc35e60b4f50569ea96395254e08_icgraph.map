@@ -1,0 +1,9 @@
+<map id="rdcu_write_cmd_data" name="rdcu_write_cmd_data">
+<area shape="rect" id="node1" title="create a command to write arbitrary data to the RDCU" alt="" coords="892,92,1053,119"/>
+<area shape="rect" id="node2" href="$rdcu__ctrl_8c_ad5c3a06d535b0f8aa6d5bcaadfdca1f3.html#ad5c3a06d535b0f8aa6d5bcaadfdca1f3" title="sync a range of 32 bit words of the local mirror to the remote SRAM" alt="" coords="649,63,844,89"/>
+<area shape="rect" id="node7" href="$rdcu__ctrl_8c_a6633b7b026950cffc57092377e3350ec.html#a6633b7b026950cffc57092377e3350ec" title="sync a range of 32 bit words of the remote SRAM to the local mirror and form the local mirror to the ..." alt="" coords="427,139,601,181"/>
+<area shape="rect" id="node3" href="$cmp__rdcu_8c_ab69cf44ac326e0cebdef002e8f2ea2cb.html#ab69cf44ac326e0cebdef002e8f2ea2cb" title="compressing data with the help of the RDCU hardware compressor; read data from the last compression b..." alt="" coords="5,81,161,122"/>
+<area shape="rect" id="node4" href="$cmp__rdcu_8c_af59f75c76a057d49a54b54800dc59556.html#af59f75c76a057d49a54b54800dc59556" title="inject a SRAM edac multi bit error into the RDCU SRAM" alt="" coords="209,37,379,64"/>
+<area shape="rect" id="node5" href="$cmp__rdcu_8c_aa257971c693045ef23e6c79879b32473.html#aa257971c693045ef23e6c79879b32473" title="set up RDCU SRAM for compression" alt="" coords="440,88,588,115"/>
+<area shape="rect" id="node6" href="$cmp__rdcu_8h_a85aeb890a333d637dd7ffba03729e93a.html#a85aeb890a333d637dd7ffba03729e93a" title="compressing data with the help of the RDCU hardware compressor" alt="" coords="216,88,372,115"/>
+</map>

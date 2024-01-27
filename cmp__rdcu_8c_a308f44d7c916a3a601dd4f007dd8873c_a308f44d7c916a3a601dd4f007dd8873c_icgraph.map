@@ -1,0 +1,14 @@
+<map id="rdcu_syncing" name="rdcu_syncing">
+<area shape="rect" id="node1" title="save repeating 3 lines of code..." alt="" coords="903,258,1009,285"/>
+<area shape="rect" id="node2" href="$cmp__rdcu_8c_ab69cf44ac326e0cebdef002e8f2ea2cb.html#ab69cf44ac326e0cebdef002e8f2ea2cb" title="compressing data with the help of the RDCU hardware compressor; read data from the last compression b..." alt="" coords="5,124,161,166"/>
+<area shape="rect" id="node3" href="$cmp__rdcu_8c_af59f75c76a057d49a54b54800dc59556.html#af59f75c76a057d49a54b54800dc59556" title="inject a SRAM edac multi bit error into the RDCU SRAM" alt="" coords="209,385,379,412"/>
+<area shape="rect" id="node4" href="$cmp__rdcu_8h_a0ef52214c3b0da6e9fbc56d7fa05c971.html#a0ef52214c3b0da6e9fbc56d7fa05c971" title="interrupt a data compression" alt="" coords="652,486,855,513"/>
+<area shape="rect" id="node5" href="$cmp__rdcu_8c_a1b450ab652a1da5f914786ce577458f9.html#a1b450ab652a1da5f914786ce577458f9" title="set up RDCU compression register" alt="" coords="432,436,599,478"/>
+<area shape="rect" id="node7" href="$cmp__rdcu_8h_a468b8082ee6e0134519743425b2194c4.html#a468b8082ee6e0134519743425b2194c4" title="read the compressed bitstream from the RDCU SRAM" alt="" coords="658,233,849,260"/>
+<area shape="rect" id="node8" href="$cmp__rdcu_8h_afb2e10f8b9d9e433d1b4a6a96f930097.html#afb2e10f8b9d9e433d1b4a6a96f930097" title="read out the metadata of an RDCU compression" alt="" coords="677,284,830,310"/>
+<area shape="rect" id="node9" href="$cmp__rdcu_8h_ab9573ccdf850671c2f0c6f90d39677e3.html#ab9573ccdf850671c2f0c6f90d39677e3" title="read out the status register of the RDCU compressor" alt="" coords="669,334,837,361"/>
+<area shape="rect" id="node10" href="$cmp__rdcu_8h_ae37779561352f0c47d0c51fcc9789cc9.html#ae37779561352f0c47d0c51fcc9789cc9" title="read the updated model from the RDCU SRAM" alt="" coords="227,30,361,57"/>
+<area shape="rect" id="node11" href="$cmp__rdcu_8c_a2816c91a0cc8b4c6c06d9f3531840f28.html#a2816c91a0cc8b4c6c06d9f3531840f28" title="start the RDCU data compressor" alt="" coords="427,132,604,158"/>
+<area shape="rect" id="node12" href="$cmp__rdcu_8c_aa257971c693045ef23e6c79879b32473.html#aa257971c693045ef23e6c79879b32473" title="set up RDCU SRAM for compression" alt="" coords="441,182,589,209"/>
+<area shape="rect" id="node6" href="$cmp__rdcu_8h_a85aeb890a333d637dd7ffba03729e93a.html#a85aeb890a333d637dd7ffba03729e93a" title="compressing data with the help of the RDCU hardware compressor" alt="" coords="216,182,372,209"/>
+</map>

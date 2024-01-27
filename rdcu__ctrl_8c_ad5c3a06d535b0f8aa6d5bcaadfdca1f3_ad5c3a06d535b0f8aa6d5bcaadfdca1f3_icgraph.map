@@ -1,0 +1,7 @@
+<map id="rdcu_sync_mirror_to_sram" name="rdcu_sync_mirror_to_sram">
+<area shape="rect" id="node1" title="sync a range of 32 bit words of the local mirror to the remote SRAM" alt="" coords="623,26,817,53"/>
+<area shape="rect" id="node2" href="$cmp__rdcu_8c_ab69cf44ac326e0cebdef002e8f2ea2cb.html#ab69cf44ac326e0cebdef002e8f2ea2cb" title="compressing data with the help of the RDCU hardware compressor; read data from the last compression b..." alt="" coords="5,19,161,60"/>
+<area shape="rect" id="node3" href="$cmp__rdcu_8c_af59f75c76a057d49a54b54800dc59556.html#af59f75c76a057d49a54b54800dc59556" title="inject a SRAM edac multi bit error into the RDCU SRAM" alt="" coords="209,26,379,53"/>
+<area shape="rect" id="node4" href="$cmp__rdcu_8c_aa257971c693045ef23e6c79879b32473.html#aa257971c693045ef23e6c79879b32473" title="set up RDCU SRAM for compression" alt="" coords="427,77,575,104"/>
+<area shape="rect" id="node5" href="$cmp__rdcu_8h_a85aeb890a333d637dd7ffba03729e93a.html#a85aeb890a333d637dd7ffba03729e93a" title="compressing data with the help of the RDCU hardware compressor" alt="" coords="216,77,372,104"/>
+</map>

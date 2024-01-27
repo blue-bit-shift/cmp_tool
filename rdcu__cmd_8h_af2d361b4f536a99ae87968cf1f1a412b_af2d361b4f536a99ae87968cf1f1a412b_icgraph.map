@@ -1,0 +1,5 @@
+<map id="rdcu_read_cmd_new_model_addr_used" name="rdcu_read_cmd_new_model_addr_used">
+<area shape="rect" id="node1" title="create a command to read the RDCU updated model start address register" alt="" coords="424,5,627,47"/>
+<area shape="rect" id="node2" href="$rdcu__ctrl_8c_a1a1d74548837b9254461e4976b04bf74.html#a1a1d74548837b9254461e4976b04bf74" title="sync the Model Info Start Address (read only)" alt="" coords="207,5,376,47"/>
+<area shape="rect" id="node3" href="$cmp__rdcu_8h_afb2e10f8b9d9e433d1b4a6a96f930097.html#afb2e10f8b9d9e433d1b4a6a96f930097" title="read out the metadata of an RDCU compression" alt="" coords="5,13,159,39"/>
+</map>

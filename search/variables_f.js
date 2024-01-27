@@ -1,0 +1,26 @@
+var searchData=
+[
+  ['rdcu_2193',['rdcu',['../rdcu__ctrl_8c_a12d1a6f51a755a2516f5881739e20e10.html#a12d1a6f51a755a2516f5881739e20e10',1,'rdcu_ctrl.c']]],
+  ['rdcu_5faddr_2194',['rdcu_addr',['../rdcu__rmap_8c_a8b156f7c3d66dc09129f3c171d16b43f.html#a8b156f7c3d66dc09129f3c171d16b43f',1,'rdcu_rmap.c']]],
+  ['rdcu_5fbuffer_5fadr_2195',['rdcu_buffer_adr',['../structcmp__cfg_a1bf1c97963241869b997d4aeacd10f21.html#a1bf1c97963241869b997d4aeacd10f21',1,'cmp_cfg']]],
+  ['rdcu_5fcmp_5fadr_5fused_2196',['rdcu_cmp_adr_used',['../structcmp__info_a91420da99fd6f71d6bb2705a9ecd9aab.html#a91420da99fd6f71d6bb2705a9ecd9aab',1,'cmp_info']]],
+  ['rdcu_5fdata_5fadr_2197',['rdcu_data_adr',['../structcmp__cfg_a7ed7c4c5b6528d9bb5489893917e381d.html#a7ed7c4c5b6528d9bb5489893917e381d',1,'cmp_cfg']]],
+  ['rdcu_5finterrupt_5fen_2198',['rdcu_interrupt_en',['../structcmp__status_aee958a5d1cb67a6421e68ad9d36ee94c.html#aee958a5d1cb67a6421e68ad9d36ee94c',1,'cmp_status']]],
+  ['rdcu_5fmodel_5fadr_2199',['rdcu_model_adr',['../structcmp__cfg_adcf3f38e5a494edf4331e2d4ae115429.html#adcf3f38e5a494edf4331e2d4ae115429',1,'cmp_cfg']]],
+  ['rdcu_5fnew_5fmodel_5fadr_2200',['rdcu_new_model_adr',['../structcmp__cfg_ad1c4b23346011b9deb89e8de637f1f99.html#ad1c4b23346011b9deb89e8de637f1f99',1,'cmp_cfg']]],
+  ['rdcu_5fnew_5fmodel_5fadr_5fused_2201',['rdcu_new_model_adr_used',['../structcmp__info_ac453f3291fec47b1bde4a3df163316f5.html#ac453f3291fec47b1bde4a3df163316f5',1,'cmp_info']]],
+  ['rdcu_5freset_2202',['rdcu_reset',['../structrdcu__mirror_a1151cc18f17dc6e70d1afb8b8ac59579.html#a1151cc18f17dc6e70d1afb8b8ac59579',1,'rdcu_mirror']]],
+  ['rdcu_5fstatus_2203',['rdcu_status',['../structrdcu__mirror_a69f59806323024221f5a3742554cf4f6.html#a69f59806323024221f5a3742554cf4f6',1,'rdcu_mirror']]],
+  ['reply_5faddr_5flen_2204',['reply_addr_len',['../structrmap__instruction_a660fcc8276df0384cf91acf5c77f49b4.html#a660fcc8276df0384cf91acf5c77f49b4',1,'rmap_instruction::reply_addr_len()'],['../rmap_8h_a95e64eb52f684bf064631e6556e16549.html#a95e64eb52f684bf064631e6556e16549',1,'reply_addr_len():&#160;rmap.h']]],
+  ['reserved_2205',['reserved',['../structrmap__instruction_aaa52f40eed46bb7d9416feebd7dfaf12.html#aaa52f40eed46bb7d9416feebd7dfaf12',1,'rmap_instruction::reserved()'],['../rmap_8h_acb7bc06bed6f6408d719334fc41698c7.html#acb7bc06bed6f6408d719334fc41698c7',1,'reserved():&#160;rmap.h']]],
+  ['ri_2206',['ri',['../structrmap__pkt_ac3fe0ab6feb2879cd845b58fd6f6b170.html#ac3fe0ab6feb2879cd845b58fd6f6b170',1,'rmap_pkt']]],
+  ['rmap_5flast_5ferr_2207',['rmap_last_err',['../structrdcu__mirror_a9ce4f4861dd90555b3ba88e4ea647385.html#a9ce4f4861dd90555b3ba88e4ea647385',1,'rdcu_mirror']]],
+  ['rmap_5fno_5freply_5ferr_5fcntrs_2208',['rmap_no_reply_err_cntrs',['../structrdcu__mirror_af3c68da48cf78a65d1aecbf6503d260b.html#af3c68da48cf78a65d1aecbf6503d260b',1,'rdcu_mirror']]],
+  ['rmap_5fpckt_5ferr_5fcntrs_2209',['rmap_pckt_err_cntrs',['../structrdcu__mirror_a5a3e4625a056370fd51b35901dd91cf6.html#a5a3e4625a056370fd51b35901dd91cf6',1,'rdcu_mirror']]],
+  ['rmap_5frx_2210',['rmap_rx',['../rdcu__rmap_8c_a5236a859b9025444d36baf5949db4d99.html#a5236a859b9025444d36baf5949db4d99',1,'rdcu_rmap.c']]],
+  ['rmap_5ftx_2211',['rmap_tx',['../rdcu__rmap_8c_a5d7c61c9b72565bf525c7e2b114366ab.html#a5d7c61c9b72565bf525c7e2b114366ab',1,'rdcu_rmap.c']]],
+  ['round_2212',['round',['../structcmp__cfg_a630401ad51f0dbbeaa19a428d439df52.html#a630401ad51f0dbbeaa19a428d439df52',1,'cmp_cfg']]],
+  ['round_5fused_2213',['round_used',['../structcmp__info_a9e67c0f37f60321bc87f574306048d2d.html#a9e67c0f37f60321bc87f574306048d2d',1,'cmp_info']]],
+  ['rpath_2214',['rpath',['../structrmap__pkt_a8d8b7fd97ab1fd131e6538c4444aefce.html#a8d8b7fd97ab1fd131e6538c4444aefce',1,'rmap_pkt::rpath()'],['../rdcu__rmap_8c_a5efe00bdeda876406c295059cdba21f3.html#a5efe00bdeda876406c295059cdba21f3',1,'rpath():&#160;rdcu_rmap.c']]],
+  ['rpath_5flen_2215',['rpath_len',['../structrmap__pkt_a2ab74de10e15836249a40465dd6d5623.html#a2ab74de10e15836249a40465dd6d5623',1,'rmap_pkt::rpath_len()'],['../rdcu__rmap_8c_a6fef450cd30a41293cda2d4defec20d6.html#a6fef450cd30a41293cda2d4defec20d6',1,'rpath_len():&#160;rdcu_rmap.c']]]
+];

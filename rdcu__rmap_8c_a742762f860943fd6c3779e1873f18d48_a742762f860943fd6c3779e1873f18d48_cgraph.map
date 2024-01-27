@@ -1,0 +1,4 @@
+<map id="rdcu_package" name="rdcu_package">
+<area shape="rect" id="node1" title="create a complete package from header and payload data including CRC8" alt="" coords="5,5,116,32"/>
+<area shape="rect" id="node2" href="$rmap_8c_abf1868ec6873f9f189050cadc7e64a3b.html#abf1868ec6873f9f189050cadc7e64a3b" title="calculate the CRC8 of a given buffer" alt="" coords="164,5,255,32"/>
+</map>

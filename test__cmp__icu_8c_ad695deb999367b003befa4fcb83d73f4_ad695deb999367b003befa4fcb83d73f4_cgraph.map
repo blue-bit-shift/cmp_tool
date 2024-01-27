@@ -1,0 +1,6 @@
+<map id="test_encode_value" name="test_encode_value">
+<area shape="rect" id="node1" title=" " alt="" coords="5,31,149,57"/>
+<area shape="rect" id="node2" href="$cmp__icu_8c_a5268c6512d945edcdc898cd1b2ca5396.html#a5268c6512d945edcdc898cd1b2ca5396" title="encodes the data with the model and the given setup and put it into the bitstream" alt="" coords="217,5,329,32"/>
+<area shape="rect" id="node3" href="$cmp__icu_8c_aa3eee2af4deb902d63df587a6a15af13.html#aa3eee2af4deb902d63df587a6a15af13" title="put the value unencoded with setup&#45;&gt;cmp_par_1 bits without any changes in the bitstream" alt="" coords="197,56,348,83"/>
+<area shape="rect" id="node4" href="$cmp__icu_8c_afd32ccddf2e0986e9ff136ae55a11d35.html#afd32ccddf2e0986e9ff136ae55a11d35" title="put the value of up to 32 bits into a big endian bitstream" alt="" coords="396,56,501,83"/>
+</map>

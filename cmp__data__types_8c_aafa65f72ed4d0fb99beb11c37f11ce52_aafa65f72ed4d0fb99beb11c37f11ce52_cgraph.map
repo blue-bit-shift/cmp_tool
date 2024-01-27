@@ -1,0 +1,5 @@
+<map id="cmp_cal_size_of_data" name="cmp_cal_size_of_data">
+<area shape="rect" id="node1" title="calculate the need bytes for the data" alt="" coords="5,42,171,69"/>
+<area shape="rect" id="node2" href="$cmp__support_8c_a9197caa657b3d84615c0d323dc96c502.html#a9197caa657b3d84615c0d323dc96c502" title="check if the data product data type is supported by the RDCU compressor" alt="" coords="219,5,377,47"/>
+<area shape="rect" id="node3" href="$cmp__data__types_8c_a0be8705b1dcc45f605abd8400dd5230b.html#a0be8705b1dcc45f605abd8400dd5230b" title="calculate the size of a sample for the different compression data type" alt="" coords="229,71,367,98"/>
+</map>

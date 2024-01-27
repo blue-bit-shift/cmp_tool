@@ -1,0 +1,13 @@
+<map id="test_rice_decoder" name="test_rice_decoder">
+<area shape="rect" id="node1" title=" " alt="" coords="5,81,143,108"/>
+<area shape="rect" id="node2" href="$read__bitstream_8h_aa1739fc7209fe65165c7262036a1969d.html#aa1739fc7209fe65165c7262036a1969d" title="initialize a bit_decoder" alt="" coords="191,5,317,32"/>
+<area shape="rect" id="node4" href="$read__bitstream_8h_a65b5e1cb1107340846d20cae42c8a00c.html#a65b5e1cb1107340846d20cae42c8a00c" title="refill the local register from the buffer previously set in bit_init_decoder()" alt="" coords="217,56,291,83"/>
+<area shape="rect" id="node5" href="$decmp_8c_a31e9c3bcbe70648b659fe3c8f4383045.html#a31e9c3bcbe70648b659fe3c8f4383045" title="decode the next Rice code word in the bitstream" alt="" coords="201,107,307,133"/>
+<area shape="rect" id="node10" href="$decmp_8c_ad77fca4bf62b97dc9fe6edabb0086709.html#ad77fca4bf62b97dc9fe6edabb0086709" title="decode the next unary code word in the bitstream" alt="" coords="399,157,517,184"/>
+<area shape="rect" id="node3" href="$read__bitstream_8h_a4de9ebb7d031d3dcf638b7d0ae6f166d.html#a4de9ebb7d031d3dcf638b7d0ae6f166d" title="read 8 bytes of big&#45;endian data from an unaligned address" alt="" coords="365,31,551,57"/>
+<area shape="rect" id="node6" href="$read__bitstream_8h_ad3b2702183e32bb737d84c8accd73066.html#ad3b2702183e32bb737d84c8accd73066" title="same as bit_read_bits32() but only returns 32 bit" alt="" coords="397,107,519,133"/>
+<area shape="rect" id="node7" href="$read__bitstream_8h_acf4864b9e402d8b801c0d3a8cd5dac3d.html#acf4864b9e402d8b801c0d3a8cd5dac3d" title="read and consume next n bits from the local register" alt="" coords="631,107,737,133"/>
+<area shape="rect" id="node8" href="$read__bitstream_8h_ad1aa8029b694397da24a84fcdc75acab.html#ad1aa8029b694397da24a84fcdc75acab" title="mark next n bits in the local register as consumed" alt="" coords="817,157,953,184"/>
+<area shape="rect" id="node9" href="$read__bitstream_8h_a12cac6ee9f16079c39d9fc7b61639597.html#a12cac6ee9f16079c39d9fc7b61639597" title="provides next n bits from local register; local register is not modified" alt="" coords="831,107,940,133"/>
+<area shape="rect" id="node11" href="$read__bitstream_8h_a08b1899a09b0b72856f441efae758d76.html#a08b1899a09b0b72856f441efae758d76" title="count the leading ones in the local register; local register is not modified" alt="" coords="599,208,769,235"/>
+</map>

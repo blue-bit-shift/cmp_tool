@@ -1,0 +1,10 @@
+<map id="rdcu_cfg_create" name="rdcu_cfg_create">
+<area shape="rect" id="node1" title="create an RDCU compression configuration" alt="" coords="5,123,131,149"/>
+<area shape="rect" id="node2" href="$cmp__support_8c_ab626f2778774ee7f0e79f4d50e79917c.html#ab626f2778774ee7f0e79f4d50e79917c" title="check if the compression data type, compression mode, model value and the lossy rounding parameters a..." alt="" coords="179,115,333,157"/>
+<area shape="rect" id="node3" href="$cmp__support_8c_af2129b98a4b5c7f856e97776962d7881.html#af2129b98a4b5c7f856e97776962d7881" title="check if the compression entity data product type is supported" alt="" coords="381,5,572,32"/>
+<area shape="rect" id="node4" href="$cmp__support_8c_a01181fec3ef69e316b4d77de4df9865f.html#a01181fec3ef69e316b4d77de4df9865f" title="check if an imagette compression data type is used" alt="" coords="383,57,571,98"/>
+<area shape="rect" id="node6" href="$cmp__support_8c_ad4e56eab7fecee45319e02049a9a4c6d.html#ad4e56eab7fecee45319e02049a9a4c6d" title="check if the compression mode is supported for an ICU compression" alt="" coords="385,123,569,149"/>
+<area shape="rect" id="node7" href="$cmp__support_8c_afba7806c424cfb8c7678c1b4cebdfcbb.html#afba7806c424cfb8c7678c1b4cebdfcbb" title="check if a model mode is selected" alt="" coords="395,173,558,200"/>
+<area shape="rect" id="node8" href="$cmp__support_8c_a3cc1e5c26a34a931e37f7d9ddba2ebd3.html#a3cc1e5c26a34a931e37f7d9ddba2ebd3" title="check if the compression mode is supported by the RDCU compressor" alt="" coords="398,225,555,266"/>
+<area shape="rect" id="node5" href="$cmp__support_8c_a9197caa657b3d84615c0d323dc96c502.html#a9197caa657b3d84615c0d323dc96c502" title="check if the data product data type is supported by the RDCU compressor" alt="" coords="620,57,779,98"/>
+</map>

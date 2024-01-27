@@ -1,0 +1,5 @@
+<map id="list_add_tail" name="list_add_tail">
+<area shape="rect" id="node1" title="add a new entry" alt="" coords="332,5,433,32"/>
+<area shape="rect" id="node2" href="$list_8h_a1c5ac6a6b04a03f5782e818daacf96e9.html#a1c5ac6a6b04a03f5782e818daacf96e9" title="delete from one list and add as another&#39;s tail" alt="" coords="169,5,284,32"/>
+<area shape="rect" id="node3" href="$list_8h_ace3524496c1d85a59486e73a292d0c84.html#ace3524496c1d85a59486e73a292d0c84" title="rotate the list to the left" alt="" coords="5,5,121,32"/>
+</map>

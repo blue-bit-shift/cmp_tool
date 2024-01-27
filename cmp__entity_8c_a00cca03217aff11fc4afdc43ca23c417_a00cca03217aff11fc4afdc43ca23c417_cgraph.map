@@ -1,0 +1,5 @@
+<map id="cmp_ent_get_data_buf" name="cmp_ent_get_data_buf">
+<area shape="rect" id="node1" title="get the start address of the compressed data in the compression entity" alt="" coords="5,35,176,61"/>
+<area shape="rect" id="node2" href="$cmp__entity_8c_a2f2b18a1db94847afbfc30a8e7f142cf.html#a2f2b18a1db94847afbfc30a8e7f142cf" title="get data_type from the compression entity header" alt="" coords="224,5,403,32"/>
+<area shape="rect" id="node3" href="$cmp__entity_8c_a8edb7fa093195536f03038be2a5341a4.html#a8edb7fa093195536f03038be2a5341a4" title="get the raw bit from the data_type field of the compression entity header" alt="" coords="224,57,403,98"/>
+</map>

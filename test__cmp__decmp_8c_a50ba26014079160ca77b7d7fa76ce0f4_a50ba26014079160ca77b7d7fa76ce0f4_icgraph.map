@@ -1,0 +1,4 @@
+<map id="compression_decompression" name="compression_decompression">
+<area shape="rect" id="node1" title="compress the given configuration and decompress it afterwards; finally compare the results" alt="" coords="248,13,459,39"/>
+<area shape="rect" id="node2" href="$test__cmp__decmp_8c_af3c162694b40683e0aa25c61a49cdafc.html#af3c162694b40683e0aa25c61a49cdafc" title="random compression decompression test" alt="" coords="5,5,200,47"/>
+</map>

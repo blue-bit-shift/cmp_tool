@@ -1,0 +1,4 @@
+<map id="rdcu_sync_sram_mirror_parallel" name="rdcu_sync_sram_mirror_parallel">
+<area shape="rect" id="node1" title="sync a range of 32 bit words of the remote SRAM to the local mirror and form the local mirror to the ..." alt="" coords="209,5,384,47"/>
+<area shape="rect" id="node2" href="$cmp__rdcu_8c_ab69cf44ac326e0cebdef002e8f2ea2cb.html#ab69cf44ac326e0cebdef002e8f2ea2cb" title="compressing data with the help of the RDCU hardware compressor; read data from the last compression b..." alt="" coords="5,5,161,47"/>
+</map>

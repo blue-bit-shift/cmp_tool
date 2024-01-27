@@ -1,0 +1,5 @@
+<map id="__list_del_entry" name="__list_del_entry">
+<area shape="rect" id="node1" title="deletes entry from list." alt="" coords="151,31,275,57"/>
+<area shape="rect" id="node2" href="$list_8h_ae1cde0f50b85945cfff23be4fc1586f4.html#ae1cde0f50b85945cfff23be4fc1586f4" title="deletes entry from list and reinitialize it." alt="" coords="5,5,103,32"/>
+<area shape="rect" id="node3" href="$list_8h_aee8df43e41969c2272acfd6ed6e75d4c.html#aee8df43e41969c2272acfd6ed6e75d4c" title="delete from one list and add as another&#39;s head" alt="" coords="11,56,97,83"/>
+</map>

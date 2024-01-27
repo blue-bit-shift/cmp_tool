@@ -1,0 +1,9 @@
+<map id="cmp_data_types.h" name="cmp_data_types.h">
+<area shape="rect" id="node1" title="definition of the different compression data types" alt="" coords="5,5,147,32"/>
+<area shape="rect" id="node2" title=" " alt="" coords="118,229,189,256"/>
+<area shape="rect" id="node3" href="$compiler_8h.html" title="a collection of preprocessor macros" alt="" coords="31,80,121,107"/>
+<area shape="rect" id="node4" href="$cmp__support_8h.html" title="compression/decompression helper functions" alt="" coords="146,80,337,107"/>
+<area shape="rect" id="node5" title=" " alt="" coords="81,155,156,181"/>
+<area shape="rect" id="node6" href="$cmp__max__used__bits_8h.html" title="definition and consents of the cmp_max_used_bits structure" alt="" coords="181,155,347,181"/>
+<area shape="rect" id="node7" href="$cmp__cal__up__model_8h.html" title="functions to calculate the update (new) model" alt="" coords="371,155,530,181"/>
+</map>

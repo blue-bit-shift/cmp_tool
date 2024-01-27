@@ -1,0 +1,4 @@
+<map id="rdcu_write_cmd_adc_ctrl" name="rdcu_write_cmd_adc_ctrl">
+<area shape="rect" id="node1" title="create a command to write the RDCU ADC control register" alt="" coords="199,5,381,32"/>
+<area shape="rect" id="node2" href="$rdcu__ctrl_8c_a9d13b49a29f7f873bcdb11f98b977dde.html#a9d13b49a29f7f873bcdb11f98b977dde" title="sync the ADC Control register (write only)" alt="" coords="5,5,151,32"/>
+</map>

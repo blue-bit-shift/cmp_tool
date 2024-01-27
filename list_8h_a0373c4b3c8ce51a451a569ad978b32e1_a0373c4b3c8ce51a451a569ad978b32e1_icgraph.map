@@ -1,0 +1,8 @@
+<map id="list_add" name="list_add">
+<area shape="rect" id="node1" title="add a new entry" alt="" coords="529,93,603,119"/>
+<area shape="rect" id="node2" href="$cmp__max__used__bits__list_8c_a3a9b1df3e78c09e9790dd6fef4b7a1c0.html#a3a9b1df3e78c09e9790dd6fef4b7a1c0" title="add a max_used_bits item to the list" alt="" coords="268,42,481,69"/>
+<area shape="rect" id="node5" href="$list_8h_aee8df43e41969c2272acfd6ed6e75d4c.html#aee8df43e41969c2272acfd6ed6e75d4c" title="delete from one list and add as another&#39;s head" alt="" coords="331,93,418,119"/>
+<area shape="rect" id="node6" href="$list_8h_aa88ecc2b45985151e559c4bd0a0a2a09.html#aa88ecc2b45985151e559c4bd0a0a2a09" title="replace entry1 with entry2 and re&#45;add entry1 at entry2&#39;s position" alt="" coords="333,143,416,170"/>
+<area shape="rect" id="node3" href="$test__decmp_8c_a27e5a2b67e3e81da1be024826485b2e3.html#a27e5a2b67e3e81da1be024826485b2e3" title=" " alt="" coords="37,5,188,47"/>
+<area shape="rect" id="node4" href="$test__cmp__max__used__bits__list_8c_acd1ebf1cab2751d1420a94e2c50ba6ce.html#acd1ebf1cab2751d1420a94e2c50ba6ce" title=" " alt="" coords="5,71,220,98"/>
+</map>

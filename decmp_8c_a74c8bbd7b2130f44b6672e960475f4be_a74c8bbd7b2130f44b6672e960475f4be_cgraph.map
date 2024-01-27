@@ -1,0 +1,52 @@
+<map id="decompressed_data_internal" name="decompressed_data_internal">
+<area shape="rect" id="node1" title="decompress the data based on a compression configuration" alt="" coords="5,1103,216,1129"/>
+<area shape="rect" id="node2" href="$read__bitstream_8h_aa1739fc7209fe65165c7262036a1969d.html#aa1739fc7209fe65165c7262036a1969d" title="initialize a bit_decoder" alt="" coords="549,1351,676,1377"/>
+<area shape="rect" id="node4" href="$read__bitstream_8h_acf4864b9e402d8b801c0d3a8cd5dac3d.html#acf4864b9e402d8b801c0d3a8cd5dac3d" title="read and consume next n bits from the local register" alt="" coords="309,56,415,83"/>
+<area shape="rect" id="node7" href="$read__bitstream_8h_a65b5e1cb1107340846d20cae42c8a00c.html#a65b5e1cb1107340846d20cae42c8a00c" title="refill the local register from the buffer previously set in bit_init_decoder()" alt="" coords="325,1831,399,1857"/>
+<area shape="rect" id="node8" href="$cmp__support_8c_ab7bfe528432579ce1b410441e03fd846.html#ab7bfe528432579ce1b410441e03fd846" title="check if an auxiliary science compression data type is used" alt="" coords="508,259,717,285"/>
+<area shape="rect" id="node9" href="$cmp__data__types_8c_aafa65f72ed4d0fb99beb11c37f11ce52.html#aafa65f72ed4d0fb99beb11c37f11ce52" title="calculate the need bytes for the data" alt="" coords="279,157,445,184"/>
+<area shape="rect" id="node12" href="$cmp__support_8c_aa74762a714e9924a221e698601c5d0dc.html#aa74762a714e9924a221e698601c5d0dc" title="check if the auxiliary science specific compression parameters are invalid" alt="" coords="273,376,451,403"/>
+<area shape="rect" id="node14" href="$cmp__support_8c_a01181fec3ef69e316b4d77de4df9865f.html#a01181fec3ef69e316b4d77de4df9865f" title="check if an imagette compression data type is used" alt="" coords="765,369,953,410"/>
+<area shape="rect" id="node15" href="$cmp__support_8c_a0ab443a00b23edf5f8de4cca89def25b.html#a0ab443a00b23edf5f8de4cca89def25b" title="check if the flux/center of brightness specific compression parameters are invalid" alt="" coords="264,429,460,456"/>
+<area shape="rect" id="node17" href="$cmp__support_8c_a3af135761eadd1f28a5f58a35903d381.html#a3af135761eadd1f28a5f58a35903d381" title="check if a flux/center of brightness compression data type is used" alt="" coords="527,427,699,469"/>
+<area shape="rect" id="node18" href="$cmp__support_8c_a6f2fb8760a0168031bcd7bc9cda97d1e.html#a6f2fb8760a0168031bcd7bc9cda97d1e" title="check if the imagette specific compression parameters are invalid" alt="" coords="281,547,443,589"/>
+<area shape="rect" id="node20" href="$cmp__data__types_8c_ad3eb578679bedba931eb2efd5741a1f9.html#ad3eb578679bedba931eb2efd5741a1f9" title="swap the endianness of uncompressed data form big endian to the cpu endianness (or the other way arou..." alt="" coords="279,805,445,846"/>
+<area shape="rect" id="node34" href="$decmp_8c_ae8bbe9e530e670af67db5d739f15f120.html#ae8bbe9e530e670af67db5d739f15f120" title="decompress N&#45;CAM background data" alt="" coords="270,972,454,999"/>
+<area shape="rect" id="node35" href="$cmp__support_8c_afba7806c424cfb8c7678c1b4cebdfcbb.html#afba7806c424cfb8c7678c1b4cebdfcbb" title="check if a model mode is selected" alt="" coords="531,1401,694,1428"/>
+<area shape="rect" id="node36" href="$decmp_8c_ac44d884cb830d9b0dbbca34c6db2de7d.html#ac44d884cb830d9b0dbbca34c6db2de7d" title="decompress fast normal light flux (F_FX) data" alt="" coords="295,1023,429,1049"/>
+<area shape="rect" id="node37" href="$decmp_8c_a84e912fefa1f49f27885af0d855a4989.html#a84e912fefa1f49f27885af0d855a4989" title="decompress F_FX_EFX data" alt="" coords="281,1073,443,1100"/>
+<area shape="rect" id="node38" href="$decmp_8c_aac2934ca104c49490be71c4966d2b173.html#aac2934ca104c49490be71c4966d2b173" title="decompress short F_FX_NCOB_ECOB data" alt="" coords="281,1125,443,1166"/>
+<area shape="rect" id="node39" href="$decmp_8c_a8310f64826697fb15c590854c08b3ad9.html#a8310f64826697fb15c590854c08b3ad9" title="decompress short F_FX_NCOB data" alt="" coords="277,1191,447,1217"/>
+<area shape="rect" id="node40" href="$decmp_8c_a62e230570f1d23f56fbe10fb238dbf1d.html#a62e230570f1d23f56fbe10fb238dbf1d" title="decompress imagette data" alt="" coords="279,1780,445,1807"/>
+<area shape="rect" id="node41" href="$decmp_8c_a75f3c5c08234bce92e84d07a93e9a77d.html#a75f3c5c08234bce92e84d07a93e9a77d" title="decompress long normal light flux (L_FX) data" alt="" coords="296,1241,428,1268"/>
+<area shape="rect" id="node42" href="$decmp_8c_aa06fff345fa7fd62fb4fd7a619c118fe.html#aa06fff345fa7fd62fb4fd7a619c118fe" title="decompress L_FX_EFX data" alt="" coords="282,1292,442,1319"/>
+<area shape="rect" id="node43" href="$decmp_8c_a36a5692cbd5d1e46805ba3f1dac23f60.html#a36a5692cbd5d1e46805ba3f1dac23f60" title="decompress L_FX_EFX_NCOB_ECOB data" alt="" coords="282,1343,442,1385"/>
+<area shape="rect" id="node44" href="$decmp_8c_a5883c910a0e8e829e60844e78da88e96.html#a5883c910a0e8e829e60844e78da88e96" title="decompress L_FX_NCOB data" alt="" coords="277,1409,447,1436"/>
+<area shape="rect" id="node45" href="$decmp_8c_a47d0a8b2f718f7d4659a34a6b516c79d.html#a47d0a8b2f718f7d4659a34a6b516c79d" title="decompress N&#45;CAM and F&#45;CAM offset data" alt="" coords="289,1460,435,1487"/>
+<area shape="rect" id="node46" href="$decmp_8c_ad57c4f63787216adcca82dca5a2c99ae.html#ad57c4f63787216adcca82dca5a2c99ae" title="decompress short normal light flux (S_FX) data" alt="" coords="295,1511,429,1537"/>
+<area shape="rect" id="node47" href="$decmp_8c_ae950fe1a6eeb3224f3491439a7149a1f.html#ae950fe1a6eeb3224f3491439a7149a1f" title="decompress S_FX_EFX data" alt="" coords="281,1561,443,1588"/>
+<area shape="rect" id="node48" href="$decmp_8c_aee9e79676f49da2b257ad810955e4f09.html#aee9e79676f49da2b257ad810955e4f09" title="decompress short S_FX_NCOB_ECOB data" alt="" coords="281,1613,443,1654"/>
+<area shape="rect" id="node49" href="$decmp_8c_a5075a002558af814210bd1c186a244f0.html#a5075a002558af814210bd1c186a244f0" title="decompress short S_FX_NCOB data" alt="" coords="275,1679,449,1705"/>
+<area shape="rect" id="node50" href="$decmp_8c_ab043a8a939e8818cf2875aecec205bb9.html#ab043a8a939e8818cf2875aecec205bb9" title="decompress N&#45;CAM smearing data" alt="" coords="277,921,447,948"/>
+<area shape="rect" id="node3" href="$read__bitstream_8h_a4de9ebb7d031d3dcf638b7d0ae6f166d.html#a4de9ebb7d031d3dcf638b7d0ae6f166d" title="read 8 bytes of big&#45;endian data from an unaligned address" alt="" coords="767,1401,952,1428"/>
+<area shape="rect" id="node5" href="$read__bitstream_8h_ad1aa8029b694397da24a84fcdc75acab.html#ad1aa8029b694397da24a84fcdc75acab" title="mark next n bits in the local register as consumed" alt="" coords="545,5,681,32"/>
+<area shape="rect" id="node6" href="$read__bitstream_8h_a12cac6ee9f16079c39d9fc7b61639597.html#a12cac6ee9f16079c39d9fc7b61639597" title="provides next n bits from local register; local register is not modified" alt="" coords="558,56,667,83"/>
+<area shape="rect" id="node10" href="$cmp__support_8c_a9197caa657b3d84615c0d323dc96c502.html#a9197caa657b3d84615c0d323dc96c502" title="check if the data product data type is supported by the RDCU compressor" alt="" coords="1001,369,1160,410"/>
+<area shape="rect" id="node11" href="$cmp__data__types_8c_a0be8705b1dcc45f605abd8400dd5230b.html#a0be8705b1dcc45f605abd8400dd5230b" title="calculate the size of a sample for the different compression data type" alt="" coords="543,107,682,133"/>
+<area shape="rect" id="node13" href="$cmp__support_8c_adbae174c7bd594fd05723ddc667f5b54.html#adbae174c7bd594fd05723ddc667f5b54" title="check if the combination of the different compression parameters is invalid" alt="" coords="531,376,695,403"/>
+<area shape="rect" id="node16" href="$cmp__support_8c_a3e5913a05465353d3ae640cd2359f8d7.html#a3e5913a05465353d3ae640cd2359f8d7" title="get needed compression parameter pairs for a flux/center of brightness data type" alt="" coords="535,310,690,351"/>
+<area shape="rect" id="node19" href="$cmp__support_8c_a1eff9dab3c3ab66953c329fa1bf38bb5.html#a1eff9dab3c3ab66953c329fa1bf38bb5" title="check if an adaptive imagette compression data type is used" alt="" coords="525,493,700,534"/>
+<area shape="rect" id="node21" href="$cmp__data__types_8c_a3cace4e9842b36891df0b0ad489a5475.html#a3cace4e9842b36891df0b0ad489a5475" title=" " alt="" coords="553,660,672,687"/>
+<area shape="rect" id="node22" href="$cmp__data__types_8c_a4bb5dbbff3bf89cd00d45ecd69edae93.html#a4bb5dbbff3bf89cd00d45ecd69edae93" title=" " alt="" coords="523,711,702,737"/>
+<area shape="rect" id="node23" href="$cmp__data__types_8c_a481b3b5c195ed6a0bd27658afb68e199.html#a481b3b5c195ed6a0bd27658afb68e199" title=" " alt="" coords="549,761,676,788"/>
+<area shape="rect" id="node24" href="$cmp__data__types_8c_a6c9c6b78c008567749e667d4ef517af6.html#a6c9c6b78c008567749e667d4ef517af6" title=" " alt="" coords="535,812,690,839"/>
+<area shape="rect" id="node25" href="$cmp__data__types_8c_a9d11d34d069e6ba9ba8236b89402d428.html#a9d11d34d069e6ba9ba8236b89402d428" title=" " alt="" coords="535,863,690,905"/>
+<area shape="rect" id="node26" href="$cmp__data__types_8c_a4f82d8b8427f788ad604c14cadf18ca8.html#a4f82d8b8427f788ad604c14cadf18ca8" title=" " alt="" coords="530,929,695,956"/>
+<area shape="rect" id="node27" href="$cmp__data__types_8c_ae9302203cd6ebebbf199e488d8e42039.html#ae9302203cd6ebebbf199e488d8e42039" title=" " alt="" coords="549,980,676,1007"/>
+<area shape="rect" id="node28" href="$cmp__data__types_8c_a400efed1c7b48988fba6974f6d2fc332.html#a400efed1c7b48988fba6974f6d2fc332" title=" " alt="" coords="535,1031,690,1057"/>
+<area shape="rect" id="node29" href="$cmp__data__types_8c_a20b4c948454832556538ff6335904ef5.html#a20b4c948454832556538ff6335904ef5" title=" " alt="" coords="535,1082,690,1123"/>
+<area shape="rect" id="node30" href="$cmp__data__types_8c_a0e82f77b5e2ff7dc6d88f30feaa3048c.html#a0e82f77b5e2ff7dc6d88f30feaa3048c" title=" " alt="" coords="531,1148,695,1175"/>
+<area shape="rect" id="node31" href="$cmp__data__types_8c_a18d9e97ef0ef8d9dc4f66cb6e90d42b4.html#a18d9e97ef0ef8d9dc4f66cb6e90d42b4" title=" " alt="" coords="543,1199,682,1225"/>
+<area shape="rect" id="node32" href="$cmp__data__types_8c_acb62fce2d42d1aea4985b6ef8102eeff.html#acb62fce2d42d1aea4985b6ef8102eeff" title=" " alt="" coords="548,1249,677,1276"/>
+<area shape="rect" id="node33" href="$cmp__data__types_8c_a1165a849fe375d4960616f9fc137f518.html#a1165a849fe375d4960616f9fc137f518" title=" " alt="" coords="534,1300,691,1327"/>
+</map>

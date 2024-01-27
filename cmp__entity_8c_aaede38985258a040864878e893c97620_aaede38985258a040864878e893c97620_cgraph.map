@@ -1,0 +1,5 @@
+<map id="cmp_ent_parese_imagette_header" name="cmp_ent_parese_imagette_header">
+<area shape="rect" id="node1" title="parse the imagette specific compressed entity header" alt="" coords="5,23,200,65"/>
+<area shape="rect" id="node2" href="$cmp__entity_8c_a4e4c9b1046c031cc9bbce7dff640e393.html#a4e4c9b1046c031cc9bbce7dff640e393" title="get the used Golomb parameter from the (adaptive) imagette specific compression entity header" alt="" coords="248,5,471,32"/>
+<area shape="rect" id="node3" href="$cmp__entity_8c_a58239f749d3abbbc019231ce70c60e19.html#a58239f749d3abbbc019231ce70c60e19" title="get the used spillover threshold parameter from the (adaptive) imagette specific compression entity h..." alt="" coords="273,56,445,83"/>
+</map>

@@ -1,0 +1,7 @@
+<map id="rdcu_read_sram" name="rdcu_read_sram">
+<area shape="rect" id="node1" title="read data from the local SRAM mirror" alt="" coords="448,56,575,82"/>
+<area shape="rect" id="node2" href="$cmp__rdcu_8c_ab69cf44ac326e0cebdef002e8f2ea2cb.html#ab69cf44ac326e0cebdef002e8f2ea2cb" title="compressing data with the help of the RDCU hardware compressor; read data from the last compression b..." alt="" coords="5,48,161,90"/>
+<area shape="rect" id="node3" href="$cmp__rdcu_8c_af59f75c76a057d49a54b54800dc59556.html#af59f75c76a057d49a54b54800dc59556" title="inject a SRAM edac multi bit error into the RDCU SRAM" alt="" coords="220,30,389,57"/>
+<area shape="rect" id="node4" href="$cmp__rdcu_8h_a468b8082ee6e0134519743425b2194c4.html#a468b8082ee6e0134519743425b2194c4" title="read the compressed bitstream from the RDCU SRAM" alt="" coords="209,81,400,108"/>
+<area shape="rect" id="node5" href="$cmp__rdcu_8h_ae37779561352f0c47d0c51fcc9789cc9.html#ae37779561352f0c47d0c51fcc9789cc9" title="read the updated model from the RDCU SRAM" alt="" coords="237,132,372,158"/>
+</map>

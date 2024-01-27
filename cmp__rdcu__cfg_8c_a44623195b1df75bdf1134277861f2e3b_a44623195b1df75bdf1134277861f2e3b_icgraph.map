@@ -1,0 +1,13 @@
+<map id="buffers_overlap" name="buffers_overlap">
+<area shape="rect" id="node1" title="check if two buffers are overlapping" alt="" coords="1065,118,1188,145"/>
+<area shape="rect" id="node2" href="$cmp__rdcu__cfg_8c_ac1e86a9fa0666daed0aa76b5853a80c5.html#ac1e86a9fa0666daed0aa76b5853a80c5" title="check if RDCU buffer settings are invalid" alt="" coords="871,111,1017,152"/>
+<area shape="rect" id="node3" href="$cmp__rdcu__cfg_8c_a02c709d575e0c6a1279c99af709854fd.html#a02c709d575e0c6a1279c99af709854fd" title="setup of the different data buffers for an RDCU compression" alt="" coords="667,86,797,113"/>
+<area shape="rect" id="node7" href="$cmp__rdcu__cfg_8c_abe8a949f8c993e8f052d6925b055b731.html#abe8a949f8c993e8f052d6925b055b731" title="check if the compressor configuration is invalid for an RDCU compression, see the user manual for mor..." alt="" coords="641,143,823,170"/>
+<area shape="rect" id="node4" href="$test__cmp__rdcu__cfg_8c_a732e9931c6386e694ef773a06918dec5.html#a732e9931c6386e694ef773a06918dec5" title=" " alt="" coords="429,5,591,47"/>
+<area shape="rect" id="node5" href="$test__cmp__rdcu__cfg_8c_a61454153a1f806bb3d720d2aea96e830.html#a61454153a1f806bb3d720d2aea96e830" title=" " alt="" coords="429,71,591,112"/>
+<area shape="rect" id="node6" href="$test__cmp__rdcu__cfg_8c_a5b00301d60061900aa1c1976e587aa30.html#a5b00301d60061900aa1c1976e587aa30" title=" " alt="" coords="429,136,591,177"/>
+<area shape="rect" id="node8" href="$cmp__rdcu_8c_a1b450ab652a1da5f914786ce577458f9.html#a1b450ab652a1da5f914786ce577458f9" title="set up RDCU compression register" alt="" coords="427,201,593,243"/>
+<area shape="rect" id="node9" href="$cmp__rdcu_8h_a85aeb890a333d637dd7ffba03729e93a.html#a85aeb890a333d637dd7ffba03729e93a" title="compressing data with the help of the RDCU hardware compressor" alt="" coords="216,158,372,185"/>
+<area shape="rect" id="node10" href="$cmp__rdcu_8c_ab69cf44ac326e0cebdef002e8f2ea2cb.html#ab69cf44ac326e0cebdef002e8f2ea2cb" title="compressing data with the help of the RDCU hardware compressor; read data from the last compression b..." alt="" coords="5,176,161,217"/>
+<area shape="rect" id="node11" href="$cmp__rdcu_8c_af59f75c76a057d49a54b54800dc59556.html#af59f75c76a057d49a54b54800dc59556" title="inject a SRAM edac multi bit error into the RDCU SRAM" alt="" coords="209,259,379,286"/>
+</map>

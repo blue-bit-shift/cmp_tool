@@ -1,0 +1,6 @@
+<map id="bit_read_bits32" name="bit_read_bits32">
+<area shape="rect" id="node1" title="same as bit_read_bits32() but only returns 32 bit" alt="" coords="5,31,128,57"/>
+<area shape="rect" id="node2" href="$read__bitstream_8h_acf4864b9e402d8b801c0d3a8cd5dac3d.html#acf4864b9e402d8b801c0d3a8cd5dac3d" title="read and consume next n bits from the local register" alt="" coords="176,31,283,57"/>
+<area shape="rect" id="node3" href="$read__bitstream_8h_ad1aa8029b694397da24a84fcdc75acab.html#ad1aa8029b694397da24a84fcdc75acab" title="mark next n bits in the local register as consumed" alt="" coords="331,5,467,32"/>
+<area shape="rect" id="node4" href="$read__bitstream_8h_a12cac6ee9f16079c39d9fc7b61639597.html#a12cac6ee9f16079c39d9fc7b61639597" title="provides next n bits from local register; local register is not modified" alt="" coords="344,56,453,83"/>
+</map>

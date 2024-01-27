@@ -1,0 +1,5 @@
+<map id="test_ent_ima_spill" name="test_ent_ima_spill">
+<area shape="rect" id="node1" title=" " alt="" coords="5,31,147,57"/>
+<area shape="rect" id="node2" href="$cmp__entity_8c_a58239f749d3abbbc019231ce70c60e19.html#a58239f749d3abbbc019231ce70c60e19" title="get the used spillover threshold parameter from the (adaptive) imagette specific compression entity h..." alt="" coords="195,5,367,32"/>
+<area shape="rect" id="node3" href="$cmp__entity_8c_aaf2a65e24eb510577c6521f3929d9a63.html#aaf2a65e24eb510577c6521f3929d9a63" title="set the used spillover threshold parameter in the (adaptive) imagette specific compression entity hea..." alt="" coords="195,56,366,83"/>
+</map>

@@ -1,0 +1,4 @@
+<map id="cmp_cfg_icu_max_used_bits" name="cmp_cfg_icu_max_used_bits">
+<area shape="rect" id="node1" title="set up the maximum length of the different data products types for an ICU compression" alt="" coords="5,13,213,39"/>
+<area shape="rect" id="node2" href="$cmp__support_8c_a2b6cc98a69a0301179da8c9b09677401.html#a2b6cc98a69a0301179da8c9b09677401" title="check if all entries in the max_used_bits structure are in the allowed range" alt="" coords="261,5,439,47"/>
+</map>
