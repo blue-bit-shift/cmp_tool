@@ -79,7 +79,7 @@ def del_directory(directoryPath):
 
 
 def cuc_timestamp(now):
-    epoch = datetime(2020, 1, 1)
+    epoch = datetime(2020, 1, 1, tzinfo=timezone.utc)
     timestamp = (now - epoch).total_seconds()
 
     cuc_coarse = int( math.floor(timestamp) * 256 * 256)

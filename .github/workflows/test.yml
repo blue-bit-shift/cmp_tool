@@ -37,7 +37,7 @@ jobs:
       with:
         python-version: '3.x'
     - name: Install packages
-      run: pip install meson ninja
+      run: pip install meson ninja pytest
     - name: MacOS build and run tests
       run: |
         meson setup \
