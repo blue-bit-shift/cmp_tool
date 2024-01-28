@@ -1260,6 +1260,7 @@ def test_model_fiel_erros():
     cfg_file_name = 'model_err.cfg'
     output_prefix = 'model_err_test'
     model_file_name = 'model.dat'
+    github_win_action = os.environ.get('GITHUB_ACTIONS') == 'true'
 
     try:
         with open(data_file_name, 'w', encoding='utf-8') as f:
@@ -1301,7 +1302,7 @@ def test_model_fiel_erros():
                          "longlonglonglonglonglonglonglonglonglonglonglonglong"
                          "longlonglonglonglonglonglonglonglonglonglonglonglong"
                          "longlonglonglonglonglonglonglonglonglong")
-        if sys.platform == 'win32' or sys.platform == 'cygwin':
+        if (sys.platform == 'win32' and not github_win_action) or sys.platform == 'cygwin':
           output_prefix = ("longlonglonglonglonglonglonglonglonglonglonglonglong"
                            "longlonglonglonglonglonglonglonglonglonglonglonglong"
                            "longlonglonglonglonglonglonglonglonglonglonglonglong"
