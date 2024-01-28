@@ -1295,6 +1295,7 @@ def test_model_fiel_erros():
         with open(model_file_name, 'w', encoding='utf-8') as f:
             f.write(data)
 
+        print(sys.platform)
         output_prefix = ("longlonglonglonglonglonglonglonglonglonglonglonglong"
                          "longlonglonglonglonglonglonglonglonglonglonglonglong"
                          "longlonglonglonglonglonglonglonglonglonglonglonglong"
