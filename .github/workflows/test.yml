@@ -88,6 +88,9 @@ jobs:
         python-version: '3.x'
     - name: Install packages
       run: pip install meson ninja pytest
+    - name: env
+      shell: bash
+      run: env
     - name: Windows build and run tests
       shell: bash
       run: |
