@@ -10,6 +10,7 @@ from pathlib import Path
 
 from datetime import datetime
 from datetime import timedelta
+from datetime import timezone
 
 
 EXIT_FAILURE = 1
@@ -447,9 +448,9 @@ def test_compression_diff():
                     assert(header['cmp_ent_size']['value'] == IMAGETTE_HEADER_SIZE+3)
                     assert(header['original_size']['value'] == 10)
                     # todo
-                    assert(header['start_time']['value'] < cuc_timestamp(datetime.utcnow()))
+                    assert(header['start_time']['value'] < cuc_timestamp(datetime.now(timezone.utc)))
                     # todo
-                    assert(header['end_timestamp']['value'] < cuc_timestamp(datetime.utcnow()))
+                    assert(header['end_timestamp']['value'] < cuc_timestamp(datetime.now(timezone.utc)))
                     assert(header['data_type']['value'] == 1)
                     assert(header['cmp_mode_used']['value'] == 2)
                     # assert(header['model_value_used']['value'] == 8)
@@ -582,9 +583,9 @@ def test_model_compression():
                 assert(header['cmp_ent_size']['value'] == IMAGETTE_ADAPTIVE_HEADER_SIZE+2)
                 assert(header['original_size']['value'] == 10)
                 # todo
-                assert(header['start_time']['value'] < cuc_timestamp(datetime.utcnow()))
+                assert(header['start_time']['value'] < cuc_timestamp(datetime.now(timezone.utc)))
                 #todo
-                assert(header['end_timestamp']['value'] < cuc_timestamp(datetime.utcnow()))
+                assert(header['end_timestamp']['value'] < cuc_timestamp(datetime.now(timezone.utc)))
                 assert(header['data_type']['value'] == DATA_TYPE_IMAGETTE_ADAPTIVE)
                 assert(header['cmp_mode_used']['value'] == 3)
                 assert(header['model_value_used']['value'] == int(cfg['model_value']))
@@ -691,9 +692,9 @@ def test_raw_mode_compression():
                     assert(header['cmp_ent_size']['value'] == GENERIC_HEADER_SIZE+10)
                     assert(header['original_size']['value'] == 10)
                     # todo
-                    assert(header['start_time']['value'] < cuc_timestamp(datetime.utcnow()))
+                    assert(header['start_time']['value'] < cuc_timestamp(datetime.now(timezone.utc)))
                     #todo
-                    assert(header['end_timestamp']['value'] < cuc_timestamp(datetime.utcnow()))
+                    assert(header['end_timestamp']['value'] < cuc_timestamp(datetime.now(timezone.utc)))
                     assert(header['data_type']['value'] == 1+0x8000)
                     # assert(header['cmp_mode_used']['value'] == 2)
                     # assert(header['model_value_used']['value'] == 8)
@@ -1017,8 +1018,8 @@ def test_sample_used_is_to_big():
     cmp_ent_size = IMAGETTE_HEADER_SIZE + len(cmp_data)//2
     original_size = 0xE # wrong original_size correct is 0xA
 
-    start_time = cuc_timestamp(datetime.utcnow())
-    end_time = cuc_timestamp(datetime.utcnow())
+    start_time = cuc_timestamp(datetime.now(timezone.utc))
+    end_time = cuc_timestamp(datetime.now(timezone.utc))
 
     data_type = 1
     cmp_mode_used = 2
@@ -1083,8 +1084,8 @@ def test_cmp_entity_not_4_byte_aligned():
     cmp_ent_size = IMAGETTE_HEADER_SIZE + len(cmp_data)//2
     original_size = 0xC
 
-    start_time = cuc_timestamp(datetime.utcnow())
-    end_time = cuc_timestamp(datetime.utcnow())
+    start_time = cuc_timestamp(datetime.now(timezone.utc))
+    end_time = cuc_timestamp(datetime.now(timezone.utc))
 
     data_type = 1
     cmp_mode_used = 2
@@ -1177,8 +1178,8 @@ def test_header_read_in():
     cmp_ent_size = IMAGETTE_HEADER_SIZE + len(cmp_data)//2
     original_size = 0xA
 
-    start_time = cuc_timestamp(datetime.utcnow())
-    end_time = cuc_timestamp(datetime.utcnow())
+    start_time = cuc_timestamp(datetime.now(timezone.utc))
+    end_time = cuc_timestamp(datetime.now(timezone.utc))
 
     data_type = 1
     cmp_mode_used = 2
