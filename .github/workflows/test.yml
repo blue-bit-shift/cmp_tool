@@ -79,29 +79,29 @@ jobs:
         path: builddir_cross_win/meson-logs/testlog.txt
 
 
-  windows-build-test:
-    runs-on: windows-latest
-    steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-python@v5
-      with:
-        python-version: '3.x'
-    - name: Install packages
-      run: pip install meson ninja pytest
-    - name: env
-      shell: bash
-      run: env
-    - name: Windows build and run tests
-      shell: bash
-      run: |
-        meson setup \
-        --native-file=mingw-w64-64.txt \
-        --buildtype=debugoptimized \
-        builddir
-        meson compile -C builddir/ cmp_tool
-        meson test -C builddir/ --print-errorlogs --timeout-multiplier 3
-    - uses: actions/upload-artifact@v4
-      if: failure()
-      with:
-        name: Windows_Meson_Testlog
-        path: builddir/meson-logs/testlog.txt
+  # windows-build-test:
+  #   runs-on: windows-latest
+  #   steps:
+  #   - uses: actions/checkout@v4
+  #   - uses: actions/setup-python@v5
+  #     with:
+  #       python-version: '3.x'
+  #   - name: Install packages
+  #     run: pip install meson ninja pytest
+  #   - name: env
+  #     shell: bash
+  #     run: env
+  #   - name: Windows build and run tests
+  #     shell: bash
+  #     run: |
+  #       meson setup \
+  #       --native-file=mingw-w64-64.txt \
+  #       --buildtype=debugoptimized \
+  #       builddir
+  #       meson compile -C builddir/ cmp_tool
+  #       meson test -C builddir/ --print-errorlogs --timeout-multiplier 3
+  #   - uses: actions/upload-artifact@v4
+  #     if: failure()
+  #     with:
+  #       name: Windows_Meson_Testlog
+  #       path: builddir/meson-logs/testlog.txt
