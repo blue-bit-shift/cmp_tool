@@ -1,7 +1,16 @@
-job:
+name: CodeChecker
+
+on: [push]
+
+permissions:
+  contents: read
+
+jobs:
   CodeChecker:
+    runs-on: ubuntu-latest
+    steps:
     - name: "Check out repository"
-    - uses: actions/checkout@v4
+      uses: actions/checkout@v4
 
     - name: "Install packages"
       run: |
