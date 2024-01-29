@@ -6,6 +6,8 @@ Compiled executables can be found [here](https://gitlab.phaidra.org/loidoltd15/c
 [![Test](https://github.com/blue-bit-shift/cmp_tool/actions/workflows/test.yml/badge.svg)](https://github.com/blue-bit-shift/cmp_tool/actions/workflows/test.yml)
 [![codecov](https://codecov.io/gh/blue-bit-shift/cmp_tool/graph/badge.svg?token=WK58GCPEY9)](https://codecov.io/gh/blue-bit-shift/cmp_tool)
 
+[Documentation](https://blue-bit-shift.github.io/cmp_tool/)
+
 ## Usage
 
 **usage:** `cmp_tool [options] [<argument>]`
