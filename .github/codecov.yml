@@ -1,0 +1,3 @@
+ignore:
+  - "lib/rdcu_compress/rdcu*"
+  - "lib/rdcu_compress/rmap.c"
