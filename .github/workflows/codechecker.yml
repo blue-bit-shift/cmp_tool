@@ -8,6 +8,8 @@ permissions:
 jobs:
   CodeChecker:
     runs-on: ubuntu-latest
+    env:
+      CC_ANALYZER_BIN: 'gcc:gcc-13'
     steps:
     - name: "Check out repository"
       uses: actions/checkout@v4
@@ -18,7 +20,6 @@ jobs:
         sudo apt-get -y install build-essential python3-pip ninja-build \
           cppcheck gcc-13
         pip install --pre meson
-        export CC_ANALYZER_BIN="gcc-13"
 
     # Prepare a build
     - name: "Prepare build"
