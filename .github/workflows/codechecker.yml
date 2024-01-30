@@ -15,13 +15,15 @@ jobs:
     - name: "Install packages"
       run: |
         sudo apt-get update
-        sudo apt-get -y install build-essential python3-pip ninja-build
-        pip install --pre meson pytest
+        sudo apt-get -y install build-essential python3-pip ninja-build \
+          cppcheck gcc-13
+        pip install --pre meson
 
     # Prepare a build
     - name: "Prepare build"
       run: |
         meson setup builddir
+        meson test -C builddir/ --print-errorlogs --timeout-multiplier 3
 
     # Run the analysis
     - uses: whisperity/codechecker-analysis-action@v1
