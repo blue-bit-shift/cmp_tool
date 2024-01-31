@@ -16,21 +16,25 @@
  * @brief max_used_bits list tests
  */
 
+#if !defined(__sparc__) && !defined(_WIN32) && !defined(_WIN64)
+#  define _GNU_SOURCE
+#  include <dlfcn.h>
+#endif
 
 #include <string.h>
-#include <dlfcn.h>
 
 #include <unity.h>
 
 #include <cmp_max_used_bits_list.h>
 
+#if !defined(__sparc__) && !defined(_WIN32) && !defined(_WIN64)
 /* if set the mock malloc will fail (return NULL) */
 static int malloc_fail;
 
 
 /*
  * mock of the malloc function; can controlled with the global malloc_fail variable
- * see:https://jayconrod.com/posts/23/tutorial--function-interposition-in-linux
+ * see: https://jayconrod.com/posts/23/tutorial--function-interposition-in-linux
  */
 
 void* malloc(size_t size)
@@ -45,10 +49,9 @@ void* malloc(size_t size)
 		/* The cast removes a gcc warning https://stackoverflow.com/a/31528674 */
 		TEST_ASSERT_NOT_NULL(real_malloc);
 	}
-
-	fprintf(stderr, "malloc(%zu)\n", size);
 	return real_malloc(size);
 }
+#endif
 
 
 /**
