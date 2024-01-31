@@ -1,0 +1,40 @@
+name: Coverage Action
+
+on: [push]
+
+permissions:
+  contents: read
+
+jobs:
+  linux-codecov:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install packages
+      run: |
+        sudo apt-get update
+        sudo apt-get -y install build-essential python3-pip ninja-build lcov
+        pip install --pre meson pytest gcovr
+    - name: Linux coverage report
+      run: |
+        meson setup \
+          -Db_coverage=true \
+          -Dc_args=-DNDEBUG \
+          builddir
+        meson test -C builddir/ --print-errorlogs --timeout-multiplier 3
+        ninja -C builddir coverage-xml
+        ls builddir/meson-logs
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        files: builddir/meson-logs/coverage.xml
+        flags: unittests
+        name: "linux [unit tests]"
+        fail_ci_if_error: true
+        verbose: true
+    - uses: actions/upload-artifact@v4
+      if: failure()
+      with:
+        name: Linux_Meson_Testlog
+        path: builddir/meson-logs/testlog.txt
