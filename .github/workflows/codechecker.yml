@@ -1,0 +1,40 @@
+name: CodeChecker
+
+on: [push]
+
+permissions:
+  contents: read
+
+jobs:
+  CodeChecker:
+    runs-on: ubuntu-latest
+    env:
+      CC_ANALYZER_BIN: 'gcc:gcc-13'
+    steps:
+    - name: "Check out repository"
+      uses: actions/checkout@v4
+
+    - name: "Install packages"
+      run: |
+        sudo apt-get update
+        sudo apt-get -y install build-essential python3-pip ninja-build \
+          cppcheck gcc-13
+        pip install --pre meson
+
+    # Prepare a build
+    - name: "Prepare build"
+      run: |
+        meson setup builddir
+        meson test -C builddir/ --print-errorlogs --timeout-multiplier 3
+
+    # Run the analysis
+    - uses: whisperity/codechecker-analysis-action@v1
+      id: codechecker
+      with:
+        logfile: ${{ github.workspace }}/builddir/compile_commands.json
+
+    # Upload the results to the CI.
+    - uses: actions/upload-artifact@v4
+      with:
+        name: "CodeChecker Bug Reports"
+        path: ${{ steps.codechecker.outputs.result-html-dir }}
