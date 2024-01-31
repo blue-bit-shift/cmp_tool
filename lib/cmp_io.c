@@ -25,14 +25,16 @@
 #include <ctype.h>
 #include <sys/stat.h>
 
+
 #include <cmp_tool-config.h>
+#include <compiler.h>
+
 #include <cmp_io.h>
 #include <cmp_support.h>
 #include <rdcu_cmd.h>
 #include <byteorder.h>
 #include <cmp_data_types.h>
 #include <my_inttypes.h>
-#include <cmp_io.h>
 
 
 /* directory to convert from data_type to string */
@@ -416,7 +418,7 @@ enum cmp_data_type string2data_type(const char *data_type_str)
 		if (isalpha(data_type_str[0])) {  /* check if mode is given as text */
 			size_t j;
 
-			for (j = 0; j < sizeof(data_type_string_table) / sizeof(data_type_string_table[0]); j++) {
+			for (j = 0; j < ARRAY_SIZE(data_type_string_table); j++) {
 				if (!strcmp(data_type_str, data_type_string_table[j].str)) {
 					data_type = data_type_string_table[j].data_type;
 					break;
@@ -449,7 +451,7 @@ const char *data_type2string(enum cmp_data_type data_type)
 	size_t j;
 	const char *string = "DATA_TYPE_UNKNOWN";
 
-	for (j = 0; j < sizeof(data_type_string_table) / sizeof(data_type_string_table[0]); j++) {
+	for (j = 0; j < ARRAY_SIZE(data_type_string_table); j++) {
 		if (data_type == data_type_string_table[j].data_type) {
 			string = data_type_string_table[j].str;
 			break;
@@ -495,7 +497,7 @@ int cmp_mode_parse(const char *cmp_mode_str, enum cmp_mode *cmp_mode)
 		return -1;
 
 	if (isalpha(cmp_mode_str[0])) {  /* check if mode is given as text */
-		for (j = 0; j < sizeof(conversion) / sizeof(conversion[0]); ++j) {
+		for (j = 0; j < ARRAY_SIZE(conversion); j++) {
 			if (!strcmp(cmp_mode_str, conversion[j].str)) {
 				*cmp_mode = conversion[j].cmp_mode;
 				return 0;
@@ -1487,41 +1489,6 @@ ssize_t read_file_cmp_entity(const char *file_name, struct cmp_entity *ent,
 				PROGRAM_NAME, file_name, cmp_ent_get_size(ent), (size_t)size);
 			return -1;
 		}
-	}
-
-	return size;
-}
-
-
-/**
- * @brief reads hex-encoded uint32_t samples from a file into a buffer
- *
- * @param file_name	data/model file name
- * @param buf		buffer to write the file content (can be NULL)
- * @param buf_size	size of the buf buffer in bytes
- * @param verbose_en	print verbose output if not zero
- *
- * @returns the size in bytes to store the file content; negative on error
- */
-
-ssize_t read_file32(const char *file_name, uint32_t *buf, uint32_t buf_size,
-		    int verbose_en)
-{
-	ssize_t size = read_file8(file_name, (uint8_t *)buf, buf_size, verbose_en);
-
-	if (size < 0)
-		return -1;
-
-	if (size & 0x3) {
-		fprintf(stderr, "%s: %s: Error: The data are not correct formatted. Expected multiple of 4 hex words.\n",
-				PROGRAM_NAME, file_name);
-		return -1;
-	}
-
-	if (buf) {
-		size_t i;
-		for (i = 0; i < buf_size/sizeof(uint32_t); i++)
-			be32_to_cpus(&buf[i]);
 	}
 
 	return size;

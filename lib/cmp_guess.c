@@ -142,7 +142,7 @@ static uint32_t pre_cal_method(struct cmp_cfg *cfg)
 	cfg->golomb_par = golomb_par_best;
 	cfg->spill = spill_best;
 
-	return cmp_size_best;
+	return (uint32_t)cmp_size_best;
 }
 
 
@@ -199,7 +199,7 @@ static uint32_t brute_force(struct cmp_cfg *cfg)
 	cfg->golomb_par = golomb_par_best;
 	cfg->spill = spill_best;
 
-	return cmp_size_best;
+	return (uint32_t)cmp_size_best;
 }
 
 
