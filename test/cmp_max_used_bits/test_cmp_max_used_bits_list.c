@@ -180,10 +180,11 @@ void test_cmp_max_used_bits_list(void)
 	TEST_ASSERT(!memcmp(p, &i_23, sizeof(struct cmp_max_used_bits)));
 
 	cmp_max_used_bits_list_empty();
-
+#if !defined(__sparc__) && !defined(_WIN32) && !defined(_WIN64)
 	/* error case */
 	malloc_fail = 1;
 	return_val = cmp_max_used_bits_list_add(&i_23);
 	TEST_ASSERT_EQUAL_INT(return_val, -1);
 	malloc_fail = 0;
+#endif
 }
