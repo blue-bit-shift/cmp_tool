@@ -676,6 +676,7 @@ static int parse_cfg(FILE *fp, struct cmp_cfg *cfg)
 				return -1;
 			continue;
 		}
+#if 0
 		if (!strcmp(token1, "cmp_par_mean")) {
 			if (atoui32(token1, token2, &cfg->cmp_par_mean))
 				return -1;
@@ -706,6 +707,7 @@ static int parse_cfg(FILE *fp, struct cmp_cfg *cfg)
 				return -1;
 			continue;
 		}
+#endif
 		if (!strcmp(token1, "rdcu_data_adr")) {
 			int i = sram_addr_to_int(token2);
 
@@ -1662,7 +1664,7 @@ static void write_cfg_internal(FILE *fp, const struct cmp_cfg *cfg)
 		fprintf(fp, "\n");
 		fprintf(fp, "#-------------------------------------------------------------------------------\n");
 	}
-
+#if 0
 	if (cmp_aux_data_type_is_used(cfg->data_type)) {
 		fprintf(fp, "# mean compression parameter\n");
 		fprintf(fp, "\n");
@@ -1698,6 +1700,7 @@ static void write_cfg_internal(FILE *fp, const struct cmp_cfg *cfg)
 			fprintf(fp, "#-------------------------------------------------------------------------------\n");
 		}
 	}
+#endif
 
 	if (cmp_fx_cob_data_type_is_used(cfg->data_type)) {
 		struct fx_cob_par needed_pars;
