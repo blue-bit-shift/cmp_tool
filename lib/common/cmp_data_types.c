@@ -54,7 +54,7 @@ uint64_t cmp_col_get_timestamp(const struct collection_hdr *col)
 
 uint16_t cmp_col_get_configuration_id(const struct collection_hdr *col)
 {
-	return (be16_to_cpu(col->configuration_id));
+	return be16_to_cpu(col->configuration_id);
 }
 
 
@@ -68,7 +68,7 @@ uint16_t cmp_col_get_configuration_id(const struct collection_hdr *col)
 
 uint16_t cmp_col_get_col_id(const struct collection_hdr *col)
 {
-	return (be16_to_cpu(col->collection_id));
+	return be16_to_cpu(col->collection_id);
 }
 
 
@@ -151,12 +151,26 @@ uint8_t cmp_col_get_sequence_num(const struct collection_hdr *col)
  *
  * @param col	pointer to a collection header
  *
- * @returns the collection length in bytes (TBC: without collection header)
+ * @returns the collection length in bytes
  */
 
-uint16_t cmp_col_get_length(const struct collection_hdr *col)
+uint16_t cmp_col_get_data_length(const struct collection_hdr *col)
 {
-	return (be16_to_cpu(col->collection_length));
+	return be16_to_cpu(col->collection_length);
+}
+
+
+/**
+ * @brief get the entire collection size (header plus data size)
+ *
+ * @param col	pointer to a collection header
+ *
+ * @returns the collection size in bytes
+ */
+
+uint32_t cmp_col_get_size(const struct collection_hdr *col)
+{
+	return COLLECTION_HDR_SIZE + cmp_col_get_data_length(col);
 }
 
 
@@ -338,7 +352,7 @@ int cmp_col_set_sequence_num(struct collection_hdr *col, uint8_t sequence_num)
  * @returns 0 on success, otherwise error
  */
 
-int cmp_col_set_length(struct collection_hdr *col, uint16_t length)
+int cmp_col_set_data_length(struct collection_hdr *col, uint16_t length)
 {
 	if (!col)
 		return -1;
@@ -346,6 +360,141 @@ int cmp_col_set_length(struct collection_hdr *col, uint16_t length)
 	col->collection_length = cpu_to_be16(length);
 	return 0;
 }
+
+
+/* TODO: doc string */
+
+enum cmp_data_type convert_subservice_to_cmp_data_type(uint8_t subservice)
+{
+	switch (subservice) {
+	case SST_NCxx_S_SCIENCE_IMAGETTE:
+		return DATA_TYPE_IMAGETTE;
+	case SST_NCxx_S_SCIENCE_SAT_IMAGETTE:
+		return DATA_TYPE_SAT_IMAGETTE;
+	case SST_NCxx_S_SCIENCE_OFFSET:
+		return DATA_TYPE_OFFSET;
+	case SST_NCxx_S_SCIENCE_BACKGROUND:
+		return DATA_TYPE_BACKGROUND;
+	case SST_NCxx_S_SCIENCE_SMEARING:
+		return DATA_TYPE_SMEARING;
+	case SST_NCxx_S_SCIENCE_S_FX:
+		return DATA_TYPE_S_FX;
+	case SST_NCxx_S_SCIENCE_S_FX_EFX:
+		return DATA_TYPE_S_FX_EFX;
+	case SST_NCxx_S_SCIENCE_S_FX_NCOB:
+		return DATA_TYPE_S_FX_NCOB;
+	case SST_NCxx_S_SCIENCE_S_FX_EFX_NCOB_ECOB:
+		return DATA_TYPE_S_FX_EFX_NCOB_ECOB;
+	case SST_NCxx_S_SCIENCE_L_FX:
+		return DATA_TYPE_L_FX;
+	case SST_NCxx_S_SCIENCE_L_FX_EFX:
+		return DATA_TYPE_L_FX_EFX;
+	case SST_NCxx_S_SCIENCE_L_FX_NCOB:
+		return DATA_TYPE_L_FX_NCOB;
+	case SST_NCxx_S_SCIENCE_L_FX_EFX_NCOB_ECOB:
+		return DATA_TYPE_L_FX_EFX_NCOB_ECOB;
+	case SST_NCxx_S_SCIENCE_F_FX:
+		return DATA_TYPE_F_FX;
+	case SST_NCxx_S_SCIENCE_F_FX_EFX:
+		return DATA_TYPE_F_FX_EFX;
+	case SST_NCxx_S_SCIENCE_F_FX_NCOB:
+		return DATA_TYPE_F_FX_NCOB;
+	case SST_NCxx_S_SCIENCE_F_FX_EFX_NCOB_ECOB:
+		return DATA_TYPE_F_FX_EFX_NCOB_ECOB;
+	case SST_FCx_S_SCIENCE_IMAGETTE:
+		return DATA_TYPE_F_CAM_IMAGETTE;
+	case SST_FCx_S_SCIENCE_OFFSET_VALUES:
+		return DATA_TYPE_F_CAM_OFFSET;
+	/* TODO: SST_FCx_S_BACKGROUND_VALUES and SST_NCxx_S_SCIENCE_IMAGETTE has
+	 * the same subservice number*/
+	/* case SST_FCx_S_BACKGROUND_VALUES: */
+	/* 	return DATA_TYPE_F_CAM_BACKGROUND; */
+	/* 	break; */
+	default:
+		return DATA_TYPE_UNKNOWN;
+	};
+}
+
+
+/* TODO: doc string */
+
+uint8_t convert_data_type_to_subservice(enum cmp_data_type data_type)
+{
+	uint8_t sst = 0;
+
+	switch (data_type) {
+	case DATA_TYPE_IMAGETTE:
+	case DATA_TYPE_IMAGETTE_ADAPTIVE:
+		sst = SST_NCxx_S_SCIENCE_IMAGETTE;
+		break;
+	case DATA_TYPE_SAT_IMAGETTE:
+	case DATA_TYPE_SAT_IMAGETTE_ADAPTIVE:
+		sst = SST_NCxx_S_SCIENCE_SAT_IMAGETTE;
+		break;
+	case DATA_TYPE_OFFSET:
+		sst = SST_NCxx_S_SCIENCE_OFFSET;
+		break;
+	case DATA_TYPE_BACKGROUND:
+		sst = SST_NCxx_S_SCIENCE_BACKGROUND;
+		break;
+	case DATA_TYPE_SMEARING:
+		sst = SST_NCxx_S_SCIENCE_SMEARING;
+		break;
+	case DATA_TYPE_S_FX:
+		sst = SST_NCxx_S_SCIENCE_S_FX;
+		break;
+	case DATA_TYPE_S_FX_EFX:
+		sst = SST_NCxx_S_SCIENCE_S_FX_EFX;
+		break;
+	case DATA_TYPE_S_FX_NCOB:
+		sst = SST_NCxx_S_SCIENCE_S_FX_NCOB;
+		break;
+	case DATA_TYPE_S_FX_EFX_NCOB_ECOB:
+		sst = SST_NCxx_S_SCIENCE_S_FX_EFX_NCOB_ECOB;
+		break;
+	case DATA_TYPE_L_FX:
+		sst = SST_NCxx_S_SCIENCE_L_FX;
+		break;
+	case DATA_TYPE_L_FX_EFX:
+		sst = SST_NCxx_S_SCIENCE_L_FX_EFX;
+		break;
+	case DATA_TYPE_L_FX_NCOB:
+		sst = SST_NCxx_S_SCIENCE_L_FX_NCOB;
+		break;
+	case DATA_TYPE_L_FX_EFX_NCOB_ECOB:
+		sst = SST_NCxx_S_SCIENCE_L_FX_EFX_NCOB_ECOB;
+		break;
+	case DATA_TYPE_F_FX:
+		sst = SST_NCxx_S_SCIENCE_F_FX;
+		break;
+	case DATA_TYPE_F_FX_EFX:
+		sst = SST_NCxx_S_SCIENCE_F_FX_EFX;
+		break;
+	case DATA_TYPE_F_FX_NCOB:
+		sst = SST_NCxx_S_SCIENCE_F_FX_NCOB;
+		break;
+	case DATA_TYPE_F_FX_EFX_NCOB_ECOB:
+		sst = SST_NCxx_S_SCIENCE_F_FX_EFX_NCOB_ECOB;
+		break;
+	case DATA_TYPE_F_CAM_IMAGETTE:
+	case DATA_TYPE_F_CAM_IMAGETTE_ADAPTIVE:
+		sst = SST_FCx_S_SCIENCE_IMAGETTE;
+		break;
+	case DATA_TYPE_F_CAM_OFFSET:
+		sst = SST_FCx_S_SCIENCE_OFFSET_VALUES;
+		break;
+	case DATA_TYPE_F_CAM_BACKGROUND:
+		sst = SST_FCx_S_BACKGROUND_VALUES;
+		break;
+	default:
+	case DATA_TYPE_UNKNOWN:
+		debug_print("Error: Unknown compression data type!\n");
+		sst = (uint8_t)-1;
+	};
+
+	return sst;
+}
+
 
 /**
  * @brief calculate the size of a sample for the different compression data type

@@ -99,6 +99,7 @@ uint32_t cmp_ent_cal_hdr_size(enum cmp_data_type data_type, int raw_mode_flag)
 		case DATA_TYPE_F_FX_EFX_NCOB_ECOB:
 		case DATA_TYPE_F_CAM_OFFSET:
 		case DATA_TYPE_F_CAM_BACKGROUND:
+		case DATA_TYPE_CHUNK:
 			size = NON_IMAGETTE_HEADER_SIZE;
 			break;
 		case DATA_TYPE_UNKNOWN:
@@ -1676,6 +1677,7 @@ void *cmp_ent_get_data_buf(struct cmp_entity *ent)
 	case DATA_TYPE_F_FX_EFX_NCOB_ECOB:
 	case DATA_TYPE_F_CAM_OFFSET:
 	case DATA_TYPE_F_CAM_BACKGROUND:
+	case DATA_TYPE_CHUNK:
 		return ent->non_ima.cmp_data;
 	/* LCOV_EXCL_START */
 	case DATA_TYPE_UNKNOWN:
@@ -1865,30 +1867,6 @@ int cmp_ent_write_cmp_pars(struct cmp_entity *ent, const struct cmp_cfg *cfg,
 	case DATA_TYPE_BACKGROUND:
 	case DATA_TYPE_F_CAM_BACKGROUND:
 	case DATA_TYPE_SMEARING:
-		if (cmp_ent_set_non_ima_cmp_par1(ent, cfg->cmp_par_mean))
-			return -1;
-		if (cmp_ent_set_non_ima_spill1(ent, cfg->spill_mean))
-			return -1;
-
-		if (cmp_ent_set_non_ima_cmp_par2(ent, cfg->cmp_par_variance))
-			return -1;
-		if (cmp_ent_set_non_ima_spill2(ent, cfg->spill_variance))
-			return -1;
-
-		if (cmp_ent_set_non_ima_cmp_par3(ent, cfg->cmp_par_pixels_error))
-			return -1;
-		if (cmp_ent_set_non_ima_spill3(ent, cfg->spill_pixels_error))
-			return -1;
-
-		cmp_ent_set_non_ima_cmp_par4(ent, 0);
-		cmp_ent_set_non_ima_spill4(ent, 0);
-
-		cmp_ent_set_non_ima_cmp_par5(ent, 0);
-		cmp_ent_set_non_ima_spill5(ent, 0);
-
-		cmp_ent_set_non_ima_cmp_par6(ent, 0);
-		cmp_ent_set_non_ima_spill6(ent, 0);
-		break;
 	case DATA_TYPE_S_FX:
 	case DATA_TYPE_S_FX_EFX:
 	case DATA_TYPE_S_FX_NCOB:
@@ -1901,34 +1879,34 @@ int cmp_ent_write_cmp_pars(struct cmp_entity *ent, const struct cmp_cfg *cfg,
 	case DATA_TYPE_F_FX_EFX:
 	case DATA_TYPE_F_FX_NCOB:
 	case DATA_TYPE_F_FX_EFX_NCOB_ECOB:
-		if (cmp_ent_set_non_ima_cmp_par1(ent, cfg->cmp_par_exp_flags))
+		if (cmp_ent_set_non_ima_cmp_par1(ent, cfg->cmp_par_1))
 			return -1;
-		if (cmp_ent_set_non_ima_spill1(ent, cfg->spill_exp_flags))
-			return -1;
-
-		if (cmp_ent_set_non_ima_cmp_par2(ent, cfg->cmp_par_fx))
-			return -1;
-		if (cmp_ent_set_non_ima_spill2(ent, cfg->spill_fx))
+		if (cmp_ent_set_non_ima_spill1(ent, cfg->spill_par_1))
 			return -1;
 
-		if (cmp_ent_set_non_ima_cmp_par3(ent, cfg->cmp_par_ncob))
+		if (cmp_ent_set_non_ima_cmp_par2(ent, cfg->cmp_par_2))
 			return -1;
-		if (cmp_ent_set_non_ima_spill3(ent, cfg->spill_ncob))
-			return -1;
-
-		if (cmp_ent_set_non_ima_cmp_par4(ent, cfg->cmp_par_efx))
-			return -1;
-		if (cmp_ent_set_non_ima_spill4(ent, cfg->spill_efx))
+		if (cmp_ent_set_non_ima_spill2(ent, cfg->spill_par_2))
 			return -1;
 
-		if (cmp_ent_set_non_ima_cmp_par5(ent, cfg->cmp_par_ecob))
+		if (cmp_ent_set_non_ima_cmp_par3(ent, cfg->cmp_par_3))
 			return -1;
-		if (cmp_ent_set_non_ima_spill5(ent, cfg->spill_ecob))
+		if (cmp_ent_set_non_ima_spill3(ent, cfg->spill_par_3))
 			return -1;
 
-		if (cmp_ent_set_non_ima_cmp_par6(ent, cfg->cmp_par_fx_cob_variance))
+		if (cmp_ent_set_non_ima_cmp_par4(ent, cfg->cmp_par_4))
 			return -1;
-		if (cmp_ent_set_non_ima_spill6(ent, cfg->spill_fx_cob_variance))
+		if (cmp_ent_set_non_ima_spill4(ent, cfg->spill_par_4))
+			return -1;
+
+		if (cmp_ent_set_non_ima_cmp_par5(ent, cfg->cmp_par_5))
+			return -1;
+		if (cmp_ent_set_non_ima_spill5(ent, cfg->spill_par_5))
+			return -1;
+
+		if (cmp_ent_set_non_ima_cmp_par6(ent, cfg->cmp_par_6))
+			return -1;
+		if (cmp_ent_set_non_ima_spill6(ent, cfg->spill_par_6))
 			return -1;
 
 		break;
@@ -2414,6 +2392,50 @@ static void cmp_ent_parese_adaptive_imagette_header(const struct cmp_entity *ent
 
 
 /**
+ * @brief parse the non-imagette specific compressed entity header
+ *
+ * @param ent	pointer to a compression entity
+ */
+
+static void cmp_ent_parese_non_imagette_header(const struct cmp_entity *ent)
+{
+	uint32_t spill_1_used, cmp_par_1_used, spill_2_used, cmp_par_2_used,
+		 spill_3_used, cmp_par_3_used, spill_4_used, cmp_par_4_used,
+		 spill_5_used, cmp_par_5_used;
+
+	spill_1_used = cmp_ent_get_non_ima_spill1(ent);
+	printf("Used Spillover Threshold Parameter 1: %" PRIu32 "\n", spill_1_used);
+
+	cmp_par_1_used = cmp_ent_get_non_ima_cmp_par1(ent);
+	printf("Used Compression Parameter 1: %" PRIu32 "\n", cmp_par_1_used);
+
+	spill_2_used = cmp_ent_get_non_ima_spill2(ent);
+	printf("Used Spillover Threshold Parameter 2: %" PRIu32 "\n", spill_2_used);
+
+	cmp_par_2_used = cmp_ent_get_non_ima_cmp_par2(ent);
+	printf("Used Compression Parameter 2: %" PRIu32 "\n", cmp_par_2_used);
+
+	spill_3_used = cmp_ent_get_non_ima_spill3(ent);
+	printf("Used Spillover Threshold Parameter 3: %" PRIu32 "\n", spill_3_used);
+
+	cmp_par_3_used = cmp_ent_get_non_ima_cmp_par3(ent);
+	printf("Used Compression Parameter 3: %" PRIu32 "\n", cmp_par_3_used);
+
+	spill_4_used = cmp_ent_get_non_ima_spill4(ent);
+	printf("Used Spillover Threshold Parameter 4: %" PRIu32 "\n", spill_4_used);
+
+	cmp_par_4_used = cmp_ent_get_non_ima_cmp_par4(ent);
+	printf("Used Compression Parameter 4: %" PRIu32 "\n", cmp_par_4_used);
+
+	spill_5_used = cmp_ent_get_non_ima_spill5(ent);
+	printf("Used Spillover Threshold Parameter 5: %" PRIu32 "\n", spill_5_used);
+
+	cmp_par_5_used = cmp_ent_get_non_ima_cmp_par5(ent);
+	printf("Used Compression Parameter 5: %" PRIu32 "\n", cmp_par_5_used);
+}
+
+
+/**
  * @brief parse the specific compressed entity header
  *
  * @param ent	pointer to a compression entity
@@ -2438,6 +2460,26 @@ static void cmp_ent_parese_specific_header(const struct cmp_entity *ent)
 	case DATA_TYPE_SAT_IMAGETTE_ADAPTIVE:
 	case DATA_TYPE_F_CAM_IMAGETTE_ADAPTIVE:
 		cmp_ent_parese_adaptive_imagette_header(ent);
+		break;
+	case DATA_TYPE_OFFSET:
+	case DATA_TYPE_BACKGROUND:
+	case DATA_TYPE_SMEARING:
+	case DATA_TYPE_S_FX:
+	case DATA_TYPE_S_FX_EFX:
+	case DATA_TYPE_S_FX_NCOB:
+	case DATA_TYPE_S_FX_EFX_NCOB_ECOB:
+	case DATA_TYPE_L_FX:
+	case DATA_TYPE_L_FX_EFX:
+	case DATA_TYPE_L_FX_NCOB:
+	case DATA_TYPE_L_FX_EFX_NCOB_ECOB:
+	case DATA_TYPE_F_FX:
+	case DATA_TYPE_F_FX_EFX:
+	case DATA_TYPE_F_FX_NCOB:
+	case DATA_TYPE_F_FX_EFX_NCOB_ECOB:
+	case DATA_TYPE_F_CAM_OFFSET:
+	case DATA_TYPE_F_CAM_BACKGROUND:
+	case DATA_TYPE_CHUNK:
+		cmp_ent_parese_non_imagette_header(ent);
 		break;
 	default:
 		printf("For this data product type no parse functions is implemented!\n");

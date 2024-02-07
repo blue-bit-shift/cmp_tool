@@ -58,7 +58,7 @@ void test_cmp_col_get_and_set(void)
 	err = cmp_col_set_timestamp(col, 0x000102030405);
 	TEST_ASSERT_FALSE(err);
 	timestamp = cmp_col_get_timestamp(col);
-	TEST_ASSERT_EQUAL_HEX64(0x000102030405, timestamp);
+	TEST_ASSERT_EQUAL(0x000102030405, timestamp);
 	/* error cases */
 	err = cmp_col_set_timestamp(NULL, 0x000102030405);
 	TEST_ASSERT_TRUE(err);
@@ -85,6 +85,7 @@ void test_cmp_col_get_and_set(void)
 	err = cmp_col_set_pkt_type(NULL, 1);
 	TEST_ASSERT_TRUE(err);
 	err = cmp_col_set_pkt_type(col, 0);
+	TEST_ASSERT_FALSE(err);
 
 	err = cmp_col_set_subservice(col, 0x3F);
 	TEST_ASSERT_FALSE(err);
@@ -97,6 +98,7 @@ void test_cmp_col_get_and_set(void)
 	err = cmp_col_set_subservice(NULL, 0x3F);
 	TEST_ASSERT_TRUE(err);
 	err = cmp_col_set_subservice(col, 0);
+	TEST_ASSERT_FALSE(err);
 
 	err = cmp_col_set_ccd_id(col, 0x3);
 	TEST_ASSERT_FALSE(err);
@@ -109,6 +111,7 @@ void test_cmp_col_get_and_set(void)
 	err = cmp_col_set_ccd_id(NULL, 0x3);
 	TEST_ASSERT_TRUE(err);
 	err = cmp_col_set_ccd_id(col, 0);
+	TEST_ASSERT_FALSE(err);
 
 	err = cmp_col_set_sequence_num(col, 0x7F);
 	TEST_ASSERT_FALSE(err);
@@ -130,12 +133,12 @@ void test_cmp_col_get_and_set(void)
 	err = cmp_col_set_col_id(NULL, 0x0809);
 	TEST_ASSERT_TRUE(err);
 
-	err = cmp_col_set_length(col, 0x0A0B);
+	err = cmp_col_set_data_length(col, 0x0A0B);
 	TEST_ASSERT_FALSE(err);
-	collection_length = cmp_col_get_length(col);
+	collection_length = cmp_col_get_data_length(col);
 	TEST_ASSERT_EQUAL_HEX16(0x0A0B, collection_length);
 	/* error cases */
-	err = cmp_col_set_length(NULL, 0x0A0B);
+	err = cmp_col_set_data_length(NULL, 0x0A0B);
 	TEST_ASSERT_TRUE(err);
 
 	for (i = 0; i < sizeof(struct collection_hdr); i++) {

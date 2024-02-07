@@ -68,6 +68,11 @@
 /* size of a collection (multi entry) header */
 #define COLLECTION_HDR_SIZE 12
 
+enum col_packet_type {
+	COL_WINDOW_PKT_TYPE = 0,
+	COL_SCI_PKTS_TYPE = 1
+};
+
 
 /**
  * @brief source data header structure for collection packet
@@ -75,8 +80,9 @@
  *	entries of the same science data
  * @see PLATO-LESIA-PL-RP-0031(N-DPU->ICU data rate)
  */
-union collection_id{
+union collection_id {
 	uint16_t collection_id;
+	__extension__
 	struct {
 #ifdef __LITTLE_ENDIAN
 		uint16_t sequence_num:7;
@@ -90,7 +96,7 @@ union collection_id{
 		uint16_t sequence_num:7;
 #endif
 	} field __attribute__((packed));
-}__attribute__((packed));
+} __attribute__((packed));
 
 __extension__
 struct collection_hdr {
@@ -102,6 +108,7 @@ struct collection_hdr {
 } __attribute__((packed));
 compile_time_assert(sizeof(struct collection_hdr) == COLLECTION_HDR_SIZE, N_DPU_ICU_COLLECTION_HDR_SIZE_IS_NOT_CORRECT);
 compile_time_assert(sizeof(struct collection_hdr) % sizeof(uint32_t) == 0, N_DPU_ICU_COLLECTION_HDR_NOT_4_BYTE_ALLIED);
+/* TODO: compile_time_assert(sizeof(struct collection_hdr.collection_id) == sizeof(union collection_id), N_DPU_ICU_COLLECTION_COLLECTION_ID_DO_NOT_MATCH); */
 
 
 /**
@@ -300,7 +307,8 @@ uint8_t  cmp_col_get_subservice(const struct collection_hdr *col);
 uint8_t  cmp_col_get_ccd_id(const struct collection_hdr *col);
 uint8_t  cmp_col_get_sequence_num(const struct collection_hdr *col);
 
-uint16_t cmp_col_get_length(const struct collection_hdr *col);
+uint16_t cmp_col_get_data_length(const struct collection_hdr *col);
+uint32_t cmp_col_get_size(const struct collection_hdr *col);
 
 
 /* collection header getter functions */
@@ -313,8 +321,9 @@ int cmp_col_set_subservice(struct collection_hdr *col, uint8_t subservice);
 int cmp_col_set_ccd_id(struct collection_hdr *col, uint8_t ccd_id);
 int cmp_col_set_sequence_num(struct collection_hdr *col, uint8_t sequence_num);
 
-int cmp_col_set_length(struct collection_hdr *col, uint16_t length);
+int cmp_col_set_data_length(struct collection_hdr *col, uint16_t length);
 
+enum cmp_data_type convert_subservice_to_cmp_data_type(uint8_t subservice);
 
 size_t size_of_a_sample(enum cmp_data_type data_type);
 uint32_t cmp_cal_size_of_data(uint32_t samples, enum cmp_data_type data_type);

@@ -115,7 +115,7 @@ static inline void INIT_LIST_HEAD(struct list_head *list)
  * @note add (void *) cast to suppress wcast-align warning
  */
 #define list_entry(ptr, type, member) \
-	((type *)((void *)((char *)(ptr)-(unsigned long)(&((type *)0)->member))))
+	((type *)((void *)((char *)(ptr)-__builtin_offsetof(type, member))))
 
 /**
  * list_first_entry - get the first element from a list
@@ -168,7 +168,7 @@ static inline void INIT_LIST_HEAD(struct list_head *list)
  * @param member	the name of the list_head within the struct.
  */
 #define list_prev_entry(pos, member) \
-	list_entry((pos)->member.prev, typeof(*(pos)), member)
+	list_entry((pos)->member.prev, __typeof__(*(pos)), member)
 
 /**
  * list_for_each	-	iterate over a list
@@ -252,10 +252,10 @@ static inline void INIT_LIST_HEAD(struct list_head *list)
  */
 
 #define list_entry_do_while(pos, head, member, type, _CODE_) \
-	list_entry_do(pos,head,member,type)		     \
+	list_entry_do(pos, head, member, type)		     \
 	{						     \
 		_CODE_;					     \
-	} list_entry_while(pos,head,member,type)
+	} list_entry_while(pos, head, member, type)
 
 /**
  * @brief reverse iterate over list of given type
@@ -268,7 +268,7 @@ static inline void INIT_LIST_HEAD(struct list_head *list)
 #define list_for_each_entry_rev(pos, head, member)			\
 	for (pos = list_entry((head)->prev, __typeof__(*pos), member);	\
 	     &pos->member != (head); 					\
-	     pos = list_entry(pos->member.prev, __typeof(*pos), member))
+	     pos = list_entry(pos->member.prev, __typeof__(*pos), member))
 
 
 /*
@@ -414,8 +414,8 @@ static inline int list_filled(struct list_head *head)
 static inline void list_move_tail(struct list_head *list,
 				  struct list_head *head)
 {
-        __list_del(list->prev, list->next);
-        list_add_tail(list, head);
+	__list_del(list->prev, list->next);
+	list_add_tail(list, head);
 }
 
 
@@ -426,12 +426,12 @@ static inline void list_move_tail(struct list_head *list,
 
 static inline void list_rotate_left(struct list_head *head)
 {
-        struct list_head *first;
+	struct list_head *first;
 
-        if (!list_empty(head)) {
-                first = head->next;
-                list_move_tail(first, head);
-        }
+	if (!list_empty(head)) {
+		first = head->next;
+		list_move_tail(first, head);
+	}
 }
 
 
