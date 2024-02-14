@@ -773,8 +773,11 @@ static int compression(struct cmp_cfg *cfg, struct cmp_info *info)
 	cfg->icu_output_buf = cmp_ent_get_data_buf(cmp_entity);
 
 	cmp_size = icu_compress_data(cfg);
-	if (cmp_size < 0)
+	if (cmp_size < 0) {
+		if (cmp_size == CMP_ERROR_SMALL_BUF)
+			fprintf(stderr, "Error: The buffer for the compressed data is too small to hold the compressed data. Try a larger buffer_length parameter.\n");
 		goto error_cleanup;
+	}
 
 	if (model_id_str) {
 		uint32_t red_val;
