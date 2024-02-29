@@ -28,7 +28,6 @@
 
 
 #include <stdint.h>
-#include <stdio.h>
 
 #include "../common/cmp_debug.h"
 #include "../common/cmp_support.h"
@@ -61,17 +60,17 @@ static void rdcu_syncing(void)
 
 	int cnt = 0;
 
-	printf("syncing...");
+	debug_print("syncing...");
 	while (rdcu_rmap_sync_status()) {
-		printf("pending: %d\n", rdcu_rmap_sync_status());
+		debug_print("pending: %d", rdcu_rmap_sync_status());
 
 		if (cnt++ > 10) {
-			printf("aborting; de");
+			debug_print("aborting; de-");
 			break;
 		}
 
 	}
-	printf("synced\n");
+	debug_print("synced");
 #endif
 }
 
@@ -240,11 +239,11 @@ static int rdcu_transfer_sram(const struct cmp_cfg *cfg)
 		uint32_t size = (cfg->samples * 2 + 3) & ~3U;
 		/* now set the data in the local mirror... */
 		if (rdcu_write_sram_16(cfg->input_buf, cfg->rdcu_data_adr, cfg->samples * 2) < 0) {
-			debug_print("Error: The data to be compressed cannot be transferred to the SRAM of the RDCU.\n");
+			debug_print("Error: The data to be compressed cannot be transferred to the SRAM of the RDCU.");
 			return -1;
 		}
 		if (rdcu_sync_mirror_to_sram(cfg->rdcu_data_adr, size, rdcu_get_data_mtu())) {
-			debug_print("Error: The data to be compressed cannot be transferred to the SRAM of the RDCU.\n");
+			debug_print("Error: The data to be compressed cannot be transferred to the SRAM of the RDCU.");
 			return -1;
 		}
 	}
@@ -256,11 +255,11 @@ static int rdcu_transfer_sram(const struct cmp_cfg *cfg)
 			uint32_t size = (cfg->samples * 2 + 3) & ~3U;
 			/* set the model in the local mirror... */
 			if (rdcu_write_sram_16(cfg->model_buf, cfg->rdcu_model_adr, cfg->samples * 2) < 0) {
-				debug_print("Error: The model buffer cannot be transferred to the SRAM of the RDCU.\n");
+				debug_print("Error: The model buffer cannot be transferred to the SRAM of the RDCU.");
 				return -1;
 			}
 			if (rdcu_sync_mirror_to_sram(cfg->rdcu_model_adr, size, rdcu_get_data_mtu())) {
-				debug_print("Error: The model buffer cannot be transferred to the SRAM of the RDCU.\n");
+				debug_print("Error: The model buffer cannot be transferred to the SRAM of the RDCU.");
 				return -1;
 			}
 		}
@@ -518,24 +517,24 @@ int rdcu_inject_edac_error(const struct cmp_cfg *cfg, uint32_t addr)
 		rdcu_edac_set_ctrl_reg_write_op();
 		rdcu_edac_set_bypass();
 		if (rdcu_sync_sram_edac_ctrl()) {
-			debug_print("Error: rdcu_sync_sram_edac_ctrl\n");
+			debug_print("Error: rdcu_sync_sram_edac_ctrl");
 			return -1;
 		}
 		rdcu_syncing();
 		/* verify bypass aktiv */
 		rdcu_edac_set_ctrl_reg_read_op();
 		if (rdcu_sync_sram_edac_ctrl()) {
-			debug_print("Error: rdcu_sync_sram_edac_ctrl\n");
+			debug_print("Error: rdcu_sync_sram_edac_ctrl");
 			return -1;
 		}
 		rdcu_syncing();
 		if (rdcu_sync_sram_edac_status()) {
-			printf("Error: rdcu_sync_sram_edac_status\n");
+			debug_print("Error: rdcu_sync_sram_edac_status");
 			return -1;
 		}
 		rdcu_syncing();
 		if (rdcu_edac_get_sub_chip_die_addr() != sub_chip_die_addr) {
-			printf("Error: sub_chip_die_addr unexpected !\n");
+			debug_print("Error: sub_chip_die_addr unexpected!");
 			return -1;
 		}
 #if 1
@@ -543,7 +542,7 @@ int rdcu_inject_edac_error(const struct cmp_cfg *cfg, uint32_t addr)
 		if (2 != sub_chip_die_addr && 4 != sub_chip_die_addr)
 #endif
 			if (rdcu_edac_get_bypass_status() == 0) {
-				printf("Error: bypass status unexpected !\n");
+				debug_print("Error: bypass status unexpected!");
 				return -1;
 			}
 	}
@@ -563,7 +562,7 @@ int rdcu_inject_edac_error(const struct cmp_cfg *cfg, uint32_t addr)
 	if (rdcu_write_sram(buf, addr, sizeof(buf)) < 0)
 		return -1;
 	if (rdcu_sync_mirror_to_sram(addr, sizeof(buf), rdcu_get_data_mtu())) {
-		debug_print("Error: The data to be compressed cannot be transferred to the SRAM of the RDCU.\n");
+		debug_print("Error: The data to be compressed cannot be transferred to the SRAM of the RDCU.");
 		return -1;
 	}
 	rdcu_syncing();
@@ -576,28 +575,28 @@ int rdcu_inject_edac_error(const struct cmp_cfg *cfg, uint32_t addr)
 		rdcu_edac_set_ctrl_reg_write_op();
 		rdcu_edac_clear_bypass();
 		if (rdcu_sync_sram_edac_ctrl()) {
-			debug_print("Error: rdcu_sync_sram_edac_ctrl\n");
+			debug_print("Error: rdcu_sync_sram_edac_ctrl");
 			return -1;
 		}
 		rdcu_syncing();
 		/* verify bypass disable */
 		rdcu_edac_set_ctrl_reg_read_op();
 		if (rdcu_sync_sram_edac_ctrl()) {
-			debug_print("Error: rdcu_sync_sram_edac_ctrl\n");
+			debug_print("Error: rdcu_sync_sram_edac_ctrl");
 			return -1;
 		}
 		rdcu_syncing();
 		if (rdcu_sync_sram_edac_status()) {
-			printf("Error: rdcu_sync_sram_edac_status\n");
+			debug_print("Error: rdcu_sync_sram_edac_status");
 			return -1;
 		}
 		rdcu_syncing();
 		if (rdcu_edac_get_sub_chip_die_addr() != sub_chip_die_addr) {
-			printf("Error: sub_chip_die_addr unexpected !\n");
+			debug_print("Error: sub_chip_die_addr unexpected!");
 			return -1;
 		}
 		if (1 == rdcu_edac_get_bypass_status()) {
-			printf("Error: bypass status unexpected !\n");
+			debug_print("Error: bypass status unexpected!");
 			return -1;
 		}
 	}
@@ -666,14 +665,14 @@ int rdcu_compress_data_parallel(const struct cmp_cfg *cfg,
 				return -1;
 		}
 	} else {
-		debug_print("Warning: input_buf = NULL; input_buf is not written to the sram and compressed data is not read from the SRAM\n");
+		debug_print("Warning: input_buf = NULL; input_buf is not written to the sram and compressed data is not read from the SRAM.");
 	}
 
 	/* read model and write model in parallel */
 	if (cfg->model_buf && model_mode_is_used(cfg->cmp_mode) && model_mode_is_used(last_info->cmp_mode_used)) {
 		if (cfg->rdcu_model_adr == last_info->rdcu_new_model_adr_used &&
 		    cfg->samples == last_info->samples_used) {
-			printf("The last updated model buffer and the current model buffer overlap exactly in the SRAM of the RDCU. Skip model transfer.\n");
+			debug_print("The last updated model buffer and the current model buffer overlap exactly in the SRAM of the RDCU. Skip model transfer.");
 		} else {
 			uint32_t new_model_size_4byte;
 

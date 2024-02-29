@@ -57,12 +57,12 @@
  */
 
 
-#include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
 
 #include "../common/byteorder.h"
+#include "../common/cmp_debug.h"
 #include "rdcu_cmd.h"
 #include "rdcu_ctrl.h"
 #include "rdcu_rmap.h"
@@ -2440,7 +2440,7 @@ int rdcu_sync_sram_mirror_parallel(uint32_t rx_addr, uint32_t rx_size,
 
 	/* check buffer overlap */
 	if (rx_addr < tx_addr+tx_size && rx_addr+rx_size > tx_addr) {
-		printf("Error: The two parallel transferring buffers overlap. Read buffer: 0x%x size: %u. Write buffer: 0x%x size: %u.\n",
+		debug_print("Error: The two parallel transferring buffers overlap. Read buffer: 0x%x size: %u. Write buffer: 0x%x size: %u.",
 			rx_addr, rx_size, tx_addr, tx_size);
 		return -1;
 	}
@@ -2524,7 +2524,7 @@ int rdcu_ctrl_init(void)
 {
 	rdcu = (struct rdcu_mirror *) calloc(1, sizeof(struct rdcu_mirror));
 	if (!rdcu) {
-		printf("Error allocating memory for the RDCU mirror\n");
+		debug_print("Error allocating memory for the RDCU mirror");
 		return -1;
 	}
 
@@ -2534,7 +2534,7 @@ int rdcu_ctrl_init(void)
 
 	rdcu->sram = (uint8_t *) malloc(RDCU_SRAM_SIZE);
 	if (!rdcu->sram) {
-		printf("Error allocating memory for the RDCU SRAM mirror\n");
+		debug_print("Error allocating memory for the RDCU SRAM mirror");
 		return -1;
 	}
 #endif
