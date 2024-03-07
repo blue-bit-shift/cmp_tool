@@ -24,6 +24,7 @@
 
 #include <compiler.h>
 #include <cmp_entity.h>
+#include <cmp_data_types.h>
 #include "../../lib/icu_compress/cmp_icu.c" /* .c file included to test static functions */
 #include "../../lib/decompress/decmp.c" /* .c file included to test static functions */
 
@@ -1065,8 +1066,7 @@ void test_decompress_imagette_model(void)
 
 	bit_init_decoder(&dec, cfg.icu_output_buf, cfg.buffer_length);
 
-	err = decompress_imagette(&cfg, &dec);
-	/* TEST_ASSERT_EQUAL_INT(15, stream_pos); */
+	err = decompress_imagette(&cfg, &dec, RDCU_DECOMPRESSION);
 	TEST_ASSERT_FALSE(err);
 	TEST_ASSERT_EQUAL_HEX(1, data[0]);
 	TEST_ASSERT_EQUAL_HEX(2, data[1]);
@@ -1082,11 +1082,11 @@ void test_decompress_imagette_model(void)
 }
 
 
-#define DATA_SAMPLES 5
 void test_cmp_decmp_s_fx_diff(void)
 {
 	size_t s;
 	int err, decmp_size;
+	enum {DATA_SAMPLES = 5};
 
 	struct cmp_entity *ent;
 	const uint32_t MAX_VALUE = ~(~0U << MAX_USED_BITS_V1.s_fx);
@@ -1151,7 +1151,6 @@ void test_cmp_decmp_s_fx_diff(void)
 	free(ent);
 	free(decompressed_data);
 }
-#undef DATA_SAMPLES
 
 
 void test_s_fx_diff(void)
@@ -2031,6 +2030,96 @@ void test_cmp_ent_read_header_error_cases(void)
 	free(ent);
 }
 
+void test_decompress_imagette_chunk_raw(void)
+{
+	int decmp_size;
+	size_t i;
+	uint16_t data[] = {0, 1, 2, 0x42, (uint16_t)INT16_MIN, INT16_MAX, UINT16_MAX};
+	uint8_t *decompressed_data;
+	struct cmp_entity *ent;
+	uint32_t ent_size;
+	uint32_t chunk_size = 2*(COLLECTION_HDR_SIZE + sizeof(data));
+	uint8_t *chunk = calloc(1, chunk_size); TEST_ASSERT_TRUE(chunk);
+
+	for (i = 0; i < 2; i++) {
+		struct collection_hdr *col = (struct collection_hdr *)(chunk+chunk_size/2*i);
+
+		TEST_ASSERT_FALSE(cmp_col_set_subservice(col, SST_NCxx_S_SCIENCE_IMAGETTE));
+		TEST_ASSERT_FALSE(cmp_col_set_data_length(col, sizeof(data)));
+		TEST_ASSERT_FALSE(cmp_col_set_timestamp(col, 0x0102030400607));
+		memcpy(col->entry, data, sizeof(data));
+	}
+
+	ent_size = cmp_ent_create(NULL, DATA_TYPE_CHUNK, 1, chunk_size);
+	TEST_ASSERT_EQUAL_INT(GENERIC_HEADER_SIZE+chunk_size, ent_size);
+	ent = malloc(ent_size); TEST_ASSERT_TRUE(ent);
+	ent_size = cmp_ent_create(ent, DATA_TYPE_CHUNK, 1, chunk_size);
+	TEST_ASSERT_EQUAL_INT(GENERIC_HEADER_SIZE+chunk_size, ent_size);
+	TEST_ASSERT_FALSE(cmp_ent_set_original_size(ent, chunk_size));
+	memcpy(cmp_ent_get_data_buf(ent), chunk, chunk_size);
+	TEST_ASSERT_FALSE(cpu_to_be_chunk(cmp_ent_get_data_buf(ent), chunk_size));
+
+	decmp_size = decompress_cmp_entiy(ent, NULL, NULL, NULL);
+	TEST_ASSERT_EQUAL_INT(chunk_size, decmp_size);
+	decompressed_data = malloc((size_t)decmp_size);
+	TEST_ASSERT_TRUE(decompressed_data);
+	decmp_size = decompress_cmp_entiy(ent, NULL, NULL, decompressed_data);
+	TEST_ASSERT_EQUAL_INT(chunk_size, decmp_size);
+
+	for (i = 0; i < chunk_size; ++i)
+		TEST_ASSERT_EQUAL_INT(chunk[i], decompressed_data[i]);
+
+
+	free(chunk);
+	free(ent);
+	free(decompressed_data);
+}
+
+
+void test_decompress_imagette_chunk_worst_case(void)
+{
+	/* int decmp_size; */
+	/* size_t i; */
+	/* uint16_t data[] = {0, 1, 2, 0x42, (uint16_t)INT16_MIN, INT16_MAX, UINT16_MAX}; */
+	/* uint8_t *decompressed_data; */
+	/* struct cmp_entity *ent; */
+	/* uint32_t ent_size; */
+	/* uint32_t chunk_size = 2*(COLLECTION_HDR_SIZE + sizeof(data)); */
+	/* uint8_t *chunk = calloc(1, chunk_size); TEST_ASSERT_TRUE(chunk); */
+
+	/* for (i = 0; i < 2; i++) { */
+	/* 	struct collection_hdr *col = (struct collection_hdr *)(chunk+chunk_size/2*i); */
+
+	/* 	TEST_ASSERT_FALSE(cmp_col_set_subservice(col, SST_NCxx_S_SCIENCE_IMAGETTE)); */
+	/* 	TEST_ASSERT_FALSE(cmp_col_set_data_length(col, sizeof(data))); */
+	/* 	TEST_ASSERT_FALSE(cmp_col_set_timestamp(col, 0x0102030400607)); */
+	/* 	memcpy(col->entry, data, sizeof(data)); */
+	/* } */
+
+	/* ent_size = cmp_ent_create(NULL, DATA_TYPE_CHUNK, 1, chunk_size); */
+	/* TEST_ASSERT_EQUAL_INT(GENERIC_HEADER_SIZE+chunk_size, ent_size); */
+	/* ent = malloc(ent_size); TEST_ASSERT_TRUE(ent); */
+	/* ent_size = cmp_ent_create(ent, DATA_TYPE_CHUNK, 1, chunk_size); */
+	/* TEST_ASSERT_EQUAL_INT(GENERIC_HEADER_SIZE+chunk_size, ent_size); */
+	/* TEST_ASSERT_FALSE(cmp_ent_set_original_size(ent, chunk_size)); */
+	/* memcpy(cmp_ent_get_data_buf(ent), chunk, chunk_size); */
+	/* TEST_ASSERT_FALSE(cpu_to_be_chunk(cmp_ent_get_data_buf(ent), chunk_size)); */
+
+	/* decmp_size = decompress_cmp_entiy(ent, NULL, NULL, NULL); */
+	/* TEST_ASSERT_EQUAL_INT(chunk_size, decmp_size); */
+	/* decompressed_data = malloc((size_t)decmp_size); */
+	/* TEST_ASSERT_TRUE(decompressed_data); */
+	/* decmp_size = decompress_cmp_entiy(ent, NULL, NULL, decompressed_data); */
+	/* TEST_ASSERT_EQUAL_INT(chunk_size, decmp_size); */
+
+	/* for (i = 0; i < chunk_size; ++i) */
+	/* 	TEST_ASSERT_EQUAL_INT(chunk[i], decompressed_data[i]); */
+
+
+	/* free(chunk); */
+	/* free(ent); */
+	/* free(decompressed_data); */
+}
 
 void test_decompression_error_cases(void)
 {

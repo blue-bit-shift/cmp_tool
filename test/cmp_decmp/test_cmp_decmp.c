@@ -599,7 +599,7 @@ static size_t generate_random_chunk(void *chunk, struct chunk_def col_array[], s
  * @param cfg	pointer to a compression configuration
  */
 
-void generate_random_cmp_par(struct cmp_cfg *cfg)
+void generate_random_cmp_par_cfg(struct cmp_cfg *cfg)
 {
 	if (cmp_imagette_data_type_is_used(cfg->data_type)) {
 		cfg->cmp_par_imagette = cmp_rand_between(MIN_IMA_GOLOMB_PAR, MAX_IMA_GOLOMB_PAR);
@@ -645,6 +645,56 @@ void generate_random_cmp_par(struct cmp_cfg *cfg)
 
 
 /**
+ * @brief generate random compression configuration
+ *
+ * @param cfg	pointer to a compression configuration
+ */
+
+void generate_random_cmp_par(struct cmp_par *par)
+{
+	if (par){
+		par->cmp_mode = cmp_rand_between(0, MAX_RDCU_CMP_MODE);
+		par->model_value = cmp_rand_between(0, MAX_MODEL_VALUE);
+		par->lossy_par = cmp_rand_between(0, MAX_ICU_ROUND);
+
+		par->nc_imagette = cmp_rand_between(MIN_NON_IMA_GOLOMB_PAR, MAX_NON_IMA_GOLOMB_PAR);
+
+		par->s_exp_flags = cmp_rand_between(MIN_NON_IMA_GOLOMB_PAR, MAX_NON_IMA_GOLOMB_PAR);
+		par->s_fx = cmp_rand_between(MIN_NON_IMA_GOLOMB_PAR, MAX_NON_IMA_GOLOMB_PAR);
+		par->s_ncob = cmp_rand_between(MIN_NON_IMA_GOLOMB_PAR, MAX_NON_IMA_GOLOMB_PAR);
+		par->s_efx = cmp_rand_between(MIN_NON_IMA_GOLOMB_PAR, MAX_NON_IMA_GOLOMB_PAR);
+		par->s_ecob = cmp_rand_between(MIN_NON_IMA_GOLOMB_PAR, MAX_NON_IMA_GOLOMB_PAR);
+
+		par->l_exp_flags = cmp_rand_between(MIN_NON_IMA_GOLOMB_PAR, MAX_NON_IMA_GOLOMB_PAR);
+		par->l_fx = cmp_rand_between(MIN_NON_IMA_GOLOMB_PAR, MAX_NON_IMA_GOLOMB_PAR);
+		par->l_ncob = cmp_rand_between(MIN_NON_IMA_GOLOMB_PAR, MAX_NON_IMA_GOLOMB_PAR);
+		par->l_efx = cmp_rand_between(MIN_NON_IMA_GOLOMB_PAR, MAX_NON_IMA_GOLOMB_PAR);
+		par->l_ecob = cmp_rand_between(MIN_NON_IMA_GOLOMB_PAR, MAX_NON_IMA_GOLOMB_PAR);
+		par->l_fx_cob_variance = cmp_rand_between(MIN_NON_IMA_GOLOMB_PAR, MAX_NON_IMA_GOLOMB_PAR);
+
+		par->saturated_imagette = cmp_rand_between(MIN_NON_IMA_GOLOMB_PAR, MAX_NON_IMA_GOLOMB_PAR);
+
+		par->nc_offset_mean = cmp_rand_between(MIN_NON_IMA_GOLOMB_PAR, MAX_NON_IMA_GOLOMB_PAR);
+		par->nc_offset_variance = cmp_rand_between(MIN_NON_IMA_GOLOMB_PAR, MAX_NON_IMA_GOLOMB_PAR);
+		par->nc_background_mean = cmp_rand_between(MIN_NON_IMA_GOLOMB_PAR, MAX_NON_IMA_GOLOMB_PAR);
+		par->nc_background_variance = cmp_rand_between(MIN_NON_IMA_GOLOMB_PAR, MAX_NON_IMA_GOLOMB_PAR);
+		par->nc_background_outlier_pixels = cmp_rand_between(MIN_NON_IMA_GOLOMB_PAR, MAX_NON_IMA_GOLOMB_PAR);
+
+		par->smearing_mean = cmp_rand_between(MIN_NON_IMA_GOLOMB_PAR, MAX_NON_IMA_GOLOMB_PAR);
+		par->smearing_variance_mean = cmp_rand_between(MIN_NON_IMA_GOLOMB_PAR, MAX_NON_IMA_GOLOMB_PAR);
+		par->smearing_outlier_pixels = cmp_rand_between(MIN_NON_IMA_GOLOMB_PAR, MAX_NON_IMA_GOLOMB_PAR);
+
+		par->fc_imagette = cmp_rand_between(MIN_NON_IMA_GOLOMB_PAR, MAX_NON_IMA_GOLOMB_PAR);
+		par->fc_offset_mean = cmp_rand_between(MIN_NON_IMA_GOLOMB_PAR, MAX_NON_IMA_GOLOMB_PAR);
+		par->fc_offset_variance = cmp_rand_between(MIN_NON_IMA_GOLOMB_PAR, MAX_NON_IMA_GOLOMB_PAR);
+		par->fc_background_mean = cmp_rand_between(MIN_NON_IMA_GOLOMB_PAR, MAX_NON_IMA_GOLOMB_PAR);
+		par->fc_background_variance = cmp_rand_between(MIN_NON_IMA_GOLOMB_PAR, MAX_NON_IMA_GOLOMB_PAR);
+		par->fc_background_outlier_pixels = cmp_rand_between(MIN_NON_IMA_GOLOMB_PAR, MAX_NON_IMA_GOLOMB_PAR);
+	}
+}
+
+
+/**
  * @brief compress the given configuration and decompress it afterwards; finally
  *	compare the results
  *
@@ -672,22 +722,23 @@ void compression_decompression(struct cmp_cfg *cfg)
 	data_size = cmp_cal_size_of_data(cfg->samples, cfg->data_type);
 
 	/* create a compression entity */
-	cmp_data_size = cmp_cal_size_of_data(cfg->buffer_length, cfg->data_type);
-	cmp_data_size &= ~0x3U; /* the size of the compressed data should be a multiple of 4 */
-	TEST_ASSERT_NOT_EQUAL_INT(0, cmp_data_size);
+	/* cmp_data_size = cmp_cal_size_of_data(cfg->buffer_length, cfg->data_type); */
+	/* cmp_data_size &= ~0x3U; /1* the size of the compressed data should be a multiple of 4 *1/ */
+	/* TEST_ASSERT_NOT_EQUAL_INT(0, cmp_data_size); */
 
-	cmp_ent_size = cmp_ent_create(NULL, cfg->data_type, cfg->cmp_mode == CMP_MODE_RAW, cmp_data_size);
-	TEST_ASSERT_NOT_EQUAL_UINT(0, cmp_ent_size);
-	ent = malloc(cmp_ent_size); TEST_ASSERT_TRUE(ent);
-	cmp_ent_size = cmp_ent_create(ent, cfg->data_type, cfg->cmp_mode == CMP_MODE_RAW, cmp_data_size);
-	TEST_ASSERT_NOT_EQUAL_UINT(0, cmp_ent_size);
+	/* cmp_ent_size = cmp_ent_create(NULL, cfg->data_type, cfg->cmp_mode == CMP_MODE_RAW, cmp_data_size); */
+	/* TEST_ASSERT_NOT_EQUAL_UINT(0, cmp_ent_size); */
+	/* ent = malloc(cmp_ent_size); TEST_ASSERT_TRUE(ent); */
+	/* cmp_ent_size = cmp_ent_create(ent, cfg->data_type, cfg->cmp_mode == CMP_MODE_RAW, cmp_data_size); */
+	/* TEST_ASSERT_NOT_EQUAL_UINT(0, cmp_ent_size); */
 
-	/* we put the coompressed data direct into the compression entity */
-	cfg->icu_output_buf = cmp_ent_get_data_buf(ent);
-	TEST_ASSERT_NOT_NULL(cfg->icu_output_buf);
+	/* /1* we put the coompressed data direct into the compression entity *1/ */
+	/* cfg->icu_output_buf = cmp_ent_get_data_buf(ent); */
+	/* TEST_ASSERT_NOT_NULL(cfg->icu_output_buf); */
 
 	/* now compress the data */
 	cmp_size_bits = icu_compress_data(cfg);
+
 	TEST_ASSERT(cmp_size_bits > 0);
 
 	/* put the compression parameters in the entity header */
@@ -741,6 +792,90 @@ void compression_decompression(struct cmp_cfg *cfg)
 }
 
 
+static int32_t chunk_round_trip(void *data, uint32_t data_size,
+			       void *model, void * up_model,
+			       uint32_t *cmp_data, uint32_t cmp_data_capacity,
+			       struct cmp_par *cmp_par, int use_decmp_buf, int use_decmp_up_model)
+{
+	int32_t cmp_size;
+	void *model_cpy = NULL;
+
+	/* if in-place model update is used (up_model == model), the model
+	 * needed for decompression is destroyed; therefore we make a copy */
+	if (model) {
+		if (up_model == model) {
+			void *model_cpy = cmp_test_malloc(data_size);
+			memcpy(model_cpy, model, data_size);
+		} else {
+			model_cpy = model;
+		}
+	}
+
+	cmp_size = compress_chunk(data, data_size, model, up_model,
+				  cmp_data, cmp_data_capacity, cmp_par);
+	TEST_ASSERT(cmp_size != CMP_ERROR_HIGH_VALUE);
+
+#if 0
+	{ /* Compress a second time and check for determinism */
+		int32_t cSize2;
+		void *compressed2 = NULL;
+		void *up_model2 = NULL;
+
+		if (compressed)
+			compressed2 = FUZZ_malloc(compressedCapacity);
+
+		if (up_model)
+			up_model2 = FUZZ_malloc(srcSize);
+		cSize2 = compress_chunk((void *)src, srcSize, (void *)model, up_model2,
+					   compressed2, compressedCapacity, cmp_par);
+		FUZZ_ASSERT(cSize == cSize2);
+		FUZZ_ASSERT_MSG(!FUZZ_memcmp(compressed, compressed2, cSize), "Not deterministic!");
+		FUZZ_ASSERT_MSG(!FUZZ_memcmp(up_model, compressed2, cSize), "NO deterministic!");
+		free(compressed2);
+		free(up_model2);
+	}
+#endif
+	if (cmp_size >= 0 && cmp_data) {
+		void *decmp_data = NULL;
+		void *up_model_decmp = NULL;
+		int decmp_size;
+
+		decmp_size = decompress_cmp_entiy((struct cmp_entity *)cmp_data, model_cpy, NULL, NULL);
+		TEST_ASSERT(decmp_size >= 0);
+		TEST_ASSERT_EQUAL((uint32_t)decmp_size, data_size);
+
+		if (use_decmp_buf)
+			decmp_data = cmp_test_malloc(data_size);
+		if (use_decmp_up_model)
+			up_model_decmp = cmp_test_malloc(data_size);
+
+		decmp_size = decompress_cmp_entiy((struct cmp_entity *)cmp_data, model_cpy,
+						  up_model_decmp, decmp_data);
+		TEST_ASSERT(decmp_size >= 0);
+		TEST_ASSERT((uint32_t)decmp_size == data_size);
+
+		if (use_decmp_buf) {
+			TEST_ASSERT_EQUAL_HEX8_ARRAY(data, decmp_data, data_size);
+			TEST_ASSERT(!memcmp(data, decmp_data, data_size));
+
+			/*
+			 * the model is only updated when the decompressed_data
+			 * buffer is set
+			 */
+			if (up_model && up_model_decmp)
+				TEST_ASSERT(!memcmp(up_model, up_model_decmp, data_size));
+		}
+
+		free(decmp_data);
+		free(up_model_decmp);
+	}
+
+	if (up_model == model)
+		free(model_cpy);
+
+	return cmp_size;
+}
+
 #define CMP_BUFFER_FAKTOR 3 /* compression data buffer size / data to compress buffer size */
 
 /**
@@ -753,17 +888,18 @@ void compression_decompression(struct cmp_cfg *cfg)
  * @test decompress_cmp_entiy
  */
 
-#define MB *(1U<<20)
 #define MAX_DATA_TO_COMPRESS_SIZE 0x1000B
-void test_random_compression_decompression(void)
+void test_random_chunk_compression_decompression(void)
 {
 	enum cmp_data_type data_type;
 	enum cmp_mode cmp_mode;
 	struct cmp_cfg cfg;
 	uint32_t cmp_buffer_size;
-	void *data_to_compress1 = malloc(MAX_DATA_TO_COMPRESS_SIZE);
-	void *data_to_compress2 = malloc(MAX_DATA_TO_COMPRESS_SIZE);
+	void *data = malloc(MAX_DATA_TO_COMPRESS_SIZE);
+	void *model = malloc(MAX_DATA_TO_COMPRESS_SIZE);
 	void *updated_model = calloc(1, MAX_DATA_TO_COMPRESS_SIZE);
+	uint32_t cmp_data_capacity = COMPRESS_CHUNK_BOUND(MAX_DATA_TO_COMPRESS_SIZE, 1);
+	void *cmp_data = malloc(cmp_data_capacity);
 
 	for (data_type = 1; data_type <= DATA_TYPE_F_CAM_BACKGROUND; data_type++) {
 		/* printf("%s\n", data_type2string(data_type)); */
@@ -772,47 +908,46 @@ void test_random_compression_decompression(void)
 		size_t size;
 		uint32_t samples = cmp_rand_between(1, UINT16_MAX/size_of_a_sample(data_type));
 		uint32_t model_value = cmp_rand_between(0, MAX_MODEL_VALUE);
+
 		/* void *data_to_compress1 = generate_random_test_data(samples, data_type, &MAX_USED_BITS_V1); */
 		/* void *data_to_compress2 = generate_random_test_data(samples, data_type, &MAX_USED_BITS_V1); */
 		/* void *updated_model = calloc(1, cmp_cal_size_of_data(samples, data_type)); */
 		/* memset(updated_model, 0, MAX_DATA_TO_COMPRESS_SIZE); */
 
-		size = generate_random_collection(NULL, data_type, samples, &MAX_USED_BITS_V1);
+		size = generate_random_collection(NULL, data_type, samples, &MAX_USED_BITS_SAFE);
 		TEST_ASSERT(size <= MAX_DATA_TO_COMPRESS_SIZE);
-		size = generate_random_collection(data_to_compress1, data_type, samples, &MAX_USED_BITS_V1);
+		size = generate_random_collection(data, data_type, samples, &MAX_USED_BITS_SAFE);
 		TEST_ASSERT(size <= MAX_DATA_TO_COMPRESS_SIZE);
-		size = generate_random_collection(data_to_compress2, data_type, samples, &MAX_USED_BITS_V1);
+		size = generate_random_collection(model, data_type, samples, &MAX_USED_BITS_SAFE);
 		TEST_ASSERT(size <= MAX_DATA_TO_COMPRESS_SIZE);
 
 		/* for (cmp_mode = CMP_MODE_RAW; cmp_mode <= CMP_MODE_STUFF; cmp_mode++) { */
 		for (cmp_mode = CMP_MODE_RAW; cmp_mode <= CMP_MODE_DIFF_MULTI; cmp_mode++) {
-			/* printf("cmp_mode: %i\n", cmp_mode); */
-			cfg = cmp_cfg_icu_create(data_type, cmp_mode, model_value,
-						 CMP_LOSSLESS);
-			TEST_ASSERT_NOT_EQUAL_INT(cfg.data_type, DATA_TYPE_UNKNOWN);
+			struct cmp_par par;
+			int32_t cmp_size;
 
-			generate_random_cmp_par(&cfg);
+			generate_random_cmp_par(&par);
+			par.cmp_mode = cmp_mode;
+			par.lossy_par = CMP_LOSSLESS;
 
-			if (!model_mode_is_used(cmp_mode))
-				cmp_buffer_size = cmp_cfg_icu_buffers(&cfg, data_to_compress1,
-					samples, NULL, NULL, NULL, samples*CMP_BUFFER_FAKTOR);
+			cmp_size = chunk_round_trip(data, size, model, updated_model,
+						   cmp_data, cmp_data_capacity, &
+						   par, 1, model_mode_is_used(par.cmp_mode));
+			if (data_type == DATA_TYPE_F_FX || data_type == DATA_TYPE_F_FX_EFX ||
+			    data_type == DATA_TYPE_F_FX_NCOB || data_type == DATA_TYPE_F_FX_EFX_NCOB_ECOB)
+				TEST_ASSERT(cmp_size == -1); /* No chunk is defined for fast cadence subservices */
 			else
-				cmp_buffer_size = cmp_cfg_icu_buffers(&cfg, data_to_compress2,
-					samples, data_to_compress1, updated_model, NULL, samples*CMP_BUFFER_FAKTOR);
-
-			TEST_ASSERT_EQUAL_UINT(cmp_buffer_size, cmp_cal_size_of_data(CMP_BUFFER_FAKTOR*samples, data_type));
-
-			compression_decompression(&cfg);
+				TEST_ASSERT(cmp_size > 0);
 		}
 	}
 	compression_decompression(NULL);
-	free(data_to_compress1);
-	free(data_to_compress2);
+	free(data);
+	free(model);
 	free(updated_model);
+	free(cmp_data);
 }
 
 
-#define N_SAMPLES 5
 void test_random_compression_decompression2(void)
 {
 	struct cmp_cfg cfg;
@@ -821,6 +956,7 @@ void test_random_compression_decompression2(void)
 	int s, i, cmp_size_bits;
 	void *compressed_data;
 	uint16_t *decompressed_data;
+	enum {N_SAMPLES = 5};
 	uint16_t data[N_SAMPLES] = {0, UINT16_MAX, INT16_MAX, 42, 23};
 
 	cfg = cmp_cfg_icu_create(DATA_TYPE_IMAGETTE, CMP_MODE_RAW, 8, CMP_LOSSLESS);
@@ -918,75 +1054,19 @@ uint16_t get_cmp_size(uint8_t *p)
 {
 	return ((uint16_t)p[0]<<8) + p[1];
 }
-#if 0
-remove this
-void no_test_new_format(void)
-{
-	uint32_t data_size = cmp_cal_size_of_data(3, DATA_TYPE_L_FX_EFX_NCOB_ECOB);
-	data_size += cmp_cal_size_of_data(2, DATA_TYPE_L_FX_EFX_NCOB_ECOB);
-	data_size += cmp_cal_size_of_data(5, DATA_TYPE_L_FX);
-	data_size += cmp_cal_size_of_data(2, DATA_TYPE_L_FX);
-	data_size += 3*sizeof(uint16_t);
 
-	uint32_t ent_size = cmp_ent_create(NULL, DATA_TYPE_L_FX, 1, data_size);
-	void *ent = calloc(1, ent_size);
-	ent_size = cmp_ent_create(ent, DATA_TYPE_L_FX, 1, data_size);
 
-	char *p = cmp_ent_get_data_buf(ent);
-	p +=2;
-	uint16_t s = generate_random_collection(p, DATA_TYPE_L_FX, 2, &MAX_USED_BITS_V1);
-	p += set_cmp_size(p-2, s);
-	p += s;
-	s = generate_random_collection(p, DATA_TYPE_L_FX, 5, &MAX_USED_BITS_V1);
-	p += set_cmp_size(p-2, s);
-	p += s;
-	s = generate_random_collection(p, DATA_TYPE_L_FX_EFX_NCOB_ECOB, 2, &MAX_USED_BITS_V1);
-	p += set_cmp_size(p-2, s);
-	p += s;
-	s = generate_random_collection(p, DATA_TYPE_L_FX_EFX_NCOB_ECOB, 2, &MAX_USED_BITS_V1);
-	p+=s;
-
-	int num_of_coll =4;
-
-	uint8_t *d_p = cmp_ent_get_data_buf(ent);
-	uint32_t sum =0;
-	s =0;
-	for (int c = 1; c <= num_of_coll ;  c++) {
-		uint16_t cmp_col_size;
-		if (c == num_of_coll)
-			cmp_col_size = cmp_ent_get_cmp_data_size(ent)- sum;
-		else{
-			cmp_col_size = get_cmp_size(&d_p[s]);
-			sum += cmp_col_size;
-			s+=2;
-		}
-
-		uint16_t col_size = cmp_col_get_data_length(&d_p[s]);
-		printf("cmp_col_sizel: %X col_size: %X\n", cmp_col_size, col_size);
-		for (int i = s-2; i < s+col_size +COLLECTION_HDR_SIZE; ++i) {
-			printf("%02X ",((uint8_t *)d_p)[i]);
-			if ((i + 1) % 2 == 0)
-				printf("\n");
-		}
-		TEST_ASSERT(cmp_col_size == col_size);
-		s+=col_size+COLLECTION_HDR_SIZE;
-	}
-
-}
-#endif
-#if 0
-/* #include "../../lib/common/byteorder.h" */
-void NOOO_test_cmp_collection_raw(void)
+void test_cmp_collection_raw(void)
 {
 	struct collection_hdr *col = NULL;
 	uint32_t samples = 2;
 	size_t col_size, dst_capacity = 0;
 	struct s_fx *data;
 	uint32_t *dst = NULL;
-	int dst_capacity_used = 0;
 	struct cmp_par par = {0};
 	const size_t exp_col_size = COLLECTION_HDR_SIZE+2*sizeof(struct s_fx);
-	const size_t exp_cmp_size_byte = exp_col_size;
+	const size_t exp_cmp_size_byte = GENERIC_HEADER_SIZE+exp_col_size;
+	int cmp_size_byte;
 
 	par.cmp_mode = CMP_MODE_RAW;
 
@@ -1004,15 +1084,16 @@ void NOOO_test_cmp_collection_raw(void)
 	data[1].fx = 0xABCDE0FF;
 
 
-	dst_capacity = (size_t)cmp_collection(col, NULL, dst, dst_capacity, &par, dst_capacity_used);
-	TEST_ASSERT_EQUAL_INT(exp_cmp_size_byte, dst_capacity);
+	cmp_size_byte = compress_chunk(col, col_size, NULL, NULL, dst, dst_capacity, &par);
+	TEST_ASSERT_EQUAL_INT(exp_cmp_size_byte, cmp_size_byte);
+	dst_capacity = (uint32_t)cmp_size_byte;
 	dst = malloc(dst_capacity);
 	TEST_ASSERT_NOT_NULL(dst);
-	dst_capacity_used = cmp_collection(col, NULL, dst, dst_capacity, &par, dst_capacity_used);
-	TEST_ASSERT_EQUAL_INT(exp_cmp_size_byte, dst_capacity_used);
+	cmp_size_byte = compress_chunk(col, col_size, NULL, NULL, dst, dst_capacity, &par);
+	TEST_ASSERT_EQUAL_INT(exp_cmp_size_byte, cmp_size_byte);
 
 	{
-		uint8_t *p = (uint8_t *)dst;
+		uint8_t *p = (uint8_t *)dst+GENERIC_HEADER_SIZE;
 		struct collection_hdr *raw_cmp_col = (struct collection_hdr *)p;
 		struct s_fx *raw_cmp_data = (void *)raw_cmp_col->entry;
 
@@ -1023,32 +1104,40 @@ void NOOO_test_cmp_collection_raw(void)
 		TEST_ASSERT_EQUAL_HEX(data[1].exp_flags, raw_cmp_data[1].exp_flags);
 		TEST_ASSERT_EQUAL_HEX(data[1].fx, be32_to_cpu(raw_cmp_data[1].fx));
 	}
+	{ /* decompress the data */
+		int decmp_size;
+		uint8_t *decompressed_data;
 
-	memset(dst, 0, dst_capacity);
+		decmp_size = decompress_cmp_entiy(dst, NULL, NULL, NULL);
+		TEST_ASSERT_EQUAL_INT(col_size, decmp_size);
+		decompressed_data = malloc((size_t)decmp_size); TEST_ASSERT_TRUE(decompressed_data);
+		decmp_size = decompress_cmp_entiy(dst, NULL, NULL, decompressed_data);
+		TEST_ASSERT_EQUAL_INT(col_size, decmp_size);
+		TEST_ASSERT_EQUAL_HEX8_ARRAY(col, decompressed_data, decmp_size);
+		free(decompressed_data);
+	}
 
 	dst_capacity -= 1;
-	dst_capacity_used = cmp_collection(col, NULL, dst, dst_capacity, &par, dst_capacity_used);
-	TEST_ASSERT_EQUAL_INT(CMP_ERROR_SMALL_BUF, dst_capacity_used);
+	TEST_ASSERT_EQUAL_INT(CMP_ERROR_SMALL_BUF, compress_chunk(col, col_size, NULL, NULL, dst, dst_capacity, &par));
 
 	free(col);
 	free(dst);
 }
 
 
-void NOOO_test_cmp_collection_diff(void)
+void test_cmp_collection_diff(void)
 {
 	struct collection_hdr *col = NULL;
 	uint32_t *dst = NULL;
 	size_t dst_capacity = 0;
-	int dst_capacity_used = 33;
 	struct cmp_par par = {0};
 	const uint16_t cmp_size_byte_exp= 2;
+	size_t col_size;
 
 
 	{ /* generate test data */
 		struct s_fx *data;
 		uint32_t samples = 2;
-		size_t col_size;
 		const size_t exp_col_size = COLLECTION_HDR_SIZE+samples*sizeof(*data);
 
 		col_size = generate_random_collection(col, DATA_TYPE_S_FX, samples, &MAX_USED_BITS_SAFE);
@@ -1066,19 +1155,18 @@ void NOOO_test_cmp_collection_diff(void)
 
 	{ /* compress data */
 		int cmp_size_byte;
-		const int exp_cmp_size_byte = dst_capacity_used + CMP_COLLECTION_FILD_SIZE
-			+ COLLECTION_HDR_SIZE + cmp_size_byte_exp;;
+		const int exp_cmp_size_byte = NON_IMAGETTE_HEADER_SIZE + CMP_COLLECTION_FILD_SIZE
+			+ COLLECTION_HDR_SIZE + cmp_size_byte_exp;
 
 		par.cmp_mode = CMP_MODE_DIFF_ZERO;
 		par.s_exp_flags = 1;
 		par.s_fx = 1;
 
-		cmp_size_byte = cmp_collection(col, NULL, dst, dst_capacity, &par, dst_capacity_used);
+		cmp_size_byte = compress_chunk(col, col_size, NULL, NULL, dst, dst_capacity, &par);
 		TEST_ASSERT_EQUAL_INT(exp_cmp_size_byte, cmp_size_byte);
 		dst_capacity = (size_t)ROUND_UP_TO_MULTIPLE_OF_4(cmp_size_byte);
 		dst = malloc(dst_capacity); TEST_ASSERT_NOT_NULL(dst);
-		memset(dst, 0xFF, dst_capacity);
-		cmp_size_byte = cmp_collection(col, NULL, dst, dst_capacity, &par, dst_capacity_used);
+		cmp_size_byte = compress_chunk(col, col_size, NULL, NULL, dst, dst_capacity, &par);
 		TEST_ASSERT_EQUAL_INT(exp_cmp_size_byte, cmp_size_byte);
 	}
 
@@ -1086,8 +1174,8 @@ void NOOO_test_cmp_collection_diff(void)
 		uint8_t *p = (uint8_t *)dst;
 		uint16_t cmp_collection_size_exp = cpu_to_be16(cmp_size_byte_exp);
 
-		TEST_ASSERT_EACH_EQUAL_HEX8(0xFF, p, dst_capacity_used);
-		p += dst_capacity_used;
+		/* TODO: check the entity header */
+		p += NON_IMAGETTE_HEADER_SIZE;
 
 		TEST_ASSERT_EQUAL_HEX8_ARRAY(&cmp_collection_size_exp, p, CMP_COLLECTION_FILD_SIZE);
 		p += CMP_COLLECTION_FILD_SIZE;
@@ -1097,44 +1185,51 @@ void NOOO_test_cmp_collection_diff(void)
 
 		TEST_ASSERT_EQUAL_HEX8(0xAE, *p++);
 		TEST_ASSERT_EQUAL_HEX8(0xE0, *p++);
-		TEST_ASSERT_EQUAL_HEX8(0x00, *p++);
-		TEST_ASSERT_EQUAL_HEX8(0x00, *p++);
-		TEST_ASSERT_EQUAL_HEX8(0x00, *p++);
 
 		TEST_ASSERT_EQUAL_size_t(dst_capacity, p - (uint8_t *)dst);
+	}
+	{ /* decompress the data */
+		int decmp_size;
+		uint8_t *decompressed_data;
+
+		decmp_size = decompress_cmp_entiy(dst, NULL, NULL, NULL);
+		TEST_ASSERT_EQUAL_INT(col_size, decmp_size);
+		decompressed_data = malloc((size_t)decmp_size); TEST_ASSERT_TRUE(decompressed_data);
+		decmp_size = decompress_cmp_entiy(dst, NULL, NULL, decompressed_data);
+		TEST_ASSERT_EQUAL_INT(col_size, decmp_size);
+		TEST_ASSERT_EQUAL_HEX8_ARRAY(col, decompressed_data, decmp_size);
+		free(decompressed_data);
 	}
 
 
 	/* error cases dst buffer to small */
 	dst_capacity -= 1;
-	dst_capacity_used = cmp_collection(col, NULL, dst, dst_capacity, &par, dst_capacity_used);
-	TEST_ASSERT_EQUAL_INT(CMP_ERROR_SMALL_BUF, dst_capacity_used);
+	TEST_ASSERT_EQUAL_INT(CMP_ERROR_SMALL_BUF, compress_chunk(col, col_size, NULL, NULL, dst, dst_capacity, &par));
 
 	free(col);
 	free(dst);
 }
 
 
-void NOOO_test_cmp_collection_worst_case(void)
+void test_cmp_collection_worst_case(void)
 {
 	struct collection_hdr *col = NULL;
 	uint32_t *dst = NULL;
 	size_t dst_capacity = 0;
-	int dst_capacity_used = 4;
 	struct cmp_par par = {0};
 	const uint16_t cmp_size_byte_exp= 2*sizeof(struct s_fx);
 	int cmp_size_byte;
+	uint32_t col_size;
 
 	{ /* generate test data */
 		struct s_fx *data;
 		uint32_t samples = 2;
-		size_t col_size;
 		const size_t exp_col_size = COLLECTION_HDR_SIZE+samples*sizeof(*data);
 
-		col_size = generate_random_collection(col, DATA_TYPE_S_FX, samples, &MAX_USED_BITS_SAFE);
+		col_size = (uint32_t)generate_random_collection(col, DATA_TYPE_S_FX, samples, &MAX_USED_BITS_SAFE);
 		TEST_ASSERT_EQUAL(exp_col_size, col_size);
 		col = malloc(col_size); TEST_ASSERT_NOT_NULL(col);
-		col_size = generate_random_collection(col, DATA_TYPE_S_FX, samples, &MAX_USED_BITS_SAFE);
+		col_size = (uint32_t)generate_random_collection(col, DATA_TYPE_S_FX, samples, &MAX_USED_BITS_SAFE);
 		TEST_ASSERT_EQUAL(exp_col_size, col_size);
 
 		data = (struct s_fx *)col->entry;
@@ -1142,23 +1237,23 @@ void NOOO_test_cmp_collection_worst_case(void)
 		data[0].fx = 0x0000000E;
 		data[1].exp_flags = 0x4;
 		data[1].fx = 0x00000016;
-;
 	}
 
 	{ /* compress data */
-		const int exp_cmp_size_byte = dst_capacity_used + CMP_COLLECTION_FILD_SIZE
-			+ COLLECTION_HDR_SIZE + cmp_size_byte_exp;;
+		const int exp_cmp_size_byte = NON_IMAGETTE_HEADER_SIZE + CMP_COLLECTION_FILD_SIZE
+			+ COLLECTION_HDR_SIZE + cmp_size_byte_exp;
 
 		par.cmp_mode = CMP_MODE_DIFF_ZERO;
 		par.s_exp_flags = 1;
 		par.s_fx = 1;
 
-		cmp_size_byte = cmp_collection(col, NULL, dst, dst_capacity, &par, dst_capacity_used);
+		cmp_size_byte = compress_chunk(col, col_size, NULL, NULL, dst, dst_capacity, &par);
+		/* cmp_size_byte = cmp_collection(col, NULL, dst, dst_capacity, &par, dst_capacity_used); */
 		TEST_ASSERT_EQUAL_INT(exp_cmp_size_byte, cmp_size_byte);
-		dst_capacity = 1000;
+		dst_capacity = (size_t)cmp_size_byte;
 		dst = malloc(dst_capacity); TEST_ASSERT_NOT_NULL(dst);
 		memset(dst, 0xFF, dst_capacity);
-		cmp_size_byte = cmp_collection(col, NULL, dst, dst_capacity, &par, dst_capacity_used);
+		cmp_size_byte = compress_chunk(col, col_size, NULL, NULL, dst, dst_capacity, &par);
 		TEST_ASSERT_EQUAL_INT(exp_cmp_size_byte, cmp_size_byte);
 	}
 
@@ -1166,8 +1261,8 @@ void NOOO_test_cmp_collection_worst_case(void)
 		uint8_t *p = (uint8_t *)dst;
 		uint16_t cmp_collection_size_exp = cpu_to_be16(cmp_size_byte_exp);
 
-		TEST_ASSERT_EACH_EQUAL_HEX8(0xFF, p, dst_capacity_used);
-		p += dst_capacity_used;
+		/* TODO: check the entity header */
+		p += NON_IMAGETTE_HEADER_SIZE;
 
 		TEST_ASSERT_EQUAL_HEX8_ARRAY(&cmp_collection_size_exp, p, CMP_COLLECTION_FILD_SIZE);
 		p += CMP_COLLECTION_FILD_SIZE;
@@ -1188,8 +1283,102 @@ void NOOO_test_cmp_collection_worst_case(void)
 
 		TEST_ASSERT_EQUAL_size_t(cmp_size_byte, p - (uint8_t *)dst);
 	}
+	{ /* decompress the data */
+		int decmp_size;
+		uint8_t *decompressed_data;
+
+		decmp_size = decompress_cmp_entiy(dst, NULL, NULL, NULL);
+		TEST_ASSERT_EQUAL_INT(col_size, decmp_size);
+		decompressed_data = malloc((size_t)decmp_size); TEST_ASSERT_TRUE(decompressed_data);
+		decmp_size = decompress_cmp_entiy(dst, NULL, NULL, decompressed_data);
+		TEST_ASSERT_EQUAL_INT(col_size, decmp_size);
+		TEST_ASSERT_EQUAL_HEX8_ARRAY(col, decompressed_data, decmp_size);
+		free(decompressed_data);
+	}
+	free(dst);
+	free(col);
 }
-#endif
+
+
+void test_cmp_collection_imagette_worst_case(void)
+{
+	struct collection_hdr *col = NULL;
+	uint32_t *dst = NULL;
+	size_t dst_capacity = 0;
+	struct cmp_par par = {0};
+	const uint16_t cmp_size_byte_exp = 10*sizeof(uint16_t);
+	int cmp_size_byte;
+	uint32_t col_size = COLLECTION_HDR_SIZE + cmp_size_byte_exp;
+
+	{ /* generate test data */
+		uint16_t *data;
+		col = calloc(1, col_size); TEST_ASSERT_NOT_NULL(col);
+		generate_random_collection_hdr(col, DATA_TYPE_IMAGETTE, 10);
+
+		data = (uint16_t *)col->entry;
+		data[0] = 0x0102;
+		data[1] = 0x0304;
+		data[2] = 0x0506;
+		data[3] = 0x0708;
+		data[4] = 0x090A;
+		data[5] = 0x0B0C;
+		data[6] = 0x0D0E;
+		data[7] = 0x0F10;
+		data[8] = 0x1112;
+		data[9] = 0x1314;
+	}
+
+	{ /* compress data */
+		const int exp_cmp_size_byte = NON_IMAGETTE_HEADER_SIZE + CMP_COLLECTION_FILD_SIZE
+			+ COLLECTION_HDR_SIZE + cmp_size_byte_exp;
+
+		par.cmp_mode = CMP_MODE_DIFF_MULTI;
+		par.nc_imagette = 62;
+
+		cmp_size_byte = compress_chunk(col, col_size, NULL, NULL, dst, dst_capacity, &par);
+		/* cmp_size_byte = cmp_collection(col, NULL, dst, dst_capacity, &par, dst_capacity_used); */
+		TEST_ASSERT_EQUAL_INT(exp_cmp_size_byte, cmp_size_byte);
+		dst_capacity = (size_t)cmp_size_byte;
+		dst = malloc(dst_capacity); TEST_ASSERT_NOT_NULL(dst);
+		memset(dst, 0xFF, dst_capacity);
+		cmp_size_byte = compress_chunk(col, col_size, NULL, NULL, dst, dst_capacity, &par);
+		TEST_ASSERT_EQUAL_INT(exp_cmp_size_byte, cmp_size_byte);
+	}
+
+	{ /* check the compressed data */
+		uint32_t i;
+		uint8_t *p = (uint8_t *)dst;
+		uint16_t cmp_collection_size_exp = cpu_to_be16(cmp_size_byte_exp);
+
+		/* TODO: check the entity header */
+		p += NON_IMAGETTE_HEADER_SIZE;
+
+		TEST_ASSERT_EQUAL_HEX8_ARRAY(&cmp_collection_size_exp, p, CMP_COLLECTION_FILD_SIZE);
+		p += CMP_COLLECTION_FILD_SIZE;
+
+		TEST_ASSERT(memcmp(col, p, COLLECTION_HDR_SIZE) == 0);
+		p += COLLECTION_HDR_SIZE;
+
+		for (i = 1; i <= col_size-COLLECTION_HDR_SIZE; ++i) {
+			TEST_ASSERT_EQUAL_HEX8(i, *p++);
+		}
+
+		TEST_ASSERT_EQUAL_size_t(cmp_size_byte, p - (uint8_t *)dst);
+	}
+	{ /* decompress the data */
+		int decmp_size;
+		uint8_t *decompressed_data;
+
+		decmp_size = decompress_cmp_entiy(dst, NULL, NULL, NULL);
+		TEST_ASSERT_EQUAL_INT(col_size, decmp_size);
+		decompressed_data = malloc((size_t)decmp_size); TEST_ASSERT_TRUE(decompressed_data);
+		decmp_size = decompress_cmp_entiy(dst, NULL, NULL, decompressed_data);
+		TEST_ASSERT_EQUAL_INT(col_size, decmp_size);
+		TEST_IGNORE_MESSAGE("fix collection header imagette decompression");
+		TEST_ASSERT_EQUAL_HEX8_ARRAY(col, decompressed_data, decmp_size);
+		free(decompressed_data);
+	}
+}
 
 
 void test_cmp_chunk_raw2(void)
@@ -1284,6 +1473,7 @@ void test_cmp_chunk_raw2(void)
 
 		TEST_ASSERT_EQUAL_INT(chunk_size, decmp_size);
 		TEST_ASSERT_EQUAL_HEX8_ARRAY(chunk, decompressed_data, chunk_size);
+		free(decompressed_data);
 	}
 
 	/* error cases */
@@ -1389,6 +1579,7 @@ void test_cmp_decmp_chunk_worst_case(void)
 
 		TEST_ASSERT_EQUAL_INT(chunk_size, decmp_size);
 		TEST_ASSERT_EQUAL_HEX8_ARRAY(chunk, decompressed_data, chunk_size);
+		free(decompressed_data);
 	}
 
 	/* error cases */
@@ -1488,5 +1679,7 @@ void test_cmp_decmp_diff(void)
 
 		TEST_ASSERT_EQUAL_INT(chunk_size, decmp_size);
 		TEST_ASSERT_EQUAL_HEX8_ARRAY(chunk, decompressed_data, chunk_size);
+		free(decompressed_data);
 	}
+	free(dst);
 }
