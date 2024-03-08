@@ -29,7 +29,7 @@
 #include <cmp_tool-config.h>
 #include <compiler.h>
 
-#include <cmp_io.h>
+#include "cmp_io.h"
 #include <cmp_support.h>
 #include <rdcu_cmd.h>
 #include <byteorder.h>
@@ -168,7 +168,6 @@ static FILE *open_file(const char *dirname, const char *filename)
 int write_input_data_to_file(const void *data, uint32_t data_size, enum cmp_data_type data_type,
 			     const char *output_prefix, const char *name_extension, int flags)
 {
-	size_t sample_size = size_of_a_sample(data_type);
 	uint8_t *tmp_buf;
 	int return_value;
 
@@ -178,17 +177,20 @@ int write_input_data_to_file(const void *data, uint32_t data_size, enum cmp_data
 	if (data_size == 0)
 		return 0;
 
-	if (!sample_size)
-		return -1;
-
 	tmp_buf = malloc(data_size);
 	if (!tmp_buf)
 		return -1;
-	memcpy(tmp_buf, data, data_size);
-	cmp_input_big_to_cpu_endianness(tmp_buf, data_size, data_type);
 
-	return_value = write_data_to_file(tmp_buf, data_size, output_prefix,
-					  name_extension, flags);
+	memcpy(tmp_buf, data, data_size);
+
+	if (data_type == DATA_TYPE_CHUNK)
+		return_value = cpu_to_be_chunk(tmp_buf, data_size);
+	else
+		return_value = cmp_input_big_to_cpu_endianness(tmp_buf, data_size, data_type);
+
+	if (!return_value)
+		return_value = write_data_to_file(tmp_buf, data_size, output_prefix,
+						  name_extension, flags);
 
 	free(tmp_buf);
 
@@ -1432,17 +1434,22 @@ ssize_t read_file_data(const char *file_name, enum cmp_data_type data_type,
 	if (size < 0)
 		return size;
 
-	samples = cmp_input_size_to_samples((uint32_t)size, data_type);
-	if (samples < 0) {
-		fprintf(stderr, "%s: %s: Error: The data are not correct formatted for the used compression data type.\n",
-				PROGRAM_NAME, file_name);
-		return -1;
+	if (data_type != DATA_TYPE_CHUNK) {
+		samples = cmp_input_size_to_samples((uint32_t)size, data_type);
+		if (samples < 0) {
+			fprintf(stderr, "%s: %s: Error: The data are not correct formatted for the used compression data type.\n",
+					PROGRAM_NAME, file_name);
+			return -1;
+		}
+
+		err = cmp_input_big_to_cpu_endianness(buf, (uint32_t)size, data_type);
+		if (err)
+			return -1;
+	} else {
+		err = be_to_cpu_chunk(buf, (uint32_t)size);
+		if (err)
+			return -1;
 	}
-
-	err = cmp_input_big_to_cpu_endianness(buf, (uint32_t)size, data_type);
-	if (err)
-		return -1;
-
 	return size;
 }
 
