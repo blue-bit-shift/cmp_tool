@@ -8,7 +8,8 @@ if checkpatch.found()
     '--ignore', 'SPDX_LICENSE_TAG,PREFER_DEFINED_ATTRIBUTE_MACRO,EMBEDDED_FILENAME,BLOCK_COMMENT_STYLE,EMBEDDED_FUNCTION_NAME',
   ]
   run_target('syntax-check',
-  command : [checkpatch, checkpatch_args, main, cmplib_sources])
+  command : [checkpatch, checkpatch_args, main, common_sources, decompress_sources,
+             icu_compress_sources, rdcu_compress_sources])
 endif
 
 # add cppcheck inspector target
@@ -33,6 +34,8 @@ subdir('cmp_tool')
 
 unity_dep = dependency('unity', fallback : ['unity', 'unity_dep'])
 
+subdir('test_common')
+subdir('decmp')
 subdir('cmp_icu')
 subdir('cmp_decmp')
 subdir('cmp_data_types')

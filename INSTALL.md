@@ -45,7 +45,7 @@ cd builddir
 meson compile cmp_tool
 ```
 
-Now you should find the cmp\_tool executable in the folder.
+Now you should find the cmp\_tool executable in the programs folder.
 
 ### Release Build
 
@@ -57,7 +57,7 @@ cd build_relase_dir
 meson compile cmp_tool
 ```
 
-You find the build executable in the `build_relase_dir` directory
+You find the build cmp\_tool executable in the `build_relase_dir/programs` directory.
 
 ### Build for Windows
 

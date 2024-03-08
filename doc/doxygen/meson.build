@@ -37,7 +37,7 @@ if doxygen.found()
   custom_target('doc',
     input : doxy_file,
     output : 'generated_documentation',
-    depend_files : [doxy_file, doc_layout_files, doxygen_awesome_css_files, main, cmplib_sources], # test files are missing
+    depend_files : [doxy_file, doc_layout_files, doxygen_awesome_css_files, cmp_tool_src, common_sources, decompress_sources, icu_compress_sources, rdcu_compress_sources], # test files are missing
     command : [doxygen, '@INPUT@'],
     build_by_default : false,
     console : true,

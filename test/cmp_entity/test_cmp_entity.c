@@ -30,6 +30,7 @@
 
 #include <cmp_entity.h>
 #include <cmp_data_types.h>
+#include <decmp.h>
 
 
 /**
@@ -44,9 +45,7 @@ void test_cmp_ent_cal_hdr_size(void)
 
 	/* raw_mode test */
 	raw_mode_flag = 1;
-	/*TODO: implement: DATA_TYPE_F_CAM_OFFSET, DATA_TYPE_F_CAM_BACKGROUND */
-	/* for (data_type = DATA_TYPE_IMAGETTE; data_type <= DATA_TYPE_F_CAM_BACKGROUND; data_type++) { */
-	for (data_type = DATA_TYPE_IMAGETTE; data_type <= DATA_TYPE_F_CAM_IMAGETTE_ADAPTIVE; data_type++) {
+	for (data_type = DATA_TYPE_IMAGETTE; data_type <= DATA_TYPE_F_CAM_BACKGROUND; data_type++) {
 		hdr_size = cmp_ent_cal_hdr_size(data_type, raw_mode_flag);
 		TEST_ASSERT_EQUAL_INT(GENERIC_HEADER_SIZE, hdr_size);
 
@@ -209,7 +208,7 @@ void test_ent_start_timestamp(void)
 	uint16_t fine_start_timestamp_read;
 	uint8_t *entity_p = (uint8_t *)&ent;
 
-	start_timestamp	= 0x123456789ABC;
+	start_timestamp = 0x123456789ABCULL;
 	error = cmp_ent_set_start_timestamp(&ent, start_timestamp);
 	TEST_ASSERT_FALSE(error);
 
@@ -230,7 +229,7 @@ void test_ent_start_timestamp(void)
 	TEST_ASSERT_EQUAL_UINT64(0x9ABC, fine_start_timestamp_read);
 
 	/* error cases */
-	start_timestamp = 0x1000000000000;
+	start_timestamp = 0x1000000000000ULL;
 	error = cmp_ent_set_start_timestamp(&ent, start_timestamp);
 	TEST_ASSERT_TRUE(error);
 	error = cmp_ent_set_start_timestamp(NULL, start_timestamp);
@@ -321,7 +320,7 @@ void test_ent_end_timestamp(void)
 	uint16_t fine_end_timestamp_read;
 	uint8_t *entity_p = (uint8_t *)&ent;
 
-	end_timestamp	= 0x123456789ABC;
+	end_timestamp	= 0x123456789ABCULL;
 	error = cmp_ent_set_end_timestamp(&ent, end_timestamp);
 	TEST_ASSERT_FALSE(error);
 
@@ -342,7 +341,7 @@ void test_ent_end_timestamp(void)
 	TEST_ASSERT_EQUAL_UINT64(0x9ABC, fine_end_timestamp_read);
 
 	/* error cases */
-	end_timestamp = 0x1000000000000;
+	end_timestamp = 0x1000000000000ULL;
 	error = cmp_ent_set_end_timestamp(&ent, end_timestamp);
 	TEST_ASSERT_TRUE(error);
 	error = cmp_ent_set_end_timestamp(NULL, end_timestamp);
@@ -432,6 +431,21 @@ void test_cmp_ent_data_type(void)
 	int raw_mode_flag, raw_mode_flag_read;
 	uint8_t *entity_p = (uint8_t *)&ent;
 
+	/* test raw_mode */
+	raw_mode_flag = 1;
+	data_type = DATA_TYPE_F_CAM_IMAGETTE_ADAPTIVE;
+	error = cmp_ent_set_data_type(&ent, data_type, raw_mode_flag);
+	TEST_ASSERT_FALSE(error);
+
+	data_type_read = cmp_ent_get_data_type(&ent);
+	TEST_ASSERT_EQUAL_HEX32(data_type, data_type_read);
+	raw_mode_flag_read = cmp_ent_get_data_type_raw_bit(&ent);
+	TEST_ASSERT_EQUAL(raw_mode_flag, raw_mode_flag_read);
+
+	/* check the right position in the header */
+	TEST_ASSERT_EQUAL_HEX(0x80, entity_p[22]);
+	TEST_ASSERT_EQUAL_HEX(21, entity_p[23]);
+
 	/* test non raw_mode */
 	raw_mode_flag = 0;
 	data_type = DATA_TYPE_F_CAM_IMAGETTE_ADAPTIVE;
@@ -447,20 +461,6 @@ void test_cmp_ent_data_type(void)
 	TEST_ASSERT_EQUAL_HEX(0, entity_p[22]);
 	TEST_ASSERT_EQUAL_HEX(21, entity_p[23]);
 
-	/* test raw_mode */
-	raw_mode_flag = 1;
-	data_type = DATA_TYPE_F_CAM_IMAGETTE_ADAPTIVE;
-	error = cmp_ent_set_data_type(&ent, data_type, raw_mode_flag);
-	TEST_ASSERT_FALSE(error);
-
-	data_type_read = cmp_ent_get_data_type(&ent);
-	TEST_ASSERT_EQUAL_HEX32(data_type, data_type_read);
-	raw_mode_flag_read = cmp_ent_get_data_type_raw_bit(&ent);
-	TEST_ASSERT_EQUAL(raw_mode_flag, raw_mode_flag_read);
-
-	/* check the right position in the header */
-	TEST_ASSERT_EQUAL_HEX(0x80, entity_p[22]);
-	TEST_ASSERT_EQUAL_HEX(21, entity_p[23]);
 
 	/* error cases */
 	raw_mode_flag = 0;
@@ -1294,14 +1294,14 @@ void test_ent_non_ima_cmp_par6(void)
 
 void test_cmp_ent_get_data_buf(void)
 {
-	enum cmp_data_type data_type;/*TODO: implement: DATA_TYPE_F_CAM_OFFSET, DATA_TYPE_F_CAM_BACKGROUND */
+	enum cmp_data_type data_type;
 	struct cmp_entity ent = {0};
 	char *adr;
 	uint32_t s, hdr_size;
 	int error;
 
 	for (data_type = DATA_TYPE_IMAGETTE;
-	     data_type <= DATA_TYPE_F_CAM_IMAGETTE_ADAPTIVE;
+	     data_type <= DATA_TYPE_F_CAM_BACKGROUND;
 	     data_type++) {
 		s = cmp_ent_create(&ent, data_type, 0, 0);
 		TEST_ASSERT_NOT_EQUAL_INT(0, s);
@@ -1315,7 +1315,7 @@ void test_cmp_ent_get_data_buf(void)
 
 	/* RAW mode test */
 	for (data_type = DATA_TYPE_IMAGETTE;
-	     data_type <= DATA_TYPE_F_CAM_IMAGETTE_ADAPTIVE;
+	     data_type <= DATA_TYPE_F_CAM_BACKGROUND;
 	     data_type++) {
 		s = cmp_ent_create(&ent, data_type, 1, 0);
 		TEST_ASSERT_NOT_EQUAL_INT(0, s);
@@ -1420,8 +1420,6 @@ void test_cmp_ent_get_cmp_data_size(void)
 	cmp_data_size = cmp_ent_get_cmp_data_size(&ent);
 	TEST_ASSERT_EQUAL_UINT(0, cmp_data_size);
 }
-
-
 
 
 /**
@@ -1859,6 +1857,15 @@ void test_cmp_ent_build(void)
 	TEST_ASSERT_EQUAL_INT(cfg.ap2_spill, cmp_ent_get_ima_ap2_spill(ent));
 	TEST_ASSERT_EQUAL_INT(cfg.ap2_golomb_par, cmp_ent_get_ima_ap2_golomb_par(ent));
 
+	/* entity size is smaller than */
+	cmp_size_bits = 2;
+	size = cmp_ent_build(NULL, version_id, start_time, end_time, model_id,
+			     model_counter, &cfg, cmp_size_bits);
+	TEST_ASSERT_EQUAL_UINT(IMAGETTE_ADAPTIVE_HEADER_SIZE+cmp_bit_to_byte((unsigned int)cmp_size_bits), size);
+	size = cmp_ent_build(ent, version_id, start_time, end_time, model_id,
+			     model_counter, &cfg, cmp_size_bits);
+	TEST_ASSERT_EQUAL_UINT(IMAGETTE_ADAPTIVE_HEADER_SIZE+cmp_bit_to_byte((unsigned int)cmp_size_bits), size);
+
 	/** error cases **/
 	/* cfg = NULL */
 	size = cmp_ent_build(NULL, version_id, start_time, end_time, model_id,
@@ -1888,23 +1895,23 @@ void test_cmp_ent_build(void)
 #endif
 
 	/* start_time to high */
-	start_time = 0x1000000000000;
+	start_time = 0x1000000000000ULL;
 	size = cmp_ent_build(ent, version_id, start_time, end_time, model_id,
 			     model_counter, &cfg, cmp_size_bits);
 	TEST_ASSERT_EQUAL_UINT(0, size);
 	/* this should work */
-	start_time = 0xFFFFFFFFFFFF;
+	start_time = 0xFFFFFFFFFFFFULL;
 	size = cmp_ent_build(ent, version_id, start_time, end_time, model_id,
 			     model_counter, &cfg, cmp_size_bits);
 	TEST_ASSERT_EQUAL_UINT(IMAGETTE_ADAPTIVE_HEADER_SIZE+60, size);
 
 	/* end_time to high */
-	end_time = 0x1000000000000;
+	end_time = 0x1000000000000ULL;
 	size = cmp_ent_build(ent, version_id, start_time, end_time, model_id,
 			     model_counter, &cfg, cmp_size_bits);
 	TEST_ASSERT_EQUAL_UINT(0, size);
 	/* this should work */
-	end_time = 0xFFFFFFFFFFFF;
+	end_time = 0xFFFFFFFFFFFFULL;
 	size = cmp_ent_build(ent, version_id, start_time, end_time, model_id,
 			     model_counter, &cfg, cmp_size_bits);
 	TEST_ASSERT_EQUAL_UINT(IMAGETTE_ADAPTIVE_HEADER_SIZE+60, size);
