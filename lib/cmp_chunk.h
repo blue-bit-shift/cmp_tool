@@ -149,7 +149,8 @@ void compress_chunk_init(uint64_t(return_timestamp)(void), uint32_t version_id);
  *				buffer for in-place update or NULL if updated
  *				model is not needed)
  * @param dst			destination pointer to the compressed data
- *				buffer; has to be 4-byte aligned (can be NULL)
+ *				buffer; has to be 4-byte aligned; can be NULL to
+ *				only get the compressed data size
  * @param dst_capacity		capacity of the dst buffer;  it's recommended to
  *				provide a dst_capacity >=
  *				compress_chunk_cmp_size_bound(chunk, chunk_size)

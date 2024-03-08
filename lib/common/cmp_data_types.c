@@ -365,7 +365,7 @@ int cmp_col_set_data_length(struct collection_hdr *col, uint16_t length)
 /**
  * @brief converts a subservice to its associated compression data type
  *
- * @param subservice	collection subservice
+ * @param subservice	collection subservice type
  *
  * @returns the converted compression data type; DATA_TYPE_UNKNOWN if the
  *	subservice is unknown

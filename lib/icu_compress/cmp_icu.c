@@ -97,7 +97,7 @@ struct encoder_setupt {
 
 
 /**
- * @brief types of chunks containing different types of collection
+ * @brief types of chunks containing different types of collections
  *	according to DetailedBudgetWorking_2023-10-11
  */
 
@@ -2354,7 +2354,7 @@ static int set_cmp_col_size(uint8_t *cmp_col_size_field, int32_t cmp_col_size)
  * @param updated_model	pointer to the buffer where the updated model will be
  *			stored, or NULL if not applicable
  * @param dst		pointer to the buffer where the compressed data will be
- *			stored, or NULL to only get the size
+ *			stored, or NULL to only get the compressed data size
  * @param dst_capacity	the size of the dst buffer in bytes
  * @param cfg		pointer to a compression configuration
  * @param dst_size	the already used size of the dst buffer in bytes
@@ -2459,7 +2459,7 @@ static int32_t cmp_collection(uint8_t *col, uint8_t *model, uint8_t *updated_mod
  * @brief builds a compressed entity header for a compressed chunk
  *
  * @param ent			start address of the compression entity header
- *				(can be NULL if you only wont the entity header
+ *				(can be NULL if you only want the entity header
  *				size)
  * @param chunk_size		the original size of the chunk in bytes
  * @param cfg			pointer to the compression configuration used to
@@ -2717,7 +2717,8 @@ void compress_chunk_init(uint64_t(return_timestamp)(void), uint32_t version_id)
  *				buffer for in-place update or NULL if updated
  *				model is not needed)
  * @param dst			destination pointer to the compressed data
- *				buffer; has to be 4-byte aligned (can be NULL)
+ *				buffer; has to be 4-byte aligned; can be NULL to
+ *				only get the compressed data size
  * @param dst_capacity		capacity of the dst buffer;  it's recommended to
  *				provide a dst_capacity >=
  *				compress_chunk_cmp_size_bound(chunk, chunk_size)
