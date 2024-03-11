@@ -24,6 +24,7 @@
 #include <string.h>
 
 #include <cmp_support.h>
+#include <cmp_chunk.h>
 #include <cmp_entity.h>
 
 #define MAX_CONFIG_LINE 256
@@ -39,7 +40,7 @@
 
 void print_help(const char *program_name);
 
-int cmp_cfg_read(const char *file_name, struct cmp_cfg *cfg, int verbose_en);
+int cmp_cfg_read(const char *file_name, struct cmp_cfg *cfg, struct cmp_par *par, int verbose_en);
 int cmp_info_read(const char *file_name, struct cmp_info *info, int verbose_en);
 
 ssize_t read_file8(const char *file_name, uint8_t *buf, uint32_t buf_size, int flags);
