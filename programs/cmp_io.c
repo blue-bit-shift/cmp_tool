@@ -31,6 +31,7 @@
 
 #include "cmp_io.h"
 #include <cmp_support.h>
+#include <cmp_chunk.h>
 #include <rdcu_cmd.h>
 #include <byteorder.h>
 #include <cmp_data_types.h>
@@ -65,6 +66,7 @@ static const struct {
 	{DATA_TYPE_F_CAM_IMAGETTE_ADAPTIVE, "DATA_TYPE_F_CAM_IMAGETTE_ADAPTIVE"},
 	{DATA_TYPE_F_CAM_OFFSET, "DATA_TYPE_F_CAM_OFFSET"},
 	{DATA_TYPE_F_CAM_BACKGROUND, "DATA_TYPE_F_CAM_BACKGROUND"},
+	{DATA_TYPE_CHUNK, "DATA_TYPE_CHUNK"},
 	{DATA_TYPE_UNKNOWN, "DATA_TYPE_UNKNOWN"}
 };
 
@@ -528,22 +530,31 @@ int cmp_mode_parse(const char *cmp_mode_str, enum cmp_mode *cmp_mode)
  * @param fp	FILE pointer
  * @param cfg	compression configuration structure holding the read in
  *		configuration
+ * @param par	chunk compression parameters structure holding the read in
+ *		chunk configuration
  *
  * @returns 0 on success, error otherwise
  */
 
-static int parse_cfg(FILE *fp, struct cmp_cfg *cfg)
+static int parse_cfg(FILE *fp, struct cmp_cfg *cfg, struct cmp_par *par)
 {
+#define chunk_parse_uint32_parmter(parmter)			\
+	if (!strcmp(token1, #parmter)) {			\
+		if (atoui32(token1, token2, &par->parmter))	\
+			return -1;				\
+		cfg->data_type = DATA_TYPE_CHUNK;		\
+		continue;					\
+}
 	char *token1, *token2;
 	char line[MAX_CONFIG_LINE];
 	enum {CMP_MODE, SAMPLES, BUFFER_LENGTH, LAST_ITEM};
 	int j, must_read_items[LAST_ITEM] = {0};
 
 	if (!fp)
-		return -1;
+		abort();
 
 	if (!cfg)
-		return -1;
+		abort();
 
 	while (fgets(line, sizeof(line), fp) != NULL) {
 		if (line[0] == '#' || line[0] == '\n')
@@ -576,6 +587,7 @@ static int parse_cfg(FILE *fp, struct cmp_cfg *cfg)
 			must_read_items[CMP_MODE] = 1;
 			if (cmp_mode_parse(token2, &cfg->cmp_mode))
 				return -1;
+			par->cmp_mode = cfg->cmp_mode;
 			continue;
 		}
 		if (!strcmp(token1, "golomb_par")) {
@@ -591,6 +603,7 @@ static int parse_cfg(FILE *fp, struct cmp_cfg *cfg)
 		if (!strcmp(token1, "model_value")) {
 			if (atoui32(token1, token2, &cfg->model_value))
 				return -1;
+			par->model_value = cfg->model_value;
 			continue;
 		}
 		if (!strcmp(token1, "round")) {
@@ -618,98 +631,7 @@ static int parse_cfg(FILE *fp, struct cmp_cfg *cfg)
 				return -1;
 			continue;
 		}
-		if (!strcmp(token1, "cmp_par_exp_flags")) {
-			if (atoui32(token1, token2, &cfg->cmp_par_exp_flags))
-				return -1;
-			continue;
-		}
-		if (!strcmp(token1, "spill_exp_flags")) {
-			if (atoui32(token1, token2, &cfg->spill_exp_flags))
-				return -1;
-			continue;
-		}
-		if (!strcmp(token1, "cmp_par_fx")) {
-			if (atoui32(token1, token2, &cfg->cmp_par_fx))
-				return -1;
-			continue;
-		}
-		if (!strcmp(token1, "spill_fx")) {
-			if (atoui32(token1, token2, &cfg->spill_fx))
-				return -1;
-			continue;
-		}
-		if (!strcmp(token1, "cmp_par_ncob")) {
-			if (atoui32(token1, token2, &cfg->cmp_par_ncob))
-				return -1;
-			continue;
-		}
-		if (!strcmp(token1, "spill_ncob")) {
-			if (atoui32(token1, token2, &cfg->spill_ncob))
-				return -1;
-			continue;
-		}
-		if (!strcmp(token1, "cmp_par_efx")) {
-			if (atoui32(token1, token2, &cfg->cmp_par_efx))
-				return -1;
-			continue;
-		}
-		if (!strcmp(token1, "spill_efx")) {
-			if (atoui32(token1, token2, &cfg->spill_efx))
-				return -1;
-			continue;
-		}
-		if (!strcmp(token1, "cmp_par_ecob")) {
-			if (atoui32(token1, token2, &cfg->cmp_par_ecob))
-				return -1;
-			continue;
-		}
-		if (!strcmp(token1, "spill_ecob")) {
-			if (atoui32(token1, token2, &cfg->spill_ecob))
-				return -1;
-			continue;
-		}
-		if (!strcmp(token1, "cmp_par_fx_cob_variance")) {
-			if (atoui32(token1, token2, &cfg->cmp_par_fx_cob_variance))
-				return -1;
-			continue;
-		}
-		if (!strcmp(token1, "spill_fx_cob_variance")) {
-			if (atoui32(token1, token2, &cfg->spill_fx_cob_variance))
-				return -1;
-			continue;
-		}
-#if 0
-		if (!strcmp(token1, "cmp_par_mean")) {
-			if (atoui32(token1, token2, &cfg->cmp_par_mean))
-				return -1;
-			continue;
-		}
-		if (!strcmp(token1, "spill_mean")) {
-			if (atoui32(token1, token2, &cfg->spill_mean))
-				return -1;
-			continue;
-		}
-		if (!strcmp(token1, "cmp_par_variance")) {
-			if (atoui32(token1, token2, &cfg->cmp_par_variance))
-				return -1;
-			continue;
-		}
-		if (!strcmp(token1, "spill_variance")) {
-			if (atoui32(token1, token2, &cfg->spill_variance))
-				return -1;
-			continue;
-		}
-		if (!strcmp(token1, "cmp_par_pixels_error")) {
-			if (atoui32(token1, token2, &cfg->cmp_par_pixels_error))
-				return -1;
-			continue;
-		}
-		if (!strcmp(token1, "spill_pixels_error")) {
-			if (atoui32(token1, token2, &cfg->spill_pixels_error))
-				return -1;
-			continue;
-		}
-#endif
+
 		if (!strcmp(token1, "rdcu_data_adr")) {
 			int i = sram_addr_to_int(token2);
 
@@ -766,18 +688,57 @@ static int parse_cfg(FILE *fp, struct cmp_cfg *cfg)
 			must_read_items[BUFFER_LENGTH] = 1;
 			continue;
 		}
+
+		/* chunk_parse_uint32_parmter(model_value); */
+		chunk_parse_uint32_parmter(lossy_par);
+
+		chunk_parse_uint32_parmter(nc_imagette);
+
+		chunk_parse_uint32_parmter(s_exp_flags);
+		chunk_parse_uint32_parmter(s_fx);
+		chunk_parse_uint32_parmter(s_ncob);
+		chunk_parse_uint32_parmter(s_efx);
+		chunk_parse_uint32_parmter(s_ecob);
+
+		chunk_parse_uint32_parmter(l_exp_flags);
+		chunk_parse_uint32_parmter(l_fx);
+		chunk_parse_uint32_parmter(l_ncob);
+		chunk_parse_uint32_parmter(l_efx);
+		chunk_parse_uint32_parmter(l_ecob);
+		chunk_parse_uint32_parmter(l_fx_cob_variance);
+
+		chunk_parse_uint32_parmter(saturated_imagette);
+
+		chunk_parse_uint32_parmter(nc_offset_mean);
+		chunk_parse_uint32_parmter(nc_offset_variance);
+		chunk_parse_uint32_parmter(nc_background_mean);
+		chunk_parse_uint32_parmter(nc_background_variance);
+		chunk_parse_uint32_parmter(nc_background_outlier_pixels);
+
+		chunk_parse_uint32_parmter(smearing_mean);
+		chunk_parse_uint32_parmter(smearing_variance_mean);
+		chunk_parse_uint32_parmter(smearing_outlier_pixels);
+
+		chunk_parse_uint32_parmter(fc_imagette);
+		chunk_parse_uint32_parmter(fc_offset_mean);
+		chunk_parse_uint32_parmter(fc_offset_variance);
+		chunk_parse_uint32_parmter(fc_background_mean);
+		chunk_parse_uint32_parmter(fc_background_variance);
+		chunk_parse_uint32_parmter(fc_background_outlier_pixels);
 	}
 
-	if (raw_mode_is_used(cfg->cmp_mode))
-		if (must_read_items[CMP_MODE] == 1 &&
-		    must_read_items[BUFFER_LENGTH] == 1)
-			return 0;
+	if (cfg->data_type != DATA_TYPE_CHUNK) {
+		if (raw_mode_is_used(cfg->cmp_mode))
+			if (must_read_items[CMP_MODE] == 1 &&
+			    must_read_items[BUFFER_LENGTH] == 1)
+				return 0;
 
-	for (j = 0; j < LAST_ITEM; j++) {
-		if (must_read_items[j] < 1) {
-			fprintf(stderr, "%s: Some parameters are missing. Check if the following parameters: cmp_mode, golomb_par, spill, samples and buffer_length are all set in the configuration file.\n",
-				PROGRAM_NAME);
-			return -1;
+		for (j = 0; j < LAST_ITEM; j++) {
+			if (must_read_items[j] < 1) {
+				fprintf(stderr, "%s: Some parameters are missing. Check if the following parameters: cmp_mode, golomb_par, spill, samples and buffer_length are all set in the configuration file.\n",
+					PROGRAM_NAME);
+				return -1;
+			}
 		}
 	}
 
@@ -791,12 +752,15 @@ static int parse_cfg(FILE *fp, struct cmp_cfg *cfg)
  * @param file_name	file containing the compression configuration file
  * @param cfg		compression configuration structure holding the read in
  *			configuration
+ * @param par		chunk compression parameters structure holding the read
+ *			in chunk configuration
  * @param verbose_en	print verbose output if not zero
  *
  * @returns 0 on success, error otherwise
  */
 
-int cmp_cfg_read(const char *file_name, struct cmp_cfg *cfg, int verbose_en)
+int cmp_cfg_read(const char *file_name, struct cmp_cfg *cfg, struct cmp_par *par,
+		 int verbose_en)
 {
 	int err;
 	FILE *fp;
@@ -820,7 +784,7 @@ int cmp_cfg_read(const char *file_name, struct cmp_cfg *cfg, int verbose_en)
 		return -1;
 	}
 
-	err = parse_cfg(fp, cfg);
+	err = parse_cfg(fp, cfg, par);
 	fclose(fp);
 	if (err)
 		return err;

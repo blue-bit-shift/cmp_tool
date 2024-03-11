@@ -27,6 +27,7 @@
 #include "cmp_tool-config.h"
 #include "cmp_io.h"
 #include "cmp_icu.h"
+#include "cmp_chunk.h"
 #include "cmp_rdcu.h"
 #include "decmp.h"
 #include "cmp_guess.h"
@@ -47,6 +48,9 @@ static enum cmp_data_type parse_data_type(const char *data_type_str);
 /* find a good set of compression parameters for a given dataset */
 static int guess_cmp_pars(struct cmp_cfg *cfg, const char *guess_cmp_mode,
 			  int guess_level);
+
+/* compress chunk data and write the results to files */
+static int compression_of_chunk(void *chunk, uint32_t size, void *model, struct cmp_par *chunk_par);
 
 /* compress the data and write the results to files */
 static int compression(struct cmp_cfg *cfg, struct cmp_info *info);
@@ -152,9 +156,12 @@ int main(int argc, char **argv)
 	struct cmp_entity *decomp_entity = NULL;
 	/* buffer containing the read in model */
 	uint16_t *input_model_buf = NULL;
+	/* size of the data to be compressed and the model of it */
+	uint32_t input_size;
 
 	struct cmp_info info = {0}; /* decompression information struct */
 	struct cmp_cfg cfg = {0}; /* compressor configuration struct */
+	struct cmp_par chunk_par = {0}; /* compressor parameters for chunk compression */
 
 	cfg.data_type = DATA_TYPE_IMAGETTE; /* use imagette as default data type */
 	cfg.max_used_bits = &MAX_USED_BITS_SAFE; /* define max_used_bits default */
@@ -327,12 +334,11 @@ int main(int argc, char **argv)
 
 	if (cmp_operation || guess_operation) {
 		ssize_t size;
-		uint32_t input_size;
 
 		if (cmp_operation) {
 			printf("## Starting the compression ##\n");
 			printf("Importing configuration file %s ... ", cfg_file_name);
-			error = cmp_cfg_read(cfg_file_name, &cfg, io_flags & CMP_IO_VERBOSE);
+			error = cmp_cfg_read(cfg_file_name, &cfg, &chunk_par, io_flags & CMP_IO_VERBOSE);
 			if (error)
 				goto fail;
 			printf("DONE\n");
@@ -342,20 +348,28 @@ int main(int argc, char **argv)
 
 		printf("Importing data file %s ... ", data_file_name);
 		/* count the samples in the data file when samples == 0 */
-		if (cfg.samples == 0) {
-			int32_t samples;
+		if (cfg.data_type != DATA_TYPE_CHUNK) {
+			if (cfg.samples == 0) {
+				int32_t samples;
 
-			size = read_file_data(data_file_name, cfg.data_type, NULL, 0, io_flags);
+				size = read_file_data(data_file_name, cfg.data_type, NULL, 0, io_flags);
+				if (size <= 0 || size > UINT32_MAX) /* empty file is treated as an error */
+					goto fail;
+				samples = cmp_input_size_to_samples((uint32_t)size, cfg.data_type);
+				if (samples < 0)
+					goto fail;
+				cfg.samples = (uint32_t)samples;
+				printf("\nNo samples parameter set. Use samples = %u.\n... ", cfg.samples);
+			}
+
+			input_size = cmp_cal_size_of_data(cfg.samples, cfg.data_type);
+		} else {
+			size  = read_file_data(data_file_name, cfg.data_type, NULL, 0, io_flags);
 			if (size <= 0 || size > UINT32_MAX) /* empty file is treated as an error */
 				goto fail;
-			samples = cmp_input_size_to_samples((uint32_t)size, cfg.data_type);
-			if (samples < 0)
-				goto fail;
-			cfg.samples = (uint32_t)samples;
-			printf("\nNo samples parameter set. Use samples = %u.\n... ", cfg.samples);
+			input_size = (uint32_t)size;
 		}
 
-		input_size = cmp_cal_size_of_data(cfg.samples, cfg.data_type);
 		cfg.input_buf = malloc(input_size);
 		if (!cfg.input_buf) {
 			fprintf(stderr, "%s: Error allocating memory for input data buffer.\n", PROGRAM_NAME);
@@ -456,7 +470,7 @@ int main(int argc, char **argv)
 
 		if (cmp_operation || guess_operation) {
 			data_type = cfg.data_type;
-			model_size = cmp_cal_size_of_data(cfg.samples, cfg.data_type);
+			model_size = input_size;
 		} else {
 			data_type = cmp_ent_get_data_type(decomp_entity);
 			model_size = cmp_ent_get_original_size(decomp_entity);
@@ -483,7 +497,11 @@ int main(int argc, char **argv)
 		if (error)
 			goto fail;
 	} else if (cmp_operation) {
-		error = compression(&cfg, &info);
+		if (cfg.data_type == DATA_TYPE_CHUNK)
+			error = compression_of_chunk(cfg.input_buf, input_size,
+						     input_model_buf, &chunk_par);
+		else
+			error = compression(&cfg, &info);
 		if (error)
 			goto fail;
 	} else {
@@ -502,7 +520,7 @@ int main(int argc, char **argv)
 		printf("Write updated model to file %s_upmodel.dat ... ", output_prefix);
 		if (cmp_operation) {
 			data_type = cfg.data_type;
-			model_size = cmp_cal_size_of_data(cfg.samples, data_type);
+			model_size = input_size;
 		} else {
 			data_type = cmp_ent_get_data_type(decomp_entity);
 			model_size = cmp_ent_get_original_size(decomp_entity);
@@ -701,6 +719,52 @@ static int cmp_gernate_rdcu_info(const struct cmp_cfg *cfg, int cmp_size_bit,
 			info->cmp_size = (uint32_t)cmp_size_bit;
 
 	}
+	return 0;
+}
+
+
+/**
+ * @brief compress chunk data and write the results to files
+ */
+
+static int compression_of_chunk(void *chunk, uint32_t size, void *model, struct cmp_par *chunk_par)
+{
+	uint32_t bound = compress_chunk_cmp_size_bound(chunk, size);
+	uint32_t *cmp_data;
+	int32_t cmp_size;
+	int error;
+
+	if (!bound)
+		return -1;
+	cmp_data = calloc(1, bound);
+	if (cmp_data == NULL) {
+		fprintf(stderr, "%s: Error allocating memory for output buffer.\n", PROGRAM_NAME);
+		return -1;
+	}
+
+	printf("Compress chunk data ... ");
+	cmp_size = compress_chunk(chunk, size, model, model,
+				  cmp_data, bound, chunk_par);
+
+	if (cmp_size < 0) {
+		if (cmp_size == CMP_ERROR_SMALL_BUF)
+			fprintf(stderr, "Error: The buffer for the compressed data is too small to hold the compressed data. Try a larger buffer_length parameter.\n");
+		free(cmp_data);
+		cmp_data = NULL;
+		printf("FAILED\n");
+		return -1;
+	}
+
+	printf("DONE\nWrite compressed data to file %s.cmp ... ", output_prefix);
+	error = write_data_to_file(cmp_data, (uint32_t)cmp_size, output_prefix,
+				   ".cmp", io_flags);
+	free(cmp_data);
+	cmp_data = NULL;
+	if (error) {
+		printf("FAILED\n");
+		return -1;
+	}
+	printf("DONE\n");
 	return 0;
 }
 
