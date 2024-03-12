@@ -1450,20 +1450,29 @@ void test_cmp_decmp_chunk_raw(void)
 void test_cmp_decmp_chunk_worst_case(void)
 {
 	struct chunk_def chunk_def[2] = {{DATA_TYPE_S_FX, 2}, {DATA_TYPE_S_FX_EFX_NCOB_ECOB, 3}};
-	uint32_t chunk_size;
 	enum {CHUNK_SIZE_EXP = 2*sizeof(struct s_fx) + 3*sizeof(struct s_fx_efx_ncob_ecob) + 2*COLLECTION_HDR_SIZE};
+	uint32_t chunk_size = CHUNK_SIZE_EXP;
 	void *chunk = NULL;
 	uint32_t dst[COMPRESS_CHUNK_BOUND(CHUNK_SIZE_EXP, ARRAY_SIZE(chunk_def))/sizeof(uint32_t)];
 	int cmp_size_byte = 0;
 	struct cmp_par par = {0};
 
-	/* generate test data */
-	chunk_size = (uint32_t)generate_random_chunk(chunk, chunk_def, ARRAY_SIZE(chunk_def), &MAX_USED_BITS_SAFE);
-	TEST_ASSERT_EQUAL_size_t(CHUNK_SIZE_EXP, chunk_size);
-	chunk = calloc(1, chunk_size);
-	TEST_ASSERT_NOT_NULL(chunk);
-	chunk_size = (uint32_t)generate_random_chunk(chunk, chunk_def, ARRAY_SIZE(chunk_def), &MAX_USED_BITS_SAFE);
-	TEST_ASSERT_EQUAL_size_t(CHUNK_SIZE_EXP, chunk_size);
+	{ /* generate test data */
+		uint16_t s;
+		uint8_t *p, i;
+
+		chunk = malloc(chunk_size); TEST_ASSERT_NOT_NULL(chunk);
+		generate_random_collection_hdr(chunk, DATA_TYPE_S_FX, 2);
+		p = chunk;
+		p += COLLECTION_HDR_SIZE;
+		for (i = 0; i < cmp_col_get_data_length(chunk); i++)
+			*p++ = i;
+		generate_random_collection_hdr((struct collection_hdr *)p, DATA_TYPE_S_FX_EFX_NCOB_ECOB, 3);
+		s = cmp_col_get_data_length((struct collection_hdr *)p);
+		p += COLLECTION_HDR_SIZE;
+		for (i = 0; i < s; i++)
+			*p++ = i;
+	}
 
 
 	{ /* "compress" data */
