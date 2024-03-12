@@ -884,7 +884,7 @@ static int32_t chunk_round_trip(void *data, uint32_t data_size,
 	 */
 	if (model) {
 		if (up_model == model) {
-			model_cpy = cmp_test_malloc(data_size);
+			model_cpy = TEST_malloc(data_size);
 			memcpy(model_cpy, model, data_size);
 		} else {
 			model_cpy = model;
@@ -925,9 +925,9 @@ static int32_t chunk_round_trip(void *data, uint32_t data_size,
 		TEST_ASSERT_EQUAL((uint32_t)decmp_size, data_size);
 
 		if (use_decmp_buf)
-			decmp_data = cmp_test_malloc(data_size);
+			decmp_data = TEST_malloc(data_size);
 		if (use_decmp_up_model)
-			up_model_decmp = cmp_test_malloc(data_size);
+			up_model_decmp = TEST_malloc(data_size);
 
 		decmp_size = decompress_cmp_entiy((struct cmp_entity *)cmp_data, model_cpy,
 						  up_model_decmp, decmp_data);
