@@ -24,11 +24,19 @@
 
 #include <compiler.h>
 #include <cmp_entity.h>
+#include <cmp_data_types.h>
 #include "../../lib/icu_compress/cmp_icu.c" /* .c file included to test static functions */
 #include "../../lib/decompress/decmp.c" /* .c file included to test static functions */
 
 #define MAX_VALID_CW_LEM 32
 
+
+/**
+ * @test bit_init_decoder
+ * @test bit_read_bits32
+ * @test bit_read_bits
+ * @test bit_refill
+ */
 
 void test_bitstream(void)
 {
@@ -68,7 +76,7 @@ void test_bitstream(void)
 	TEST_ASSERT_EQUAL_INT(32, dec.bits_consumed);
 	status = bit_refill(&dec);
 	TEST_ASSERT_EQUAL_INT(BIT_END_OF_BUFFER, status);
-	TEST_ASSERT_EQUAL_INT(32,dec.bits_consumed);
+	TEST_ASSERT_EQUAL_INT(32, dec.bits_consumed);
 	TEST_ASSERT_FALSE(bit_end_of_stream(&dec));
 
 	read_bits = bit_read_bits32(&dec, 32);
@@ -94,8 +102,6 @@ void test_bitstream(void)
 	bit_read_bits(&dec, 57);
 	bit_read_bits(&dec, 57);
 	TEST_ASSERT_EQUAL_INT(BIT_OVERFLOW, status);
-
-
 
 	{
 		uint8_t k, j;
@@ -197,8 +203,8 @@ void test_unary_decoder(void)
 	TEST_ASSERT_EQUAL_INT(32, leading_ones);
 	TEST_ASSERT_EQUAL_INT(BIT_OVERFLOW, bit_refill(&dec));
 
-	{
-		uint64_t value64 = ~0ULL;
+	{	uint64_t value64 = ~0ULL;
+
 		ret = bit_init_decoder(&dec, &value64, sizeof(value64));
 		TEST_ASSERT_EQUAL_size_t(sizeof(value64), ret);
 		leading_ones = unary_decoder(&dec, unused_1, unused_2);
@@ -790,8 +796,7 @@ void test_decode_multi(void)
 	TEST_ASSERT_EQUAL_INT(-1, err);
 
 
-	/* 0xFA -> 16 = spill(8)+8 -> unencoded_len = 17 bits -> larger than
-	 * 16 bit max_used_bits*/
+	/* 0xFA -> 16 = spill(8)+8 -> unencoded_len = 17 bits -> larger than 16 bit max_used_bits */
 	cmp_data[0] = cpu_to_be32(0xFA000000);
 	cmp_data[1] = cpu_to_be32(0x00000000);
 	bit_init_decoder(&dec, cmp_data, sizeof(cmp_data));
@@ -888,6 +893,7 @@ void test_multi_refill_needed(void)
 	TEST_ASSERT_EQUAL_INT(CORRUPTION_DETECTED, err);
 }
 
+
 /**
  * @test re_map_to_pos
  */
@@ -920,6 +926,7 @@ void test_re_map_to_pos(void)
 
 	for (j = -16; j < 15; j++) {
 		uint32_t map_val =  map_to_pos((uint32_t)j, 16) & 0x3F;
+
 		result = re_map_to_pos(map_val);
 		TEST_ASSERT_EQUAL_INT32(j, result);
 	}
@@ -980,7 +987,8 @@ size_t icu_compress_data_entity(struct cmp_entity *ent, const struct cmp_cfg *cf
 		return 0;
 
 	/* XXX overwrite the size of the compression entity with the size of the actual
-	 * size of the compressed data; not all allocated memory is normally used */
+	 * size of the compressed data; not all allocated memory is normally used
+	 */
 	s = cmp_ent_create(ent, cfg->data_type, cfg->cmp_mode == CMP_MODE_RAW,
 			   cmp_bit_to_byte((unsigned int)cmp_size_bits));
 
@@ -1065,8 +1073,7 @@ void test_decompress_imagette_model(void)
 
 	bit_init_decoder(&dec, cfg.icu_output_buf, cfg.buffer_length);
 
-	err = decompress_imagette(&cfg, &dec);
-	/* TEST_ASSERT_EQUAL_INT(15, stream_pos); */
+	err = decompress_imagette(&cfg, &dec, RDCU_DECOMPRESSION);
 	TEST_ASSERT_FALSE(err);
 	TEST_ASSERT_EQUAL_HEX(1, data[0]);
 	TEST_ASSERT_EQUAL_HEX(2, data[1]);
@@ -1079,189 +1086,6 @@ void test_decompress_imagette_model(void)
 	TEST_ASSERT_EQUAL_HEX(2, up_model[2]);
 	TEST_ASSERT_EQUAL_HEX(3, up_model[3]);
 	TEST_ASSERT_EQUAL_HEX(4, up_model[4]);
-}
-
-
-#define DATA_SAMPLES 5
-void test_cmp_decmp_s_fx_diff(void)
-{
-	size_t s;
-	int err, decmp_size;
-
-	struct cmp_entity *ent;
-	const uint32_t MAX_VALUE = ~(~0U << MAX_USED_BITS_V1.s_fx);
-	struct s_fx data_entry[DATA_SAMPLES];
-	uint8_t data_to_compress[COLLECTION_HDR_SIZE + sizeof(data_entry)];
-	struct s_fx *decompressed_data = NULL;
-	uint32_t compressed_data_len_samples = DATA_SAMPLES;
-	struct cmp_cfg cfg;
-
-	data_entry[0].exp_flags = 0;
-	data_entry[0].fx = 0;
-	data_entry[1].exp_flags = 1;
-	data_entry[1].fx = 23;
-	data_entry[2].exp_flags = 2;
-	data_entry[2].fx = 42;
-	data_entry[3].exp_flags = 3;
-	data_entry[3].fx = MAX_VALUE;
-	data_entry[4].exp_flags = 3;
-	data_entry[4].fx = MAX_VALUE>>1;
-
-	for (s = 0; s < COLLECTION_HDR_SIZE; s++)
-		data_to_compress[s] = (uint8_t)s;
-	memcpy(&data_to_compress[COLLECTION_HDR_SIZE], data_entry, sizeof(data_entry));
-
-	cfg = cmp_cfg_icu_create(DATA_TYPE_S_FX, CMP_MODE_DIFF_MULTI,
-				 CMP_PAR_UNUSED, CMP_LOSSLESS);
-	TEST_ASSERT(cfg.data_type != DATA_TYPE_UNKNOWN);
-
-	s = cmp_cfg_icu_buffers(&cfg, data_to_compress, DATA_SAMPLES, NULL, NULL,
-				NULL, compressed_data_len_samples);
-	TEST_ASSERT_TRUE(s);
-
-	err = cmp_cfg_fx_cob(&cfg, 2, 6, 4, 14, CMP_PAR_UNUSED, CMP_PAR_UNUSED,
-			     CMP_PAR_UNUSED, CMP_PAR_UNUSED, CMP_PAR_UNUSED,
-			     CMP_PAR_UNUSED, CMP_PAR_UNUSED, CMP_PAR_UNUSED);
-	TEST_ASSERT_FALSE(err);
-
-	s = icu_compress_data_entity(NULL, &cfg);
-	TEST_ASSERT_TRUE(s);
-	ent = malloc(s); TEST_ASSERT_TRUE(ent);
-	s = icu_compress_data_entity(ent, &cfg);
-	TEST_ASSERT_TRUE(s);
-
-	/* now decompress the data */
-	decmp_size = decompress_cmp_entiy(ent, NULL, NULL, decompressed_data);
-	TEST_ASSERT_EQUAL_INT(cmp_cal_size_of_data(cfg.samples, cfg.data_type), decmp_size);
-	decompressed_data = malloc((size_t)decmp_size); TEST_ASSERT_TRUE(decompressed_data);
-	decmp_size = decompress_cmp_entiy(ent, NULL, NULL, decompressed_data);
-	TEST_ASSERT_EQUAL_INT(cmp_cal_size_of_data(cfg.samples, cfg.data_type), decmp_size);
-
-	TEST_ASSERT_EQUAL_HEX8_ARRAY(data_to_compress, decompressed_data, decmp_size);
-	/* TEST_ASSERT_FALSE(memcmp(data_to_compress, decompressed_data, (size_t)decmp_size)); */
-	/* for (i = 0; i < samples; ++i) { */
-	/* 	printf("%u == %u (round: %u)\n", data[i], decompressed_data[i], round); */
-	/* 	uint32_t mask = ~0U << round; */
-	/* 	if ((data[i]&mask) != (decompressed_data[i]&mask)) */
-	/* 		TEST_ASSERT(0); */
-	/* 	if (model_mode_is_used(cmp_mode)) */
-	/* 		if (up_model[i] != de_up_model[i]) */
-	/* 			TEST_ASSERT(0); */
-	/* } */
-	free(ent);
-	free(decompressed_data);
-}
-#undef DATA_SAMPLES
-
-
-void test_s_fx_diff(void)
-{
-	size_t i;
-	int s;
-	uint8_t cmp_entity[88] = {
-		0x80, 0x00, 0x00, 0x09, 0x00, 0x00, 0x58, 0x00, 0x00, 0x20, 0x04, 0xEE, 0x21, 0xBD, 0xB0, 0x1C, 0x04, 0xEE, 0x21, 0xBD, 0xB0, 0x41, 0x00, 0x08, 0x02, 0x08, 0xD0, 0x10, 0x00, 0x01, 0x00, 0x00,
-		0x00, 0x00, 0x0A, 0x00, 0x01, 0x00, 0x00, 0x0A, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-		0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0xAE, 0xDE, 0x00, 0x00, 0x00, 0x73, 0xFF, 0xFF, 0xF8, 0x00, 0x00, 0x00,
-	};
-
-	uint8_t result_data[32] = {0};
-	struct collection_hdr *hdr = (struct collection_hdr *)result_data;
-	struct s_fx *data = (struct s_fx *)hdr->entry;
-	uint8_t *decompressed_data;
-
-	/* put some dummy data in the header*/
-	for (i = 0; i < sizeof(*hdr); i++)
-		result_data[i] = (uint8_t)i;
-	data[0].exp_flags = 0;
-	data[0].fx = 0;
-	data[1].exp_flags = 1;
-	data[1].fx = 0xFFFFFF;
-	data[2].exp_flags = 3;
-	data[2].fx = 0x7FFFFF;
-	data[3].exp_flags = 0;
-	data[3].fx = 0;
-
-	s = decompress_cmp_entiy((void *)cmp_entity, NULL, NULL, NULL);
-	TEST_ASSERT_EQUAL_INT(sizeof(result_data), s);
-	decompressed_data = malloc((size_t)s);
-	TEST_ASSERT_TRUE(decompressed_data);
-	s = decompress_cmp_entiy((void *)cmp_entity, NULL, NULL, decompressed_data);
-	TEST_ASSERT_EQUAL_INT(sizeof(result_data), s);
-	for (i = 0; i < (size_t)s; ++i) {
-		TEST_ASSERT_EQUAL(result_data[i], decompressed_data[i]);
-	}
-	free(decompressed_data);
-}
-
-
-void test_s_fx_model(void)
-{
-	size_t i;
-	int s;
-	uint8_t compressed_data_buf[92] = {
-		0x80, 0x00, 0x00, 0x09, 0x00, 0x00, 0x5C, 0x00, 0x00, 0x20, 0x04, 0xF0, 0xC2, 0xD3, 0x47, 0xE4, 0x04, 0xF0, 0xC2, 0xD3, 0x48, 0x16, 0x00, 0x08, 0x03, 0x08, 0xD0, 0x10, 0x01, 0x01, 0x00, 0x00,
-		0x00, 0x00, 0x0A, 0x00, 0x01, 0x00, 0x00, 0x0A, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-		0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x3B, 0xFF, 0xFF, 0xEF, 0xFF, 0xFF, 0x5B, 0xFF, 0xFF, 0xEF, 0xFF, 0xFF, 0x5D, 0x80, 0x00, 0x00,
-	};
-	struct cmp_entity *cmp_entity = (struct cmp_entity *)compressed_data_buf;
-
-	uint8_t model_buf[32];
-	uint8_t decompressed_data[32];
-	uint8_t up_model_buf[32];
-	uint8_t exp_data_buf[32] = {0}; /* expected uncompressed data */
-	uint8_t exp_up_model_buf[32] = {0};
-
-	struct collection_hdr *model_collection = (struct collection_hdr *)model_buf;
-	struct s_fx *model_data = (struct s_fx *)model_collection->entry;
-
-	struct collection_hdr *exp_data_collection;
-	struct s_fx *exp_data;
-	struct collection_hdr *exp_up_model_collection;
-	struct s_fx *exp_updated_model_data;
-
-	memset(model_collection, 0xFF, sizeof(*model_collection));
-	model_data[0].exp_flags = 0;
-	model_data[0].fx = 0;
-	model_data[1].exp_flags = 3;
-	model_data[1].fx = 0x7FFFFF;
-	model_data[2].exp_flags = 0;
-	model_data[2].fx = 0xFFFFFF;
-	model_data[3].exp_flags = 3;
-	model_data[3].fx = 0xFFFFFF;
-
-	exp_data_collection = (struct collection_hdr *)exp_data_buf;
-	exp_data = (struct s_fx *)exp_data_collection->entry;
-	/* put some dummy data in the header */
-	for (i = 0; i < sizeof(*exp_data_collection); i++)
-		exp_data_buf[i] = (uint8_t)i;
-	exp_data[0].exp_flags = 0;
-	exp_data[0].fx = 0;
-	exp_data[1].exp_flags = 1;
-	exp_data[1].fx = 0xFFFFFF;
-	exp_data[2].exp_flags = 3;
-	exp_data[2].fx = 0x7FFFFF;
-	exp_data[3].exp_flags = 0;
-	exp_data[3].fx = 0;
-
-	exp_up_model_collection = (struct collection_hdr *)exp_up_model_buf;
-	exp_updated_model_data = (struct s_fx *)exp_up_model_collection->entry;
-	/* put some dummy data in the header*/
-	for (i = 0; i < sizeof(*exp_up_model_collection); i++)
-		exp_up_model_buf[i] = (uint8_t)i;
-	exp_updated_model_data[0].exp_flags = 0;
-	exp_updated_model_data[0].fx = 0;
-	exp_updated_model_data[1].exp_flags = 2;
-	exp_updated_model_data[1].fx = 0xBFFFFF;
-	exp_updated_model_data[2].exp_flags = 1;
-	exp_updated_model_data[2].fx = 0xBFFFFF;
-	exp_updated_model_data[3].exp_flags = 1;
-	exp_updated_model_data[3].fx = 0x7FFFFF;
-
-	s = decompress_cmp_entiy(cmp_entity, model_buf, up_model_buf, decompressed_data);
-	TEST_ASSERT_EQUAL_INT(sizeof(exp_data_buf), s);
-
-	TEST_ASSERT_FALSE(memcmp(exp_data_buf, decompressed_data, sizeof(exp_data_buf)));
-	TEST_ASSERT_FALSE(memcmp(exp_up_model_buf, up_model_buf, sizeof(exp_up_model_buf)));
 }
 
 
@@ -1415,130 +1239,6 @@ void test_cmp_ent_write_cmp_pars(void)
 	cfg.icu_output_buf = cmp_ent_get_data_buf(ent); /* quick fix that both cfg are equal */
 	cfg.buffer_length = 12; /* quick fix that both cfg are equal */
 	cfg.max_used_bits = &MAX_USED_BITS_SAFE;
-	TEST_ASSERT_EQUAL_MEMORY(&cfg, &cfg_read, sizeof(struct cmp_cfg));
-
-	free(ent);
-	memset(&cfg, 0, sizeof(struct cmp_cfg));
-	memset(&cfg_read, 0, sizeof(struct cmp_cfg));
-
-	/** flux cob data type test **/
-	/* create configuration */
-	cfg.data_type = DATA_TYPE_S_FX_EFX_NCOB_ECOB;
-	cfg.cmp_mode = CMP_MODE_MODEL_ZERO;
-	cfg.model_value = 11;
-	cfg.round = 2;
-	cfg.samples = 9;
-	cfg.spill_exp_flags = 1;
-	cfg.spill_fx = 2;
-	cfg.spill_ncob = 3;
-	cfg.spill_efx = 4;
-	cfg.spill_ecob = 5;
-	cfg.spill_fx_cob_variance = 6;
-	cfg.cmp_par_exp_flags = 7;
-	cfg.cmp_par_fx = 8;
-	cfg.cmp_par_ncob = 9;
-	cfg.cmp_par_efx = 10;
-	cfg.cmp_par_ecob = 11;
-	cfg.cmp_par_fx_cob_variance = 12;
-	cfg.max_used_bits = cmp_max_used_bits_list_get(42);
-
-	/* create a compression entity */
-	size = cmp_ent_create(NULL, cfg.data_type, cfg.cmp_mode == CMP_MODE_RAW, 12);
-	TEST_ASSERT_NOT_EQUAL_INT(0, size);
-	ent = malloc(size); TEST_ASSERT_NOT_NULL(ent);
-	size = cmp_ent_create(ent, cfg.data_type, cfg.cmp_mode == CMP_MODE_RAW, 12);
-	TEST_ASSERT_NOT_EQUAL_INT(0, size);
-
-	error = cmp_ent_write_cmp_pars(ent, &cfg, cmp_size_bits);
-	TEST_ASSERT_FALSE(error);
-
-	TEST_ASSERT_EQUAL_INT(cfg.data_type, cmp_ent_get_data_type(ent));
-	TEST_ASSERT_EQUAL_INT(0, cmp_ent_get_data_type_raw_bit(ent));
-	TEST_ASSERT_EQUAL_INT(12, cmp_ent_get_cmp_data_size(ent));
-
-	TEST_ASSERT_EQUAL_INT(cmp_cal_size_of_data(cfg.samples, cfg.data_type), cmp_ent_get_original_size(ent));
-	TEST_ASSERT_EQUAL_INT(cfg.cmp_mode, cmp_ent_get_cmp_mode(ent));
-	TEST_ASSERT_EQUAL_INT(cfg.model_value, cmp_ent_get_model_value(ent));
-	TEST_ASSERT_EQUAL_INT(max_used_bits.version, cmp_ent_get_max_used_bits_version(ent));
-	TEST_ASSERT_EQUAL_INT(cfg.round, cmp_ent_get_lossy_cmp_par(ent));
-
-
-	TEST_ASSERT_EQUAL_INT(cfg.spill_exp_flags, cmp_ent_get_non_ima_spill1(ent));
-	TEST_ASSERT_EQUAL_INT(cfg.spill_fx, cmp_ent_get_non_ima_spill2(ent));
-	TEST_ASSERT_EQUAL_INT(cfg.spill_ncob, cmp_ent_get_non_ima_spill3(ent));
-	TEST_ASSERT_EQUAL_INT(cfg.spill_efx, cmp_ent_get_non_ima_spill4(ent));
-	TEST_ASSERT_EQUAL_INT(cfg.spill_ecob, cmp_ent_get_non_ima_spill5(ent));
-	TEST_ASSERT_EQUAL_INT(cfg.spill_fx_cob_variance, cmp_ent_get_non_ima_spill6(ent));
-	TEST_ASSERT_EQUAL_INT(cfg.cmp_par_exp_flags, cmp_ent_get_non_ima_cmp_par1(ent));
-	TEST_ASSERT_EQUAL_INT(cfg.cmp_par_fx, cmp_ent_get_non_ima_cmp_par2(ent));
-	TEST_ASSERT_EQUAL_INT(cfg.cmp_par_ncob, cmp_ent_get_non_ima_cmp_par3(ent));
-	TEST_ASSERT_EQUAL_INT(cfg.cmp_par_efx, cmp_ent_get_non_ima_cmp_par4(ent));
-	TEST_ASSERT_EQUAL_INT(cfg.cmp_par_ecob, cmp_ent_get_non_ima_cmp_par5(ent));
-	TEST_ASSERT_EQUAL_INT(cfg.cmp_par_fx_cob_variance, cmp_ent_get_non_ima_cmp_par6(ent));
-
-	error = cmp_ent_read_header(ent, &cfg_read);
-	TEST_ASSERT_FALSE(error);
-	cfg.icu_output_buf = cmp_ent_get_data_buf(ent); /* quick fix that both cfg are equal */
-	cfg.buffer_length = 12; /* quick fix that both cfg are equal */
-	TEST_ASSERT_EQUAL_MEMORY(&cfg, &cfg_read, sizeof(struct cmp_cfg));
-
-	free(ent);
-	memset(&cfg, 0, sizeof(struct cmp_cfg));
-	memset(&cfg_read, 0, sizeof(struct cmp_cfg));
-
-	/** auxiliary data data_type test **/
-	/* create configuration */
-	cfg.data_type = DATA_TYPE_SMEARING;
-	cfg.cmp_mode = CMP_MODE_MODEL_ZERO;
-	cfg.model_value = 11;
-	cfg.round = 2;
-	cfg.samples = 9;
-	cfg.spill_smearing_mean = 1;
-	cfg.spill_smearing_variance = 2;
-	cfg.spill_smearing_pixels_error = 3;
-	cfg.cmp_par_smearing_mean = 7;
-	cfg.cmp_par_smearing_variance = 8;
-	cfg.cmp_par_smearing_pixels_error = 9;
-	cfg.max_used_bits = cmp_max_used_bits_list_get(42);
-
-	/* create a compression entity */
-	size = cmp_ent_create(NULL, cfg.data_type, cfg.cmp_mode == CMP_MODE_RAW, 12);
-	TEST_ASSERT_NOT_EQUAL_INT(0, size);
-	ent = malloc(size); TEST_ASSERT_NOT_NULL(ent);
-	size = cmp_ent_create(ent, cfg.data_type, cfg.cmp_mode == CMP_MODE_RAW, 12);
-	TEST_ASSERT_NOT_EQUAL_INT(0, size);
-
-	error = cmp_ent_write_cmp_pars(ent, &cfg, cmp_size_bits);
-	TEST_ASSERT_FALSE(error);
-
-	TEST_ASSERT_EQUAL_INT(cfg.data_type, cmp_ent_get_data_type(ent));
-	TEST_ASSERT_EQUAL_INT(0, cmp_ent_get_data_type_raw_bit(ent));
-	TEST_ASSERT_EQUAL_INT(12, cmp_ent_get_cmp_data_size(ent));
-
-	TEST_ASSERT_EQUAL_INT(cmp_cal_size_of_data(cfg.samples, cfg.data_type), cmp_ent_get_original_size(ent));
-	TEST_ASSERT_EQUAL_INT(cfg.cmp_mode, cmp_ent_get_cmp_mode(ent));
-	TEST_ASSERT_EQUAL_INT(cfg.model_value, cmp_ent_get_model_value(ent));
-	TEST_ASSERT_EQUAL_INT(max_used_bits.version, cmp_ent_get_max_used_bits_version(ent));
-	TEST_ASSERT_EQUAL_INT(cfg.round, cmp_ent_get_lossy_cmp_par(ent));
-
-
-	TEST_ASSERT_EQUAL_INT(0, cmp_ent_get_non_ima_spill1(ent));
-	TEST_ASSERT_EQUAL_INT(0, cmp_ent_get_non_ima_spill2(ent));
-	TEST_ASSERT_EQUAL_INT(0, cmp_ent_get_non_ima_spill3(ent));
-	TEST_ASSERT_EQUAL_INT(cfg.spill_smearing_mean, cmp_ent_get_non_ima_spill4(ent));
-	TEST_ASSERT_EQUAL_INT(cfg.spill_smearing_variance, cmp_ent_get_non_ima_spill5(ent));
-	TEST_ASSERT_EQUAL_INT(cfg.spill_smearing_pixels_error, cmp_ent_get_non_ima_spill6(ent));
-	TEST_ASSERT_EQUAL_INT(0, cmp_ent_get_non_ima_cmp_par1(ent));
-	TEST_ASSERT_EQUAL_INT(0, cmp_ent_get_non_ima_cmp_par2(ent));
-	TEST_ASSERT_EQUAL_INT(0, cmp_ent_get_non_ima_cmp_par3(ent));
-	TEST_ASSERT_EQUAL_INT(cfg.cmp_par_smearing_mean, cmp_ent_get_non_ima_cmp_par4(ent));
-	TEST_ASSERT_EQUAL_INT(cfg.cmp_par_smearing_variance, cmp_ent_get_non_ima_cmp_par5(ent));
-	TEST_ASSERT_EQUAL_INT(cfg.cmp_par_smearing_pixels_error, cmp_ent_get_non_ima_cmp_par6(ent));
-
-	error = cmp_ent_read_header(ent, &cfg_read);
-	TEST_ASSERT_FALSE(error);
-	cfg.icu_output_buf = cmp_ent_get_data_buf(ent); /* quick fix that both cfg are equal */
-	cfg.buffer_length = 12; /* quick fix that both cfg are equal */
 	TEST_ASSERT_EQUAL_MEMORY(&cfg, &cfg_read, sizeof(struct cmp_cfg));
 
 	free(ent);
@@ -1796,8 +1496,8 @@ void test_cmp_ent_write_cmp_pars(void)
 	TEST_ASSERT_TRUE(error);
 
 	/* test data type = DATA_TYPE_F_CAM_BACKGROUND +1 */
-	cmp_ent_set_data_type(ent, DATA_TYPE_F_CAM_BACKGROUND + 1, 0);
-	cfg.data_type = DATA_TYPE_F_CAM_BACKGROUND + 1;
+	cmp_ent_set_data_type(ent, DATA_TYPE_F_CAM_BACKGROUND + 10, 0);
+	cfg.data_type = DATA_TYPE_F_CAM_BACKGROUND + 10;
 	error = cmp_ent_write_cmp_pars(ent, &cfg, cmp_size_bits);
 	TEST_ASSERT_TRUE(error);
 	free(ent);
@@ -2029,6 +1729,56 @@ void test_cmp_ent_read_header_error_cases(void)
 	TEST_ASSERT_TRUE(error);
 
 	free(ent);
+}
+
+
+/**
+ * @test decompress_cmp_entiy
+ */
+
+void test_decompress_imagette_chunk_raw(void)
+{
+	int decmp_size;
+	size_t i;
+	uint16_t data[] = {0, 1, 2, 0x42, (uint16_t)INT16_MIN, INT16_MAX, UINT16_MAX};
+	uint8_t *decompressed_data;
+	struct cmp_entity *ent;
+	uint32_t ent_size;
+	uint32_t chunk_size = 2*(COLLECTION_HDR_SIZE + sizeof(data));
+	uint8_t *chunk = calloc(1, chunk_size); TEST_ASSERT_TRUE(chunk);
+
+	for (i = 0; i < 2; i++) {
+		struct collection_hdr *col = (struct collection_hdr *)(chunk+chunk_size/2*i);
+
+		TEST_ASSERT_FALSE(cmp_col_set_subservice(col, SST_NCxx_S_SCIENCE_IMAGETTE));
+		TEST_ASSERT_FALSE(cmp_col_set_data_length(col, sizeof(data)));
+		TEST_ASSERT_FALSE(cmp_col_set_timestamp(col, 0x0102030400607));
+		memcpy(col->entry, data, sizeof(data));
+	}
+
+	ent_size = cmp_ent_create(NULL, DATA_TYPE_CHUNK, 1, chunk_size);
+	TEST_ASSERT_EQUAL_INT(GENERIC_HEADER_SIZE+chunk_size, ent_size);
+	ent = malloc(ent_size); TEST_ASSERT_TRUE(ent);
+	ent_size = cmp_ent_create(ent, DATA_TYPE_CHUNK, 1, chunk_size);
+	TEST_ASSERT_EQUAL_INT(GENERIC_HEADER_SIZE+chunk_size, ent_size);
+	TEST_ASSERT_FALSE(cmp_ent_set_original_size(ent, chunk_size));
+	memcpy(cmp_ent_get_data_buf(ent), chunk, chunk_size);
+	TEST_ASSERT_FALSE(cpu_to_be_chunk(cmp_ent_get_data_buf(ent), chunk_size));
+
+	decmp_size = decompress_cmp_entiy(ent, NULL, NULL, NULL);
+	TEST_ASSERT_EQUAL_INT(chunk_size, decmp_size);
+	decompressed_data = malloc((size_t)decmp_size);
+	TEST_ASSERT_TRUE(decompressed_data);
+	decmp_size = decompress_cmp_entiy(ent, NULL, NULL, decompressed_data);
+	TEST_ASSERT_EQUAL_INT(chunk_size, decmp_size);
+
+	for (i = 0; i < chunk_size; ++i)
+		TEST_ASSERT_EQUAL_INT(chunk[i], decompressed_data[i]);
+
+
+	free(chunk);
+	free(ent);
+	free(decompressed_data);
 }
 
 
