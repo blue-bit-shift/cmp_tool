@@ -53,7 +53,7 @@ void setUp(void)
 	uint64_t seed;
 	static int n;
 
-#if HAS_TIME_H
+#ifdef HAS_TIME_H
 	seed = (uint64_t)(time(NULL) ^ getpid()  ^ (intptr_t)&setUp);
 #else
 	seed = 1;
@@ -968,16 +968,15 @@ static int32_t chunk_round_trip(void *data, uint32_t data_size,
  * @test decompress_cmp_entiy
  */
 
-
-void test_random_chunk_round_trip(void)
+void test_random_collection_round_trip(void)
 {
 	enum cmp_data_type data_type;
 	enum cmp_mode cmp_mode;
-	enum { MAX_DATA_TO_COMPRESS_SIZE = CMP_ENTITY_MAX_ORIGINAL_SIZE};
+	enum { MAX_DATA_TO_COMPRESS_SIZE = UINT16_MAX};
+	uint32_t cmp_data_capacity = COMPRESS_CHUNK_BOUND(MAX_DATA_TO_COMPRESS_SIZE, 1);
 	void *data = malloc(CMP_ENTITY_MAX_ORIGINAL_SIZE);
 	void *model = malloc(MAX_DATA_TO_COMPRESS_SIZE);
 	void *updated_model = calloc(1, MAX_DATA_TO_COMPRESS_SIZE);
-	uint32_t cmp_data_capacity = CMP_ENTITY_MAX_SIZE-NON_IMAGETTE_HEADER_SIZE;
 	void *cmp_data = malloc(cmp_data_capacity);
 
 	for (data_type = 1; data_type <= DATA_TYPE_F_CAM_BACKGROUND; data_type++) {
