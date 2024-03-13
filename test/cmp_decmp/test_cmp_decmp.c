@@ -508,6 +508,9 @@ size_t generate_random_collection(struct collection_hdr *col, enum cmp_data_type
 		TEST_FAIL();
 	}
 
+	if (col)
+		TEST_ASSERT_EQUAL_UINT(size, cmp_col_get_size(col));
+
 	return size;
 }
 
@@ -974,10 +977,22 @@ void test_random_collection_round_trip(void)
 	enum cmp_mode cmp_mode;
 	enum { MAX_DATA_TO_COMPRESS_SIZE = UINT16_MAX};
 	uint32_t cmp_data_capacity = COMPRESS_CHUNK_BOUND(MAX_DATA_TO_COMPRESS_SIZE, 1);
+#ifdef __sparc__
+	void *data          = (void *)0x63000000;
+	void *model         = (void *)0x64000000;
+	void *updated_model = (void *)0x65000000;
+	void *cmp_data      = (void *)0x66000000;
+#else /* assume PC */
 	void *data = malloc(CMP_ENTITY_MAX_ORIGINAL_SIZE);
 	void *model = malloc(MAX_DATA_TO_COMPRESS_SIZE);
 	void *updated_model = calloc(1, MAX_DATA_TO_COMPRESS_SIZE);
 	void *cmp_data = malloc(cmp_data_capacity);
+#endif
+
+	TEST_ASSERT_NOT_NULL(data);
+	TEST_ASSERT_NOT_NULL(model);
+	TEST_ASSERT_NOT_NULL(updated_model);
+	TEST_ASSERT_NOT_NULL(cmp_data);
 
 	for (data_type = 1; data_type <= DATA_TYPE_F_CAM_BACKGROUND; data_type++) {
 		/* printf("%s\n", data_type2string(data_type)); */
@@ -1011,10 +1026,12 @@ void test_random_collection_round_trip(void)
 				TEST_ASSERT(cmp_size > 0);
 		}
 	}
+#ifndef __sparc__
 	free(data);
 	free(model);
 	free(updated_model);
 	free(cmp_data);
+#endif
 }
 
 
