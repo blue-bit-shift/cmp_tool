@@ -22,6 +22,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #include <unity.h>
 #include "../test_common/test_common.h"
@@ -60,9 +61,11 @@ void setUp(void)
 #endif
 
 	if (!n) {
+		uint32_t high = seed >> 32;
+		uint32_t low = seed & 0xFFFFFFFF;
 		n = 1;
 		cmp_rand_seed(seed);
-		printf("seed: %"PRIu64"\n", seed);
+		printf("seed: 0x%08"PRIx32"%08"PRIx32"\n", high, low);
 	}
 }
 
