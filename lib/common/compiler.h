@@ -38,13 +38,6 @@
 
 
 /**
- * Compile time check usable outside of function scope.
- * Stolen from Linux (hpi_internal.h)
- */
-#define compile_time_assert(cond, msg) typedef char ASSERT_##msg[(cond) ? 1 : -1]
-
-
-/**
  * same with the stuff below
  */
 
@@ -127,7 +120,7 @@
  * It also tries to prevent the actual use of the "unused" variables.
  */
 
-#if GNUC_PREREQ(4, 5)
+#if GNUC_PREREQ(4, 5) || defined(__clang__)
 #define UNUSED __attribute__((unused)) \
 	__attribute__((deprecated ("parameter declared as UNUSED")))
 #elif defined(__GNUC__)
@@ -152,6 +145,13 @@
 #else
 #define MAYBE_UNUSED
 #endif
+
+
+/**
+ * Compile time check usable outside of function scope.
+ * Stolen from Linux (hpi_internal.h)
+ */
+#define compile_time_assert(cond, msg) UNUSED typedef char ASSERT_##msg[(cond) ? 1 : -1]
 
 
 #endif /* COMPILER_H */
