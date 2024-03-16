@@ -24,5 +24,5 @@ cmp_tool_exe = executable('cmp_tool',
   sources : cmp_tool_src,
   include_directories : incdir,
   link_with : cmp_lib,
-  install : 'true'
+  install : true
 )

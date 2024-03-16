@@ -34,9 +34,7 @@
 #include <rdcu_rmap.h>
 #include <rdcu_ctrl.h>
 #include <rdcu_cmd.h>
-
-
-int rdcu_compress_data_parallel(const struct cmp_cfg *cfg, const struct cmp_info *last_info);
+#include <cmp_rdcu_testing.h>
 
 
 /* Name of directory were the RMAP packages are stored */

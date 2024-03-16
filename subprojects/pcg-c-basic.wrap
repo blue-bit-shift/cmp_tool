@@ -4,3 +4,4 @@ source_url = https://www.pcg-random.org/downloads/pcg-c-basic-0.9.zip
 source_filename = pcg-c-basic-0.9.zip
 source_hash = 143f9cc0edc7e81064bde5ed6c5f16cbf7ca2f373d35543286f5fe4475a2eff1
 patch_directory = pcg-c-basic
+diff_files = pcg-c-basic-Port-to-C89.patch

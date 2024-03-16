@@ -31,6 +31,7 @@
 
 #include "../common/cmp_debug.h"
 #include "../common/cmp_support.h"
+#include "cmp_rdcu_testing.h"
 #include "cmp_rdcu_cfg.h"
 #include "rdcu_ctrl.h"
 #include "rdcu_rmap.h"
