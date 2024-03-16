@@ -76,7 +76,7 @@ enum {
 	LAST_INFO,
 	NO_HEADER,
 	MODEL_ID,
-	MODEL_COUTER,
+	MODEL_COUTER
 };
 
 static const struct option long_options[] = {

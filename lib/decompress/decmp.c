@@ -33,6 +33,7 @@
 
 #include "read_bitstream.h"
 #include "cmp_max_used_bits_list.h"
+#include "decmp.h"
 #include "../common/cmp_debug.h"
 #include "../common/cmp_support.h"
 #include "../common/cmp_entity.h"
@@ -400,7 +401,7 @@ static void configure_decoder_setup(struct decoder_setup *setup, struct bit_deco
  * @returns pointer to the collection data; NULL if col is NULL
  */
 
-void *get_collection_data(void *col)
+static void *get_collection_data(void *col)
 {
 	if (col)
 		col = (uint8_t *)col + COLLECTION_HDR_SIZE;

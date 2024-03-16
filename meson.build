@@ -4,7 +4,7 @@ project('cmp_tool', 'c',
   license : 'GPL-2.0',
   default_options : [
     'warning_level=3',
-    'c_std=gnu99'
+    'c_std=gnu89'
   ]
 )
 
