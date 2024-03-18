@@ -1,10 +1,10 @@
 project('cmp_tool', 'c',
-  version : '0.12-b3',
-  meson_version : '>= 0.56',
+  version : '0.12-b4',
+  meson_version : '>= 0.63',
   license : 'GPL-2.0',
   default_options : [
     'warning_level=3',
-    'c_std=gnu99'
+    'c_std=gnu89'
   ]
 )
 
@@ -19,6 +19,7 @@ feature_argument_input_mode = get_option('argument_input_mode')
 
 
 # Compiler flags
+add_global_arguments('-Wno-long-long', language : 'c')
 cc_flags = ['-DDEBUGLEVEL=@0@'.format(debug_level)]
 if use_debug
   debug_flags = [
@@ -36,7 +37,7 @@ if use_debug
     '-Wfloat-equal',
     '-Wwrite-strings',
     '-Wold-style-definition',
-    '-Waggregate-return',
+#   '-Waggregate-return',
     '-Wmissing-declarations',
     '-Wmissing-include-dirs'
   ]

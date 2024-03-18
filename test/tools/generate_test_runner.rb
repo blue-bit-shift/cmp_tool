@@ -218,16 +218,16 @@ class UnityTestRunnerGenerator
     if @options[:defines] && !@options[:defines].empty?
       @options[:defines].each { |d| output.puts("#ifndef #{d}\n#define #{d}\n#endif /* #{d} */") }
     end
-    if @options[:header_file] && !@options[:header_file].empty?
-      output.puts("#include \"#{File.basename(@options[:header_file])}\"")
-    else
-      @options[:includes].flatten.uniq.compact.each do |inc|
-        output.puts("#include #{inc.include?('<') ? inc : "\"#{inc}\""}")
-      end
-      testfile_includes.each do |inc|
-        output.puts("#include #{inc.include?('<') ? inc : "\"#{inc}\""}")
-      end
-    end
+    # if @options[:header_file] && !@options[:header_file].empty?
+    #   output.puts("#include \"#{File.basename(@options[:header_file])}\"")
+    # else
+    #   @options[:includes].flatten.uniq.compact.each do |inc|
+    #     output.puts("#include #{inc.include?('<') ? inc : "\"#{inc}\""}")
+    #   end
+    #   testfile_includes.each do |inc|
+    #     output.puts("#include #{inc.include?('<') ? inc : "\"#{inc}\""}")
+    #   end
+    # end
     mocks.each do |mock|
       output.puts("#include \"#{mock}\"")
     end
@@ -243,13 +243,13 @@ class UnityTestRunnerGenerator
 
   def create_externs(output, tests, _mocks)
     output.puts("\n/*=======External Functions This Runner Calls=====*/")
-    output.puts("extern void #{@options[:setup_name]}(void);")
-    output.puts("extern void #{@options[:teardown_name]}(void);")
-    output.puts("\n#ifdef __cplusplus\nextern \"C\"\n{\n#endif") if @options[:externc]
+    # output.puts("extern void #{@options[:setup_name]}(void);")
+    # output.puts("extern void #{@options[:teardown_name]}(void);")
+    # output.puts("\n#ifdef __cplusplus\nextern \"C\"\n{\n#endif") if @options[:externc]
     tests.each do |test|
       output.puts("extern void #{test[:test]}(#{test[:call] || 'void'});")
     end
-    output.puts("#ifdef __cplusplus\n}\n#endif") if @options[:externc]
+    # output.puts("#ifdef __cplusplus\n}\n#endif") if @options[:externc]
     output.puts('')
   end
 
@@ -324,7 +324,7 @@ class UnityTestRunnerGenerator
 
   def create_reset(output)
     output.puts("\n/*=======Test Reset Options=====*/")
-    output.puts("void #{@options[:test_reset_name]}(void);")
+    # output.puts("void #{@options[:test_reset_name]}(void);")
     output.puts("void #{@options[:test_reset_name]}(void)")
     output.puts('{')
     output.puts("  #{@options[:teardown_name]}();")
@@ -333,7 +333,7 @@ class UnityTestRunnerGenerator
     output.puts('  CMock_Init();')
     output.puts("  #{@options[:setup_name]}();")
     output.puts('}')
-    output.puts("void #{@options[:test_verify_name]}(void);")
+    # output.puts("void #{@options[:test_verify_name]}(void);")
     output.puts("void #{@options[:test_verify_name]}(void)")
     output.puts('{')
     output.puts('  CMock_Verify();')
@@ -342,8 +342,9 @@ class UnityTestRunnerGenerator
 
   def create_run_test(output)
     require 'erb'
-    template = ERB.new(File.read(File.join(__dir__, 'run_test.erb')), nil, '<>')
-    output.puts("\n" + template.result(binding))
+    file = File.read(File.join(__dir__, 'run_test.erb'))
+    template = ERB.new(file, trim_mode: '<>')
+    output.puts("\n#{template.result(binding)}")
   end
 
   def create_args_wrappers(output, tests)

@@ -1201,7 +1201,7 @@ static __inline ssize_t str2uint8_arr(const char *str, uint8_t *data, uint32_t b
 			if (!data)  /* finished counting the sample */
 				break;
 
-			fprintf(stderr, "%s: %s: Error: The files do not contain enough data. Expected: 0x%x, has 0x%zx.\n",
+			fprintf(stderr, "%s: %s: Error: The files do not contain enough data. Expected: 0x%x, has 0x%lx.\n",
 				PROGRAM_NAME, file_name, buf_size, i);
 			return -1;
 		}
@@ -1459,7 +1459,7 @@ ssize_t read_file_cmp_entity(const char *file_name, struct cmp_entity *ent,
 			return -1;
 		}
 		if (size != (ssize_t)cmp_ent_get_size(ent)) {
-			fprintf(stderr, "%s: %s: The size of the compression entity set in the header of the compression entity is not the same size as the read-in file has. Expected: 0x%x, has 0x%zx.\n",
+			fprintf(stderr, "%s: %s: The size of the compression entity set in the header of the compression entity is not the same size as the read-in file has. Expected: 0x%x, has 0x%lx.\n",
 				PROGRAM_NAME, file_name, cmp_ent_get_size(ent), (size_t)size);
 			return -1;
 		}

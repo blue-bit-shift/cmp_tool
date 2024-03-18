@@ -1,5 +1,5 @@
 /**
- * @file   vsnprintf.h
+ * @file   cmp_rdcu_testing.h
  * @author Dominik Loidolt (dominik.loidolt@univie.ac.at)
  * @date   2024
  *
@@ -13,15 +13,18 @@
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
  * more details.
  *
- * @brief Tiny vsnprintf implementation
+ * @brief function to test RDCU compression
+ * @warning not indented for production use; only for testing
  */
 
+#ifndef CMP_RDCU_TESTING_H
+#define CMP_RDCU_TESTING_H
 
-#ifndef VSNPRINTF_H
-#define VSNPRINTF_H
+#include "../common/cmp_support.h"
 
-#if (DEBUGLEVEL > 0)
-int my_vsnprintf(char* buffer, size_t count, const char* format, va_list va);
-#endif
+int rdcu_start_compression(void);
+int rdcu_inject_edac_error(const struct cmp_cfg *cfg, uint32_t addr);
+int rdcu_compress_data_parallel(const struct cmp_cfg *cfg,
+				const struct cmp_info *last_info);
 
-#endif /* VSNPRINTF_H */
+#endif /* CMP_RDCU_TESTING_H */

@@ -77,7 +77,7 @@
     ((b) > maximum_unsigned_value_of_type(a) - (a))
 
 
-#define __get_unaligned_t(type, ptr) __extension__ ({								\
+#define __get_unaligned_t(type, ptr) __extension__ ({						\
 	const struct { type x; } __attribute__((packed)) *__pptr = (__typeof__(__pptr))(ptr);	\
 	__pptr->x;										\
 })
@@ -129,7 +129,6 @@
 #else
 #define UNUSED
 #endif
-
 
 
 /**

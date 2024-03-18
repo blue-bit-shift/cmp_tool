@@ -1,0 +1,206 @@
+From c5b6186b22b939f131c8f098fce3e4338f780c58 Mon Sep 17 00:00:00 2001
+From: Dominik Loidolt <dominik.loidolt@univie.ac.at>
+Date: Fri, 15 Mar 2024 18:21:32 +0100
+Subject: [PATCH] Port to C89
+
+---
+ pcg_basic.c | 78 ++++++++++++++++++++++++++++++-----------------------
+ pcg_basic.h | 41 +++++++++++++++-------------
+ 2 files changed, 66 insertions(+), 53 deletions(-)
+
+diff --git a/pcg_basic.c b/pcg_basic.c
+index 8c2fd0d..79f1d0a 100644
+--- a/pcg_basic.c
++++ b/pcg_basic.c
+@@ -30,14 +30,16 @@
+ 
+ #include "pcg_basic.h"
+ 
+-// state for global RNGs
++/* state for global RNGs */
+ 
+ static pcg32_random_t pcg32_global = PCG32_INITIALIZER;
+ 
+-// pcg32_srandom(initstate, initseq)
+-// pcg32_srandom_r(rng, initstate, initseq):
+-//     Seed the rng.  Specified in two parts, state initializer and a
+-//     sequence selection constant (a.k.a. stream id)
++/*
++ * pcg32_srandom(initstate, initseq)
++ * pcg32_srandom_r(rng, initstate, initseq):
++ *     Seed the rng.  Specified in two parts, state initializer and a
++ *     sequence selection constant (a.k.a. stream id)
++ */
+ 
+ void pcg32_srandom_r(pcg32_random_t* rng, uint64_t initstate, uint64_t initseq)
+ {
+@@ -53,54 +55,62 @@ void pcg32_srandom(uint64_t seed, uint64_t seq)
+     pcg32_srandom_r(&pcg32_global, seed, seq);
+ }
+ 
+-// pcg32_random()
+-// pcg32_random_r(rng)
+-//     Generate a uniformly distributed 32-bit random number
++/*
++ * pcg32_random(void)
++ * pcg32_random_r(rng)
++ *     Generate a uniformly distributed 32-bit random number
++ */
+ 
+ uint32_t pcg32_random_r(pcg32_random_t* rng)
+ {
+     uint64_t oldstate = rng->state;
+-    rng->state = oldstate * 6364136223846793005ULL + rng->inc;
+-    uint32_t xorshifted = ((oldstate >> 18u) ^ oldstate) >> 27u;
++    uint32_t xorshifted = (uint32_t)(((oldstate >> 18u) ^ oldstate) >> 27u);
+     uint32_t rot = oldstate >> 59u;
++
++    rng->state = oldstate * 6364136223846793005ULL + rng->inc;
+     return (xorshifted >> rot) | (xorshifted << ((-rot) & 31));
+ }
+ 
+-uint32_t pcg32_random()
++uint32_t pcg32_random(void)
+ {
+     return pcg32_random_r(&pcg32_global);
+ }
+ 
+ 
+-// pcg32_boundedrand(bound):
+-// pcg32_boundedrand_r(rng, bound):
+-//     Generate a uniformly distributed number, r, where 0 <= r < bound
++/*
++ * pcg32_boundedrand(bound):
++ * pcg32_boundedrand_r(rng, bound):
++ *     Generate a uniformly distributed number, r, where 0 <= r < bound
++ */
+ 
+ uint32_t pcg32_boundedrand_r(pcg32_random_t* rng, uint32_t bound)
+ {
+-    // To avoid bias, we need to make the range of the RNG a multiple of
+-    // bound, which we do by dropping output less than a threshold.
+-    // A naive scheme to calculate the threshold would be to do
+-    //
+-    //     uint32_t threshold = 0x100000000ull % bound;
+-    //
+-    // but 64-bit div/mod is slower than 32-bit div/mod (especially on
+-    // 32-bit platforms).  In essence, we do
+-    //
+-    //     uint32_t threshold = (0x100000000ull-bound) % bound;
+-    //
+-    // because this version will calculate the same modulus, but the LHS
+-    // value is less than 2^32.
++    /* To avoid bias, we need to make the range of the RNG a multiple of
++     * bound, which we do by dropping output less than a threshold.
++     * A naive scheme to calculate the threshold would be to do
++     *
++     *     uint32_t threshold = 0x100000000ull % bound;
++     *
++     * but 64-bit div/mod is slower than 32-bit div/mod (especially on
++     * 32-bit platforms).  In essence, we do
++     *
++     *     uint32_t threshold = (0x100000000ull-bound) % bound;
++     *
++     * because this version will calculate the same modulus, but the LHS
++     * value is less than 2^32.
++     */
+ 
+     uint32_t threshold = -bound % bound;
+ 
+-    // Uniformity guarantees that this loop will terminate.  In practice, it
+-    // should usually terminate quickly; on average (assuming all bounds are
+-    // equally likely), 82.25% of the time, we can expect it to require just
+-    // one iteration.  In the worst case, someone passes a bound of 2^31 + 1
+-    // (i.e., 2147483649), which invalidates almost 50% of the range.  In 
+-    // practice, bounds are typically small and only a tiny amount of the range
+-    // is eliminated.
++    /*
++     * Uniformity guarantees that this loop will terminate.  In practice, it
++     * should usually terminate quickly; on average (assuming all bounds are
++     * equally likely), 82.25% of the time, we can expect it to require just
++     * one iteration.  In the worst case, someone passes a bound of 2^31 + 1
++     * (i.e., 2147483649), which invalidates almost 50% of the range.  In
++     * practice, bounds are typically small and only a tiny amount of the range
++     * is eliminated.
++     */
+     for (;;) {
+         uint32_t r = pcg32_random_r(rng);
+         if (r >= threshold)
+diff --git a/pcg_basic.h b/pcg_basic.h
+index e2b526a..63ae2db 100644
+--- a/pcg_basic.h
++++ b/pcg_basic.h
+@@ -31,48 +31,51 @@
+ #ifndef PCG_BASIC_H_INCLUDED
+ #define PCG_BASIC_H_INCLUDED 1
+ 
+-#include <inttypes.h>
++#include <stdint.h>
+ 
+-#if __cplusplus
++#ifdef __cplusplus
+ extern "C" {
+ #endif
+ 
+-struct pcg_state_setseq_64 {    // Internals are *Private*.
+-    uint64_t state;             // RNG state.  All values are possible.
+-    uint64_t inc;               // Controls which RNG sequence (stream) is
+-                                // selected. Must *always* be odd.
++struct pcg_state_setseq_64 {    /* Internals are *Private*. */
++    uint64_t state;             /* RNG state.  All values are possible. */
++    uint64_t inc;               /* Controls which RNG sequence (stream) is */
++                                /* selected. Must *always* be odd. */
+ };
+ typedef struct pcg_state_setseq_64 pcg32_random_t;
+ 
+-// If you *must* statically initialize it, here's one.
++/* If you *must* statically initialize it, here's one. */
+ 
+ #define PCG32_INITIALIZER   { 0x853c49e6748fea9bULL, 0xda3e39cb94b95bdbULL }
+ 
+-// pcg32_srandom(initstate, initseq)
+-// pcg32_srandom_r(rng, initstate, initseq):
+-//     Seed the rng.  Specified in two parts, state initializer and a
+-//     sequence selection constant (a.k.a. stream id)
++/* pcg32_srandom(initstate, initseq)
++ * pcg32_srandom_r(rng, initstate, initseq):
++ *     Seed the rng.  Specified in two parts, state initializer and a
++ *     sequence selection constant (a.k.a. stream id)
++ */
+ 
+ void pcg32_srandom(uint64_t initstate, uint64_t initseq);
+ void pcg32_srandom_r(pcg32_random_t* rng, uint64_t initstate,
+                      uint64_t initseq);
+ 
+-// pcg32_random()
+-// pcg32_random_r(rng)
+-//     Generate a uniformly distributed 32-bit random number
++/* pcg32_random()
++ * pcg32_random_r(rng)
++ *     Generate a uniformly distributed 32-bit random number
++ */
+ 
+ uint32_t pcg32_random(void);
+ uint32_t pcg32_random_r(pcg32_random_t* rng);
+ 
+-// pcg32_boundedrand(bound):
+-// pcg32_boundedrand_r(rng, bound):
+-//     Generate a uniformly distributed number, r, where 0 <= r < bound
++/* pcg32_boundedrand(bound):
++ * pcg32_boundedrand_r(rng, bound):
++ *     Generate a uniformly distributed number, r, where 0 <= r < bound
++ */
+ 
+ uint32_t pcg32_boundedrand(uint32_t bound);
+ uint32_t pcg32_boundedrand_r(pcg32_random_t* rng, uint32_t bound);
+ 
+-#if __cplusplus
++#ifdef __cplusplus
+ }
+ #endif
+ 
+-#endif // PCG_BASIC_H_INCLUDED
++#endif /* PCG_BASIC_H_INCLUDED */
+-- 
+2.44.0
+

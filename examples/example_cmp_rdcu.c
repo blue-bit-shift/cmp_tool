@@ -23,6 +23,7 @@
 
 #include <cmp_rdcu.h>
 #include <cmp_entity.h>
+#include <leon_inttypes.h>
 
 #define MAX_PAYLOAD_SIZE 4096
 #define DATA_SAMPLES 6  /* number of 16 bit samples to compress */
@@ -148,7 +149,7 @@ int demo_rdcu_compression(void)
 		/* get the size of the compression entity */
 		cmp_ent_size = cmp_ent_build(NULL, CMP_ASW_VERSION_ID,
 					     START_TIME, END_TIME, MODEL_ID, MODEL_COUNTER,
-					     &example_cfg, example_info.cmp_size);
+					     &example_cfg, (int)example_info.cmp_size);
 		if (!cmp_ent_size) {
 			printf("Error occurred during cmp_ent_build()\n");
 			return -1;
@@ -164,7 +165,7 @@ int demo_rdcu_compression(void)
 		/* now let us build the compression entity */
 		cmp_ent_size = cmp_ent_build(cmp_ent, CMP_ASW_VERSION_ID,
 					     START_TIME, END_TIME, MODEL_ID, MODEL_COUNTER,
-					     &example_cfg, example_info.cmp_size);
+					     &example_cfg, (int)example_info.cmp_size);
 		if (!cmp_ent_size) {
 			printf("Error occurred during cmp_ent_build()\n");
 			return -1;
@@ -186,7 +187,7 @@ int demo_rdcu_compression(void)
 		}
 
 		s = cmp_ent_get_size(cmp_ent);
-		printf("\n\nHere's the compressed data including the header (size %lu):\n"
+		printf("\n\nHere's the compressed data including the header (size %"PRIu32"):\n"
 		       "============================================================\n", s);
 		for (i = 0; i < s; i++) {
 			uint8_t *p = (uint8_t *)cmp_ent;
