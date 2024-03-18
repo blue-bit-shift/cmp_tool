@@ -1,5 +1,5 @@
 project('cmp_tool', 'c',
-  version : '0.12-b3',
+  version : '0.12-b4',
   meson_version : '>= 0.63',
   license : 'GPL-2.0',
   default_options : [
