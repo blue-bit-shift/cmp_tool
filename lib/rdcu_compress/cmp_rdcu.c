@@ -35,7 +35,7 @@
 #include "cmp_rdcu_cfg.h"
 #include "rdcu_ctrl.h"
 #include "rdcu_rmap.h"
-#include "cmp_rdcu.h"
+#include "../cmp_rdcu.h"
 
 
 #define RDCU_INTR_SIG_ENA 1 /* RDCU interrupt signal enabled */
