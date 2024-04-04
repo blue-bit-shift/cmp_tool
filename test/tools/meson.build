@@ -1,9 +1,11 @@
-generate_test_runner = find_program('generate_test_runner.rb')
-test_runner_generator = generator(
-  generate_test_runner,
-  output: ['@BASENAME@_Runner.c'],
-  arguments: ['@INPUT@', '@OUTPUT@']
-)
+ruby = find_program('ruby', required : false)
+if ruby.found()
+  generate_test_runner = find_program('generate_test_runner.rb')
+  test_runner_generator = generator(generate_test_runner,
+    output: ['@BASENAME@_Runner.c'],
+    arguments: ['@INPUT@', '@OUTPUT@']
+  )
+endif
 
 # add checkpatch syntax-check target
 checkpatch = find_program('checkpatch.pl', 'checkpatch', required : false)
