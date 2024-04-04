@@ -5,6 +5,7 @@ objc = 'sparc-elf-gcc'
 ar = 'sparc-elf-ar'
 strip = 'sparc-elf-strip'
 ld = 'sparc-elf-ld'
+exe_wrapper = '@GLOBAL_SOURCE_ROOT@' / 'test' / 'tools' / 'flash_run_leon.sh'
 
 # pkgconfig = ['false']
 # cmake = ['false']
