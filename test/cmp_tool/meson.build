@@ -5,6 +5,7 @@ if pytest.found()
   test('cmp_tool Interface Test',
     pytest,
     args : ['--color=yes', '-vvv', int_test_file],
+    env: test_env,
     depends : cmp_tool_exe,
     timeout : 100,
     workdir : meson.project_build_root())

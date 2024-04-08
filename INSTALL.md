@@ -8,7 +8,7 @@ If you're on Linux, you probably already have these. On macOS and Windows, you c
 
 ### Install meson and ninja
 
-Meson 0.56 or newer is required.  
+Meson 0.63 or newer is required.  
 You can get meson through your package manager or using:
 
 ```
@@ -130,6 +130,47 @@ ninja coverage-html
 ```
 
 The coverage report can be found in the `meson-logs/coveragereport` subdirectory.
+### Benchmarking
+
+To run the compression speed test bench, follow these steps:
+
+```
+cd <name of the build directory>
+meson test --benchmark
+```
+
+
+### Fuzzing
+If you’re unfamiliar with fuzzing and libFuzzer, you can find a tutorial [here](https://github.com/google/fuzzing/blob/master/tutorial/libFuzzerTutorial.md). 
+To perform fuzzing with libFuzzer, AddressSanitizer, and UndefinedBehaviorSanitizer, follow these steps:
+
+Set up your build directory with the necessary configurations. Note that you’ll need a clang version that has libFuzzer support. Use the following command:
+
+```
+CC=clang CXX=clang++ \
+meson setup builddir_fuzzing \
+  --buildtype=plain \
+  -Dfuzzer=enabled \
+  -Dfuzzer_ldflags=-fsanitize=fuzzer \
+  -Dc_args="-O1 -gline-tables-only -fsanitize-address-use-after-scope -fsanitize=fuzzer-no-link" \
+  -Db_sanitize=address,undefined \
+  -Ddebug_level=0 \
+  -Ddefault_library=static \
+  -Db_lundef=false
+```
+
+The `builddir_fuzzing` directory is now configured for fuzzing. Execute different fuzz targets using the meson test command. For example:
+
+```
+cd builddir_fuzzing
+# List available tests
+meson test --list
+
+# Run a specific fuzz target (e.g., fuzz_round_trip for 10 minutes)
+meson test fuzz_round_trip\ 10\ min --verbose
+```
+
+Happy fuzzing! 🚀
 
 ## Documentation 
 ### External dependencies
