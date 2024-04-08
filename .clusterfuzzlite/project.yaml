@@ -1,0 +1,11 @@
+homepage: "https://gitlab.phaidra.org/loidoltd15/cmp_tool"
+language: c
+primary_contact: "dominik.loidolt@univie.ac.at"
+auto_ccs: "dominik.loidolt@univie.ac.at"
+sanitizers:
+- address
+- undefined
+- memory
+
+main_repo: 'https://gitlab.phaidra.org/loidoltd15/cmp_tool.git'
+
