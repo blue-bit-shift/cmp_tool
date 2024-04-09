@@ -15,6 +15,7 @@ meson setup "$BUILD" \
   -Dfuzzer_ldflags="$LIB_FUZZING_ENGINE" \
   -Ddebug_level=0 \
   -Ddefault_library=static \
+  -Db_lundef=false \
   --wrap-mode=nodownload
 
 # build fuzzers
