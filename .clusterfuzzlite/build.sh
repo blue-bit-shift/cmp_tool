@@ -10,8 +10,10 @@ echo "$LIB_FUZZING_ENGINE"
 
 # setup project
 meson setup "$BUILD" \
+  --buildtype=plain \
   -Dfuzzer=enabled \
   -Dfuzzer_ldflags="$LIB_FUZZING_ENGINE" \
+  -Ddebug_level=0 \
   -Ddefault_library=static \
   --wrap-mode=nodownload
 
