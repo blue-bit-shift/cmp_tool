@@ -552,8 +552,9 @@ static int parse_cfg(FILE *fp, struct cmp_cfg *cfg, struct cmp_par *par)
 
 	if (!fp)
 		abort();
-
 	if (!cfg)
+		abort();
+	if(!par)
 		abort();
 
 	while (fgets(line, sizeof(line), fp) != NULL) {
