@@ -110,6 +110,8 @@ if ruby.found()
       env : test_env
     )
   endforeach
+else
+   message('ruby not found! Install ruby to run unit tests.')
 endif
 
 subdir('bench')
