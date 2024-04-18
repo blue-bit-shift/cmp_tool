@@ -731,7 +731,8 @@ static int compression_of_chunk(void *chunk, uint32_t size, void *model, struct 
 {
 	uint32_t bound = compress_chunk_cmp_size_bound(chunk, size);
 	uint32_t *cmp_data;
-	int32_t cmp_size;
+	uint32_t cmp_size;
+	enum cmp_error cmp_error;
 	int error;
 
 	if (!bound)
@@ -745,10 +746,9 @@ static int compression_of_chunk(void *chunk, uint32_t size, void *model, struct 
 	printf("Compress chunk data ... ");
 	cmp_size = compress_chunk(chunk, size, model, model,
 				  cmp_data, bound, chunk_par);
-
-	if (cmp_size < 0) {
-		if (cmp_size == CMP_ERROR_SMALL_BUF)
-			fprintf(stderr, "Error: The buffer for the compressed data is too small to hold the compressed data. Try a larger buffer_length parameter.\n");
+	cmp_error = cmp_get_error_code(cmp_size);
+	if (cmp_error != CMP_ERROR_NO_ERROR) {
+		fprintf(stderr, "%s\n", cmp_get_error_string(cmp_error));
 		free(cmp_data);
 		cmp_data = NULL;
 		printf("FAILED\n");
