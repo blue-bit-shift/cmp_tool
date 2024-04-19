@@ -175,6 +175,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
 	case CMP_ERROR_PAR_SPECIFIC:
 	case CMP_ERROR_PAR_BUFFERS:
 	case CMP_ERROR_PAR_MAX_USED_BITS:
+	case CMP_ERROR_PAR_NULL:
 	/* chunk errors */
 	case CMP_ERROR_CHUNK_NULL:
 	case CMP_ERROR_CHUNK_TOO_LARGE:

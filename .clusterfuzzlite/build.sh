@@ -6,8 +6,6 @@ BUILD=$WORK/build
 rm -rf "$BUILD"
 mkdir -p "$BUILD"
 
-echo "$LIB_FUZZING_ENGINE"
-
 # setup project
 meson setup "$BUILD" \
   --buildtype=plain \
@@ -15,8 +13,7 @@ meson setup "$BUILD" \
   -Dfuzzer_ldflags="$LIB_FUZZING_ENGINE" \
   -Ddebug_level=0 \
   -Ddefault_library=static \
-  -Db_lundef=false \
-  --wrap-mode=nodownload
+  -Db_lundef=false 
 
 # build fuzzers
 ninja -v -C "$BUILD" test/fuzz/fuzz_{round_trip,compression}
