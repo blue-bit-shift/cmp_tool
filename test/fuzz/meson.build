@@ -25,7 +25,6 @@ foreach target : fuzz_targets
   test(target_name + ' 10 min',
     fuzz_exe,
     args : ['-rss_limit_mb=2560', '-timeout=25', '-max_total_time=600'],
-    # args : ['-timeout=25', '-max_total_time=600'],
     env : test_env,
     is_parallel : false,
     # suite : 'fuzzing',

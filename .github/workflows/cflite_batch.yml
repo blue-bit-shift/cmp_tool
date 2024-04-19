@@ -36,6 +36,7 @@ jobs:
         mode: 'batch'
         sanitizer: ${{ matrix.sanitizer }}
         output-sarif: true
-        storage-repo: https://gh-action:${{secrets.ACCESS_TOKEN_GITLAB_UNI}}@gitlab.phaidra.org/loidoltd15/cmp_tool_storage.git
+        storage-repo: https://gh-action:${{ secrets.ACCESS_TOKEN_GITLAB_UNI }}@gitlab.phaidra.org/loidoltd15/cmp_tool_storage.git
+
         storage-repo-branch: main  
         storage-repo-branch-coverage: gh-pages 
