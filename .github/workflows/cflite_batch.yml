@@ -4,6 +4,8 @@ on:
     - cron: '0 0/6 * * *'  # Every 6th hour. Change this to whatever is suitable.
   push:
 permissions: read-all
+env:
+  GOPRIVATE: gitlab.phaidra.org/loidoltd15/cmp_tool_storage
 jobs:
   BatchFuzzing:
     runs-on: ubuntu-latest
