@@ -7,8 +7,6 @@ fuzz_targets = ['fuzz_compression.c', 'fuzz_round_trip.c']
 
 add_languages('cpp', native: false) # libFuzzingEngine needs c++
 
-
-
 foreach target : fuzz_targets
   file_name = target
   target_name = file_name.split('.').get(0)
@@ -21,10 +19,11 @@ foreach target : fuzz_targets
     link_language : 'cpp' # libFuzzingEngine needs c++
   )
 
-# todo add seed corpus
+   corpus_path = run_command('./download_corpus.sh', target_name, check: true).stdout().split()
+
   test(target_name + ' 10 min',
     fuzz_exe,
-    args : ['-rss_limit_mb=2560', '-timeout=25', '-max_total_time=600'],
+    args : ['-rss_limit_mb=2560', '-timeout=25', '-max_total_time=600', corpus_path],
     env : test_env,
     is_parallel : false,
     # suite : 'fuzzing',
@@ -33,7 +32,7 @@ foreach target : fuzz_targets
 
   test(target_name + ' non stop',
     fuzz_exe,
-    args : ['-rss_limit_mb=2560', '-timeout=25'],
+    args : ['-rss_limit_mb=2560', '-timeout=25', corpus_path],
     env : test_env,
     is_parallel : false,
     # suite : 'fuzzing',
