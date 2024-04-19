@@ -6,8 +6,6 @@ BUILD=$WORK/build
 rm -rf "$BUILD"
 mkdir -p "$BUILD"
 
-echo "$LIB_FUZZING_ENGINE"
-
 # setup project
 meson setup "$BUILD" \
   --buildtype=plain \
