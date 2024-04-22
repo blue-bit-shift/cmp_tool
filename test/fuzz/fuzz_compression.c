@@ -22,6 +22,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <string.h>
 
 #include "fuzz_helpers.h"
 #include "fuzz_data_producer.h"
@@ -73,10 +74,14 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
 		up_model = NULL;
 		break;
 	case 1:
-		up_model = malloc(size);
+		up_model = FUZZ_malloc(size);
 		break;
 	case 2:
-		up_model = (void *)model; /* in-place update */
+		up_model = FUZZ_malloc(size);
+		if (model && up_model) {
+			memcpy(up_model, model, size);
+			model = up_model; /* in-place update */
+		}
 		break;
 	default:
 		FUZZ_ASSERT(0);
@@ -130,8 +135,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
 	}
 
 	free(cmp_data);
-	if (up_model != model)
-		free(up_model);
+	free(up_model);
 	FUZZ_dataProducer_free(producer);
 	return 0;
 }
