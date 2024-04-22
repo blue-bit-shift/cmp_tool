@@ -89,8 +89,11 @@ static uint32_t chunk_round_trip(void *data, uint32_t data_size,
 
 		if (use_decmp_buf)
 			decmp_data = TEST_malloc(data_size);
-		if (use_decmp_up_model)
+		if (use_decmp_up_model) {
 			up_model_decmp = TEST_malloc(data_size);
+			if (!model_mode_is_used(cmp_par->cmp_mode))
+				memset(up_model_decmp, 0, data_size); /* up_model is not used */
+		}
 
 		decmp_size = decompress_cmp_entiy((struct cmp_entity *)cmp_data, model_cpy,
 						  up_model_decmp, decmp_data);
@@ -144,21 +147,24 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
 	}
 	FUZZ_ASSERT(size <= UINT32_MAX);
 
-	/* 1/2 of the cases we use a updated model buffer */
+	/* generate compression parameters */
+	FUZZ_dataProducer_cmp_par(producer, &cmp_par);
+	cmp_par.lossy_par = 0; /*TODO: implement lossy  */
 	if (FUZZ_dataProducer_uint32Range(producer, 0, 1))
+		cmp_par_ptr = &cmp_par;
+
+	/* 1/2 of the cases we use a updated model buffer */
+	if (FUZZ_dataProducer_uint32Range(producer, 0, 1)) {
 		up_model = FUZZ_malloc(size);
+		if (!model_mode_is_used(cmp_par.cmp_mode))
+			memset(up_model, 0, size); /* up_model is not used */
+	}
 
 	cmp_size_bound = compress_chunk_cmp_size_bound(src, size);
 	if (cmp_is_error(cmp_size_bound))
 		cmp_size_bound = 0;
 	cmp_data_capacity = FUZZ_dataProducer_uint32Range(producer, 0, cmp_size_bound+(uint32_t)size);
 	cmp_data = (uint32_t *)FUZZ_malloc(cmp_data_capacity);
-
-
-	FUZZ_dataProducer_cmp_par(producer, &cmp_par);
-	cmp_par.lossy_par = 0; /*TODO: implement lossy  */
-	if (FUZZ_dataProducer_uint32Range(producer, 0, 1))
-		cmp_par_ptr = &cmp_par;
 
 	use_decmp_buf = FUZZ_dataProducer_int32Range(producer, 0, 1);
 	use_decmp_up_model = FUZZ_dataProducer_int32Range(producer, 0, 1);
