@@ -36,7 +36,6 @@ test_env.set('ASAN_OPTIONS',
   'allocator_may_return_null=1',
   'allocator_release_to_os_interval_ms=500',
   'detect_container_overflow=1',
-  'detect_leaks=1',
   'detect_stack_use_after_return=1',
   'fast_unwind_on_fatal=0','handle_abort=1',
   'handle_segv=1',
@@ -49,6 +48,10 @@ test_env.set('ASAN_OPTIONS',
   'use_sigaltstack=1',
   'dedup_token_length=3'
 )
+if cc.has_argument('-fsanitize=leak')
+  test_env.append('ASAN_OPTIONS', 'detect_leaks=1')
+endif
+
 test_env.set('UBSAN_OPTIONS',
   'abort_on_error=1',
   'print_stacktrace=1',
