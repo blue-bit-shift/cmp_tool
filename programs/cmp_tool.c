@@ -39,7 +39,6 @@
 #define BUFFER_LENGTH_DEF_FAKTOR 2
 
 #define DEFAULT_MODEL_ID 53264  /* random default id */
-#define DEFAULT_MODEL_COUNTER 0
 
 
 /* parse a data_type option argument */
@@ -117,11 +116,11 @@ static int io_flags;
 /* if non zero add a compression entity header in front of the compressed data */
 static int include_cmp_header = 1;
 
-/* model ID string set by the --model_id option */
-static const char *model_id_str;
+/* model ID set by the --model_id option */
+static uint32_t model_id = DEFAULT_MODEL_ID;
 
-/* model counter string set by the --model_counter option */
-static const char *model_counter_str;
+/* model counter set by the --model_counter option */
+static uint32_t model_counter;
 
 
 /**
@@ -241,10 +240,20 @@ int main(int argc, char **argv)
 			include_cmp_header = 0;
 			break;
 		case MODEL_ID:
-			model_id_str = optarg;
+			if (atoui32("model_id", optarg, &model_id))
+				return -1;
+			if (model_counter > UINT16_MAX) {
+				fprintf(stderr, "%s: Error: model id value to large.\n", PROGRAM_NAME);
+				return -1;
+			}
 			break;
 		case MODEL_COUTER:
-			model_counter_str = optarg;
+			if (atoui32("model_counter", optarg, &model_counter))
+				return -1;
+			if (model_counter > UINT8_MAX) {
+				fprintf(stderr, "%s: Error: model counter value to large.\n", PROGRAM_NAME);
+				return -1;
+			}
 			break;
 		default:
 			print_help(program_name);
@@ -724,6 +733,15 @@ static int cmp_gernate_rdcu_info(const struct cmp_cfg *cfg, int cmp_size_bit,
 
 
 /**
+ * retrun a current PLATO timestamp
+ */
+uint64_t return_timestamp(void)
+{
+	return cmp_ent_create_timestamp(NULL);
+}
+
+
+/**
  * @brief compress chunk data and write the results to files
  */
 
@@ -732,8 +750,9 @@ static int compression_of_chunk(void *chunk, uint32_t size, void *model, struct 
 	uint32_t bound = compress_chunk_cmp_size_bound(chunk, size);
 	uint32_t *cmp_data;
 	uint32_t cmp_size;
-	enum cmp_error cmp_error;
 	int error;
+
+	compress_chunk_init(&return_timestamp, cmp_tool_gen_version_id(CMP_TOOL_VERSION));
 
 	if (!bound)
 		return -1;
@@ -746,20 +765,26 @@ static int compression_of_chunk(void *chunk, uint32_t size, void *model, struct 
 	printf("Compress chunk data ... ");
 	cmp_size = compress_chunk(chunk, size, model, model,
 				  cmp_data, bound, chunk_par);
-	cmp_error = cmp_get_error_code(cmp_size);
-	if (cmp_error != CMP_ERROR_NO_ERROR) {
-		fprintf(stderr, "%s\n", cmp_get_error_string(cmp_error));
-		free(cmp_data);
-		cmp_data = NULL;
-		printf("FAILED\n");
-		return -1;
-	}
+	if (cmp_is_error(cmp_size))
+		goto cmp_chunk_fail;
+
+	cmp_size = compress_chunk_set_model_id_and_counter(cmp_data, cmp_size,
+			(uint16_t)model_id, (uint8_t)model_counter);
+	if (cmp_is_error(cmp_size))
+		goto cmp_chunk_fail;
 
 	printf("DONE\nWrite compressed data to file %s.cmp ... ", output_prefix);
 	error = write_data_to_file(cmp_data, (uint32_t)cmp_size, output_prefix,
 				   ".cmp", io_flags);
+
+cmp_chunk_fail:
 	free(cmp_data);
 	cmp_data = NULL;
+	if (cmp_is_error(cmp_size)) {
+		fprintf(stderr, "%s: %s.\n", PROGRAM_NAME, cmp_get_error_name(cmp_size));
+		printf("FAILED\n");
+		return (int)cmp_get_error_code(cmp_size);
+	}
 	if (error) {
 		printf("FAILED\n");
 		return -1;
@@ -781,8 +806,6 @@ static int compression(struct cmp_cfg *cfg, struct cmp_info *info)
 	size_t s;
 	uint64_t start_time = cmp_ent_create_timestamp(NULL);
 	struct cmp_entity *cmp_entity = NULL;
-	uint8_t model_counter = DEFAULT_MODEL_COUNTER;
-	uint16_t model_id = DEFAULT_MODEL_ID;
 	void *data_to_write_to_file;
 
 	if (cfg->buffer_length == 0) {
@@ -843,29 +866,12 @@ static int compression(struct cmp_cfg *cfg, struct cmp_info *info)
 		goto error_cleanup;
 	}
 
-	if (model_id_str) {
-		uint32_t red_val;
-
-		error = atoui32("model_id", model_id_str, &red_val);
-		if (error || red_val > UINT16_MAX)
-			return -1;
-		model_id = (uint16_t)red_val;
-	}
-	if (model_counter_str) {
-		uint32_t red_val;
-
-		error = atoui32("model_counter", model_counter_str, &red_val);
-		if (error || red_val > UINT8_MAX)
-			return -1;
-		model_counter = (uint8_t)red_val;
-	} else {
-		if (model_mode_is_used(cfg->cmp_mode))
-			model_counter = DEFAULT_MODEL_COUNTER + 1;
-	}
+	if (!model_counter && model_mode_is_used(cfg->cmp_mode))
+		model_counter++;
 
 	s = cmp_ent_build(cmp_entity,  cmp_tool_gen_version_id(CMP_TOOL_VERSION),
-			  start_time, cmp_ent_create_timestamp(NULL), model_id,
-			  model_counter, cfg, cmp_size);
+			  start_time, cmp_ent_create_timestamp(NULL), (uint16_t)model_id,
+			  (uint8_t)model_counter, cfg, cmp_size);
 	if (!s) {
 		fprintf(stderr, "%s: error occurred while creating the compression entity header.\n", PROGRAM_NAME);
 		goto error_cleanup;
