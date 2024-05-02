@@ -48,26 +48,30 @@ subdir('cmp_max_used_bits')
 test_args = '-Wno-missing-declarations' # The test runner generator does not generate header files
 fs = import('fs')
 
-foreach test : test_cases
-  test_src = test[0]
-  test_description = test[1]
+if ruby.found()
+  foreach test : test_cases
+    test_src = test[0]
+    test_description = test[1]
 
-  test_name = fs.name(test_src).split('.')[0]
-  test_runner = test_runner_generator.process(test_src)
-  test_libs = [cmp_lib]
+    test_name = fs.name(test_src).split('.')[0]
+    test_runner = test_runner_generator.process(test_src)
+    test_libs = [cmp_lib]
 
-  if test_name == 'test_cmp_decmp' or test_name == 'test_cmp_icu'
-    test_libs += test_common_lib
-  endif
+    if test_name == 'test_cmp_decmp' or test_name == 'test_cmp_icu'
+      test_libs += test_common_lib
+    endif
 
-  test_exe = executable(test_name,
-    test_src, test_runner,
-    include_directories : incdir,
-    link_with : test_libs,
-    dependencies : unity_dep,
-    c_args : test_args,
-    build_by_default : false
-  )
+    test_exe = executable(test_name,
+      test_src, test_runner,
+      include_directories : incdir,
+      link_with : test_libs,
+      dependencies : unity_dep,
+      c_args : test_args,
+      build_by_default : false
+    )
 
-  test(test_description, test_exe)
-endforeach
+    test(test_description, test_exe)
+  endforeach
+endif
+
+subdir('bench')
