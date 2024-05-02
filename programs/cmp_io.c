@@ -1326,7 +1326,7 @@ ssize_t read_file8(const char *file_name, uint8_t *buf, uint32_t buf_size, int f
 	if (flags & CMP_IO_BINARY) {
 		if (buf) {
 			ret_code = fread(buf, sizeof(uint8_t), buf_size, fp);
-			if (ret_code != (size_t)file_size) {
+			if (ret_code != (size_t)buf_size) {
 				if (feof(fp))
 					printf("%s: %s: Error: unexpected end of file.\n", PROGRAM_NAME, file_name);
 				goto fail;

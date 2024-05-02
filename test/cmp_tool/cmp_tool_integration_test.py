@@ -7,9 +7,11 @@ import os
 import math
 import shutil
 from pathlib import Path
+import hashlib
 
 from datetime import datetime
 from datetime import timedelta
+from datetime import timezone
 
 
 EXIT_FAILURE = 1
@@ -78,7 +80,7 @@ def del_directory(directoryPath):
 
 
 def cuc_timestamp(now):
-    epoch = datetime(2020, 1, 1)
+    epoch = datetime(2020, 1, 1, tzinfo=timezone.utc)
     timestamp = (now - epoch).total_seconds()
 
     cuc_coarse = int( math.floor(timestamp) * 256 * 256)
@@ -447,9 +449,9 @@ def test_compression_diff():
                     assert(header['cmp_ent_size']['value'] == IMAGETTE_HEADER_SIZE+3)
                     assert(header['original_size']['value'] == 10)
                     # todo
-                    assert(header['start_time']['value'] < cuc_timestamp(datetime.utcnow()))
+                    assert(header['start_time']['value'] < cuc_timestamp(datetime.now(timezone.utc)))
                     # todo
-                    assert(header['end_timestamp']['value'] < cuc_timestamp(datetime.utcnow()))
+                    assert(header['end_timestamp']['value'] < cuc_timestamp(datetime.now(timezone.utc)))
                     assert(header['data_type']['value'] == 1)
                     assert(header['cmp_mode_used']['value'] == 2)
                     # assert(header['model_value_used']['value'] == 8)
@@ -582,9 +584,9 @@ def test_model_compression():
                 assert(header['cmp_ent_size']['value'] == IMAGETTE_ADAPTIVE_HEADER_SIZE+2)
                 assert(header['original_size']['value'] == 10)
                 # todo
-                assert(header['start_time']['value'] < cuc_timestamp(datetime.utcnow()))
+                assert(header['start_time']['value'] < cuc_timestamp(datetime.now(timezone.utc)))
                 #todo
-                assert(header['end_timestamp']['value'] < cuc_timestamp(datetime.utcnow()))
+                assert(header['end_timestamp']['value'] < cuc_timestamp(datetime.now(timezone.utc)))
                 assert(header['data_type']['value'] == DATA_TYPE_IMAGETTE_ADAPTIVE)
                 assert(header['cmp_mode_used']['value'] == 3)
                 assert(header['model_value_used']['value'] == int(cfg['model_value']))
@@ -691,9 +693,9 @@ def test_raw_mode_compression():
                     assert(header['cmp_ent_size']['value'] == GENERIC_HEADER_SIZE+10)
                     assert(header['original_size']['value'] == 10)
                     # todo
-                    assert(header['start_time']['value'] < cuc_timestamp(datetime.utcnow()))
+                    assert(header['start_time']['value'] < cuc_timestamp(datetime.now(timezone.utc)))
                     #todo
-                    assert(header['end_timestamp']['value'] < cuc_timestamp(datetime.utcnow()))
+                    assert(header['end_timestamp']['value'] < cuc_timestamp(datetime.now(timezone.utc)))
                     assert(header['data_type']['value'] == 1+0x8000)
                     # assert(header['cmp_mode_used']['value'] == 2)
                     # assert(header['model_value_used']['value'] == 8)
@@ -1017,8 +1019,8 @@ def test_sample_used_is_to_big():
     cmp_ent_size = IMAGETTE_HEADER_SIZE + len(cmp_data)//2
     original_size = 0xE # wrong original_size correct is 0xA
 
-    start_time = cuc_timestamp(datetime.utcnow())
-    end_time = cuc_timestamp(datetime.utcnow())
+    start_time = cuc_timestamp(datetime.now(timezone.utc))
+    end_time = cuc_timestamp(datetime.now(timezone.utc))
 
     data_type = 1
     cmp_mode_used = 2
@@ -1083,8 +1085,8 @@ def test_cmp_entity_not_4_byte_aligned():
     cmp_ent_size = IMAGETTE_HEADER_SIZE + len(cmp_data)//2
     original_size = 0xC
 
-    start_time = cuc_timestamp(datetime.utcnow())
-    end_time = cuc_timestamp(datetime.utcnow())
+    start_time = cuc_timestamp(datetime.now(timezone.utc))
+    end_time = cuc_timestamp(datetime.now(timezone.utc))
 
     data_type = 1
     cmp_mode_used = 2
@@ -1177,8 +1179,8 @@ def test_header_read_in():
     cmp_ent_size = IMAGETTE_HEADER_SIZE + len(cmp_data)//2
     original_size = 0xA
 
-    start_time = cuc_timestamp(datetime.utcnow())
-    end_time = cuc_timestamp(datetime.utcnow())
+    start_time = cuc_timestamp(datetime.now(timezone.utc))
+    end_time = cuc_timestamp(datetime.now(timezone.utc))
 
     data_type = 1
     cmp_mode_used = 2
@@ -1414,7 +1416,6 @@ def test_rdcu_pkt():
                      assert(f1.read() == f2.read())
 
     finally:
-        pass
         del_directory('TC_FILES')
         del_file(data_file_name)
         del_file(cfg_file_name)
@@ -1426,5 +1427,59 @@ def test_rdcu_pkt():
         del_file(output_prefix2+'_upmodel.dat')
 
 
+def test_chunk_compression():
+    # decompress the test data
+    output_prefix1 = "ref_short_cadence_1"
+    cmp_data_path1 = "test/cmp_tool/ref_short_cadence_1_cmp.cmp"
+    output_prefix2 = "ref_short_cadence_2"
+    cmp_data_path2 = "test/cmp_tool/ref_short_cadence_2_cmp.cmp"
+
+    try:
+        returncode, stdout, stderr = call_cmp_tool(
+            "--binary -d " + cmp_data_path1 + " -o " + output_prefix1)
+
+        assert(stderr == "")
+        assert(stdout == CMP_START_STR_DECMP +
+               "Importing compressed data file %s ... DONE\n" % (cmp_data_path1) +
+               "Decompress data ... DONE\n" +
+               "Write decompressed data to file %s.dat ... DONE\n" % (output_prefix1))
+        assert(returncode == EXIT_SUCCESS)
+
+        with open(output_prefix1 + '.dat', 'rb') as f:
+            sha1 = hashlib.sha1()
+            while True:
+                chunk = f.read(16 * 1024)
+                if not chunk:
+                    break
+                sha1.update(chunk)
+
+        assert(sha1.hexdigest() == "7d8d94d2ac904f9ff4f934bb691b469a7391ce9e")
+
+        returncode, stdout, stderr = call_cmp_tool(
+            "--binary -d " + cmp_data_path2 + " -m " + output_prefix1 + ".dat -o " + output_prefix2)
+
+        assert(stderr == "")
+        assert(stdout == CMP_START_STR_DECMP +
+               "Importing compressed data file %s ... DONE\n" % (cmp_data_path2) +
+               "Importing model file %s.dat ... DONE\n" % (output_prefix1) +
+               "Decompress data ... DONE\n" +
+               "Write decompressed data to file %s.dat ... DONE\n" % (output_prefix2) +
+               "Write updated model to file %s_upmodel.dat ... DONE\n" % (output_prefix2))
+        assert(returncode == EXIT_SUCCESS)
+
+        with open(output_prefix2 + '.dat', 'rb') as f:
+            sha1 = hashlib.sha1()
+            while True:
+                chunk = f.read(16 * 1024)
+                if not chunk:
+                    break
+                sha1.update(chunk)
+
+        assert(sha1.hexdigest() == "28ecc82a0c44ae7a461c26112b00f65b9b54e66a")
+
+    finally:
+        del_file(output_prefix1+'.dat')
+        del_file(output_prefix2+'.dat')
+        del_file(output_prefix2+'_upmodel.dat')
 
 # TODO: random test
