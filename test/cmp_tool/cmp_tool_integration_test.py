@@ -7,6 +7,7 @@ import os
 import math
 import shutil
 from pathlib import Path
+import hashlib
 
 from datetime import datetime
 from datetime import timedelta
@@ -1415,7 +1416,6 @@ def test_rdcu_pkt():
                      assert(f1.read() == f2.read())
 
     finally:
-        pass
         del_directory('TC_FILES')
         del_file(data_file_name)
         del_file(cfg_file_name)
@@ -1427,5 +1427,59 @@ def test_rdcu_pkt():
         del_file(output_prefix2+'_upmodel.dat')
 
 
+def test_chunk_compression():
+    # decompress the test data
+    output_prefix1 = "ref_short_cadence_1"
+    cmp_data_path1 = "test/cmp_tool/ref_short_cadence_1_cmp.cmp"
+    output_prefix2 = "ref_short_cadence_2"
+    cmp_data_path2 = "test/cmp_tool/ref_short_cadence_2_cmp.cmp"
+
+    try:
+        returncode, stdout, stderr = call_cmp_tool(
+            "--binary -d " + cmp_data_path1 + " -o " + output_prefix1)
+
+        assert(stderr == "")
+        assert(stdout == CMP_START_STR_DECMP +
+               "Importing compressed data file %s ... DONE\n" % (cmp_data_path1) +
+               "Decompress data ... DONE\n" +
+               "Write decompressed data to file %s.dat ... DONE\n" % (output_prefix1))
+        assert(returncode == EXIT_SUCCESS)
+
+        with open(output_prefix1 + '.dat', 'rb') as f:
+            sha1 = hashlib.sha1()
+            while True:
+                chunk = f.read(16 * 1024)
+                if not chunk:
+                    break
+                sha1.update(chunk)
+
+        assert(sha1.hexdigest() == "7d8d94d2ac904f9ff4f934bb691b469a7391ce9e")
+
+        returncode, stdout, stderr = call_cmp_tool(
+            "--binary -d " + cmp_data_path2 + " -m " + output_prefix1 + ".dat -o " + output_prefix2)
+
+        assert(stderr == "")
+        assert(stdout == CMP_START_STR_DECMP +
+               "Importing compressed data file %s ... DONE\n" % (cmp_data_path2) +
+               "Importing model file %s.dat ... DONE\n" % (output_prefix1) +
+               "Decompress data ... DONE\n" +
+               "Write decompressed data to file %s.dat ... DONE\n" % (output_prefix2) +
+               "Write updated model to file %s_upmodel.dat ... DONE\n" % (output_prefix2))
+        assert(returncode == EXIT_SUCCESS)
+
+        with open(output_prefix2 + '.dat', 'rb') as f:
+            sha1 = hashlib.sha1()
+            while True:
+                chunk = f.read(16 * 1024)
+                if not chunk:
+                    break
+                sha1.update(chunk)
+
+        assert(sha1.hexdigest() == "28ecc82a0c44ae7a461c26112b00f65b9b54e66a")
+
+    finally:
+        del_file(output_prefix1+'.dat')
+        del_file(output_prefix2+'.dat')
+        del_file(output_prefix2+'_upmodel.dat')
 
 # TODO: random test
