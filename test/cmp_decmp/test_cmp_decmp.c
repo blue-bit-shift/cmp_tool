@@ -33,6 +33,7 @@
 #include <cmp_data_types.h>
 #include <leon_inttypes.h>
 #include <byteorder.h>
+#include <cmp_error.h>
 
 #if defined __has_include
 #  if __has_include(<time.h>)
@@ -42,7 +43,7 @@
 #  endif
 #endif
 
-#define ROUND_UP_TO_MULTIPLE_OF_4(x) (((x) + 3) & ~3)
+#define ROUND_UP_TO_MULTIPLE_OF_4(x) (((x) + 3U) & ~3U)
 
 
 /**
@@ -56,6 +57,7 @@ void setUp(void)
 
 #ifdef HAS_TIME_H
 	seed = (uint64_t)(time(NULL) ^ getpid()  ^ (intptr_t)&setUp);
+	seed = 0;
 #else
 	seed = 1;
 #endif
@@ -584,25 +586,6 @@ void generate_random_cmp_cfg(struct cmp_cfg *cfg)
 		cfg->spill_par_5 = cmp_rand_between(MIN_NON_IMA_SPILL, cmp_icu_max_spill(cfg->cmp_par_ecob));
 		cfg->spill_par_6 = cmp_rand_between(MIN_NON_IMA_SPILL, cmp_icu_max_spill(cfg->cmp_par_fx_cob_variance));
 	}
-
-#if 0
-	if (cfg->cmp_mode == CMP_MODE_STUFF) {
-		/* cfg->golomb_par = cmp_rand_between(16, MAX_STUFF_CMP_PAR); */
-		cfg->golomb_par = 16;
-		cfg->ap1_golomb_par = cmp_rand_between(0, MAX_STUFF_CMP_PAR);
-		cfg->ap2_golomb_par = cmp_rand_between(0, MAX_STUFF_CMP_PAR);
-		cfg->cmp_par_exp_flags = cmp_rand_between(0, MAX_STUFF_CMP_PAR);
-		cfg->cmp_par_fx = cmp_rand_between(0, MAX_STUFF_CMP_PAR);
-		cfg->cmp_par_ncob = cmp_rand_between(0, MAX_STUFF_CMP_PAR);
-		cfg->cmp_par_efx = cmp_rand_between(0, MAX_STUFF_CMP_PAR);
-		cfg->cmp_par_ecob = cmp_rand_between(0, MAX_STUFF_CMP_PAR);
-		cfg->cmp_par_fx_cob_variance = cmp_rand_between(0, MAX_STUFF_CMP_PAR);
-		cfg->cmp_par_mean = cmp_rand_between(0, MAX_STUFF_CMP_PAR);
-		cfg->cmp_par_variance = cmp_rand_between(0, MAX_STUFF_CMP_PAR);
-		cfg->cmp_par_pixels_error = cmp_rand_between(0, MAX_STUFF_CMP_PAR);
-		return;
-	}
-#endif
 }
 
 
@@ -877,12 +860,12 @@ void test_random_compression_decompress_rdcu_data(void)
 }
 
 
-static int32_t chunk_round_trip(void *data, uint32_t data_size,
-			       void *model, void *up_model,
-			       uint32_t *cmp_data, uint32_t cmp_data_capacity,
-			       struct cmp_par *cmp_par, int use_decmp_buf, int use_decmp_up_model)
+static uint32_t chunk_round_trip(void *data, uint32_t data_size,
+				 void *model, void *up_model,
+				 uint32_t *cmp_data, uint32_t cmp_data_capacity,
+				 struct cmp_par *cmp_par, int use_decmp_buf, int use_decmp_up_model)
 {
-	int32_t cmp_size;
+	uint32_t cmp_size;
 	void *model_cpy = NULL;
 
 	/* if in-place model update is used (up_model == model), the model
@@ -899,7 +882,6 @@ static int32_t chunk_round_trip(void *data, uint32_t data_size,
 
 	cmp_size = compress_chunk(data, data_size, model, up_model,
 				  cmp_data, cmp_data_capacity, cmp_par);
-	TEST_ASSERT(cmp_size != CMP_ERROR_HIGH_VALUE);
 
 #if 0
 	{ /* Compress a second time and check for determinism */
@@ -921,7 +903,7 @@ static int32_t chunk_round_trip(void *data, uint32_t data_size,
 		free(up_model2);
 	}
 #endif
-	if (cmp_size >= 0 && cmp_data) {
+	if (!cmp_is_error(cmp_size) && cmp_data) {
 		void *decmp_data = NULL;
 		void *up_model_decmp = NULL;
 		int decmp_size;
@@ -1012,7 +994,7 @@ void test_random_collection_round_trip(void)
 
 		for (cmp_mode = CMP_MODE_RAW; cmp_mode <= CMP_MODE_DIFF_MULTI; cmp_mode++) {
 			struct cmp_par par;
-			int32_t cmp_size;
+			uint32_t cmp_size;
 
 			generate_random_cmp_par(&par);
 			par.cmp_mode = cmp_mode;
@@ -1024,9 +1006,9 @@ void test_random_collection_round_trip(void)
 			/* No chunk is defined for fast cadence subservices */
 			if (data_type == DATA_TYPE_F_FX || data_type == DATA_TYPE_F_FX_EFX ||
 			    data_type == DATA_TYPE_F_FX_NCOB || data_type == DATA_TYPE_F_FX_EFX_NCOB_ECOB)
-				TEST_ASSERT(cmp_size == -1);
+				TEST_ASSERT_EQUAL_INT(CMP_ERROR_COL_SUBSERVICE_UNSUPPORTED, cmp_get_error_code(cmp_size));
 			else
-				TEST_ASSERT(cmp_size > 0);
+				TEST_ASSERT_FALSE(cmp_is_error(cmp_size));
 		}
 	}
 #ifndef __sparc__
@@ -1053,7 +1035,7 @@ void test_cmp_collection_raw(void)
 	struct cmp_par par = {0};
 	const uint32_t col_size = COLLECTION_HDR_SIZE+2*sizeof(struct s_fx);
 	const size_t exp_cmp_size_byte = GENERIC_HEADER_SIZE + col_size;
-	int cmp_size_byte;
+	uint32_t cmp_size_byte;
 
 	par.cmp_mode = CMP_MODE_RAW;
 
@@ -1100,7 +1082,8 @@ void test_cmp_collection_raw(void)
 
 	/* error case: buffer for the compressed data is to small */
 	dst_capacity -= 1;
-	TEST_ASSERT_EQUAL_INT(CMP_ERROR_SMALL_BUF, compress_chunk(col, col_size, NULL, NULL, dst, dst_capacity, &par));
+	TEST_ASSERT_EQUAL_INT(CMP_ERROR_SMALL_BUF_,
+			      cmp_get_error_code(compress_chunk(col, col_size, NULL, NULL, dst, dst_capacity, &par)));
 
 	free(col);
 	free(dst);
@@ -1135,7 +1118,7 @@ void test_cmp_collection_diff(void)
 
 
 	{ /* compress data */
-		int cmp_size_byte;
+		uint32_t cmp_size_byte;
 		const int exp_cmp_size_byte = NON_IMAGETTE_HEADER_SIZE + CMP_COLLECTION_FILD_SIZE
 			+ COLLECTION_HDR_SIZE + cmp_size_byte_exp;
 
@@ -1184,7 +1167,7 @@ void test_cmp_collection_diff(void)
 
 	/* error cases dst buffer to small */
 	dst_capacity -= 1;
-	TEST_ASSERT_EQUAL_INT(CMP_ERROR_SMALL_BUF, compress_chunk(col, col_size, NULL, NULL, dst, dst_capacity, &par));
+	TEST_ASSERT_EQUAL_INT(CMP_ERROR_SMALL_BUF_, cmp_get_error_code(compress_chunk(col, col_size, NULL, NULL, dst, dst_capacity, &par)));
 
 	free(col);
 	free(dst);
@@ -1203,7 +1186,7 @@ void test_cmp_collection_worst_case(void)
 	uint32_t dst_capacity = 0;
 	struct cmp_par par = {0};
 	const uint16_t cmp_size_byte_exp = 2*sizeof(struct s_fx);
-	int cmp_size_byte;
+	uint32_t cmp_size_byte;
 	struct s_fx *data;
 	uint32_t samples = 2;
 	const uint32_t col_size = COLLECTION_HDR_SIZE+samples*sizeof(*data);
@@ -1289,7 +1272,7 @@ void test_cmp_collection_imagette_worst_case(void)
 	uint32_t *dst = NULL;
 	struct cmp_par par = {0};
 	uint16_t const cmp_size_byte_exp = 10*sizeof(uint16_t);
-	int cmp_size_byte;
+	uint32_t cmp_size_byte;
 	uint32_t const col_size = COLLECTION_HDR_SIZE + cmp_size_byte_exp;
 
 	{ /* generate test data */
@@ -1359,6 +1342,8 @@ void test_cmp_collection_imagette_worst_case(void)
 		TEST_ASSERT_EQUAL_HEX8_ARRAY(col, decompressed_data, decmp_size);
 		free(decompressed_data);
 	}
+	free(dst);
+	free(col);
 }
 
 
@@ -1388,7 +1373,7 @@ void test_cmp_decmp_chunk_raw(void)
 	/* "compress" data */
 	{
 		size_t cmp_size_exp = GENERIC_HEADER_SIZE + chunk_size_exp;
-		int cmp_size;
+		uint32_t cmp_size;
 
 		par.cmp_mode = CMP_MODE_RAW;
 
@@ -1455,13 +1440,14 @@ void test_cmp_decmp_chunk_raw(void)
 		free(decompressed_data);
 	}
 	{ /* error case: buffer to small for compressed data */
-		int cmp_size;
+		uint32_t cmp_size;
 
 		dst_capacity -= 1;
 		cmp_size = compress_chunk(chunk, chunk_size, NULL, NULL, dst, dst_capacity, &par);
-		TEST_ASSERT_EQUAL_INT(CMP_ERROR_SMALL_BUF, cmp_size);
+		TEST_ASSERT_EQUAL_INT(CMP_ERROR_SMALL_BUF_, cmp_get_error_code(cmp_size));
 	}
 
+	free(dst);
 	free(chunk);
 }
 
@@ -1473,7 +1459,7 @@ void test_cmp_decmp_chunk_worst_case(void)
 	uint32_t chunk_size = CHUNK_SIZE_EXP;
 	void *chunk = NULL;
 	uint32_t dst[COMPRESS_CHUNK_BOUND(CHUNK_SIZE_EXP, ARRAY_SIZE(chunk_def))/sizeof(uint32_t)];
-	int cmp_size_byte = 0;
+	uint32_t cmp_size_byte = 0;
 	struct cmp_par par = {0};
 
 	{ /* generate test data */
@@ -1571,7 +1557,7 @@ void test_cmp_decmp_chunk_worst_case(void)
 
 	/* error case: buffer to small for compressed data */
 	cmp_size_byte = compress_chunk(chunk, chunk_size, NULL, NULL, dst, chunk_size, &par);
-	TEST_ASSERT_EQUAL_INT(CMP_ERROR_SMALL_BUF, cmp_size_byte);
+	TEST_ASSERT_EQUAL_INT(CMP_ERROR_SMALL_BUF_, cmp_get_error_code(cmp_size_byte));
 
 	free(chunk);
 }
@@ -1632,7 +1618,7 @@ void test_cmp_decmp_diff(void)
 	{ /* compress data */
 		struct cmp_par par = {0};
 		uint32_t dst_capacity = 0;
-		int cmp_size;
+		uint32_t cmp_size;
 
 		par.cmp_mode = CMP_MODE_DIFF_ZERO;
 		par.s_exp_flags = 1;
@@ -1664,4 +1650,5 @@ void test_cmp_decmp_diff(void)
 		free(decompressed_data);
 	}
 	free(dst);
+	free(chunk);
 }

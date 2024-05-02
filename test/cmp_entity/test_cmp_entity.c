@@ -464,7 +464,7 @@ void test_cmp_ent_data_type(void)
 
 	/* error cases */
 	raw_mode_flag = 0;
-	data_type = 0x8000;
+	data_type = (enum cmp_data_type)0x8000;
 	error = cmp_ent_set_data_type(&ent, data_type, raw_mode_flag);
 	TEST_ASSERT_TRUE(error);
 	error = cmp_ent_set_data_type(NULL, data_type, raw_mode_flag);
@@ -488,7 +488,7 @@ void test_ent_cmp_mode(void)
 	enum cmp_mode cmp_mode, cmp_mode_read;
 	uint8_t *entity_p = (uint8_t *)&ent;
 
-	cmp_mode = 0x12;
+	cmp_mode = (enum cmp_mode)0x12;
 	error = cmp_ent_set_cmp_mode(&ent, cmp_mode);
 	TEST_ASSERT_FALSE(error);
 
@@ -499,7 +499,7 @@ void test_ent_cmp_mode(void)
 	TEST_ASSERT_EQUAL_HEX(0x12, entity_p[24]);
 
 	/* error cases */
-	cmp_mode = 0x100;
+	cmp_mode = (enum cmp_mode)0x100;
 	error = cmp_ent_set_cmp_mode(&ent, cmp_mode);
 	TEST_ASSERT_TRUE(error);
 	error = cmp_ent_set_cmp_mode(NULL, cmp_mode);
@@ -1334,7 +1334,11 @@ void test_cmp_ent_get_data_buf(void)
 	/* compression data type not supported test */
 	error = cmp_ent_set_data_type(&ent, DATA_TYPE_UNKNOWN, 0);
 	TEST_ASSERT_FALSE(error);
+	adr = cmp_ent_get_data_buf(&ent);
+	TEST_ASSERT_NULL(adr);
 
+	error = cmp_ent_set_data_type(&ent, (enum cmp_data_type)234, 1);
+	TEST_ASSERT_FALSE(error);
 	adr = cmp_ent_get_data_buf(&ent);
 	TEST_ASSERT_NULL(adr);
 }
@@ -1767,7 +1771,7 @@ void test_cmp_ent_create(void)
 	cmp_size_byte = 100;
 	size = cmp_ent_create(NULL, data_type, raw_mode_flag, cmp_size_byte);
 	TEST_ASSERT_EQUAL_UINT32(0, size);
-	data_type = 0xFFF;
+	data_type = (enum cmp_data_type)0xFFF; /* undefined data type */
 	raw_mode_flag = 1;
 	cmp_size_byte = 100;
 	size = cmp_ent_create(NULL, data_type, raw_mode_flag, cmp_size_byte);
@@ -1985,7 +1989,7 @@ void test_cmp_ent_print(void)
 	uint64_t start_time, end_time;
 	uint16_t model_id;
 	uint8_t model_counter;
-	struct cmp_cfg cfg;
+	struct cmp_cfg cfg = {0};
 	int cmp_size_bits;
 	struct cmp_max_used_bits max_used_bits = {0};
 
@@ -2107,7 +2111,7 @@ void test_cmp_ent_parse(void)
 
 	free(ent);
 
-	cfg.data_type = DATA_TYPE_S_FX;
+	cfg.data_type = DATA_TYPE_CHUNK;
 	cfg.cmp_mode = CMP_MODE_MODEL_ZERO;
 	version_id = 0x800F0003;
 	size = cmp_ent_build(NULL, version_id, start_time, end_time, model_id,
@@ -2118,6 +2122,10 @@ void test_cmp_ent_parse(void)
 			     model_counter, &cfg, cmp_size_bits);
 	TEST_ASSERT_EQUAL_UINT(NON_IMAGETTE_HEADER_SIZE+60, size);
 
+	cmp_ent_parse(ent);
+
+	/* unknown data product type */
+	cmp_ent_set_data_type(ent, DATA_TYPE_UNKNOWN, 0);
 	cmp_ent_parse(ent);
 
 	free(ent);
