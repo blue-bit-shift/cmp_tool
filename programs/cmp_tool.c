@@ -156,7 +156,7 @@ int main(int argc, char **argv)
 	/* buffer containing the read in model */
 	uint16_t *input_model_buf = NULL;
 	/* size of the data to be compressed and the model of it */
-	uint32_t input_size;
+	uint32_t input_size = 0;
 
 	struct cmp_info info = {0}; /* decompression information struct */
 	struct cmp_cfg cfg = {0}; /* compressor configuration struct */
@@ -750,7 +750,7 @@ static int compression_of_chunk(void *chunk, uint32_t size, void *model, struct 
 	uint32_t bound = compress_chunk_cmp_size_bound(chunk, size);
 	uint32_t *cmp_data;
 	uint32_t cmp_size;
-	int error;
+	int error = 0;
 
 	compress_chunk_init(&return_timestamp, cmp_tool_gen_version_id(CMP_TOOL_VERSION));
 
