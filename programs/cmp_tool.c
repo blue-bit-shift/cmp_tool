@@ -733,9 +733,10 @@ static int cmp_gernate_rdcu_info(const struct cmp_cfg *cfg, int cmp_size_bit,
 
 
 /**
- * retrun a current PLATO timestamp
+ * return a current PLATO timestamp
  */
-uint64_t return_timestamp(void)
+
+static uint64_t return_timestamp(void)
 {
 	return cmp_ent_create_timestamp(NULL);
 }
