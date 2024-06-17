@@ -1393,7 +1393,7 @@ ssize_t read_file_data(const char *file_name, enum cmp_data_type data_type,
 	int err;
 
 	size = read_file8(file_name, (uint8_t *)buf, buf_size, flags);
-	if (size > UINT32_MAX)
+	if (size > INT32_MAX)
 		return -1;
 
 	if (size < 0)

@@ -362,7 +362,7 @@ int main(int argc, char **argv)
 				int32_t samples;
 
 				size = read_file_data(data_file_name, cfg.data_type, NULL, 0, io_flags);
-				if (size <= 0 || size > UINT32_MAX) /* empty file is treated as an error */
+				if (size <= 0 || size > INT32_MAX) /* empty file is treated as an error */
 					goto fail;
 				samples = cmp_input_size_to_samples((uint32_t)size, cfg.data_type);
 				if (samples < 0)
@@ -374,7 +374,7 @@ int main(int argc, char **argv)
 			input_size = cmp_cal_size_of_data(cfg.samples, cfg.data_type);
 		} else {
 			size  = read_file_data(data_file_name, cfg.data_type, NULL, 0, io_flags);
-			if (size <= 0 || size > UINT32_MAX) /* empty file is treated as an error */
+			if (size <= 0 || size > INT32_MAX) /* empty file is treated as an error */
 				goto fail;
 			input_size = (uint32_t)size;
 		}
@@ -433,7 +433,7 @@ int main(int argc, char **argv)
 
 			printf("Importing compressed data file %s ... ", data_file_name);
 			size = read_file_cmp_entity(data_file_name, NULL, 0, io_flags);
-			if (size < 0 || size > UINT32_MAX)
+			if (size < 0 || size > INT32_MAX)
 				goto fail;
 			/* to be save allocate at least the size of the cmp_entity struct */
 			buf_size = (size_t)size;
