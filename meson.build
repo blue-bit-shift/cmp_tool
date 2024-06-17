@@ -23,7 +23,7 @@ add_global_arguments('-Wno-long-long', language : 'c')
 cc_flags = ['-DDEBUGLEVEL=@0@'.format(debug_level)]
 if use_debug
   debug_flags = [
-    '-Wstrict-aliasing=1',
+    '-Wstrict-aliasing',
     '-Wcast-align',
     '-Wredundant-decls',
     '-Wundef',

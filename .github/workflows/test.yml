@@ -1,0 +1,145 @@
+name: Test Runner
+
+on: [push]
+
+permissions:
+  contents: read
+
+jobs:
+  unix-build-test:
+    strategy:
+      fail-fast: false  # 'false' means Don't stop matrix workflows even if some matrix failed.
+      matrix:
+        include:
+          - { os: ubuntu-latest, extra_opt: "" }
+          - { os: macos-latest,  extra_opt: "" }
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+    - name: Install packages
+      run: pip install meson ninja pytest
+    - name: ${{ matrix.os }} meson setup
+      run: |
+        meson setup \
+          --buildtype=debugoptimized \
+          -Db_sanitize=address,undefined \
+          -Db_lundef=false \
+          ${{ matrix.extra_opt }} \
+          -Dwerror=true \
+          builddir
+    - name: build cmp_tool
+      run: meson compile -C builddir/ cmp_tool
+    - name: run tests
+      run: meson test -C builddir/ --print-errorlogs --timeout-multiplier 3
+    - uses: actions/upload-artifact@v4
+      if: failure()
+      with:
+        name: ${{ matrix.os }} Testlog
+        path: builddir/meson-logs/testlog.txt
+
+
+  ubuntu-32-build-test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+    - name: Install packages
+      run: |
+        pip install meson ninja pytest
+        sudo apt-get update
+        sudo apt-get install gcc-multilib g++-multilib
+    - name: 32 bit compilation
+      run: |
+        meson setup \
+          --buildtype=debugoptimized \
+          -Db_sanitize=address,undefined \
+          -Db_lundef=false \
+          -Dc_args="-m32" \
+          -Dc_link_args="-m32" \
+          -Dwerror=true \
+          builddir
+        meson compile -C builddir cmp_tool
+    - name: run tests
+      run: meson test -C builddir --print-errorlogs --timeout-multiplier 3
+    - uses: actions/upload-artifact@v4
+      if: failure()
+      with:
+        name: 32 bit Testlog
+        path: builddir/meson-logs/testlog.txt
+
+
+  mingw-cross-compilation:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+    - name: Install packages
+      run: |
+        pip install meson ninja pytest
+        sudo apt-get update
+        sudo apt-get install gcc-mingw-w64 wine64
+    - name: mingw cross-compilation and testing
+      run: |
+        meson setup \
+          --cross-file=mingw-w64-64.txt \
+          --buildtype=debugoptimized \
+          -Dwerror=true \
+          builddir_cross_win
+        meson compile -C builddir_cross_win cmp_tool
+    - name: run tests
+      run: meson test -C builddir_cross_win --print-errorlogs --timeout-multiplier 3
+    - uses: actions/upload-artifact@v4
+      if: failure()
+      with:
+        name: MinGW cross compile Testlog
+        path: builddir_cross_win/meson-logs/testlog.txt
+
+
+  mingw-build-test:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    strategy:
+      fail-fast: false  # 'false' means Don't stop matrix workflows even if some matrix failed.
+      matrix:
+        include:
+          - { sys: mingw64, env: x86_64 }
+          - { sys: mingw32, env: i686 }
+          - { sys: ucrt64,  env: ucrt-x86_64 }
+    steps:
+    - uses: actions/checkout@v4
+    - uses: msys2/setup-msys2@v2
+      with:
+        msystem: ${{matrix.sys}}
+        # update: true
+        install: >-
+          mingw-w64-${{matrix.env}}-meson
+          mingw-w64-${{matrix.env}}-gcc
+          mingw-w64-${{matrix.env}}-ca-certificates
+          mingw-w64-${{matrix.env}}-python-pytest
+          ruby
+          patch
+
+    - name: build
+      run: |
+        CC=gcc \
+          meson setup \
+            --buildtype=debugoptimized \
+            -Dwerror=true \
+            builddir
+        meson compile -C builddir cmp_tool
+    - name: run tests
+      run: meson test -C builddir --print-errorlogs --timeout-multiplier 3
+    - uses: actions/upload-artifact@v4
+      if: failure()
+      with:
+        name: ${{matrix.sys}} Windows Testlog
+        path: builddir/meson-logs/testlog.txt
