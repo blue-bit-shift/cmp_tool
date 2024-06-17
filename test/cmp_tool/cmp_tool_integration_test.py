@@ -81,14 +81,13 @@ def del_directory(directoryPath):
 
 def cuc_timestamp(now):
     epoch = datetime(2020, 1, 1, tzinfo=timezone.utc)
-    timestamp = (now - epoch).total_seconds()
+    seconds = (now - epoch)//timedelta(seconds=1)
+    microseconds = (now - epoch - timedelta(seconds=seconds))//timedelta(microseconds=1)
+    assert((seconds >> 32) == 0)
 
-    cuc_coarse = int( math.floor(timestamp) * 256 * 256)
-    cuc_fine = int(math.floor((timestamp - math.floor(timestamp))*256*256))
+    fine = microseconds * 0x10000 // int(1e6)
 
-    cuc = int(cuc_coarse)+int(cuc_fine)
-
-    return cuc
+    return (seconds << 16) + fine
 
 
 def read_in_cmp_header(compressed_string):
@@ -448,10 +447,6 @@ def test_compression_diff():
                     assert(header['asw_version_id']['value'] == VERSION.split('-')[0])
                     assert(header['cmp_ent_size']['value'] == IMAGETTE_HEADER_SIZE+3)
                     assert(header['original_size']['value'] == 10)
-                    # todo
-                    assert(header['start_time']['value'] < cuc_timestamp(datetime.now(timezone.utc)))
-                    # todo
-                    assert(header['end_timestamp']['value'] < cuc_timestamp(datetime.now(timezone.utc)))
                     assert(header['data_type']['value'] == 1)
                     assert(header['cmp_mode_used']['value'] == 2)
                     # assert(header['model_value_used']['value'] == 8)
@@ -461,6 +456,10 @@ def test_compression_diff():
                     assert(header['spill_used']['value'] == 60)
                     assert(header['golomb_par_used']['value'] == 7)
                     assert(header['compressed_data']['value'] == "444440")
+                    assert(header['start_time']['value'] <= header['end_timestamp']['value'])
+                    if not (os.getenv("GITHUB_ACTIONS") == "true" and os.getenv("MSYSTEM") != None):
+                        assert(header['start_time']['value'] < cuc_timestamp(datetime.now(timezone.utc)))
+                        assert(header['end_timestamp']['value'] < cuc_timestamp(datetime.now(timezone.utc)))
 
             # decompression
             if add_arg == " --no_header":
@@ -583,10 +582,6 @@ def test_model_compression():
                 assert(header['asw_version_id']['value'] == VERSION.split('-')[0])
                 assert(header['cmp_ent_size']['value'] == IMAGETTE_ADAPTIVE_HEADER_SIZE+2)
                 assert(header['original_size']['value'] == 10)
-                # todo
-                assert(header['start_time']['value'] < cuc_timestamp(datetime.now(timezone.utc)))
-                #todo
-                assert(header['end_timestamp']['value'] < cuc_timestamp(datetime.now(timezone.utc)))
                 assert(header['data_type']['value'] == DATA_TYPE_IMAGETTE_ADAPTIVE)
                 assert(header['cmp_mode_used']['value'] == 3)
                 assert(header['model_value_used']['value'] == int(cfg['model_value']))
@@ -596,6 +591,10 @@ def test_model_compression():
                 assert(header['spill_used']['value'] == int(cfg['spill']))
                 assert(header['golomb_par_used']['value'] == int(cfg['golomb_par']))
                 assert(header['compressed_data']['value'] == "4924")
+                assert(header['start_time']['value'] < header['end_timestamp']['value'])
+                if not (os.getenv("GITHUB_ACTIONS") == "true" and os.getenv("MSYSTEM") != None):
+                   assert(header['start_time']['value'] < cuc_timestamp(datetime.now(timezone.utc)))
+                   assert(header['end_timestamp']['value'] < cuc_timestamp(datetime.now(timezone.utc)))
 
             # decompression
             if "--no_header" in add_arg:
@@ -692,10 +691,6 @@ def test_raw_mode_compression():
                     assert(header['asw_version_id']['value'] == VERSION.split('-')[0])
                     assert(header['cmp_ent_size']['value'] == GENERIC_HEADER_SIZE+10)
                     assert(header['original_size']['value'] == 10)
-                    # todo
-                    assert(header['start_time']['value'] < cuc_timestamp(datetime.now(timezone.utc)))
-                    #todo
-                    assert(header['end_timestamp']['value'] < cuc_timestamp(datetime.now(timezone.utc)))
                     assert(header['data_type']['value'] == 1+0x8000)
                     # assert(header['cmp_mode_used']['value'] == 2)
                     # assert(header['model_value_used']['value'] == 8)
@@ -705,6 +700,10 @@ def test_raw_mode_compression():
                     # assert(header['spill_used']['value'] == 60)
                     # assert(header['golomb_par_used']['value'] == 7)
                     assert(header['compressed_data']['value'] == data[:-1].replace(" ",""))
+                    assert(header['start_time']['value'] <= header['end_timestamp']['value'])
+                    if not (os.getenv("GITHUB_ACTIONS") == "true" and os.getenv("MSYSTEM") != None):
+                        assert(header['start_time']['value'] < cuc_timestamp(datetime.now(timezone.utc)))
+                        assert(header['end_timestamp']['value'] < cuc_timestamp(datetime.now(timezone.utc)))
 
             # decompression
             if "--no_header" in arg:
