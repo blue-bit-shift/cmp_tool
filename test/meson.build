@@ -48,7 +48,7 @@ test_env.set('ASAN_OPTIONS',
   'use_sigaltstack=1',
   'dedup_token_length=3'
 )
-if cc.has_argument('-fsanitize=leak')
+if cc.has_argument('-fsanitize=leak') and not (host_machine.system() == 'darwin' and host_machine.cpu_family() == 'aarch64' and cc.get_id() == 'clang')
   test_env.append('ASAN_OPTIONS', 'detect_leaks=1')
 endif
 
