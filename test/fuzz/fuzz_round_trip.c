@@ -125,7 +125,7 @@ static uint32_t chunk_round_trip(void *data, uint32_t data_size,
 int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
 {
 	struct cmp_par cmp_par;
-	struct cmp_par *cmp_par_ptr=NULL;
+	struct cmp_par *cmp_par_ptr = NULL;
 	const uint8_t *model = NULL;
 	void *up_model = NULL;
 	uint32_t cmp_size_bound;
