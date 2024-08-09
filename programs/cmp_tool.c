@@ -588,7 +588,7 @@ static int guess_cmp_pars(struct rdcu_cfg *rcfg, const char *guess_cmp_mode,
 		return -1;
 	printf("DONE\n");
 
-	cr = (8.0 * cmp_cal_size_of_data(rcfg->samples, data_type))/cmp_size_bit;
+	cr = (8.0 * rcfg->samples * sizeof(uint16_t))/cmp_size_bit;
 	printf("Guessed parameters can compress the data with a CR of %.2f.\n", cr);
 
 	return 0;
