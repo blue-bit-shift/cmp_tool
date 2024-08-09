@@ -522,7 +522,7 @@ def test_model_compression():
             cfg["ap1_golomb_par"] = '20'
             cfg["ap1_spill"] = '70'
             cfg["ap2_golomb_par"] = '63'
-            cfg["ap1_spill"] = '6'
+            cfg["ap2_spill"] = '6'
             for key, value in cfg.items():
                 f.write(key + ' = ' + str(value) + '\n')
 
@@ -980,7 +980,7 @@ def test_wrong_formart_data_fiel():
         assert(stdout == CMP_START_STR_CMP +
                "Importing configuration file %s ... DONE\n" % (cfg_file_name) +
                "Importing data file %s ... FAILED\n" % (data_file_name))
-        assert(stderr == "cmp_tool: wrong.data: Error read in 'W'. The data are not correct formatted.\n")
+        assert(stderr == "cmp_tool: wrong.data: Error read in 'W'. The data are not correctly formatted.\n")
         assert(returncode == EXIT_FAILURE)
     finally:
         del_file(data_file_name)
@@ -1004,7 +1004,7 @@ def test_wrong_formart_cmp_fiel():
         assert(stdout == CMP_START_STR_DECMP +
                "Importing decompression information file %s ... DONE\n" % (info_file_name) +
                "Importing compressed data file %s ... FAILED\n" % (cmp_file_name))
-        assert(stderr == "cmp_tool: wrong.cmp: Error read in 'w'. The data are not correct formatted.\n")
+        assert(stderr == "cmp_tool: wrong.cmp: Error read in 'w'. The data are not correctly formatted.\n")
         assert(returncode == EXIT_FAILURE)
     finally:
         del_file(cmp_file_name)
@@ -1163,7 +1163,7 @@ def test_header_wrong_formatted():
         assert(returncode == EXIT_FAILURE)
         assert(stdout == CMP_START_STR_DECMP +
                "Importing compressed data file %s ... FAILED\n" % (cmp_file_name))
-        assert(stderr == "cmp_tool: %s: Error read in '!'. The data are not correct formatted.\n" % (cmp_file_name))
+        assert(stderr == "cmp_tool: %s: Error read in '!'. The data are not correctly formatted.\n" % (cmp_file_name))
 
     finally:
         del_file(cmp_file_name)

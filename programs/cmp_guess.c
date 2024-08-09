@@ -40,7 +40,7 @@ static int num_model_updates = CMP_GUESS_N_MODEL_UPDATE_DEF;
  * @note the default value is CMP_GUESS_N_MODEL_UPDATE_DEF
  * @note this is needed to guess a good model_value
  *
- * @param n_model_updates number of model updates
+ * @param n_model_updates	number of model updates
  */
 
 void cmp_guess_set_model_updates(int n_model_updates)
@@ -52,7 +52,7 @@ void cmp_guess_set_model_updates(int n_model_updates)
 /**
  * @brief guess a good model value
  *
- * @param n_model_updates number of model updates
+ * @param n_model_updates	number of model updates
  *
  * @returns guessed model_value
  */

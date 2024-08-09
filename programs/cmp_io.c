@@ -162,7 +162,7 @@ static FILE *open_file(const char *dirname, const char *filename)
  * @param output_prefix		file name without file extension
  * @param name_extension	extension (with leading point character)
  * @param flags			CMP_IO_VERBOSE_EXTRA	print verbose output if set
- *				CMP_IO_BINARY	write file in binary format if set
+ *				CMP_IO_BINARY	write the file in binary format if set
  *
  * @returns 0 on success, error otherwise
  */
@@ -210,7 +210,7 @@ int write_input_data_to_file(const void *data, uint32_t data_size, enum cmp_data
  * @param name_extension file extension (with leading point character)
  *
  * @param flags		CMP_IO_VERBOSE_EXTRA	print verbose output if set
- *			CMP_IO_BINARY	write file in binary format if set
+ *			CMP_IO_BINARY	write the file in binary format if set
  *
  * @returns 0 on success, error otherwise
  */
@@ -352,7 +352,7 @@ static int sram_addr_to_int(const char *addr)
 	}
 
 	if (i > RDCU_SRAM_END) {
-		printf("%s: The sram address is out of the rdcu range\n",
+		printf("%s: The SRAM address is out of the rdcu range\n",
 		       PROGRAM_NAME);
 		return -1;
 	}
@@ -467,7 +467,7 @@ const char *data_type2string(enum cmp_data_type data_type)
 
 
 /**
- * @brief parse a compression mode vale string to an integer
+ * @brief parse a compression mode value string to an integer
  * @note string can be either a number or the name of the compression mode
  *
  * @param cmp_mode_str	string containing the compression mode value to parse
@@ -511,6 +511,7 @@ int cmp_mode_parse(const char *cmp_mode_str, enum cmp_mode *cmp_mode)
 		return -1;
 	} else {
 		uint32_t read_val;
+
 		if (atoui32(cmp_mode_str, cmp_mode_str, &read_val))
 			return -1;
 		*cmp_mode = read_val;
@@ -1099,17 +1100,18 @@ static const char *skip_comment(const char *str)
 
 
 /**
- * @brief Interprets an hex-encoded 8 bit integer value in a byte string pointed
+ * @brief Interprets a hex-encoded 8-bit integer value in a byte string pointed
  *	to by str.
  * @details Discards any whitespace characters (as identified by calling isspace)
- *	until the first non-whitespace character is found, then takes maximum 2
- *	characters (with base 16) unsigned integer number representation and
- *	converts them to an uint8_t value. The function set the pointer
+ *	until the first non-whitespace character is found, then takes a maximum
+ *	of 2 characters (with base 16) unsigned integer number representation
+ *	and converts them to an uint8_t value. The function sets the pointer
  *	pointed to by str_end to point to the character past the last character
  *	interpreted. If str_end is a null pointer, it is ignored.
  *
- * @param str     pointer to the null-terminated byte string to be interpreted
- * @param str_end pointer to a pointer to character (can be NULL)
+ * @param str		pointer to the null-terminated byte string to be interpreted
+ * @param str_end	point to the character past the last numeric character
+ *			interpreted (can be NULL)
  *
  * @returns Integer value corresponding to the contents of str on success. If no
  *	conversion can be performed, 0 is returned (errno is set to EINVAL)).
@@ -1222,7 +1224,7 @@ static __inline ssize_t str2uint8_arr(const char *str, uint8_t *data, uint32_t b
 		c = *eptr;
 		if (c != '\0' && !isxdigit(c) && !isspace(c) && c != '#') {
 			if (isprint(c))
-				fprintf(stderr, "%s: %s: Error read in '%.*s'. The data are not correct formatted.\n",
+				fprintf(stderr, "%s: %s: Error read in '%.*s'. The data are not correctly formatted.\n",
 					PROGRAM_NAME, file_name, (int)(eptr-nptr+1), nptr);
 			else
 				fprintf(stderr, "%s: %s: Error: Non printable character found. If you want to read binary files, use the --binary option.\n",
@@ -1349,7 +1351,7 @@ ssize_t read_file8(const char *file_name, uint8_t *buf, uint32_t buf_size, int f
 			printf("%s: %s: Error: unexpected end of file.\n", PROGRAM_NAME, file_name);
 		goto fail;
 	}
-	/* just to be save we have a zero terminated string */
+	/* just to be safe we have a zero terminated string */
 	file_cpy[file_size] = '\0';
 
 	fclose(fp);
