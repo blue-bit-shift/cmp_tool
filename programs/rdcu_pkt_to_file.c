@@ -326,17 +326,17 @@ int init_rmap_pkt_to_file(void)
  * @note the configuration of the ICU_ADDR, RDCU_ADDR, MTU settings are in the
  *	.rdcu_pkt_mode_cfg file
  *
- * @param cfg	compressor configuration contains all parameters required for
- *		compression
+ * @param rcfg	RDCU compressor configuration contains all parameters required
+ *		for compression
  *
  * @returns 0 on success, error otherwise
  */
 
-int gen_write_rdcu_pkts(const struct cmp_cfg *cfg)
+int gen_write_rdcu_pkts(const struct rdcu_cfg *rcfg)
 {
 	struct stat st = { 0 };
 
-	if (!cfg)
+	if (!rcfg)
 		return -1;
 
 	/* creating TC_DIR directory if that directory does not exist */
@@ -352,7 +352,7 @@ int gen_write_rdcu_pkts(const struct cmp_cfg *cfg)
 	}
 
 	set_tc_folder_dir(TC_DIR "/compress_data");
-	if (rdcu_compress_data(cfg))
+	if (rdcu_compress_data(rcfg))
 		return -1;
 
 	return 0;
@@ -441,20 +441,20 @@ int gen_read_rdcu_pkts(const struct cmp_info *info)
  * @note the configuration of the ICU_ADDR, RDCU_ADDR, MTU settings are in the
  *	.rdcu_pkt_mode_cfg file
  *
- * @param cfg		compressor configuration contains all parameters required for
- *			compression
+ * @param rcfg		RDCU compressor configuration contains all parameters
+ *			required for compression
  * @param last_info	compression information from the last executed
  *			compression
  *
  * @returns 0 on success, error otherwise
  */
 
-int gen_rdcu_parallel_pkts(const struct cmp_cfg *cfg,
+int gen_rdcu_parallel_pkts(const struct rdcu_cfg *rcfg,
 			   const struct cmp_info *last_info)
 {
 	struct stat st = { 0 };
 
-	if (!cfg)
+	if (!rcfg)
 		return -1;
 
 	/* creating TC_DIR directory if that directory does not exist */
@@ -470,7 +470,7 @@ int gen_rdcu_parallel_pkts(const struct cmp_cfg *cfg,
 	}
 
 	set_tc_folder_dir(TC_DIR "/compress_data_parallel");
-	if (rdcu_compress_data_parallel(cfg, last_info))
+	if (rdcu_compress_data_parallel(rcfg, last_info))
 		return -1;
 
 	return 0;

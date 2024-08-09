@@ -112,13 +112,13 @@ uint32_t cmp_rdcu_get_good_spill(unsigned int golomb_par, enum cmp_mode cmp_mode
 /**
  * @brief guess a good configuration with pre_cal_method
  *
- * @param cfg compression configuration structure
+ * @param rcfg	RDCU compression configuration structure
  *
  * @returns the size in bits of the compressed data of the guessed
  * configuration; 0 on error
  */
 
-static uint32_t pre_cal_method(struct cmp_cfg *cfg)
+static uint32_t pre_cal_method(struct rdcu_cfg *rcfg)
 {
 	uint32_t g;
 	int cmp_size, cmp_size_best = INT_MAX;
@@ -126,11 +126,11 @@ static uint32_t pre_cal_method(struct cmp_cfg *cfg)
 	uint32_t spill_best = 0;
 
 	for (g = MIN_IMA_GOLOMB_PAR; g < MAX_IMA_GOLOMB_PAR; g++) {
-		uint32_t s = cmp_rdcu_get_good_spill(g, cfg->cmp_mode);
+		uint32_t s = cmp_rdcu_get_good_spill(g, rcfg->cmp_mode);
 
-		cfg->golomb_par = g;
-		cfg->spill = s;
-		cmp_size = icu_compress_data(cfg);
+		rcfg->golomb_par = g;
+		rcfg->spill = s;
+		cmp_size = compress_like_rdcu(rcfg, NULL);
 		if (cmp_size <= 0) {
 			return 0;
 		} else if (cmp_size < cmp_size_best) {
@@ -139,8 +139,8 @@ static uint32_t pre_cal_method(struct cmp_cfg *cfg)
 			spill_best = s;
 		}
 	}
-	cfg->golomb_par = golomb_par_best;
-	cfg->spill = spill_best;
+	rcfg->golomb_par = golomb_par_best;
+	rcfg->spill = spill_best;
 
 	return (uint32_t)cmp_size_best;
 }
@@ -149,13 +149,13 @@ static uint32_t pre_cal_method(struct cmp_cfg *cfg)
 /**
  * @brief guess a good configuration with brute force method
  *
- * @param cfg compression configuration structure
+ * @param rcfg	RDCU compression configuration structure
  *
  * @returns the size in bits of the compressed data of the guessed
  * configuration; 0 on error
  */
 
-static uint32_t brute_force(struct cmp_cfg *cfg)
+static uint32_t brute_force(struct rdcu_cfg *rcfg)
 {
 	uint32_t g, s;
 	uint32_t n_cal_steps = 0, last = 0;
@@ -166,18 +166,18 @@ static uint32_t brute_force(struct cmp_cfg *cfg)
 	uint32_t percent;
 
 	/* short cut for zero escape mechanism */
-	if (zero_escape_mech_is_used(cfg->cmp_mode))
-		return pre_cal_method(cfg);
+	if (zero_escape_mech_is_used(rcfg->cmp_mode))
+		return pre_cal_method(rcfg);
 
 	printf("0%%... ");
 	fflush(stdout);
 
 	for (g = MIN_IMA_GOLOMB_PAR; g < MAX_IMA_GOLOMB_PAR; g++) {
 		for (s = MIN_IMA_SPILL; s < cmp_ima_max_spill(g); s++) {
-			cfg->golomb_par = g;
-			cfg->spill = s;
+			rcfg->golomb_par = g;
+			rcfg->spill = s;
 
-			cmp_size = icu_compress_data(cfg);
+			cmp_size = compress_like_rdcu(rcfg, NULL);
 			if (cmp_size <= 0) {
 				return 0;
 			} else if (cmp_size < cmp_size_best) {
@@ -196,8 +196,8 @@ static uint32_t brute_force(struct cmp_cfg *cfg)
 		}
 	}
 	printf("100%% ");
-	cfg->golomb_par = golomb_par_best;
-	cfg->spill = spill_best;
+	rcfg->golomb_par = golomb_par_best;
+	rcfg->spill = spill_best;
 
 	return (uint32_t)cmp_size_best;
 }
@@ -206,90 +206,84 @@ static uint32_t brute_force(struct cmp_cfg *cfg)
 /**
  * @brief guessed rdcu specific adaptive parameters
  *
- * @param cfg compression configuration structure
+ * @param rcfg	RDCU compression configuration structure
  * @note internal use only
  */
 
-static void add_rdcu_pars_internal(struct cmp_cfg *cfg)
+static void add_rdcu_pars_internal(struct rdcu_cfg *rcfg)
 {
-	if (cfg->golomb_par == MIN_IMA_GOLOMB_PAR) {
-		cfg->ap1_golomb_par = cfg->golomb_par + 1;
-		cfg->ap2_golomb_par = cfg->golomb_par + 2;
+	if (rcfg->golomb_par == MIN_IMA_GOLOMB_PAR) {
+		rcfg->ap1_golomb_par = rcfg->golomb_par + 1;
+		rcfg->ap2_golomb_par = rcfg->golomb_par + 2;
 
-	} else if (cfg->golomb_par == MAX_IMA_GOLOMB_PAR) {
-		cfg->ap1_golomb_par = cfg->golomb_par - 2;
-		cfg->ap2_golomb_par = cfg->golomb_par - 1;
+	} else if (rcfg->golomb_par == MAX_IMA_GOLOMB_PAR) {
+		rcfg->ap1_golomb_par = rcfg->golomb_par - 2;
+		rcfg->ap2_golomb_par = rcfg->golomb_par - 1;
 	} else {
-		cfg->ap1_golomb_par = cfg->golomb_par - 1;
-		cfg->ap2_golomb_par = cfg->golomb_par + 1;
+		rcfg->ap1_golomb_par = rcfg->golomb_par - 1;
+		rcfg->ap2_golomb_par = rcfg->golomb_par + 1;
 	}
 
-	cfg->ap1_spill = cmp_rdcu_get_good_spill(cfg->ap1_golomb_par, cfg->cmp_mode);
-	cfg->ap2_spill = cmp_rdcu_get_good_spill(cfg->ap2_golomb_par, cfg->cmp_mode);
+	rcfg->ap1_spill = cmp_rdcu_get_good_spill(rcfg->ap1_golomb_par, rcfg->cmp_mode);
+	rcfg->ap2_spill = cmp_rdcu_get_good_spill(rcfg->ap2_golomb_par, rcfg->cmp_mode);
 
-	if (model_mode_is_used(cfg->cmp_mode)) {
-		cfg->rdcu_data_adr = CMP_DEF_IMA_MODEL_RDCU_DATA_ADR;
-		cfg->rdcu_model_adr = CMP_DEF_IMA_MODEL_RDCU_MODEL_ADR;
-		cfg->rdcu_new_model_adr = CMP_DEF_IMA_MODEL_RDCU_UP_MODEL_ADR;
-		cfg->rdcu_buffer_adr = CMP_DEF_IMA_MODEL_RDCU_BUFFER_ADR;
+	if (model_mode_is_used(rcfg->cmp_mode)) {
+		rcfg->rdcu_data_adr = CMP_DEF_IMA_MODEL_RDCU_DATA_ADR;
+		rcfg->rdcu_model_adr = CMP_DEF_IMA_MODEL_RDCU_MODEL_ADR;
+		rcfg->rdcu_new_model_adr = CMP_DEF_IMA_MODEL_RDCU_UP_MODEL_ADR;
+		rcfg->rdcu_buffer_adr = CMP_DEF_IMA_MODEL_RDCU_BUFFER_ADR;
 	} else {
-		cfg->rdcu_data_adr = CMP_DEF_IMA_DIFF_RDCU_DATA_ADR;
-		cfg->rdcu_model_adr = CMP_DEF_IMA_DIFF_RDCU_MODEL_ADR;
-		cfg->rdcu_new_model_adr = CMP_DEF_IMA_DIFF_RDCU_UP_MODEL_ADR;
-		cfg->rdcu_buffer_adr = CMP_DEF_IMA_DIFF_RDCU_BUFFER_ADR;
+		rcfg->rdcu_data_adr = CMP_DEF_IMA_DIFF_RDCU_DATA_ADR;
+		rcfg->rdcu_model_adr = CMP_DEF_IMA_DIFF_RDCU_MODEL_ADR;
+		rcfg->rdcu_new_model_adr = CMP_DEF_IMA_DIFF_RDCU_UP_MODEL_ADR;
+		rcfg->rdcu_buffer_adr = CMP_DEF_IMA_DIFF_RDCU_BUFFER_ADR;
 	}
 }
 
 
 /**
  * @brief guess a good compression configuration
- * @details use the referenced in the cfg struct (samples, input_buf, model_buf
+ * @details use the referenced in the rcfg struct (samples, input_buf, model_buf
  * (optional)) and the cmp_mode to find a good set of compression parameters
- * @note compression parameters in the cfg struct (golomb_par, spill, model_value,
+ * @note compression parameters in the rcfg struct (golomb_par, spill, model_value,
  * ap1_.., ap2_.., buffer_length, ...) are overwritten by this function
  *
- * @param cfg compression configuration structure
- * @param level guess_level 1 -> fast; 2 -> default; 3 -> slow(brute force)
+ * @param rcfg	RDCU compression configuration structure
+ * @param level	guess_level 1 -> fast; 2 -> default; 3 -> slow(brute force)
  *
  * @returns the size in bits of the compressed data of the guessed
  * configuration; 0 on error
  */
 
-uint32_t cmp_guess(struct cmp_cfg *cfg, int level)
+uint32_t cmp_guess(struct rdcu_cfg *rcfg, int level)
 {
-	size_t size;
-	struct cmp_cfg work_cfg;
+	struct rdcu_cfg work_rcfg;
 	uint32_t cmp_size = 0;
 
-	if (!cfg)
+	if (!rcfg)
 		return 0;
 
-	if (!cfg->input_buf)
+	if (!rcfg->input_buf)
 		return 0;
-	if (model_mode_is_used(cfg->cmp_mode))
-		if (!cfg->model_buf)
+	if (model_mode_is_used(rcfg->cmp_mode))
+		if (!rcfg->model_buf)
 			return 0;
 
-	if (!rdcu_supported_cmp_mode_is_used(cfg->cmp_mode)) {
+	if (!rdcu_supported_cmp_mode_is_used(rcfg->cmp_mode)) {
 		printf("This compression mode is not implied yet.\n");
 		return 0;
 	}
 	/* make a working copy of the input data (and model) because the
 	 * following function works inplace
 	 */
-	work_cfg = *cfg;
-	work_cfg.icu_new_model_buf = NULL;
-	work_cfg.icu_output_buf = NULL;
-	work_cfg.buffer_length = 0;
-	work_cfg.data_type = DATA_TYPE_IMAGETTE; /* TODO: adapt to others data types */
+	work_rcfg = *rcfg;
+	work_rcfg.icu_new_model_buf = NULL;
+	work_rcfg.icu_output_buf = NULL;
+	work_rcfg.buffer_length = 0;
 
-	size = cmp_cal_size_of_data(cfg->samples, cfg->data_type);
-	if (size == 0)
-		goto error;
-
-	if (model_mode_is_used(cfg->cmp_mode)) {
-		work_cfg.icu_new_model_buf = malloc(size);
-		if (!work_cfg.icu_new_model_buf) {
+	if (model_mode_is_used(rcfg->cmp_mode)) {
+		work_rcfg.icu_new_model_buf = malloc(rcfg->samples * sizeof(uint16_t));
+		if (!work_rcfg.icu_new_model_buf) {
 			printf("malloc() failed!\n");
 			goto error;
 		}
@@ -298,13 +292,13 @@ uint32_t cmp_guess(struct cmp_cfg *cfg, int level)
 	/* find the best parameters */
 	switch (level) {
 	case 3:
-		cmp_size = brute_force(&work_cfg);
+		cmp_size = brute_force(&work_rcfg);
 		break;
 	case 1:
 		printf("guess level 1 not implied yet use guess level 2\n");
 		/* fall through */
 	case 2:
-		cmp_size = pre_cal_method(&work_cfg);
+		cmp_size = pre_cal_method(&work_rcfg);
 		break;
 	default:
 		fprintf(stderr, "cmp_tool: guess level not supported!\n");
@@ -314,23 +308,23 @@ uint32_t cmp_guess(struct cmp_cfg *cfg, int level)
 	if (!cmp_size)
 		goto error;
 
-	free(work_cfg.icu_new_model_buf);
+	free(work_rcfg.icu_new_model_buf);
 
-	cfg->golomb_par = work_cfg.golomb_par;
-	cfg->spill = work_cfg.spill;
+	rcfg->golomb_par = work_rcfg.golomb_par;
+	rcfg->spill = work_rcfg.spill;
 
-	cfg->model_value = cmp_guess_model_value(num_model_updates);
+	rcfg->model_value = cmp_guess_model_value(num_model_updates);
 
-	if (rdcu_supported_data_type_is_used(cfg->data_type))
-		add_rdcu_pars_internal(cfg);
+	/* if (rdcu_support_data_type_is_used(rcfg->data_type)) */
+		add_rdcu_pars_internal(rcfg);
 
 	/* TODO: check that for non-imagette data */
-	cfg->buffer_length = ((cmp_size + 32)&~0x1FU)/(size_of_a_sample(cfg->data_type)*8);
+	rcfg->buffer_length = ((cmp_size + 32)&~0x1FU)/(size_of_a_sample(DATA_TYPE_IMAGETTE)*8);
 
 	return cmp_size;
 
 error:
-	free(work_cfg.icu_new_model_buf);
+	free(work_rcfg.icu_new_model_buf);
 	return 0;
 }
 

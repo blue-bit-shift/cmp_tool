@@ -33,7 +33,7 @@
 /* how often the model is updated before it is reset default value */
 #define CMP_GUESS_N_MODEL_UPDATE_DEF	8
 
-uint32_t cmp_guess(struct cmp_cfg *cfg, int level);
+uint32_t cmp_guess(struct rdcu_cfg *rcfg, int level);
 void cmp_guess_set_model_updates(int n_model_updates);
 
 uint32_t cmp_rdcu_get_good_spill(unsigned int golomb_par, enum cmp_mode cmp_mode);

@@ -158,7 +158,7 @@ static FILE *open_file(const char *dirname, const char *filename)
  *
  * @param data			the data to write a file
  * @param data_size		size of the data in bytes
- * @param data_type		compression data type of the data
+ * @param cmp_type		RDCU or chunk compression?
  * @param output_prefix		file name without file extension
  * @param name_extension	extension (with leading point character)
  * @param flags			CMP_IO_VERBOSE_EXTRA	print verbose output if set
@@ -167,7 +167,7 @@ static FILE *open_file(const char *dirname, const char *filename)
  * @returns 0 on success, error otherwise
  */
 
-int write_input_data_to_file(const void *data, uint32_t data_size, enum cmp_data_type data_type,
+int write_input_data_to_file(const void *data, uint32_t data_size, enum cmp_type cmp_type,
 			     const char *output_prefix, const char *name_extension, int flags)
 {
 	uint8_t *tmp_buf;
@@ -185,10 +185,18 @@ int write_input_data_to_file(const void *data, uint32_t data_size, enum cmp_data
 
 	memcpy(tmp_buf, data, data_size);
 
-	if (data_type == DATA_TYPE_CHUNK)
+	switch (cmp_type) {
+	case CMP_TYPE_CHUNK:
 		return_value = cpu_to_be_chunk(tmp_buf, data_size);
-	else
-		return_value = cmp_input_big_to_cpu_endianness(tmp_buf, data_size, data_type);
+		break;
+	case CMP_TYPE_RDCU:
+		return_value = be_to_cpu_data_type(tmp_buf, data_size, DATA_TYPE_IMAGETTE);
+		break;
+	case CMP_TYPE_ERROR:
+	default:
+		return_value = -1;
+		break;
+	}
 
 	if (!return_value)
 		return_value = write_data_to_file(tmp_buf, data_size, output_prefix,
@@ -370,7 +378,7 @@ static int sram_addr_to_int(const char *addr)
  * @brief Interprets an uint32_t integer value in a byte string
  *
  * @param dep_str	description string of the read in value
- * @param val_str	value string contain the value to convert in uint32_t
+ * @param val_str	value string contains the value to convert in uint32_t
  * @param red_val	address for storing the converted result
  *
  * @returns 0 on success, error otherwise
@@ -529,23 +537,26 @@ int cmp_mode_parse(const char *cmp_mode_str, enum cmp_mode *cmp_mode)
  * @note internal use only!
  *
  * @param fp	FILE pointer
- * @param cfg	compression configuration structure holding the read in
+ * @param rcfg	RDCU compression configuration structure holding the read in
  *		configuration
  * @param par	chunk compression parameters structure holding the read in
  *		chunk configuration
  *
- * @returns 0 on success, error otherwise
+ * @returns CMP_TYPE_CHUNK if a chunk configuration is detected (stored in par),
+ *	CMP_TYPE_RDCU if an RDCU configuration is detected (stored in cfg) or
+ *	CMP_TYPE_ERROR on error
  */
 
-static int parse_cfg(FILE *fp, struct cmp_cfg *cfg, struct cmp_par *par)
+static enum cmp_type parse_cfg(FILE *fp, struct rdcu_cfg *rcfg, struct cmp_par *par)
 {
-#define chunk_parse_uint32_parmter(parmter)			\
-	if (!strcmp(token1, #parmter)) {			\
-		if (atoui32(token1, token2, &par->parmter))	\
-			return -1;				\
-		cfg->data_type = DATA_TYPE_CHUNK;		\
+#define chunk_parse_uint32_parameter(parameter)			\
+	if (!strcmp(token1, #parameter)) {			\
+		if (atoui32(token1, token2, &par->parameter))	\
+			return CMP_TYPE_ERROR;			\
+		cmp_type = CMP_TYPE_CHUNK;			\
 		continue;					\
 }
+	enum cmp_type cmp_type = CMP_TYPE_RDCU;
 	char *token1, *token2;
 	char line[MAX_CONFIG_LINE];
 	enum {CMP_MODE, SAMPLES, BUFFER_LENGTH, LAST_ITEM};
@@ -553,9 +564,9 @@ static int parse_cfg(FILE *fp, struct cmp_cfg *cfg, struct cmp_par *par)
 
 	if (!fp)
 		abort();
-	if (!cfg)
+	if (!rcfg)
 		abort();
-	if(!par)
+	if (!par)
 		abort();
 
 	while (fgets(line, sizeof(line), fp) != NULL) {
@@ -565,7 +576,7 @@ static int parse_cfg(FILE *fp, struct cmp_cfg *cfg, struct cmp_par *par)
 		if (!strchr(line, '\n')) { /* detect a to long line */
 			fprintf(stderr, "%s: Error read in line to long. Maximal line length is %d characters.\n",
 				PROGRAM_NAME, MAX_CONFIG_LINE-1);
-			return -1;
+			return CMP_TYPE_ERROR;
 		}
 
 		remove_comments(line);
@@ -579,58 +590,52 @@ static int parse_cfg(FILE *fp, struct cmp_cfg *cfg, struct cmp_par *par)
 			continue;
 
 
-		if (!strcmp(token1, "data_type")) {
-			cfg->data_type = string2data_type(token2);
-			if (cfg->data_type == DATA_TYPE_UNKNOWN)
-				return -1;
-			continue;
-		}
 		if (!strcmp(token1, "cmp_mode")) {
 			must_read_items[CMP_MODE] = 1;
-			if (cmp_mode_parse(token2, &cfg->cmp_mode))
-				return -1;
-			par->cmp_mode = cfg->cmp_mode;
+			if (cmp_mode_parse(token2, &rcfg->cmp_mode))
+				return CMP_TYPE_ERROR;
+			par->cmp_mode = rcfg->cmp_mode;
 			continue;
 		}
 		if (!strcmp(token1, "golomb_par")) {
-			if (atoui32(token1, token2, &cfg->golomb_par))
-				return -1;
+			if (atoui32(token1, token2, &rcfg->golomb_par))
+				return CMP_TYPE_ERROR;
 			continue;
 		}
 		if (!strcmp(token1, "spill")) {
-			if (atoui32(token1, token2, &cfg->spill))
-				return -1;
+			if (atoui32(token1, token2, &rcfg->spill))
+				return CMP_TYPE_ERROR;
 			continue;
 		}
 		if (!strcmp(token1, "model_value")) {
-			if (atoui32(token1, token2, &cfg->model_value))
-				return -1;
-			par->model_value = cfg->model_value;
+			if (atoui32(token1, token2, &rcfg->model_value))
+				return CMP_TYPE_ERROR;
+			par->model_value = rcfg->model_value;
 			continue;
 		}
 		if (!strcmp(token1, "round")) {
-			if (atoui32(token1, token2, &cfg->round))
-				return -1;
+			if (atoui32(token1, token2, &rcfg->round))
+				return CMP_TYPE_ERROR;
 			continue;
 		}
 		if (!strcmp(token1, "ap1_golomb_par")) {
-			if (atoui32(token1, token2, &cfg->ap1_golomb_par))
-				return -1;
+			if (atoui32(token1, token2, &rcfg->ap1_golomb_par))
+				return CMP_TYPE_ERROR;
 			continue;
 		}
 		if (!strcmp(token1, "ap1_spill")) {
-			if (atoui32(token1, token2, &cfg->ap1_spill))
-				return -1;
+			if (atoui32(token1, token2, &rcfg->ap1_spill))
+				return CMP_TYPE_ERROR;
 			continue;
 		}
 		if (!strcmp(token1, "ap2_golomb_par")) {
-			if (atoui32(token1, token2, &cfg->ap2_golomb_par))
-				return -1;
+			if (atoui32(token1, token2, &rcfg->ap2_golomb_par))
+				return CMP_TYPE_ERROR;
 			continue;
 		}
 		if (!strcmp(token1, "ap2_spill")) {
-			if (atoui32(token1, token2, &cfg->ap2_spill))
-				return -1;
+			if (atoui32(token1, token2, &rcfg->ap2_spill))
+				return CMP_TYPE_ERROR;
 			continue;
 		}
 
@@ -640,9 +645,9 @@ static int parse_cfg(FILE *fp, struct cmp_cfg *cfg, struct cmp_par *par)
 			if (i < 0) {
 				printf("%s: Error read in rdcu_data_adr_par\n",
 				       PROGRAM_NAME);
-				return -1;
+				return CMP_TYPE_ERROR;
 			}
-			cfg->rdcu_data_adr = (uint32_t)i;
+			rcfg->rdcu_data_adr = (uint32_t)i;
 			continue;
 		}
 		if (!strcmp(token1, "rdcu_model_adr")) {
@@ -651,9 +656,9 @@ static int parse_cfg(FILE *fp, struct cmp_cfg *cfg, struct cmp_par *par)
 			if (i < 0) {
 				printf("%s: Error read in rdcu_model_adr_par\n",
 				       PROGRAM_NAME);
-				return -1;
+				return CMP_TYPE_ERROR;
 			}
-			cfg->rdcu_model_adr = (uint32_t)i;
+			rcfg->rdcu_model_adr = (uint32_t)i;
 			continue;
 		}
 		if (!strcmp(token1, "rdcu_new_model_adr")) {
@@ -662,14 +667,14 @@ static int parse_cfg(FILE *fp, struct cmp_cfg *cfg, struct cmp_par *par)
 			if (i < 0) {
 				printf("%s: Error read in rdcu_new_model_adr_par\n",
 				       PROGRAM_NAME);
-				return -1;
+				return CMP_TYPE_ERROR;
 			}
-			cfg->rdcu_new_model_adr = (uint32_t)i;
+			rcfg->rdcu_new_model_adr = (uint32_t)i;
 			continue;
 		}
 		if (!strcmp(token1, "samples")) {
-			if (atoui32(token1, token2, &cfg->samples))
-				return -1;
+			if (atoui32(token1, token2, &rcfg->samples))
+				return CMP_TYPE_ERROR;
 			must_read_items[SAMPLES] = 1;
 			continue;
 		}
@@ -679,72 +684,72 @@ static int parse_cfg(FILE *fp, struct cmp_cfg *cfg, struct cmp_par *par)
 			if (i < 0) {
 				printf("%s: Error read in rdcu_buffer_adr_par\n",
 				       PROGRAM_NAME);
-				return -1;
+				return CMP_TYPE_ERROR;
 			}
-			cfg->rdcu_buffer_adr = (uint32_t)i;
+			rcfg->rdcu_buffer_adr = (uint32_t)i;
 			continue;
 		}
 		if (!strcmp(token1, "buffer_length")) {
-			if (atoui32(token1, token2, &cfg->buffer_length))
-				return -1;
+			if (atoui32(token1, token2, &rcfg->buffer_length))
+				return CMP_TYPE_ERROR;
 			must_read_items[BUFFER_LENGTH] = 1;
 			continue;
 		}
 
-		/* chunk_parse_uint32_parmter(model_value); */
-		chunk_parse_uint32_parmter(lossy_par);
+		/* chunk_parse_uint32_parameter(model_value); */
+		chunk_parse_uint32_parameter(lossy_par);
 
-		chunk_parse_uint32_parmter(nc_imagette);
+		chunk_parse_uint32_parameter(nc_imagette);
 
-		chunk_parse_uint32_parmter(s_exp_flags);
-		chunk_parse_uint32_parmter(s_fx);
-		chunk_parse_uint32_parmter(s_ncob);
-		chunk_parse_uint32_parmter(s_efx);
-		chunk_parse_uint32_parmter(s_ecob);
+		chunk_parse_uint32_parameter(s_exp_flags);
+		chunk_parse_uint32_parameter(s_fx);
+		chunk_parse_uint32_parameter(s_ncob);
+		chunk_parse_uint32_parameter(s_efx);
+		chunk_parse_uint32_parameter(s_ecob);
 
-		chunk_parse_uint32_parmter(l_exp_flags);
-		chunk_parse_uint32_parmter(l_fx);
-		chunk_parse_uint32_parmter(l_ncob);
-		chunk_parse_uint32_parmter(l_efx);
-		chunk_parse_uint32_parmter(l_ecob);
-		chunk_parse_uint32_parmter(l_fx_cob_variance);
+		chunk_parse_uint32_parameter(l_exp_flags);
+		chunk_parse_uint32_parameter(l_fx);
+		chunk_parse_uint32_parameter(l_ncob);
+		chunk_parse_uint32_parameter(l_efx);
+		chunk_parse_uint32_parameter(l_ecob);
+		chunk_parse_uint32_parameter(l_fx_cob_variance);
 
-		chunk_parse_uint32_parmter(saturated_imagette);
+		chunk_parse_uint32_parameter(saturated_imagette);
 
-		chunk_parse_uint32_parmter(nc_offset_mean);
-		chunk_parse_uint32_parmter(nc_offset_variance);
-		chunk_parse_uint32_parmter(nc_background_mean);
-		chunk_parse_uint32_parmter(nc_background_variance);
-		chunk_parse_uint32_parmter(nc_background_outlier_pixels);
+		chunk_parse_uint32_parameter(nc_offset_mean);
+		chunk_parse_uint32_parameter(nc_offset_variance);
+		chunk_parse_uint32_parameter(nc_background_mean);
+		chunk_parse_uint32_parameter(nc_background_variance);
+		chunk_parse_uint32_parameter(nc_background_outlier_pixels);
 
-		chunk_parse_uint32_parmter(smearing_mean);
-		chunk_parse_uint32_parmter(smearing_variance_mean);
-		chunk_parse_uint32_parmter(smearing_outlier_pixels);
+		chunk_parse_uint32_parameter(smearing_mean);
+		chunk_parse_uint32_parameter(smearing_variance_mean);
+		chunk_parse_uint32_parameter(smearing_outlier_pixels);
 
-		chunk_parse_uint32_parmter(fc_imagette);
-		chunk_parse_uint32_parmter(fc_offset_mean);
-		chunk_parse_uint32_parmter(fc_offset_variance);
-		chunk_parse_uint32_parmter(fc_background_mean);
-		chunk_parse_uint32_parmter(fc_background_variance);
-		chunk_parse_uint32_parmter(fc_background_outlier_pixels);
+		chunk_parse_uint32_parameter(fc_imagette);
+		chunk_parse_uint32_parameter(fc_offset_mean);
+		chunk_parse_uint32_parameter(fc_offset_variance);
+		chunk_parse_uint32_parameter(fc_background_mean);
+		chunk_parse_uint32_parameter(fc_background_variance);
+		chunk_parse_uint32_parameter(fc_background_outlier_pixels);
 	}
 
-	if (cfg->data_type != DATA_TYPE_CHUNK) {
-		if (raw_mode_is_used(cfg->cmp_mode))
+	if (cmp_type == CMP_TYPE_RDCU) {
+		if (raw_mode_is_used(rcfg->cmp_mode))
 			if (must_read_items[CMP_MODE] == 1 &&
 			    must_read_items[BUFFER_LENGTH] == 1)
-				return 0;
+				return cmp_type;
 
 		for (j = 0; j < LAST_ITEM; j++) {
 			if (must_read_items[j] < 1) {
 				fprintf(stderr, "%s: Some parameters are missing. Check if the following parameters: cmp_mode, golomb_par, spill, samples and buffer_length are all set in the configuration file.\n",
 					PROGRAM_NAME);
-				return -1;
+				return CMP_TYPE_ERROR;
 			}
 		}
 	}
 
-	return 0;
+	return cmp_type;
 }
 
 
@@ -752,25 +757,27 @@ static int parse_cfg(FILE *fp, struct cmp_cfg *cfg, struct cmp_par *par)
  * @brief reading a compressor configuration file
  *
  * @param file_name	file containing the compression configuration file
- * @param cfg		compression configuration structure holding the read in
+ * @param rcfg		RDCU compression configuration structure holding the read in
  *			configuration
  * @param par		chunk compression parameters structure holding the read
  *			in chunk configuration
  * @param verbose_en	print verbose output if not zero
  *
- * @returns 0 on success, error otherwise
+ * @returns CMP_TYPE_CHUNK if a chunk configuration is detected (stored in par),
+ *	CMP_TYPE_RDCU if an RDCU configuration is detected (stored in cfg) or
+ *	CMP_TYPE_ERROR on error
  */
 
-int cmp_cfg_read(const char *file_name, struct cmp_cfg *cfg, struct cmp_par *par,
-		 int verbose_en)
+enum cmp_type cmp_cfg_read(const char *file_name, struct rdcu_cfg *rcfg,
+			   struct cmp_par *par, int verbose_en)
 {
-	int err;
+	enum cmp_type cmp_type;
 	FILE *fp;
 
 	if (!file_name)
 		abort();
 
-	if (!cfg)
+	if (!rcfg)
 		abort();
 
 	if (strstr(file_name, ".info")) {
@@ -786,18 +793,16 @@ int cmp_cfg_read(const char *file_name, struct cmp_cfg *cfg, struct cmp_par *par
 		return -1;
 	}
 
-	err = parse_cfg(fp, cfg, par);
+	cmp_type = parse_cfg(fp, rcfg, par);
 	fclose(fp);
-	if (err)
-		return err;
 
-	if (verbose_en) {
+	if (verbose_en && cmp_type == CMP_TYPE_RDCU) {
 		printf("\n\n");
-		cmp_cfg_print(cfg);
+		cmp_cfg_print(rcfg, 1);
 		printf("\n");
 	}
 
-	return 0;
+	return cmp_type;
 }
 
 
@@ -1378,7 +1383,7 @@ fail:
  * @brief reads hex-encoded data from a file into a buffer
  *
  * @param file_name	data/model file name
- * @param data_type	compression data type used for the data
+ * @param cmp_type	RDCU or chunk compression?
  * @param buf		buffer to write the file content (can be NULL)
  * @param buf_size	size in bytes of the buffer
  * @param flags		CMP_IO_VERBOSE_EXTRA	print verbose output if set
@@ -1387,11 +1392,10 @@ fail:
  * @returns the size in bytes to store the file content; negative on error
  */
 
-ssize_t read_file_data(const char *file_name, enum cmp_data_type data_type,
+ssize_t read_file_data(const char *file_name, enum cmp_type cmp_type,
 		       void *buf, uint32_t buf_size, int flags)
 {
 	ssize_t size;
-	int32_t samples;
 	int err;
 
 	size = read_file8(file_name, (uint8_t *)buf, buf_size, flags);
@@ -1401,22 +1405,20 @@ ssize_t read_file_data(const char *file_name, enum cmp_data_type data_type,
 	if (size < 0)
 		return size;
 
-	if (data_type != DATA_TYPE_CHUNK) {
-		samples = cmp_input_size_to_samples((uint32_t)size, data_type);
-		if (samples < 0) {
-			fprintf(stderr, "%s: %s: Error: The data are not correct formatted for the used compression data type.\n",
-					PROGRAM_NAME, file_name);
-			return -1;
-		}
-
-		err = cmp_input_big_to_cpu_endianness(buf, (uint32_t)size, data_type);
-		if (err)
-			return -1;
-	} else {
+	switch (cmp_type) {
+	case CMP_TYPE_RDCU:
+		err = be_to_cpu_data_type(buf, (uint32_t)size, DATA_TYPE_IMAGETTE);
+		break;
+	case CMP_TYPE_CHUNK:
 		err = be_to_cpu_chunk(buf, (uint32_t)size);
-		if (err)
-			return -1;
+		break;
+	case CMP_TYPE_ERROR:
+	default:
+		err = -1;
 	}
+
+	if (err)
+		return -1;
 	return size;
 }
 
@@ -1524,29 +1526,27 @@ uint32_t cmp_tool_gen_version_id(const char *version)
  * @note internal use only!
  *
  * @param fp		FILE pointer
- * @param cfg		pointer to a configuration to print
+ * @param rcfg		pointer to a RDCU configuration to print
+ * @param add_ap_pars	if non-zero write the adaptive RDCU parameter in the
+ *			file
  */
 
-static void write_cfg_internal(FILE *fp, const struct cmp_cfg *cfg)
+static void write_cfg_internal(FILE *fp, const struct rdcu_cfg *rcfg,
+			       int add_ap_pars)
 {
 	if (!fp)
 		return;
 
-	if (!cfg) {
+	if (!rcfg) {
 		fprintf(fp, "Pointer to the compressor configuration is NULL.\n");
 		return;
 	}
 
 	fprintf(fp, "#-------------------------------------------------------------------------------\n");
-	fprintf(fp, "# Selected compression data type\n");
 	fprintf(fp, "\n");
-	fprintf(fp, "data_type = %s\n", data_type2string(cfg->data_type));
+	fprintf(fp, "# RDCU compression configuration\n");
 	fprintf(fp, "\n");
 	fprintf(fp, "#-------------------------------------------------------------------------------\n");
-
-	if (cmp_data_type_is_invalid(cfg->data_type))
-		return;
-
 	fprintf(fp, "# Selected compression mode\n");
 	fprintf(fp, "# 0: raw mode\n");
 	fprintf(fp, "# 1: model mode with zero escape symbol mechanism\n");
@@ -1554,205 +1554,82 @@ static void write_cfg_internal(FILE *fp, const struct cmp_cfg *cfg)
 	fprintf(fp, "# 3: model mode with multi escape symbol mechanism\n");
 	fprintf(fp, "# 4: 1d differencing mode without input model multi escape symbol mechanism\n");
 	fprintf(fp, "\n");
-	fprintf(fp, "cmp_mode = %d\n", cfg->cmp_mode);
+	fprintf(fp, "cmp_mode = %d\n", rcfg->cmp_mode);
 	fprintf(fp, "\n");
 	fprintf(fp, "#-------------------------------------------------------------------------------\n");
 	fprintf(fp, "# Number of samples to compress, length of the data and model buffer\n");
 	fprintf(fp, "\n");
-	fprintf(fp, "samples = %" PRIu32 "\n", cfg->samples);
+	fprintf(fp, "samples = %" PRIu32 "\n", rcfg->samples);
 	fprintf(fp, "\n");
 	fprintf(fp, "#-------------------------------------------------------------------------------\n");
 	fprintf(fp, "# Length of the compressed data buffer in number of samples\n");
 	fprintf(fp, "\n");
-	fprintf(fp, "buffer_length = %" PRIu32 "\n", cfg->buffer_length);
+	fprintf(fp, "buffer_length = %" PRIu32 "\n", rcfg->buffer_length);
 	fprintf(fp, "\n");
 	fprintf(fp, "#-------------------------------------------------------------------------------\n");
 	fprintf(fp, "# Model weighting parameter\n");
 	fprintf(fp, "\n");
-	fprintf(fp, "model_value = %" PRIu32 "\n", cfg->model_value);
+	fprintf(fp, "model_value = %" PRIu32 "\n", rcfg->model_value);
 	fprintf(fp, "\n");
 	fprintf(fp, "#-------------------------------------------------------------------------------\n");
 	fprintf(fp, "# Number of noise bits to be rounded\n");
 	fprintf(fp, "\n");
-	fprintf(fp, "round = %" PRIu32 "\n", cfg->round);
+	fprintf(fp, "round = %" PRIu32 "\n", rcfg->round);
 	fprintf(fp, "\n");
 	fprintf(fp, "#-------------------------------------------------------------------------------\n");
+	fprintf(fp, "# Golomb parameter for dictionary selection\n");
+	fprintf(fp, "\n");
+	fprintf(fp, "golomb_par = %" PRIu32 "\n", rcfg->golomb_par);
+	fprintf(fp, "\n");
 	fprintf(fp, "#-------------------------------------------------------------------------------\n");
-	fprintf(fp, "# Data Type Specific Compression Parameters\n");
-	fprintf(fp, "#-------------------------------------------------------------------------------\n");
+	fprintf(fp, "# Spillover threshold for encoding outliers\n");
+	fprintf(fp, "\n");
+	fprintf(fp, "spill = %" PRIu32 "\n", rcfg->spill);
+	fprintf(fp, "\n");
 	fprintf(fp, "#-------------------------------------------------------------------------------\n");
 
-	if (cmp_imagette_data_type_is_used(cfg->data_type)) {
-		fprintf(fp, "# Golomb parameter for dictionary selection\n");
+	if (add_ap_pars) {
+		fprintf(fp, "# Adaptive 1 Golomb parameter\n");
 		fprintf(fp, "\n");
-		fprintf(fp, "golomb_par = %" PRIu32 "\n", cfg->golomb_par);
-		fprintf(fp, "\n");
-		fprintf(fp, "#-------------------------------------------------------------------------------\n");
-		fprintf(fp, "# Spillover threshold for encoding outliers\n");
-		fprintf(fp, "\n");
-		fprintf(fp, "spill = %" PRIu32 "\n", cfg->spill);
+		fprintf(fp, "ap1_golomb_par = %" PRIu32 "\n", rcfg->ap1_golomb_par);
 		fprintf(fp, "\n");
 		fprintf(fp, "#-------------------------------------------------------------------------------\n");
-	}
-
-	if (cmp_ap_imagette_data_type_is_used(cfg->data_type)) {
+		fprintf(fp, "# Adaptive 1 spillover threshold\n");
 		fprintf(fp, "\n");
-		fprintf(fp, "# Adaptive 1 Golomb parameter; HW only\n");
-		fprintf(fp, "\n");
-		fprintf(fp, "ap1_golomb_par = %" PRIu32 "\n", cfg->ap1_golomb_par);
+		fprintf(fp, "ap1_spill = %" PRIu32 "\n", rcfg->ap1_spill);
 		fprintf(fp, "\n");
 		fprintf(fp, "#-------------------------------------------------------------------------------\n");
-		fprintf(fp, "# Adaptive 1 spillover threshold; HW only\n");
+		fprintf(fp, "# Adaptive 2 Golomb parameter\n");
 		fprintf(fp, "\n");
-		fprintf(fp, "ap1_spill = %" PRIu32 "\n", cfg->ap1_spill);
-		fprintf(fp, "\n");
-		fprintf(fp, "#-------------------------------------------------------------------------------\n");
-		fprintf(fp, "# Adaptive 2 Golomb parameter; HW only\n");
-		fprintf(fp, "\n");
-		fprintf(fp, "ap2_golomb_par = %" PRIu32 "\n", cfg->ap2_golomb_par);
+		fprintf(fp, "ap2_golomb_par = %" PRIu32 "\n", rcfg->ap2_golomb_par);
 		fprintf(fp, "\n");
 		fprintf(fp, "#-------------------------------------------------------------------------------\n");
-		fprintf(fp, "# Adaptive 2 spillover threshold; HW only\n");
+		fprintf(fp, "# Adaptive 2 spillover threshold\n");
 		fprintf(fp, "\n");
-		fprintf(fp, "ap2_spill = %" PRIu32 "\n", cfg->ap2_spill);
+		fprintf(fp, "ap2_spill = %" PRIu32 "\n", rcfg->ap2_spill);
 		fprintf(fp, "\n");
 		fprintf(fp, "#-------------------------------------------------------------------------------\n");
-		fprintf(fp, "# RDCU data to compress start address, the first data address in the RDCU SRAM; HW only\n");
+		fprintf(fp, "# RDCU data to compress start address, the first data address in the RDCU SRAM\n");
 		fprintf(fp, "\n");
-		fprintf(fp, "rdcu_data_adr = 0x%06"PRIX32"\n", cfg->rdcu_data_adr);
+		fprintf(fp, "rdcu_data_adr = 0x%06"PRIX32"\n", rcfg->rdcu_data_adr);
 		fprintf(fp, "\n");
 		fprintf(fp, "#-------------------------------------------------------------------------------\n");
 		fprintf(fp, "# RDCU model start address, the first model address in the RDCU SRAM\n");
 		fprintf(fp, "\n");
-		fprintf(fp, "rdcu_model_adr = 0x%06"PRIX32"\n", cfg->rdcu_model_adr);
+		fprintf(fp, "rdcu_model_adr = 0x%06"PRIX32"\n", rcfg->rdcu_model_adr);
 		fprintf(fp, "\n");
 		fprintf(fp, "#-------------------------------------------------------------------------------\n");
-		fprintf(fp, "# RDCU updated model start address, the address in the RDCU SRAM where the updated model is stored\n");
+		fprintf(fp, "# RDCU updated model start address, the first address in the RDCU SRAM where the\n");
+		fprintf(fp, "# updated model is stored\n");
 		fprintf(fp, "\n");
-		fprintf(fp, "rdcu_new_model_adr = 0x%06"PRIX32"\n", cfg->rdcu_new_model_adr);
-		fprintf(fp, "\n");
-		fprintf(fp, "#-------------------------------------------------------------------------------\n");
-		fprintf(fp, "# RDCU compressed data start address, the first output data address in the RDCU SRAM\n");
-		fprintf(fp, "\n");
-		fprintf(fp, "rdcu_buffer_adr = 0x%06"PRIX32"\n", cfg->rdcu_buffer_adr);
+		fprintf(fp, "rdcu_new_model_adr = 0x%06"PRIX32"\n", rcfg->rdcu_new_model_adr);
 		fprintf(fp, "\n");
 		fprintf(fp, "#-------------------------------------------------------------------------------\n");
-	}
-#if 0
-	if (cmp_aux_data_type_is_used(cfg->data_type)) {
-		fprintf(fp, "# mean compression parameter\n");
+		fprintf(fp, "# RDCU compressed data start address, the first output data address in the SRAM\n");
 		fprintf(fp, "\n");
-		fprintf(fp, "cmp_par_mean = %" PRIu32 "\n", cfg->cmp_par_mean);
+		fprintf(fp, "rdcu_buffer_adr = 0x%06"PRIX32"\n", rcfg->rdcu_buffer_adr);
 		fprintf(fp, "\n");
 		fprintf(fp, "#-------------------------------------------------------------------------------\n");
-		fprintf(fp, "# mean spillover threshold parameter\n");
-		fprintf(fp, "\n");
-		fprintf(fp, "spill_mean = %" PRIu32 "\n", cfg->spill_mean);
-		fprintf(fp, "\n");
-		fprintf(fp, "#-------------------------------------------------------------------------------\n");
-		fprintf(fp, "# variance compression parameter\n");
-		fprintf(fp, "\n");
-		fprintf(fp, "cmp_par_variance = %" PRIu32 "\n", cfg->cmp_par_variance);
-		fprintf(fp, "\n");
-		fprintf(fp, "#-------------------------------------------------------------------------------\n");
-		fprintf(fp, "# variance spillover threshold parameter\n");
-		fprintf(fp, "\n");
-		fprintf(fp, "spill_variance = %" PRIu32 "\n", cfg->spill_variance);
-		fprintf(fp, "\n");
-		fprintf(fp, "#-------------------------------------------------------------------------------\n");
-		if (cfg->data_type != DATA_TYPE_OFFSET &&
-		    cfg->data_type != DATA_TYPE_F_CAM_OFFSET) {
-			fprintf(fp, "# outlier pixels number compression parameter\n");
-			fprintf(fp, "\n");
-			fprintf(fp, "cmp_par_pixels_error = %" PRIu32 "\n", cfg->cmp_par_pixels_error);
-			fprintf(fp, "\n");
-			fprintf(fp, "#-------------------------------------------------------------------------------\n");
-			fprintf(fp, "# outlier pixels number spillover threshold parameter\n");
-			fprintf(fp, "\n");
-			fprintf(fp, "spill_pixels_error = %" PRIu32 "\n", cfg->spill_pixels_error);
-			fprintf(fp, "\n");
-			fprintf(fp, "#-------------------------------------------------------------------------------\n");
-		}
-	}
-#endif
-
-	if (cmp_fx_cob_data_type_is_used(cfg->data_type)) {
-		struct fx_cob_par needed_pars;
-
-		cmp_cfg_fx_cob_get_need_pars(cfg->data_type, &needed_pars);
-
-		if (needed_pars.exp_flags) {
-			fprintf(fp, "# exposure flags compression parameter\n");
-			fprintf(fp, "\n");
-			fprintf(fp, "cmp_par_exp_flags = %" PRIu32 "\n", cfg->cmp_par_exp_flags);
-			fprintf(fp, "\n");
-			fprintf(fp, "#-------------------------------------------------------------------------------\n");
-			fprintf(fp, "# exposure flags spillover threshold parameter\n");
-			fprintf(fp, "\n");
-			fprintf(fp, "spill_exp_flags = %" PRIu32 "\n", cfg->spill_exp_flags);
-			fprintf(fp, "\n");
-			fprintf(fp, "#-------------------------------------------------------------------------------\n");
-		}
-		if (needed_pars.fx) {
-			fprintf(fp, "# normal light flux compression parameter\n");
-			fprintf(fp, "\n");
-			fprintf(fp, "cmp_par_fx = %" PRIu32 "\n", cfg->cmp_par_fx);
-			fprintf(fp, "\n");
-			fprintf(fp, "#-------------------------------------------------------------------------------\n");
-			fprintf(fp, "# normal light flux spillover threshold parameter\n");
-			fprintf(fp, "\n");
-			fprintf(fp, "spill_fx = %" PRIu32 "\n", cfg->spill_fx);
-			fprintf(fp, "\n");
-			fprintf(fp, "#-------------------------------------------------------------------------------\n");
-		}
-		if (needed_pars.ncob) {
-			fprintf(fp, "# normal center of brightness compression parameter\n");
-			fprintf(fp, "\n");
-			fprintf(fp, "cmp_par_ncob = %" PRIu32 "\n", cfg->cmp_par_ncob);
-			fprintf(fp, "\n");
-			fprintf(fp, "#-------------------------------------------------------------------------------\n");
-			fprintf(fp, "# normal center of brightness spillover threshold parameter\n");
-			fprintf(fp, "\n");
-			fprintf(fp, "spill_nocb = %" PRIu32 "\n", cfg->spill_ncob);
-			fprintf(fp, "\n");
-			fprintf(fp, "#-------------------------------------------------------------------------------\n");
-		}
-		if (needed_pars.efx) {
-			fprintf(fp, "# extended light flux compression parameter\n");
-			fprintf(fp, "\n");
-			fprintf(fp, "cmp_par_efx = %" PRIu32 "\n", cfg->cmp_par_efx);
-			fprintf(fp, "\n");
-			fprintf(fp, "#-------------------------------------------------------------------------------\n");
-			fprintf(fp, "# extended light flux spillover threshold parameter\n");
-			fprintf(fp, "\n");
-			fprintf(fp, "spill_efx = %" PRIu32 "\n", cfg->spill_efx);
-			fprintf(fp, "\n");
-			fprintf(fp, "#-------------------------------------------------------------------------------\n");
-		}
-		if (needed_pars.ecob) {
-			fprintf(fp, "# extended center of brightness compression parameter\n");
-			fprintf(fp, "\n");
-			fprintf(fp, "cmp_par_ecob = %" PRIu32 "\n", cfg->cmp_par_ecob);
-			fprintf(fp, "\n");
-			fprintf(fp, "#-------------------------------------------------------------------------------\n");
-			fprintf(fp, "# extended center of brightness spillover threshold parameter\n");
-			fprintf(fp, "\n");
-			fprintf(fp, "spill_ecob = %" PRIu32 "\n", cfg->spill_ecob);
-			fprintf(fp, "\n");
-			fprintf(fp, "#-------------------------------------------------------------------------------\n");
-		}
-		if (needed_pars.fx_cob_variance) {
-			fprintf(fp, "# flux/COB variance compression parameter\n");
-			fprintf(fp, "\n");
-			fprintf(fp, "cmp_par_fx_cob_variance = %" PRIu32 "\n", cfg->cmp_par_fx_cob_variance);
-			fprintf(fp, "\n");
-			fprintf(fp, "#-------------------------------------------------------------------------------\n");
-			fprintf(fp, "# flux/COB variance  spillover threshold parameter\n");
-			fprintf(fp, "\n");
-			fprintf(fp, "spill_fx_cob_variance = %" PRIu32 "\n", cfg->spill_fx_cob_variance);
-			fprintf(fp, "\n");
-			fprintf(fp, "#-------------------------------------------------------------------------------\n");
-		}
 	}
 }
 
@@ -1760,26 +1637,29 @@ static void write_cfg_internal(FILE *fp, const struct cmp_cfg *cfg)
 /**
  * @brief prints config struct
  *
- * @param cfg		configuration to print
+ * @param rcfg		pointer to a RDCU configuration to print
+ * @param add_ap_pars	if non-zero write the adaptive RDCU parameter in the file
  */
 
-void cmp_cfg_print(const struct cmp_cfg *cfg)
+void cmp_cfg_print(const struct rdcu_cfg *rcfg, int add_ap_pars)
 {
-	write_cfg_internal(stdout, cfg);
+	write_cfg_internal(stdout, rcfg, add_ap_pars);
 }
 
 
 /**
  * @brief write compression configuration to a file
  *
- * @param cfg		configuration to print
+ * @param rcfg		pointer to a RDCU configuration to print
  * @param output_prefix prefix of the written file (.cfg is added to the prefix)
  * @param verbose	print verbose output if not zero
+ * @param add_ap_pars	if non-zero write the adaptive RDCU parameter in the file
  *
  * @returns 0 on success, error otherwise
  */
 
-int cmp_cfg_fo_file(const struct cmp_cfg *cfg, const char *output_prefix, int verbose)
+int cmp_cfg_fo_file(const struct rdcu_cfg *rcfg, const char *output_prefix,
+		    int verbose, int add_ap_pars)
 {
 	FILE *fp = open_file(output_prefix, ".cfg");
 
@@ -1789,12 +1669,12 @@ int cmp_cfg_fo_file(const struct cmp_cfg *cfg, const char *output_prefix, int ve
 		return -1;
 	}
 
-	write_cfg_internal(fp, cfg);
+	write_cfg_internal(fp, rcfg, add_ap_pars);
 
 	fclose(fp);
 
 	if (verbose)
-		cmp_cfg_print(cfg);
+		cmp_cfg_print(rcfg, add_ap_pars);
 
 	return 0;
 }
@@ -1803,16 +1683,17 @@ int cmp_cfg_fo_file(const struct cmp_cfg *cfg, const char *output_prefix, int ve
 /**
  * @brief write a decompression information structure to a file
  *
- * @param info	 compressor information contains information of an executed
- *		 compression
- * @param output_prefix prefix of the written file (.info is added to the prefix)
- * @param rdcu_cfg - if non-zero write additional RDCU parameter in the file
+ * @param info		compressor information contains information of an
+ *			executed compression
+ * @param output_prefix	prefix of the written file (.info is added to the prefix)
+ * @param add_ap_pars	if non-zero write the additional RDCU parameter in the
+ *			file
  *
  * @returns 0 on success, error otherwise
  */
 
 int cmp_info_to_file(const struct cmp_info *info, const char *output_prefix,
-		     int rdcu_cfg)
+		     int add_ap_pars)
 {
 	FILE *fp = open_file(output_prefix, ".info");
 
@@ -1866,7 +1747,7 @@ int cmp_info_to_file(const struct cmp_info *info, const char *output_prefix,
 	fprintf(fp, "\n");
 	fprintf(fp, "#-------------------------------------------------------------------------------\n");
 
-	if (rdcu_cfg) {
+	if (add_ap_pars) {
 		fprintf(fp, "#-------------------------------------------------------------------------------\n");
 		fprintf(fp, "# Hardware Compressor Settings (not need for SW compression)\n");
 		fprintf(fp, "#-------------------------------------------------------------------------------\n");
