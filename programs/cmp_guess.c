@@ -269,7 +269,7 @@ uint32_t cmp_guess(struct rdcu_cfg *rcfg, int level)
 		if (!rcfg->model_buf)
 			return 0;
 
-	if (!rdcu_supported_cmp_mode_is_used(rcfg->cmp_mode)) {
+	if (!cmp_mode_is_supported(rcfg->cmp_mode)) {
 		printf("This compression mode is not implied yet.\n");
 		return 0;
 	}
