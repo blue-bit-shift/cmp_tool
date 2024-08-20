@@ -53,7 +53,7 @@ if cc.has_argument('-fsanitize=leak') and not (host_machine.system() == 'darwin'
 endif
 
 test_env.set('UBSAN_OPTIONS',
-  'abort_on_error=1',
+  'halt_on_error=1',
   'print_stacktrace=1',
   'print_summary=1',
   'symbolize=1',
@@ -71,6 +71,7 @@ subdir('tools')
 subdir('cmp_tool')
 
 unity_dep = dependency('unity', fallback : ['unity', 'unity_dep'])
+m_dep = cc.find_library('m', required : false)
 subdir('test_common')
 subdir('fuzz')
 
@@ -104,7 +105,7 @@ if ruby.found()
       test_src, test_runner,
       include_directories : incdir,
       link_with : test_libs,
-      dependencies : unity_dep,
+      dependencies : [unity_dep, m_dep],
       c_args : test_args,
       build_by_default : false
     )

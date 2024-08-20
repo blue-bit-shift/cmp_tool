@@ -2,7 +2,7 @@ if get_option('fuzzer').disabled()
   subdir_done()
 endif
 
-fuzz_common = files('fuzz_helpers.c', 'fuzz_data_producer.c')
+fuzz_common = files('fuzz_data_producer.c')
 fuzz_targets = ['fuzz_compression.c', 'fuzz_round_trip.c']
 
 add_languages('cpp', native: false) # libFuzzingEngine needs c++
@@ -14,7 +14,7 @@ foreach target : fuzz_targets
   fuzz_exe = executable(target_name,
     fuzz_common, file_name,
     include_directories : incdir,
-    link_with : cmp_lib,
+    link_with : [cmp_lib, test_common_lib],
     link_args : get_option('fuzzer_ldflags'),
     link_language : 'cpp' # libFuzzingEngine needs c++
   )
