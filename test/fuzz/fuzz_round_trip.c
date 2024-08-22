@@ -77,7 +77,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
 	use_decmp_buf = FUZZ_dataProducer_int32Range(producer, 0, 1);
 	use_decmp_up_model = FUZZ_dataProducer_int32Range(producer, 0, 1);
 
-	return_value = chunk_round_trip(src, size, model, up_model, cmp_data,
+	return_value = chunk_round_trip(src, (uint32_t)size, model, up_model, cmp_data,
 				        cmp_data_capacity, cmp_par_ptr,
 				        use_decmp_buf, use_decmp_up_model);
 	switch (cmp_get_error_code(return_value)) {

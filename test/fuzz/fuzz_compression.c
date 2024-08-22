@@ -35,7 +35,7 @@
 int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
 {
 	struct cmp_par cmp_par;
-	struct cmp_par *cmp_par_ptr = NULL;
+	const struct cmp_par *cmp_par_ptr = NULL;
 	const uint8_t *model = NULL;
 	void *up_model;
 	uint32_t *cmp_data;
@@ -89,7 +89,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
 	}
 
 
-	return_value = compress_chunk((void *)src, size, (void *)model, up_model,
+	return_value = compress_chunk(src, (uint32_t)size, model, up_model,
 				      cmp_data, cmp_data_capacity, cmp_par_ptr);
 
 	switch (cmp_get_error_code(return_value)) {

@@ -46,13 +46,14 @@ static int guess_cmp_pars(struct rdcu_cfg *rcfg, const char *guess_cmp_mode,
 			  int guess_level);
 
 /* compress chunk data and write the results to files */
-static int compression_of_chunk(void *chunk, uint32_t size, void *model, struct cmp_par *chunk_par);
+static int compression_of_chunk(const void *chunk, uint32_t size, void *model,
+				const struct cmp_par *chunk_par);
 
 /* compress the data and write the results to files */
 static int compression_for_rdcu(struct rdcu_cfg *rcfg);
 
 /* decompress the data and write the results in file(s)*/
-static int decompression(struct cmp_entity *ent, uint16_t *input_model_buf);
+static int decompression(const struct cmp_entity *ent, uint16_t *input_model_buf);
 
 /* create a default configuration for a compression data type */
 enum cfg_default_opt {DIFF_CFG, MODEL_CFG};
@@ -649,7 +650,8 @@ static uint64_t return_timestamp(void)
  * @brief compress chunk data and write the results to files
  */
 
-static int compression_of_chunk(void *chunk, uint32_t size, void *model, struct cmp_par *chunk_par)
+static int compression_of_chunk(const void *chunk, uint32_t size, void *model,
+				const struct cmp_par *chunk_par)
 {
 	uint32_t bound = compress_chunk_cmp_size_bound(chunk, size);
 	uint32_t *cmp_data;
@@ -830,7 +832,7 @@ error_cleanup:
  * @brief decompress the data and write the results in file(s)
  */
 
-static int decompression(struct cmp_entity *ent, uint16_t *input_model_buf)
+static int decompression(const struct cmp_entity *ent, uint16_t *input_model_buf)
 {
 	int error;
 	int decomp_size;

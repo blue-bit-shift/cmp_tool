@@ -170,8 +170,7 @@ static size_t local_compress_chunk(const void *src, size_t srcSize, const void *
 {
 	struct cmp_par *par = (struct cmp_par *)payload;
 
-	/* FIXME: cast from 'const void *' to 'void *' drops const qualifier */
-	return compress_chunk((void *)src, (uint32_t)srcSize, (void *)model, upmodel,
+	return compress_chunk(src, (uint32_t)srcSize, model, upmodel,
 			      dst, (uint32_t)dstSize, par);
 }
 
@@ -295,11 +294,11 @@ static int bench_ref_data(void)
 			data_set_name = "short cadence (1.4MB)";
 
 			/* reference data are stored compressed */
-			decmp_size = decompress_cmp_entiy((void *)ref_short_cadence_1_cmp,
+			decmp_size = decompress_cmp_entiy((const void *)ref_short_cadence_1_cmp,
 							  NULL, NULL, model);
 			CONTROL(decmp_size > 0);
 			size = (size_t)decmp_size;
-			decmp_size = decompress_cmp_entiy((void *)ref_short_cadence_2_cmp,
+			decmp_size = decompress_cmp_entiy((const void *)ref_short_cadence_2_cmp,
 							  model, NULL, data);
 			CONTROL(decmp_size == (int)size);
 
