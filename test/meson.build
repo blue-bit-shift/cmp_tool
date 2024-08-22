@@ -82,7 +82,6 @@ subdir('cmp_decmp')
 subdir('cmp_data_types')
 subdir('cmp_entity')
 subdir('cmp_rdcu_cfg')
-subdir('cmp_max_used_bits')
 
 
 test_args = '-Wno-missing-declarations' # The test runner generator does not generate header files
