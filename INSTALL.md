@@ -115,7 +115,7 @@ meson test --gdb <testname>
 
 ### Producing a coverage report
 
-First, configure the build with this command.
+First, ensure that either `gcovr` or `lcov` is installed as a dependency for generating coverage reports.
 
 ```
 cd <name of the build directory>
@@ -171,6 +171,12 @@ meson test fuzz_round_trip\ 10\ min --verbose
 ```
 
 Happy fuzzing! 🚀
+
+To reset the coverage data, use the following command:
+
+```
+ninja clean-gcda
+```
 
 ## Documentation 
 ### External dependencies
