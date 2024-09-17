@@ -133,6 +133,13 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
 	default:
 		FUZZ_ASSERT(0);
 	}
+	if (!cmp_is_error(return_value) && model != up_model){
+		uint32_t return_value2;
+
+		return_value2 = compress_chunk(src, (uint32_t)size, model, up_model,
+					       NULL, cmp_data_capacity, cmp_par_ptr);
+		FUZZ_ASSERT(return_value == return_value2);
+	}
 
 	free(cmp_data);
 	free(up_model);
