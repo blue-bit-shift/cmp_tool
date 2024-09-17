@@ -57,7 +57,6 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
 
 	/* generate compression parameters */
 	FUZZ_dataProducer_cmp_par(producer, &cmp_par);
-	cmp_par.lossy_par = 0; /*TODO: implement lossy  */
 	if (FUZZ_dataProducer_uint32Range(producer, 0, 1))
 		cmp_par_ptr = &cmp_par;
 
@@ -89,6 +88,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
 	case CMP_ERROR_PAR_SPECIFIC:
 	case CMP_ERROR_PAR_BUFFERS:
 	case CMP_ERROR_PAR_NULL:
+	case CMP_ERROR_PAR_NO_MODEL:
 	/* chunk errors */
 	case CMP_ERROR_CHUNK_NULL:
 	case CMP_ERROR_CHUNK_TOO_LARGE:
