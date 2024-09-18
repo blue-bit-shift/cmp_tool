@@ -751,7 +751,7 @@ static int compression_for_rdcu(struct rdcu_cfg *rcfg)
 
 	cmp_size = compress_like_rdcu(rcfg, &info);
 	if (cmp_is_error(cmp_size)) {
-		if (cmp_get_error_code(cmp_size) == CMP_ERROR_SMALL_BUF_)
+		if (cmp_get_error_code(cmp_size) == CMP_ERROR_SMALL_BUFFER)
 			fprintf(stderr, "Error: The buffer for the compressed data is too small to hold the compressed data. Try a larger buffer_length parameter.\n");
 		goto error_cleanup;
 	}

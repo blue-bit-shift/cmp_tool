@@ -82,7 +82,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
 	switch (cmp_get_error_code(return_value)) {
 	case CMP_ERROR_NO_ERROR:
 	case CMP_ERROR_GENERIC:
-	case CMP_ERROR_SMALL_BUF_:
+	case CMP_ERROR_SMALL_BUFFER:
 	/* compression parameter errors */
 	case CMP_ERROR_PAR_GENERIC:
 	case CMP_ERROR_PAR_SPECIFIC:
