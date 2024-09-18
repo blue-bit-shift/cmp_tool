@@ -709,7 +709,7 @@ static int compression_for_rdcu(struct rdcu_cfg *rcfg)
 	uint64_t start_time = cmp_ent_create_timestamp(NULL);
 	enum cmp_data_type data_type = add_rdcu_pars ?
 		DATA_TYPE_IMAGETTE_ADAPTIVE : DATA_TYPE_IMAGETTE;
-	int32_t cmp_size;
+	uint32_t cmp_size;
 	int error;
 	uint32_t cmp_size_byte, out_buf_size;
 	size_t s;
@@ -750,8 +750,8 @@ static int compression_for_rdcu(struct rdcu_cfg *rcfg)
 	rcfg->icu_output_buf = cmp_ent_get_data_buf(cmp_entity);
 
 	cmp_size = compress_like_rdcu(rcfg, &info);
-	if (cmp_size < 0) {
-		if (cmp_size == CMP_ERROR_SMALL_BUF)
+	if (cmp_is_error(cmp_size)) {
+		if (cmp_get_error_code(cmp_size) == CMP_ERROR_SMALL_BUF_)
 			fprintf(stderr, "Error: The buffer for the compressed data is too small to hold the compressed data. Try a larger buffer_length parameter.\n");
 		goto error_cleanup;
 	}
@@ -759,7 +759,7 @@ static int compression_for_rdcu(struct rdcu_cfg *rcfg)
 	if (!model_counter && model_mode_is_used(rcfg->cmp_mode))
 		model_counter++;
 
-	s = cmp_ent_create(cmp_entity, data_type, rcfg->cmp_mode == CMP_MODE_RAW, cmp_bit_to_byte((unsigned int)cmp_size));
+	s = cmp_ent_create(cmp_entity, data_type, rcfg->cmp_mode == CMP_MODE_RAW, cmp_bit_to_byte(cmp_size));
 	if (!s) {
 		fprintf(stderr, "%s: error occurred while creating the compression entity header.\n", PROGRAM_NAME);
 		goto error_cleanup;

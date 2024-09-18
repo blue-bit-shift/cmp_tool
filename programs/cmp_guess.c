@@ -24,6 +24,7 @@
 
 #include <cmp_data_types.h>
 #include <cmp_icu.h>
+#include <cmp_chunk.h>
 #include <cmp_guess.h>
 #include <leon_inttypes.h>
 
@@ -121,7 +122,7 @@ uint32_t cmp_rdcu_get_good_spill(unsigned int golomb_par, enum cmp_mode cmp_mode
 static uint32_t pre_cal_method(struct rdcu_cfg *rcfg)
 {
 	uint32_t g;
-	int cmp_size, cmp_size_best = INT_MAX;
+	uint32_t cmp_size, cmp_size_best = INT_MAX;
 	uint32_t golomb_par_best = 0;
 	uint32_t spill_best = 0;
 
@@ -131,7 +132,7 @@ static uint32_t pre_cal_method(struct rdcu_cfg *rcfg)
 		rcfg->golomb_par = g;
 		rcfg->spill = s;
 		cmp_size = compress_like_rdcu(rcfg, NULL);
-		if (cmp_size <= 0) {
+		if (cmp_is_error(cmp_size)) {
 			return 0;
 		} else if (cmp_size < cmp_size_best) {
 			cmp_size_best = cmp_size;
@@ -160,7 +161,7 @@ static uint32_t brute_force(struct rdcu_cfg *rcfg)
 	uint32_t g, s;
 	uint32_t n_cal_steps = 0, last = 0;
 	const uint32_t max_cal_steps = CMP_GUESS_MAX_CAL_STEPS;
-	int cmp_size, cmp_size_best = INT_MAX;
+	uint32_t cmp_size, cmp_size_best = INT_MAX;
 	uint32_t golomb_par_best = 0;
 	uint32_t spill_best = 0;
 	uint32_t percent;
@@ -178,7 +179,7 @@ static uint32_t brute_force(struct rdcu_cfg *rcfg)
 			rcfg->spill = s;
 
 			cmp_size = compress_like_rdcu(rcfg, NULL);
-			if (cmp_size <= 0) {
+			if (cmp_is_error(cmp_size)) {
 				return 0;
 			} else if (cmp_size < cmp_size_best) {
 				cmp_size_best = cmp_size;
