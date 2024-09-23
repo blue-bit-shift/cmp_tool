@@ -1,5 +1,5 @@
 /**
- * @file fuzz_copression.c
+ * @file fuzz_compression.c
  * @date 2024
  *
  * @copyright GPLv2

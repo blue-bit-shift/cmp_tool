@@ -32,7 +32,7 @@
 /**
  * @brief set scaler reload value of the timer block
  * @param rtu a struct grtimer_unit
- *
+ * @param value scaler reload value
  */
 
 void grtimer_set_scaler_reload(struct grtimer_unit *rtu, uint32_t value)
@@ -44,7 +44,6 @@ void grtimer_set_scaler_reload(struct grtimer_unit *rtu, uint32_t value)
 /**
  * @brief get scaler reload value of the timer block
  * @param rtu a struct grtimer_unit
- *
  */
 
 uint32_t grtimer_get_scaler_reload(struct grtimer_unit *rtu)

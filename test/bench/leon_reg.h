@@ -1,5 +1,5 @@
 /**
- * @file leon/leon_reg.h
+ * @file leon_reg.h
  *
  * @author  Armin Luntzer (armin.luntzer@univie.ac.at)
  * @date    2015
