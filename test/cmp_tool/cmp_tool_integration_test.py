@@ -1230,7 +1230,7 @@ def test_header_read_in():
                "header of the compression entity may be corrupted.\n" % (cmp_file_name))
 
         # false cmp_mode_used
-        cmp_mode_used = 0xFF
+        cmp_mode_used = 255
         generic_header = build_generic_header(version_id, cmp_ent_size,
                         original_size, start_time, end_time, data_type,
                         cmp_mode_used, model_value_used, model_id,
@@ -1245,7 +1245,7 @@ def test_header_read_in():
         assert(stdout == CMP_START_STR_DECMP +
                "Importing compressed data file %s ... DONE\n" % (cmp_file_name) +
                "Decompress data ... FAILED\n" )
-        assert(stderr == "Error: The compression mode is not supported.\n")
+        assert(stderr == "Error: selected cmp_mode: 255 is not supported.\n")
 
     finally:
         del_file(cmp_file_name)
