@@ -22,7 +22,6 @@
 
 #include "fuzz_helpers.h"
 #include "fuzz_data_producer.h"
-#include "../test_common/test_common.h"
 
 #include "../../lib/decmp.h"
 
@@ -77,10 +76,10 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
 		up_model_buf = NULL;
 		break;
 	case 1:
-		up_model_buf = TEST_malloc(model_of_data_size);
+		up_model_buf = FUZZ_malloc(model_of_data_size);
 		break;
 	case 2: /* in-place update */
-		up_model_buf = TEST_malloc(model_of_data_size);
+		up_model_buf = FUZZ_malloc(model_of_data_size);
 		if (model_of_data && up_model_buf) {
 			memcpy(up_model_buf, model_of_data, model_of_data_size);
 			model_of_data = up_model_buf;
@@ -90,7 +89,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
 		FUZZ_ASSERT(0);
 	}
 
-	decompressed_data = TEST_malloc((size_t)model_of_data_size);
+	decompressed_data = FUZZ_malloc((size_t)model_of_data_size);
 	decompress_cmp_entiy_save(ent, ent_size, model_of_data, up_model_buf, decompressed_data, model_of_data_size);
 
 	free(up_model_buf);

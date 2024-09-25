@@ -26,7 +26,6 @@
 
 #include "fuzz_helpers.h"
 #include "fuzz_data_producer.h"
-#include "../test_common/test_common.h"
 
 #include "../../lib/cmp_chunk.h"
 
@@ -62,7 +61,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
 	if (cmp_is_error(cmp_size_bound))
 		cmp_size_bound = 0;
 	cmp_data_capacity = FUZZ_dataProducer_uint32Range(producer, 0, cmp_size_bound+(uint32_t)size);
-	cmp_data = (uint32_t *)TEST_malloc(cmp_data_capacity);
+	cmp_data = (uint32_t *)FUZZ_malloc(cmp_data_capacity);
 
 	FUZZ_dataProducer_cmp_par(producer, &cmp_par);
 	if (FUZZ_dataProducer_uint32Range(producer, 0, 1))
@@ -74,10 +73,10 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
 		up_model = NULL;
 		break;
 	case 1:
-		up_model = TEST_malloc(size);
+		up_model = FUZZ_malloc(size);
 		break;
 	case 2:
-		up_model = TEST_malloc(size);
+		up_model = FUZZ_malloc(size);
 		if (model && up_model) {
 			memcpy(up_model, model, size);
 			model = up_model; /* in-place update */

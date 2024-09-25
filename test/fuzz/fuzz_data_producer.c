@@ -23,7 +23,6 @@
 
 #include "fuzz_helpers.h"
 #include "fuzz_data_producer.h"
-#include "../test_common/test_common.h"
 #include <cmp_chunk.h>
 
 struct FUZZ_dataProducer_s{
@@ -32,7 +31,7 @@ struct FUZZ_dataProducer_s{
 };
 
 FUZZ_dataProducer_t *FUZZ_dataProducer_create(const uint8_t *data, size_t size) {
-    FUZZ_dataProducer_t *producer = TEST_malloc(sizeof(FUZZ_dataProducer_t));
+    FUZZ_dataProducer_t *producer = FUZZ_malloc(sizeof(FUZZ_dataProducer_t));
 
     producer->data = data;
     producer->size = size;

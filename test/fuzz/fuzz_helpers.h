@@ -35,6 +35,8 @@ extern "C" {
              abort()))
 #define FUZZ_ASSERT(cond) FUZZ_ASSERT_MSG((cond), "");
 
+void* FUZZ_malloc(size_t size);
+
 #ifdef __cplusplus
 }
 #endif

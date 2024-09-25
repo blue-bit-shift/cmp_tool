@@ -152,7 +152,7 @@ meson setup builddir_fuzzing \
   --buildtype=plain \
   -Dfuzzer=enabled \
   -Dfuzzer_ldflags=-fsanitize=fuzzer \
-  -Dc_args="-O1 -gline-tables-only -fsanitize-address-use-after-scope -fsanitize=fuzzer-no-link" \
+  -Dc_args="-O1 -gline-tables-only -fsanitize=fuzzer-no-link" \
   -Db_sanitize=address,undefined \
   -Ddebug_level=0 \
   -Ddefault_library=static \

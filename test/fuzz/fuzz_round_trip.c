@@ -27,7 +27,6 @@
 #include "fuzz_helpers.h"
 #include "fuzz_data_producer.h"
 #include "../test_common/chunk_round_trip.h"
-#include "../test_common/test_common.h"
 
 
 int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
@@ -62,7 +61,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
 
 	/* 1/2 of the cases we use a updated model buffer */
 	if (FUZZ_dataProducer_uint32Range(producer, 0, 1)) {
-		up_model = TEST_malloc(size);
+		up_model = FUZZ_malloc(size);
 		if (!model_mode_is_used(cmp_par.cmp_mode))
 			memset(up_model, 0, size); /* up_model is not used */
 	}
@@ -71,7 +70,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
 	if (cmp_is_error(cmp_size_bound))
 		cmp_size_bound = 0;
 	cmp_data_capacity = FUZZ_dataProducer_uint32Range(producer, 0, cmp_size_bound+(uint32_t)size);
-	cmp_data = (uint32_t *)TEST_malloc(cmp_data_capacity);
+	cmp_data = (uint32_t *)FUZZ_malloc(cmp_data_capacity);
 
 	use_decmp_buf = FUZZ_dataProducer_int32Range(producer, 0, 1);
 	use_decmp_up_model = FUZZ_dataProducer_int32Range(producer, 0, 1);
