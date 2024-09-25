@@ -53,6 +53,9 @@ if ['windows', 'cygwin'].contains(host_machine.system()) and cc.get_id() == 'gcc
   add_global_link_arguments('-static', language: 'c')
 endif
 
+if get_option('fuzzer').enabled()
+  add_global_arguments('-DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION', language: ['c', 'cpp'])
+endif
 
 # Subdirs
 subdir('lib')

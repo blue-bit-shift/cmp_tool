@@ -3,7 +3,7 @@ if get_option('fuzzer').disabled()
 endif
 
 fuzz_common = files('fuzz_data_producer.c')
-fuzz_targets = ['fuzz_compression.c', 'fuzz_round_trip.c']
+fuzz_targets = ['fuzz_compression.c', 'fuzz_round_trip.c', 'fuzz_decompression.c']
 
 add_languages('cpp', native: false) # libFuzzingEngine needs c++
 
