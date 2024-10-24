@@ -68,12 +68,16 @@ int cmp_cfg_fo_file(const struct rdcu_cfg *rcfg, const char *output_prefix,
 		    int verbose, int add_ap_pars);
 int cmp_info_to_file(const struct cmp_info *info, const char *output_prefix,
 		     int add_ap_pars);
+int cmp_par_fo_file(const struct cmp_par *par, const char *output_prefix,
+		    int verbose);
 void cmp_cfg_print(const struct rdcu_cfg *rcfg, int add_ap_pars);
+void cmp_par_print(const struct cmp_par *par);
 
 int atoui32(const char *dep_str, const char *val_str, uint32_t *red_val);
 int cmp_mode_parse(const char *cmp_mode_str, enum cmp_mode *cmp_mode);
 
 enum cmp_data_type string2data_type(const char *data_type_str);
 const char *data_type2string(enum cmp_data_type data_type);
+int case_insensitive_compare(const char* s1, const char* s2);
 
 #endif /* CMP_IO_H */

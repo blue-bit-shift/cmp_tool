@@ -21,6 +21,7 @@
 #define CMP_GUESS_H
 
 #include <cmp_support.h>
+#include <cmp_chunk.h>
 
 
 #define DEFAULT_GUESS_LEVEL 2
@@ -34,6 +35,11 @@
 #define CMP_GUESS_N_MODEL_UPDATE_DEF	8
 
 uint32_t cmp_guess(struct rdcu_cfg *rcfg, int level);
+
+uint32_t cmp_guess_chunk(const void *chunk, uint32_t chunk_size,
+			 const void *chunk_model, struct cmp_par *cmp_par,
+			 int guess_level);
+
 void cmp_guess_set_model_updates(int n_model_updates);
 
 uint32_t cmp_rdcu_get_good_spill(unsigned int golomb_par, enum cmp_mode cmp_mode);

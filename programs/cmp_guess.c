@@ -13,20 +13,25 @@
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
  * more details.
  *
- * @brief helps the user to find a good compression parameters for a given
- *	dataset
+ * @brief helps the user find good compression parameters for a given dataset
  * @warning this part of the software is not intended to run on-board on the ICU.
  */
 
 #include <limits.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
+#include <cmp_error.h>
+#include <cmp_debug.h>
+#include <leon_inttypes.h>
 #include <cmp_data_types.h>
+#include <cmp_support.h>
 #include <cmp_icu.h>
 #include <cmp_chunk.h>
+#include <cmp_chunk_type.h>
 #include <cmp_guess.h>
-#include <leon_inttypes.h>
 
 #define CMP_GUESS_MAX_CAL_STEPS 20274
 
@@ -36,8 +41,7 @@ static int num_model_updates = CMP_GUESS_N_MODEL_UPDATE_DEF;
 
 
 /**
- * @brief sets how often the model is updated before model reset for the
- * cmp_guess function
+ * @brief sets how often the model is updated before the model reset;
  * @note the default value is CMP_GUESS_N_MODEL_UPDATE_DEF
  * @note this is needed to guess a good model_value
  *
@@ -81,7 +85,6 @@ uint16_t cmp_guess_model_value(int n_model_updates)
  * @param cmp_mode	compression mode
  *
  * @returns a good spill parameter (optimal for zero escape mechanism)
- * @warning icu compression not support yet!
  */
 
 uint32_t cmp_rdcu_get_good_spill(unsigned int golomb_par, enum cmp_mode cmp_mode)
@@ -166,7 +169,7 @@ static uint32_t brute_force(struct rdcu_cfg *rcfg)
 	uint32_t spill_best = 0;
 	uint32_t percent;
 
-	/* short cut for zero escape mechanism */
+	/* shortcut for zero escape mechanism */
 	if (zero_escape_mech_is_used(rcfg->cmp_mode))
 		return pre_cal_method(rcfg);
 
@@ -244,10 +247,10 @@ static void add_rdcu_pars_internal(struct rdcu_cfg *rcfg)
 
 /**
  * @brief guess a good compression configuration
- * @details use the referenced in the rcfg struct (samples, input_buf, model_buf
- * (optional)) and the cmp_mode to find a good set of compression parameters
+ * @details use the samples, input_buf, model_buf and the cmp_mode in rcfg to
+ *	find a good set of compression parameters
  * @note compression parameters in the rcfg struct (golomb_par, spill, model_value,
- * ap1_.., ap2_.., buffer_length, ...) are overwritten by this function
+ *	ap1_.., ap2_.., buffer_length, ...) are overwritten by this function
  *
  * @param rcfg	RDCU compression configuration structure
  * @param level	guess_level 1 -> fast; 2 -> default; 3 -> slow(brute force)
@@ -275,7 +278,7 @@ uint32_t cmp_guess(struct rdcu_cfg *rcfg, int level)
 		return 0;
 	}
 	/* make a working copy of the input data (and model) because the
-	 * following function works inplace
+	 * following function works in-place
 	 */
 	work_rcfg = *rcfg;
 	work_rcfg.icu_new_model_buf = NULL;
@@ -296,15 +299,14 @@ uint32_t cmp_guess(struct rdcu_cfg *rcfg, int level)
 		cmp_size = brute_force(&work_rcfg);
 		break;
 	case 1:
-		printf("guess level 1 not implied yet use guess level 2\n");
+		printf("guess level 1 not implied for RDCU data, I use guess level 2\n");
 		/* fall through */
 	case 2:
 		cmp_size = pre_cal_method(&work_rcfg);
 		break;
 	default:
-		fprintf(stderr, "cmp_tool: guess level not supported!\n");
+		fprintf(stderr, "cmp_tool: guess level not supported for RDCU guess mode!\n");
 		goto error;
-		break;
 	}
 	if (!cmp_size)
 		goto error;
@@ -316,10 +318,8 @@ uint32_t cmp_guess(struct rdcu_cfg *rcfg, int level)
 
 	rcfg->model_value = cmp_guess_model_value(num_model_updates);
 
-	/* if (rdcu_support_data_type_is_used(rcfg->data_type)) */
-		add_rdcu_pars_internal(rcfg);
+	add_rdcu_pars_internal(rcfg);
 
-	/* TODO: check that for non-imagette data */
 	rcfg->buffer_length = ((cmp_size + 32)&~0x1FU)/(size_of_a_sample(DATA_TYPE_IMAGETTE)*8);
 
 	return cmp_size;
@@ -329,3 +329,192 @@ error:
 	return 0;
 }
 
+
+/**
+ * @brief get the next Golomb parameter value to try based on the guess level
+ *
+ * @param cur_g		current Golomb parameter value
+ * @param guess_level	determines the granularity of the parameter search
+ *			higher values decrease step size (finer search)
+ *			lower/negative values increase step size (coarser search)
+ *			range: [-31, 31], default: 2
+ *
+ * @returns next Golomb parameter value to try
+ */
+
+static uint32_t get_next_g_par(uint32_t cur_g, int guess_level)
+{
+	uint32_t result = cur_g;
+
+	guess_level--; /* use a better guess level */
+
+	if (guess_level > 31)
+		guess_level = 31;
+
+	if (guess_level < -31)
+		guess_level = -31;
+
+
+	if (guess_level >= 0)
+		result += (1U << ilog_2(cur_g)) >> guess_level;
+	else
+		result = cur_g << -guess_level;
+
+	if (result == cur_g)
+		result++;
+
+	return result;
+}
+
+
+/**
+ * @brief estimate the optimal specific compression parameter set for a given chunk type
+ *
+ * @param chunk		pointer to the chunk data to analyse
+ * @param chunk_size	size of the chunk in bytes
+ * @param chunk_model	pointer to the model data (can be NULL)
+ * @param cmp_par	pointer to where to store the optimized compression parameters
+ * @param guess_level	controls the granularity of the parameter search; 2 is the default
+ *
+ * @returns the size of the compressed data with the estimated parameters; error
+ *	code on failure
+ */
+
+static uint32_t cmp_guess_chunk_par(const void *chunk, uint32_t chunk_size,
+				    const void *chunk_model, struct cmp_par *cmp_par,
+				    int guess_level)
+{
+	uint32_t *param_ptrs[7] = {0};
+	uint32_t cmp_size_best = ~0U;
+	int i;
+
+	if (cmp_par->lossy_par)
+		debug_print("Warning: lossy compression is not supported for chunk compression, lossy_par will be ignored.");
+	cmp_par->lossy_par = 0;
+	cmp_par->model_value = cmp_guess_model_value(num_model_updates);
+
+	switch (cmp_col_get_chunk_type(chunk)) {
+	case CHUNK_TYPE_NCAM_IMAGETTE:
+		param_ptrs[0] = &cmp_par->nc_imagette;
+		break;
+	case CHUNK_TYPE_SAT_IMAGETTE:
+		param_ptrs[0] = &cmp_par->saturated_imagette;
+		break;
+	case CHUNK_TYPE_SHORT_CADENCE:
+		param_ptrs[0] = &cmp_par->s_exp_flags;
+		param_ptrs[1] = &cmp_par->s_fx;
+		param_ptrs[2] = &cmp_par->s_ncob;
+		param_ptrs[3] = &cmp_par->s_efx;
+		param_ptrs[4] = &cmp_par->s_ecob;
+		break;
+	case CHUNK_TYPE_LONG_CADENCE:
+		param_ptrs[0] = &cmp_par->l_exp_flags;
+		param_ptrs[1] = &cmp_par->l_fx;
+		param_ptrs[2] = &cmp_par->l_ncob;
+		param_ptrs[3] = &cmp_par->l_efx;
+		param_ptrs[4] = &cmp_par->l_ecob;
+		param_ptrs[5] = &cmp_par->l_fx_cob_variance;
+		break;
+	case CHUNK_TYPE_OFFSET_BACKGROUND:
+		param_ptrs[0] = &cmp_par->nc_offset_mean;
+		param_ptrs[1] = &cmp_par->nc_offset_variance;
+		param_ptrs[2] = &cmp_par->nc_background_mean;
+		param_ptrs[3] = &cmp_par->nc_background_variance;
+		param_ptrs[4] = &cmp_par->nc_background_outlier_pixels;
+		break;
+	case CHUNK_TYPE_SMEARING:
+		param_ptrs[0] = &cmp_par->smearing_mean;
+		param_ptrs[1] = &cmp_par->smearing_variance_mean;
+		param_ptrs[2] = &cmp_par->smearing_outlier_pixels;
+		break;
+	case CHUNK_TYPE_F_CHAIN:
+		param_ptrs[0] = &cmp_par->fc_imagette;
+		param_ptrs[1] = &cmp_par->fc_offset_mean;
+		param_ptrs[2] = &cmp_par->fc_offset_variance;
+		param_ptrs[3] = &cmp_par->fc_background_mean;
+		param_ptrs[4] = &cmp_par->fc_background_variance;
+		param_ptrs[5] = &cmp_par->fc_background_outlier_pixels;
+		break;
+	case CHUNK_TYPE_UNKNOWN:
+	default: /*
+		  * default case never reached because cmp_col_get_chunk_type
+		  * returns CHUNK_TYPE_UNKNOWN if the type is unknown
+		  */
+		break;
+	}
+
+	/* init */
+	for (i = 0; param_ptrs[i] != NULL; i++)
+		*param_ptrs[i] = 1;
+
+	for (i = 0; param_ptrs[i] != NULL; i++) {
+		uint32_t best_g = *param_ptrs[i];
+		uint32_t g;
+
+		for (g = MIN_NON_IMA_GOLOMB_PAR; g < MAX_NON_IMA_GOLOMB_PAR; g =  get_next_g_par(g, guess_level)) {
+			uint32_t cmp_size;
+
+			*param_ptrs[i] = g;
+			cmp_size = compress_chunk(chunk, chunk_size, chunk_model,
+						  NULL, NULL, 0, cmp_par);
+			FORWARD_IF_ERROR(cmp_size, "");
+			if (cmp_size < cmp_size_best) {
+				cmp_size_best = cmp_size;
+				best_g = g;
+			}
+		}
+		*param_ptrs[i] = best_g;
+	}
+
+	return cmp_size_best;
+}
+
+
+/**
+ * @brief estimate an optimal compression parameters for the given chunk
+ *
+ * @param chunk		pointer to the chunk data to analyse
+ * @param chunk_size	size of the chunk in bytes
+ * @param chunk_model	pointer to the model data (can be NULL)
+ * @param cmp_par	pointer to where to store the optimized compression parameters
+ * @param guess_level	controls the granularity of the parameter search; 2 is
+ *			the default
+ *
+ * @returns the size of the compressed data with the estimated parameters; error
+ *	code on failure
+ */
+
+uint32_t cmp_guess_chunk(const void *chunk, uint32_t chunk_size,
+			 const void *chunk_model, struct cmp_par *cmp_par,
+			 int guess_level)
+{
+	uint32_t cmp_size_zero, cmp_size_multi;
+	struct cmp_par cmp_par_zero;
+	struct cmp_par cmp_par_multi;
+
+	memset(&cmp_par_zero, 0, sizeof(cmp_par_zero));
+	memset(&cmp_par_multi, 0, sizeof(cmp_par_multi));
+
+	if (chunk_model) {
+		cmp_par_zero.cmp_mode = CMP_MODE_DIFF_ZERO;
+		cmp_par_multi.cmp_mode = CMP_MODE_MODEL_MULTI;
+	} else {
+		cmp_par_zero.cmp_mode = CMP_MODE_DIFF_ZERO;
+		cmp_par_multi.cmp_mode = CMP_MODE_DIFF_MULTI;
+	}
+	cmp_size_zero = cmp_guess_chunk_par(chunk, chunk_size, chunk_model,
+					    &cmp_par_zero, guess_level);
+	FORWARD_IF_ERROR(cmp_size_zero, "");
+
+	cmp_size_multi = cmp_guess_chunk_par(chunk, chunk_size, chunk_model,
+					     &cmp_par_multi, guess_level);
+	FORWARD_IF_ERROR(cmp_size_multi, "");
+
+	if (cmp_size_zero <= cmp_size_multi) {
+		*cmp_par = cmp_par_zero;
+		return cmp_size_zero;
+	}
+
+	*cmp_par = cmp_par_multi;
+	return cmp_size_multi;
+}

@@ -475,6 +475,41 @@ const char *data_type2string(enum cmp_data_type data_type)
 
 
 /**
+ * @brief compares two strings case-insensitively
+ *
+ * @param s1	the first string to compare
+ * @param s2	the second string to compare
+ *
+ * @returns an integer greater than, equal to, or less than 0, according as s1
+ *	is lexicographically greater than, equal to, or less than s2 after
+ *	translation of each corresponding character to lower-case.  The strings
+ *	themselves are not modified.
+ */
+
+int case_insensitive_compare(const char* s1, const char* s2)
+{
+	size_t i;
+
+	for (i=0; ; ++i) {
+		unsigned int x1 = (unsigned char)s1[i];
+		unsigned int x2 = (unsigned char)s2[i];
+		int r;
+
+		if (x1 - 'A' < 26U)
+			x1 += 32; /* tolower */
+		if (x2 - 'A' < 26U)
+			x2 += 32; /* tolower */
+
+		r = (int)x1 - (int)x2;
+		if (r)
+			return r;
+
+		if (!x1) return 0;
+	}
+}
+
+
+/**
  * @brief parse a compression mode value string to an integer
  * @note string can be either a number or the name of the compression mode
  *
@@ -511,7 +546,7 @@ int cmp_mode_parse(const char *cmp_mode_str, enum cmp_mode *cmp_mode)
 		size_t j;
 
 		for (j = 0; j < ARRAY_SIZE(conversion); j++) {
-			if (!strcmp(cmp_mode_str, conversion[j].str)) {
+			if (!case_insensitive_compare(cmp_mode_str, conversion[j].str)) {
 				*cmp_mode = conversion[j].cmp_mode;
 				return 0;
 			}
@@ -1791,6 +1826,123 @@ int cmp_info_to_file(const struct cmp_info *info, const char *output_prefix,
 	fprintf(fp, "\n");
 	fprintf(fp, "#-------------------------------------------------------------------------------\n");
 	fclose(fp);
+
+	return 0;
+}
+
+
+/**
+ * @brief write compression parameters to a stream
+ * @note internal use only!
+ *
+ * @param fp	FILE pointer
+ * @param par	pointer to a compression parameters struct to print
+ */
+
+static void write_cmp_par_internal(FILE *fp, const struct cmp_par *par)
+{
+	if (!fp)
+		return;
+
+	if (!par) {
+		fprintf(fp, "Pointer to the compression parmeters is NULL.\n");
+		return;
+	}
+
+
+	fprintf(fp, "#-------------------------------------------------------------------------------\n");
+	fprintf(fp, "\n");
+	fprintf(fp, "# Chunk compression parameters\n");
+	fprintf(fp, "\n");
+	fprintf(fp, "#-------------------------------------------------------------------------------\n");
+
+	fprintf(fp, "cmp_mode = %d\n", par->cmp_mode);
+	fprintf(fp, "model_value = %" PRIu32 "\n", par->model_value);
+	fprintf(fp, "lossy_par = %" PRIu32 "\n", par->lossy_par);
+	fprintf(fp, "#-------------------------------------------------------------------------------\n");
+
+	fprintf(fp, "nc_imagette = %" PRIu32 "\n", par->nc_imagette);
+	fprintf(fp, "#-------------------------------------------------------------------------------\n");
+
+	fprintf(fp, "s_exp_flags = %" PRIu32 "\n", par->s_exp_flags);
+	fprintf(fp, "s_fx = %" PRIu32 "\n", par->s_fx);
+	fprintf(fp, "s_ncob = %" PRIu32 "\n", par->s_ncob);
+	fprintf(fp, "s_efx = %" PRIu32 "\n", par->s_efx);
+	fprintf(fp, "s_ecob = %" PRIu32 "\n", par->s_ecob);
+	fprintf(fp, "#-------------------------------------------------------------------------------\n");
+
+	fprintf(fp, "l_exp_flags = %" PRIu32 "\n", par->l_exp_flags);
+	fprintf(fp, "l_fx = %" PRIu32 "\n", par->l_fx);
+	fprintf(fp, "l_ncob = %" PRIu32 "\n", par->l_ncob);
+	fprintf(fp, "l_efx = %" PRIu32 "\n", par->l_efx);
+	fprintf(fp, "l_ecob = %" PRIu32 "\n", par->l_ecob);
+	fprintf(fp, "l_fx_cob_variance = %" PRIu32 "\n", par->l_fx_cob_variance);
+	fprintf(fp, "#-------------------------------------------------------------------------------\n");
+
+	fprintf(fp, "saturated_imagette = %" PRIu32 "\n", par->saturated_imagette);
+	fprintf(fp, "#-------------------------------------------------------------------------------\n");
+
+	fprintf(fp, "nc_offset_mean = %" PRIu32 "\n", par->nc_offset_mean);
+	fprintf(fp, "nc_offset_variance = %" PRIu32 "\n", par->nc_offset_variance);
+	fprintf(fp, "nc_background_mean = %" PRIu32 "\n", par->nc_background_mean);
+	fprintf(fp, "nc_background_variance = %" PRIu32 "\n", par->nc_background_variance);
+	fprintf(fp, "nc_background_outlier_pixels = %" PRIu32 "\n", par->nc_background_outlier_pixels);
+	fprintf(fp, "#-------------------------------------------------------------------------------\n");
+
+	fprintf(fp, "smearing_mean = %" PRIu32 "\n", par->smearing_mean);
+	fprintf(fp, "smearing_variance_mean = %" PRIu32 "\n", par->smearing_variance_mean);
+	fprintf(fp, "smearing_outlier_pixels = %" PRIu32 "\n", par->smearing_outlier_pixels);
+	fprintf(fp, "#-------------------------------------------------------------------------------\n");
+
+	fprintf(fp, "fc_imagette = %" PRIu32 "\n", par->fc_imagette);
+	fprintf(fp, "fc_offset_mean = %" PRIu32 "\n", par->fc_offset_mean);
+	fprintf(fp, "fc_offset_variance = %" PRIu32 "\n", par->fc_offset_variance);
+	fprintf(fp, "fc_background_mean = %" PRIu32 "\n", par->fc_background_mean);
+	fprintf(fp, "fc_background_variance = %" PRIu32 "\n", par->fc_background_variance);
+	fprintf(fp, "fc_background_outlier_pixels = %" PRIu32 "\n", par->fc_background_outlier_pixels);
+	fprintf(fp, "#-------------------------------------------------------------------------------\n");
+}
+
+
+/**
+ * @brief prints cmp_par struct
+ *
+ * @param par	pointer to a compression parameters struct to print
+ */
+
+void cmp_par_print(const struct cmp_par *par)
+{
+	write_cmp_par_internal(stdout, par);
+}
+
+
+/**
+ * @brief write the compression parameters to a file
+ *
+ * @param par		pointer to a compression parameters struct
+ * @param output_prefix	prefix of the written file (.par is added to the prefix)
+ * @param verbose	print verbose output if not zero
+ *
+ * @returns 0 on success, error otherwise
+ */
+
+int cmp_par_fo_file(const struct cmp_par *par, const char *output_prefix,
+		    int verbose)
+{
+	FILE *fp = open_file(output_prefix, ".par");
+
+	if (fp == NULL) {
+		fprintf(stderr, "%s: %s%s: %s\n", PROGRAM_NAME, output_prefix,
+			".cfg", strerror(errno));
+		return -1;
+	}
+
+	write_cmp_par_internal(fp, par);
+
+	fclose(fp);
+
+	if (verbose)
+		cmp_par_print(par);
 
 	return 0;
 }

@@ -19,31 +19,56 @@
  * @see Data Compression User Manual PLATO-UVIE-PL-UM-0001
  */
 
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
+#include <string.h>
+#include <errno.h>
 #include <getopt.h>
 
+#include "cmp_support.h"
 #include "cmp_tool-config.h"
 #include "cmp_io.h"
 #include "cmp_icu.h"
 #include "cmp_chunk.h"
-#include "cmp_rdcu.h"
+#include "cmp_rdcu_cfg.h"
 #include "decmp.h"
 #include "cmp_guess.h"
 #include "cmp_entity.h"
 #include "rdcu_pkt_to_file.h"
-#include "cmp_data_types.h"
 
 
 #define BUFFER_LENGTH_DEF_FAKTOR 2
 
 #define DEFAULT_MODEL_ID 53264  /* random default id */
 
+/**
+ * @brief checks if an optional argument is present
+ *
+ * this macro evaluates whether the current argument pointer optarg is null and
+ * if there is a valid argument present at the current index of argv it updates
+ * optarg and increments the index optind if an argument is found it also
+ * ensures that the argument is not null empty or another option
+ *
+ * @return true if an optional argument is present and updates optarg
+ * @see https://stackoverflow.com/a/69177115
+ */
+
+#define OPTIONAL_ARGUMENT_IS_PRESENT \
+	((optarg == NULL \
+	&& optind < argc /* make sure optind is valid */ \
+	&& NULL != argv[optind] /* make sure it's not a null string */ \
+	&& '\0' != argv[optind][0] /* ... or an empty string */ \
+	&& '-' != argv[optind][0]) /* ... or another option */ \
+	? ((optarg = argv[optind++]) != NULL) /* update optind so the next getopt_long invocation skips argv[optind] */ \
+	: (optarg != NULL))
+
 
 /* find a good set of compression parameters for a given dataset */
-static int guess_cmp_pars(struct rdcu_cfg *rcfg, const char *guess_cmp_mode,
-			  int guess_level);
+static int guess_cmp_pars(struct rdcu_cfg *rcfg, struct cmp_par *chunk_par,
+			  uint32_t input_size, const char *guess_cmp_mode, const
+			  char *guess_level_str);
 
 /* compress chunk data and write the results to files */
 static int compression_of_chunk(const void *chunk, uint32_t size, void *model,
@@ -77,13 +102,13 @@ enum {
 
 static const struct option long_options[] = {
 	{"rdcu_par", no_argument, NULL, 'a'},
-	{"model_cfg", optional_argument, NULL, 'n'},
+	{"model_cfg", no_argument, NULL, 'n'},
 	{"help", no_argument, NULL, 'h'},
 	{"verbose", no_argument, NULL, 'v'},
 	{"version", no_argument, NULL, 'V'},
 	{"rdcu_pkt", no_argument, NULL, RDCU_PKT_OPTION},
-	{"diff_cfg", optional_argument, NULL, DIFF_CFG_OPTION},
-	{"guess", required_argument, NULL, GUESS_OPTION},
+	{"diff_cfg", no_argument, NULL, DIFF_CFG_OPTION},
+	{"guess", optional_argument, NULL, GUESS_OPTION},
 	{"guess_level", required_argument, NULL, GUESS_LEVEL},
 	{"last_info", required_argument, NULL, LAST_INFO},
 	{"no_header", no_argument, NULL, NO_HEADER},
@@ -139,13 +164,13 @@ int main(int argc, char **argv)
 	const char *info_file_name = NULL;
 	const char *data_file_name = NULL;
 	const char *model_file_name = NULL;
-	const char *guess_cmp_mode = NULL;
+	char *guess_option = NULL;
+	const char *guess_level_str = NULL;
 	const char *program_name = argv[0];
 
 	int cmp_operation = 0;
 	int print_model_cfg = 0;
 	int guess_operation = 0;
-	int guess_level = DEFAULT_GUESS_LEVEL;
 	int print_diff_cfg = 0;
 
 	/* buffer containing all read in compressed data for decompression */
@@ -213,10 +238,11 @@ int main(int argc, char **argv)
 			break;
 		case GUESS_OPTION:
 			guess_operation = 1;
-			guess_cmp_mode = optarg;
+			if (OPTIONAL_ARGUMENT_IS_PRESENT)
+				guess_option = optarg;
 			break;
 		case GUESS_LEVEL:
-			guess_level = atoi(optarg);
+			guess_level_str = optarg;
 			break;
 		case LAST_INFO:
 			last_info_file_name = optarg;
@@ -338,9 +364,13 @@ int main(int argc, char **argv)
 			if (cmp_type == CMP_TYPE_ERROR)
 				goto fail;
 			printf("DONE\n");
-		} else {
+		} else { /* guess_operation */
 			printf("## Search for a good set of compression parameters ##\n");
-			cmp_type = CMP_TYPE_RDCU; /* guess_cmp_pars only works for RDCU like compression */
+
+			if (guess_option == NULL || !case_insensitive_compare(guess_option, "chunk"))
+				cmp_type = CMP_TYPE_CHUNK;
+			else
+				cmp_type = CMP_TYPE_RDCU;
 		}
 
 		printf("Importing data file %s ... ", data_file_name);
@@ -488,7 +518,8 @@ int main(int argc, char **argv)
 	}
 
 	if (guess_operation) {
-		error = guess_cmp_pars(&rcfg, guess_cmp_mode, guess_level);
+		error = guess_cmp_pars(&rcfg, &chunk_par, input_size,
+				       guess_option, guess_level_str);
 	} else if (cmp_operation) {
 		if (cmp_type == CMP_TYPE_CHUNK)
 			error = compression_of_chunk(rcfg.input_buf, input_size,
@@ -542,16 +573,32 @@ fail:
  * @brief find a good set of compression parameters for a given dataset
  */
 
-static int guess_cmp_pars(struct rdcu_cfg *rcfg, const char *guess_cmp_mode,
-			  int guess_level)
+static int guess_cmp_pars(struct rdcu_cfg *rcfg, struct cmp_par *chunk_par,
+			  uint32_t input_size, const char *guess_option,
+			  const char *guess_level_str)
 {
 	int error;
 	uint32_t cmp_size_bit;
 	double cr;
 	enum cmp_data_type data_type;
+	char *endptr;
+	int guess_level;
+
+	if (guess_level_str) {
+		long number = strtol(guess_level_str, &endptr, 10);
+
+		if (errno != 0 || *endptr != '\0' || number < INT_MIN || number > INT_MAX) {
+			printf("Invalid guess level number: %s\n", guess_level_str);
+			return -1;
+		}
+		guess_level = (int)number;
+	} else {
+		guess_level = DEFAULT_GUESS_LEVEL;
+	}
 
 	printf("Search for a good set of compression parameters (level: %d) ... ", guess_level);
-	if (!strcmp(guess_cmp_mode, "RDCU")) {
+	fflush(stdout);
+	if (!case_insensitive_compare(guess_option, "rdcu")) {
 		if (add_rdcu_pars)
 			data_type = DATA_TYPE_IMAGETTE_ADAPTIVE;
 		else
@@ -560,11 +607,13 @@ static int guess_cmp_pars(struct rdcu_cfg *rcfg, const char *guess_cmp_mode,
 			rcfg->cmp_mode = CMP_GUESS_DEF_MODE_MODEL;
 		else
 			rcfg->cmp_mode = CMP_GUESS_DEF_MODE_DIFF;
+	} else if (!case_insensitive_compare(guess_option, "chunk")) {
+		data_type = DATA_TYPE_CHUNK;
 	} else {
 		data_type = DATA_TYPE_IMAGETTE;
-		error = cmp_mode_parse(guess_cmp_mode, &rcfg->cmp_mode);
+		error = cmp_mode_parse(guess_option, &rcfg->cmp_mode);
 		if (error) {
-			fprintf(stderr, "%s: Error: unknown compression mode: %s\n", PROGRAM_NAME, guess_cmp_mode);
+			fprintf(stderr, "%s: Error: unknown guess option: %s\n", PROGRAM_NAME, guess_option);
 			return -1;
 		}
 	}
@@ -573,23 +622,39 @@ static int guess_cmp_pars(struct rdcu_cfg *rcfg, const char *guess_cmp_mode,
 		return -1;
 	}
 
-	cmp_size_bit = cmp_guess(rcfg, guess_level);
-	if (!cmp_size_bit)
-		return -1;
+	if (data_type == DATA_TYPE_CHUNK) {
+		uint32_t result = cmp_guess_chunk(rcfg->input_buf, input_size,
+					rcfg->model_buf, chunk_par, guess_level);
 
-	if (include_cmp_header)
-		cmp_size_bit = CHAR_BIT * (cmp_bit_to_byte(cmp_size_bit) +
-			cmp_ent_cal_hdr_size(data_type, rcfg->cmp_mode == CMP_MODE_RAW));
+		if (cmp_is_error(result))
+			return -1;
+		else
+			cmp_size_bit = 8 * result;
+		printf("DONE\n");
+
+		printf("Write the guessed compression chunk parameters to file %s.par ... ", output_prefix);
+		error = cmp_par_fo_file(chunk_par, output_prefix, io_flags & CMP_IO_VERBOSE);
+		if (error)
+			return -1;
+	} else {
+		input_size = rcfg->samples * sizeof(uint16_t);
+		cmp_size_bit = cmp_guess(rcfg, guess_level);
+		if (!cmp_size_bit)
+			return -1;
+		if (include_cmp_header)
+			cmp_size_bit = CHAR_BIT * (cmp_bit_to_byte(cmp_size_bit) +
+				cmp_ent_cal_hdr_size(data_type, rcfg->cmp_mode == CMP_MODE_RAW));
+		printf("DONE\n");
+
+		printf("Write the guessed compression configuration to file %s.cfg ... ", output_prefix);
+		error = cmp_cfg_fo_file(rcfg, output_prefix, io_flags & CMP_IO_VERBOSE, add_rdcu_pars);
+		if (error)
+			return -1;
+	}
 
 	printf("DONE\n");
 
-	printf("Write the guessed compression configuration to file %s.cfg ... ", output_prefix);
-	error = cmp_cfg_fo_file(rcfg, output_prefix, io_flags & CMP_IO_VERBOSE, add_rdcu_pars);
-	if (error)
-		return -1;
-	printf("DONE\n");
-
-	cr = (8.0 * rcfg->samples * sizeof(uint16_t))/cmp_size_bit;
+	cr = (8.0 * input_size)/cmp_size_bit;
 	printf("Guessed parameters can compress the data with a CR of %.2f.\n", cr);
 
 	return 0;

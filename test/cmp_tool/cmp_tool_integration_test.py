@@ -835,7 +835,7 @@ def test_guess_option():
                        "Search for a good set of compression parameters (level: 2) ... DONE\n" +
                        "Write the guessed compression configuration to file not_exist/guess.cfg ... FAILED\n")
             elif sub_test == 'guess_level_not_supported':
-                assert(stderr == "cmp_tool: guess level not supported!\n")
+                assert(stderr == "cmp_tool: guess level not supported for RDCU guess mode!\n")
                 assert(returncode == EXIT_FAILURE)
                 assert(stdout == CMP_START_STR_GUESS +
                        "Importing data file %s ... \n" % (data_file_name) +
@@ -844,7 +844,7 @@ def test_guess_option():
                        "Search for a good set of compression parameters (level: 10) ... FAILED\n")
             elif sub_test == 'guess_unknown_mode':
                 assert(
-                    stderr == "cmp_tool: Error: unknown compression mode: MODE_UNKNOWN\n")
+                    stderr == "cmp_tool: Error: unknown guess option: MODE_UNKNOWN\n")
                 assert(returncode == EXIT_FAILURE)
                 assert(stdout == CMP_START_STR_GUESS +
                        "Importing data file %s ... \n" % (data_file_name) +
