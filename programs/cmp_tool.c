@@ -745,8 +745,7 @@ static int compression_of_chunk(const void *chunk, uint32_t size, void *model,
 		goto cmp_chunk_fail;
 
 	printf("DONE\nWrite compressed data to file %s.cmp ... ", output_prefix);
-	error = write_data_to_file(cmp_data, (uint32_t)cmp_size, output_prefix,
-				   ".cmp", io_flags);
+	error = write_data_to_file(cmp_data, cmp_size, output_prefix, ".cmp", io_flags);
 
 cmp_chunk_fail:
 	free(cmp_data);

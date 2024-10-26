@@ -37,9 +37,9 @@
 /* *************************************
 *  Debug errors
 ***************************************/
-__extension__
 #if defined(DEBUGLEVEL) && (DEBUGLEVEL >= 1)
 #  include <stdio.h> /* fprintf */
+   __extension__
 #  define DISPLAY(...) fprintf(stderr, __VA_ARGS__)
 #  define DEBUGOUTPUT(...)                    \
 	{                                     \

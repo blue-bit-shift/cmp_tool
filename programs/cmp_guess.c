@@ -146,7 +146,7 @@ static uint32_t pre_cal_method(struct rdcu_cfg *rcfg)
 	rcfg->golomb_par = golomb_par_best;
 	rcfg->spill = spill_best;
 
-	return (uint32_t)cmp_size_best;
+	return cmp_size_best;
 }
 
 
@@ -203,7 +203,7 @@ static uint32_t brute_force(struct rdcu_cfg *rcfg)
 	rcfg->golomb_par = golomb_par_best;
 	rcfg->spill = spill_best;
 
-	return (uint32_t)cmp_size_best;
+	return cmp_size_best;
 }
 
 
