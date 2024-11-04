@@ -36,6 +36,7 @@ int decompress_cmp_entiy_save(const struct cmp_entity *ent, size_t ent_size, con
 
 	if (ent && (decompressed_data || up_model_buf)) {
 		int decmp_size_ent = decompress_cmp_entiy(ent, model_of_data, NULL, NULL);
+
 		if (decmp_size < (size_t)decmp_size_ent || decmp_size_ent < 0)
 			return -1;
 	}
@@ -55,6 +56,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
 	/* Give a random portion of src data to the producer, to use for
 	   parameter generation. The rest will be used for data/model */
 	FUZZ_dataProducer_t *producer = (FUZZ_dataProducer_t *)FUZZ_dataProducer_create(src, size);
+
 	size = FUZZ_dataProducer_reserveDataPrefix(producer);
 	FUZZ_ASSERT(size <= UINT32_MAX);
 
@@ -64,11 +66,10 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
 
 	if (ent_size)
 		ent = (const struct cmp_entity *)src;
-	if (FUZZ_dataProducer_uint32Range(producer, 0, 1)) {
+	if (FUZZ_dataProducer_uint32Range(producer, 0, 1))
 		model_of_data = src + ent_size;
-	} else {
+	else
 		model_of_data = NULL;
-	}
 
 
 	switch (FUZZ_dataProducer_int32Range(producer, 0, 2)) {

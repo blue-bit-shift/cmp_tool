@@ -78,6 +78,6 @@ int cmp_mode_parse(const char *cmp_mode_str, enum cmp_mode *cmp_mode);
 
 enum cmp_data_type string2data_type(const char *data_type_str);
 const char *data_type2string(enum cmp_data_type data_type);
-int case_insensitive_compare(const char* s1, const char* s2);
+int case_insensitive_compare(const char *s1, const char *s2);
 
 #endif /* CMP_IO_H */

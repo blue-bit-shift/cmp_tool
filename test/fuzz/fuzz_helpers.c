@@ -17,12 +17,13 @@
 #include "fuzz_helpers.h"
 
 
-void* FUZZ_malloc(size_t size)
+void *FUZZ_malloc(size_t size)
 {
-    if (size > 0) {
-        void* const mem = malloc(size);
-        FUZZ_ASSERT(mem);
-        return mem;
-    }
-    return NULL;
+	if (size > 0) {
+		void *const mem = malloc(size);
+
+		FUZZ_ASSERT(mem);
+		return mem;
+	}
+	return NULL;
 }

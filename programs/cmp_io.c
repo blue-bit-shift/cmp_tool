@@ -486,11 +486,11 @@ const char *data_type2string(enum cmp_data_type data_type)
  *	themselves are not modified.
  */
 
-int case_insensitive_compare(const char* s1, const char* s2)
+int case_insensitive_compare(const char *s1, const char *s2)
 {
 	size_t i;
 
-	for (i=0; ; ++i) {
+	for (i = 0;  ; ++i) {
 		unsigned int x1 = (unsigned char)s1[i];
 		unsigned int x2 = (unsigned char)s2[i];
 		int r;
@@ -504,7 +504,8 @@ int case_insensitive_compare(const char* s1, const char* s2)
 		if (r)
 			return r;
 
-		if (!x1) return 0;
+		if (!x1)
+			return 0;
 	}
 }
 

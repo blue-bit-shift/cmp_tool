@@ -67,7 +67,7 @@
 
 /* find a good set of compression parameters for a given dataset */
 static int guess_cmp_pars(struct rdcu_cfg *rcfg, struct cmp_par *chunk_par,
-			  uint32_t input_size, const char *guess_cmp_mode, const
+			  uint32_t input_size, const char *guess_option, const
 			  char *guess_level_str);
 
 /* compress chunk data and write the results to files */
@@ -164,7 +164,7 @@ int main(int argc, char **argv)
 	const char *info_file_name = NULL;
 	const char *data_file_name = NULL;
 	const char *model_file_name = NULL;
-	char *guess_option = NULL;
+	const char *guess_option = NULL;
 	const char *guess_level_str = NULL;
 	const char *program_name = argv[0];
 

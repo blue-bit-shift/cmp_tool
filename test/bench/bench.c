@@ -45,7 +45,7 @@
 #define TIMELOOP_NANOSEC (1 * 1000000000ULL) /* 1 second */
 #define MB_UNIT 1000000
 
-enum bench_name {MEMCPY_BENCH, CMP_CHUNK_BENCH=32 };
+enum bench_name {MEMCPY_BENCH, CMP_CHUNK_BENCH = 32};
 
 /* TODO: replace with default config? */
 const struct cmp_par DIFF_CMP_PAR = {
@@ -213,6 +213,7 @@ static int bench_mem(unsigned int benchNb, const void *src, size_t srcSize,
 		void *const avoidStrictAliasingPtr = &dstBuff;
 		BMK_benchParams_t bp;
 		BMK_runTime_t bestResult;
+
 		bestResult.sumOfReturn = 0;
 		bestResult.nanoSecPerRun = (double)TIMELOOP_NANOSEC * 2000000000; /* hopefully large enough : must be larger than any potential measurement */
 		CONTROL(tfs != NULL);
@@ -231,7 +232,7 @@ static int bench_mem(unsigned int benchNb, const void *src, size_t srcSize,
 		bp.dstCapacities = &dstBuffSize;
 		bp.blockResults = NULL;
 
-		while(1) {
+		while (1) {
 			BMK_runOutcome_t const bOutcome = BMK_benchTimedFn(tfs, bp);
 			BMK_runTime_t newResult;
 
@@ -260,7 +261,7 @@ static int bench_mem(unsigned int benchNb, const void *src, size_t srcSize,
 
 static int bench_ref_data(void)
 {
-	int i,d, err = -1;
+	int i, d, err = -1;
 	enum {
 		SHORT_CADENCE,
 		NB_DATA_SETS

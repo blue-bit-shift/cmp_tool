@@ -46,6 +46,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
 	/* Give a random portion of src data to the producer, to use for
 	   parameter generation. The rest will be used for data/model */
 	FUZZ_dataProducer_t *producer = (FUZZ_dataProducer_t *)FUZZ_dataProducer_create(src, size);
+
 	size = FUZZ_dataProducer_reserveDataPrefix(producer);
 
 	FUZZ_dataProducer_cmp_par(producer, &cmp_par);
@@ -132,7 +133,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
 	default:
 		FUZZ_ASSERT(0);
 	}
-	if (!cmp_is_error(return_value) && model != up_model){
+	if (!cmp_is_error(return_value) && model != up_model) {
 		uint32_t return_value2;
 
 		return_value2 = compress_chunk(src, (uint32_t)size, model, up_model,

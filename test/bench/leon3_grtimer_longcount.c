@@ -100,16 +100,13 @@ void grtimer_longcount_get_uptime(struct grtimer_unit *rtu,
 	t0c = ioread32be(&rtu->timer[0].value);
 	t1c = ioread32be(&rtu->timer[1].value);
 
-	if ((t0a >= t0b) && (t1a >= t1b))
-	  {
-	    t0 = t0a;
-	    t1 = t1a;
-	  }
-	else
-	  {
-	    t0 = t0c;
-	    t1 = t1c;
-	  }
+	if ((t0a >= t0b) && (t1a >= t1b)) {
+		t0 = t0a;
+		t1 = t1a;
+	} else {
+		t0 = t0c;
+		t1 = t1c;
+	}
 
 	r0 = ioread32be(&rtu->timer[0].reload);
 	r1 = ioread32be(&rtu->timer[1].reload);
