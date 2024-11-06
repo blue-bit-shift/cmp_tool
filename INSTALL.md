@@ -1,6 +1,5 @@
 # Installation Instructions
 ## Getting started
-
 ### Install git and python 3.7+
 
 If you're on Linux, you probably already have these. On macOS and Windows, you can use the
@@ -8,7 +7,7 @@ If you're on Linux, you probably already have these. On macOS and Windows, you c
 
 ### Install meson and ninja
 
-Meson 0.63 or newer is required.  
+Meson 0.63 or newer is required.
 You can get meson through your package manager or using:
 
 ```
@@ -26,9 +25,10 @@ binary in your PATH.
 We use the version control system [git](https://git-scm.com/downloads) to get a copy of the source code.
 
 ```
-git clone https://gitlab.phaidra.org/loidoltd15/cmp_tool.git  
+git clone https://gitlab.phaidra.org/loidoltd15/cmp_tool.git
 cd cmp_tool
 ```
+
 ## Build the cmp\_tool
 ### Build the cmp\_tool for Debugging
 
@@ -71,7 +71,7 @@ meson compile cmp_tool
 ```
 
 ### Cross-compile for Windows
-Cross-compile for Windows is also possible with the [Mingw-w64 toolchain](https://www.mingw-w64.org/downloads/). To cross-compile for Windows use the following commands: 
+Cross-compile for Windows is also possible with the [Mingw-w64 toolchain](https://www.mingw-w64.org/downloads/). To cross-compile for Windows use the following commands:
 
 ```
 meson setup builddir_cross_win --cross-file=mingw-w64-64.txt
@@ -82,12 +82,13 @@ meson compile cmp_tool
 ## Tests
 ### External dependencies
 
-To run the unit tests you need the [ruby interpreter](https://www.ruby-lang.org/en/documentation/installation/).  
+To run the unit tests you need the [ruby interpreter](https://www.ruby-lang.org/en/documentation/installation/).
 To run the cmp\_tool interface test you need the [pytest](https://docs.pytest.org/en/7.0.x/index.html) framework. The easiest way to install pytest is with `pip3`:
 
 ```
 pip3 install pytest
 ```
+
 ### Run tests
 First, cd in the build directory:
 
@@ -122,7 +123,7 @@ cd <name of the build directory>
 meson configure -Db_coverage=true
 ```
 
-Then issue the following commands.
+Then issue the following commands:
 
 ```
 meson test
@@ -130,6 +131,13 @@ ninja coverage-html
 ```
 
 The coverage report can be found in the `meson-logs/coveragereport` subdirectory.
+
+To reset the coverage data, use the following command:
+
+```
+ninja clean-gcda
+```
+
 ### Benchmarking
 
 To run the compression speed test bench, follow these steps:
@@ -139,9 +147,8 @@ cd <name of the build directory>
 meson test --benchmark
 ```
 
-
 ### Fuzzing
-If you’re unfamiliar with fuzzing and libFuzzer, you can find a tutorial [here](https://github.com/google/fuzzing/blob/master/tutorial/libFuzzerTutorial.md). 
+If you’re unfamiliar with fuzzing and libFuzzer, you can find a tutorial [here](https://github.com/google/fuzzing/blob/master/tutorial/libFuzzerTutorial.md).
 To perform fuzzing with libFuzzer, AddressSanitizer, and UndefinedBehaviorSanitizer, follow these steps:
 
 Set up your build directory with the necessary configurations. Note that you’ll need a clang version that has libFuzzer support. Use the following command:
@@ -172,16 +179,24 @@ meson test fuzz_round_trip\ 10\ min --verbose
 
 Happy fuzzing! 🚀
 
-To reset the coverage data, use the following command:
+#### Fuzzing on macOS
+When fuzzing on macOS, the default clang installation does not support libFuzzer. To properly set up fuzzing on macOS, you'll need to install the LLVM toolchain using Homebrew (`brew install llvm`) and specify the correct library paths.
+When running the meson setup commands, you'll need to set the `LDFLAGS` environment variable to use the Homebrew-installed version of the C++ library:
 
 ```
-ninja clean-gcda
+LDFLAGS="-L$HOMEBREW_PREFIX/opt/llvm/lib/c++" \
+CC=$HOMEBREW_PREFIX/opt/llvm/bin/clang \
+CXX=$HOMEBREW_PREFIX/opt/llvm/bin/clang++ \
+meson setup builddir_fuzzing \
+	# other fuzzing options from above
 ```
 
-## Documentation 
+This ensures the fuzzer is built using the Homebrew-installed Clang and Clang++ compilers, which support libFuzzer, and links against Clang's corresponding C++ library.
+
+## Documentation
 ### External dependencies
 To generate the documentation you need the [Doxygen](https://www.doxygen.nl/index.html) program.
-Optional you can install the "dot" tool from [graphviz](http://www.graphviz.org/) to generate more advanced diagrams and graphs.  
+Optional you can install the "dot" tool from [graphviz](http://www.graphviz.org/) to generate more advanced diagrams and graphs.
 
 ### Generate Documentation
 
