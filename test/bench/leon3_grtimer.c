@@ -189,7 +189,7 @@ void grtimer_clear_restart(struct grtimer_unit *rtu, uint32_t timer)
 
 
 /**
- * @brief set timer to chain to the preceeding timer
+ * @brief set timer to chain to the preceding timer
  * @param rtu a struct grtimer_unit
  * @param timer the selected timer
  */
@@ -206,7 +206,7 @@ void grtimer_set_chained(struct grtimer_unit *rtu, uint32_t timer)
 
 
 /**
- * @brief clear timer to chain to the preceeding timer
+ * @brief clear timer to chain to the preceding timer
  * @param rtu a struct grtimer_unit
  * @param timer the selected timer
  */

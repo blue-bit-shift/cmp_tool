@@ -1846,7 +1846,7 @@ static void write_cmp_par_internal(FILE *fp, const struct cmp_par *par)
 		return;
 
 	if (!par) {
-		fprintf(fp, "Pointer to the compression parmeters is NULL.\n");
+		fprintf(fp, "Pointer to the compression parameters is NULL.\n");
 		return;
 	}
 

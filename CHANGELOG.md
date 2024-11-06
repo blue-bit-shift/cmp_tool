@@ -86,7 +86,7 @@ E.g. "# comment\n ABCD 1    2\n34B 12\n" are interpreted as {0xAB, 0xCD,
 ### Fixed
 - fixes small errors when reading the data
 ### Added
-- add frame script to mange multiple compression in a raw
+- add frame script to manage multiple compression in a raw
 - add last_info option to generate RMAP packets to read the last compression results in parallel
 
 ## [0.04] - 12-08-2020
