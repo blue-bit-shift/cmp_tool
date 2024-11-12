@@ -47,7 +47,7 @@ UTIL_time_t UTIL_getTime(void)
 {
 	static struct grtimer_unit *rtu = (struct grtimer_unit *)LEON3_BASE_ADDRESS_GRTIMER;
 	static struct grtimer_uptime start;
-	static int init = 0;
+	static int init;
 
 	if (!init) {
 		int32_t const err = grtimer_longcount_start(rtu, GRTIMER_RELOAD,
@@ -77,7 +77,7 @@ UTIL_time_t UTIL_getTime(void)
 UTIL_time_t UTIL_getTime(void)
 {
 	static LARGE_INTEGER ticksPerSecond;
-	static int init = 0;
+	static int init;
 
 	if (!init) {
 		if (!QueryPerformanceFrequency(&ticksPerSecond)) {
@@ -89,6 +89,7 @@ UTIL_time_t UTIL_getTime(void)
 	{
 		UTIL_time_t r;
 		LARGE_INTEGER x;
+
 		QueryPerformanceCounter(&x);
 		r.t = (PTime)(x.QuadPart * 1000000000ULL / ticksPerSecond.QuadPart);
 		return r;
@@ -102,7 +103,7 @@ UTIL_time_t UTIL_getTime(void)
 UTIL_time_t UTIL_getTime(void)
 {
 	static mach_timebase_info_data_t rate;
-	static int init = 0;
+	static int init;
 
 	if (!init) {
 		mach_timebase_info(&rate);
@@ -110,6 +111,7 @@ UTIL_time_t UTIL_getTime(void)
 	}
 	{
 		UTIL_time_t r;
+
 		r.t = mach_absolute_time() * (PTime)rate.numer /
 		      (PTime)rate.denom;
 		return r;
@@ -136,6 +138,7 @@ UTIL_time_t UTIL_getTime(void)
 	}
 	{
 		UTIL_time_t r;
+
 		r.t = (PTime)time.tv_sec * 1000000000ULL + (PTime)time.tv_nsec;
 		return r;
 	}
@@ -145,11 +148,11 @@ UTIL_time_t UTIL_getTime(void)
  * C11 requires support of timespec_get().
  * However, FreeBSD 11 claims C11 compliance while lacking timespec_get().
  * Double confirm timespec_get() support by checking the definition of TIME_UTC.
- * However, some versions of Android manage to simultanously define TIME_UTC
+ * However, some versions of Android manage to simultaneously define TIME_UTC
  * and lack timespec_get() support...
  */
-#elif (defined(__STDC_VERSION__) &&                \
-       (__STDC_VERSION__ >= 201112L) /* C11 */) && \
+#elif (defined(__STDC_VERSION__) &&			\
+	(__STDC_VERSION__ >= 201112L) /* C11 */) &&	\
 	defined(TIME_UTC) && !defined(__ANDROID__)
 
 #include <stdlib.h> /* abort */
@@ -162,12 +165,14 @@ UTIL_time_t UTIL_getTime(void)
 	 * reason, likely a limitation of timespec_get() for some target
 	 */
 	struct timespec time = { 0, 0 };
+
 	if (timespec_get(&time, TIME_UTC) != TIME_UTC) {
 		perror("timefn::timespec_get(TIME_UTC)");
 		abort();
 	}
 	{
 		UTIL_time_t r;
+
 		r.t = (PTime)time.tv_sec * 1000000000ULL + (PTime)time.tv_nsec;
 		return r;
 	}
@@ -178,6 +183,7 @@ UTIL_time_t UTIL_getTime(void)
 UTIL_time_t UTIL_getTime(void)
 {
 	UTIL_time_t r;
+
 	r.t = (PTime)clock() * 1000000000ULL / CLOCKS_PER_SEC;
 	return r;
 }
@@ -201,12 +207,14 @@ PTime UTIL_getSpanTimeMicro(UTIL_time_t begin, UTIL_time_t end)
 PTime UTIL_clockSpanMicro(UTIL_time_t clockStart)
 {
 	UTIL_time_t const clockEnd = UTIL_getTime();
+
 	return UTIL_getSpanTimeMicro(clockStart, clockEnd);
 }
 
 PTime UTIL_clockSpanNano(UTIL_time_t clockStart)
 {
 	UTIL_time_t const clockEnd = UTIL_getTime();
+
 	return UTIL_getSpanTimeNano(clockStart, clockEnd);
 }
 
@@ -214,6 +222,7 @@ void UTIL_waitForNextTick(void)
 {
 	UTIL_time_t const clockStart = UTIL_getTime();
 	UTIL_time_t clockEnd;
+
 	do {
 		clockEnd = UTIL_getTime();
 	} while (UTIL_getSpanTimeNano(clockStart, clockEnd) == 0);

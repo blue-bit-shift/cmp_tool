@@ -15,18 +15,12 @@
 #ifndef FUZZ_HELPERS_H
 #define FUZZ_HELPERS_H
 
-#include "fuzz.h"
-#include "fuzz_data_producer.h"
-#include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
-#define MAX(a, b) ((a) > (b) ? (a) : (b))
 
 #define FUZZ_QUOTE_IMPL(str) #str
 #define FUZZ_QUOTE(str) FUZZ_QUOTE_IMPL(str)
@@ -40,36 +34,8 @@ extern "C" {
                      __LINE__, FUZZ_QUOTE(cond), (msg)),                       \
              abort()))
 #define FUZZ_ASSERT(cond) FUZZ_ASSERT_MSG((cond), "");
-#define FUZZ_ZASSERT(code)                                                     \
-  FUZZ_ASSERT_MSG(!ZSTD_isError(code), ZSTD_getErrorName(code))
 
-#if defined(__GNUC__)
-#define FUZZ_STATIC static __inline __attribute__((unused))
-#elif defined(__cplusplus) ||                                                  \
-    (defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 199901L) /* C99 */)
-#define FUZZ_STATIC static inline
-#elif defined(_MSC_VER)
-#define FUZZ_STATIC static __inline
-#else
-#define FUZZ_STATIC static
-#endif
-
-/**
- * malloc except return NULL for zero sized data and FUZZ_ASSERT
- * that malloc doesn't fail.
- */
 void* FUZZ_malloc(size_t size);
-
-/**
- * malloc except returns random pointer for zero sized data and FUZZ_ASSERT
- * that malloc doesn't fail.
- */
-void* FUZZ_malloc_rand(size_t size,  FUZZ_dataProducer_t *producer);
-
-/**
- * memcmp but accepts NULL. Ignore negative sizes
- */
-int FUZZ_memcmp(void const* lhs, void const* rhs, int32_t size);
 
 #ifdef __cplusplus
 }

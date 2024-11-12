@@ -1,13 +1,69 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [0.13] - 08-11-2024
 ### Added
-- add -vv flag for extra verbose output
-###Changed
-- -last_info option: skip model transfer if last updated model buffer and the current model buffer overlap exactly
+- added chunk-specific compression parameter guessing functionality
+ - added chunk compression parameter file I/O functionality
+- added fuzz target for decompression
+- added Github action to compile with Werror and run tests
+- added unit tests to improve code coverage
+### Changed
+- improved spillover threshold calculation logic for chunk compression
+- downgraded reserved field check from error to warning in decompression
+- added const qualifiers for (de)compression parameters
+- renamed CMP_ERROR_SMALL_BUF_ to CMP_ERROR_SMALL_BUFFER
+- replaced dynamic max_used_bits struct with constant definition
+- separated RDCU configuration into its own struct
+- consolidated l_fx_variance and l_cob_variance into single l_fx_cob_variance field
+- changed return type of compress_like_rdcu from int32_t to uint32_t
+- updated Doxygen configuration and comments
+ - updated doxygen-awesome-css submodule to latest version
+ - fixed spelling errors and grammar in documentation and messages
+### Fixed
+- corrected size calculation when `dst` is NULL in `compress_chunk()`
+- fix be24_to_cpu function for big-endian systems
+- fix collection size validation in decompression header
+### Removed
+- remove deprecated ICU compression interface
+- remove (de)compression from fast cadence data products
 
-## [0.11] - 26-04-2023
+## [0.12] - 2024-05-02
+### Added
+- added chunk (de)compression
+- added test case for chunk (de)compression
+- added -vv flag for extra verbose output
+- fuzzing
+ - added fuzzing targets configuration in meson build system
+ - added GitHub Actions workflow for ClusterFuzzLite integration
+- added compression speed test bench
+ - added wrapper to execute programmes on a LEON setup
+- added examples for software and hardware compression
+- updated unit tests
+- added compression and decompression for DATA_TYPE_F_CAM_OFFSET and DATA_TYPE_F_CAM_BACKGROUND
+- documentation was improved with additional comments and doxygen strings
+### Changed
+- enhanced error handling in chunk compression functions
+ - compression function now returns error code upon failure
+ - Added error code checking with cmp_get_error_code()
+ - added descriptive strings for each error code
+- updated debug_print() for better environment adaptability
+- adapted to C standard GNU89 with GCC extensions
+- restructured file layout:
+ - split lib folder into common, decompress, icu_compress rdcu_compress
+ - moved cmp_tool files into programs directory
+### Fixed
+- Fixed cross-compilation to Windows on Ubuntu/Debian
+- Fixed cmp_tool chunk compression entity header
+- Fixed model update for NULL dst and worst case model mode
+- Fixed unaligned access when compressing imagettes
+- Fixed sparc compiler warnings and compatibility issues
+- Fixed compiler warning for datetime deprecation
+### Removed
+- removed unused CMP_MODE_STUFF compression mode
+- removed unused files and code
+
+## [0.11] - 2023-04-26
 ### Added
 - add -b or --binary option for read and write files in binary format
 - add cross compile file for sparc
@@ -27,7 +83,7 @@ All notable changes to this project will be documented in this file.
 - fixed several bug when using the last_info option
 - fix a bug in the calculation of the adaptive compression sizes
 
-## [0.09] - 30-09-2022
+## [0.09] - 2022-09-30
 ### Added
 - decompression/compression for non-imagette data
 - functions to create and configure a compression configuration
@@ -39,7 +95,7 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 - now the adaptive compression size (ap1_cmp_size, ap2_cmp_size) is calculate when the --rdcu_par option is used
 
-## [0.08] - 19-01-2021
+## [0.08] - 2021-01-19
 ### Added
 - Relax the requirements on the input format
 A whitespace (space (0x20), form feed (0x0c), line feed (0x0a), carriage return
@@ -58,12 +114,12 @@ E.g. "# comment\n ABCD 1    2\n34B 12\n" are interpreted as {0xAB, 0xCD,
 ### Changed
 - Rename cmp_tool_lib.c to cmp_io.c
 
-## [0.07] - 13-12-2021
+## [0.07] - 2021-12-13
 - **NOTE:**  The behaviour of the cmp_tool has changed. From now on, the compressed data will be preceded by a header by default. The old behaviour can be achieved with the `--no_header` option.
 - Implement the compression entity header as defined in PLATO-UVIE-PL-UM-0001 for compression and decompression
 - small bug fixes
 
-## [0.06] - 12-11-2021
+## [0.06] - 2021-11-12
 - if samples = 0 the cmp_tool counts the samples in the data file and uses them
 - if buffer_length = 0 the 2*samples parameter is used as buffer_length
 - added feature to guess the compression configuration
@@ -71,30 +127,30 @@ E.g. "# comment\n ABCD 1    2\n34B 12\n" are interpreted as {0xAB, 0xCD,
 - added more detailed error messages
 - small bug fixes
 
-## [0.05] - 23-04-2021
+## [0.05] - 2021-04-23
 ### Removed
 - discard old file format. Now the only input format is like: 12 AB 23 CD .. ..
 ### Changed
 - change to new compression and decompression library
 
-## [0.05 Beta 2] - 04-12-2020
+## [0.05 Beta 2] - 2020-12-04
 ### Fixed
 - packet file number now 4 digits long
 - now the mtu size in .rdcu_pkt_mode_cfg file for the data packets
 
-## [0.05 Beta] - 17-11-2020
+## [0.05 Beta] - 2020-11-17
 ### Fixed
 - fixes small errors when reading the data
 ### Added
-- add frame script to mange multiple compression in a raw
+- add frame script to manage multiple compression in a raw
 - add last_info option to generate RMAP packets to read the last compression results in parallel
 
-## [0.04] - 12-08-2020
+## [0.04] - 2020-08-12
 ### Fixed
 - fixes an error when reading compressed data for decompression when compiled for a 32-bit system where a long integer has 4 bytes
 - fixes a bug that generates wrong packets for reading data from the RDCU with the --rdcu_pkt option
 
-## [0.03] - 07-07-2020
+## [0.03] - 2020-07-07
 ### Added
 - README: add a note for the --rdcu_pkt option
 ### Fixed
@@ -103,7 +159,7 @@ E.g. "# comment\n ABCD 1    2\n34B 12\n" are interpreted as {0xAB, 0xCD,
 - if the --rdcu_pkt option is set the program now also sets the RDCU Interrupt Enable bit.
 - fix typo in Help and README
 
-## [0.02] - 02-06-2020
+## [0.02] - 2020-06-02
 ### Added
 - add --rdcu_pkt option to generate the packets to set a RDCU compression
 - add --model_cfg, --diff_cfg option to print default model/1d-diff configuration
@@ -116,8 +172,6 @@ E.g. "# comment\n ABCD 1    2\n34B 12\n" are interpreted as {0xAB, 0xCD,
 ### Removed
 - removes comma symbol as indicator for a comment
 
-## [0.01] - 06-05-2020
+## [0.01] - 2020-05-06
 ### Added
 - initialte realse
-
-

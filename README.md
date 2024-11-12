@@ -51,30 +51,37 @@ The generated packets can be found in the `TC_FILES` directory.
 | `-i <file>` | File containing the decompression information (required if --no_header was used)|
 
 ### Guessing Options
+| Options                 | Description                                                            |
+|:------------------------|:-----------------------------------------------------------------------|
+| `--guess <rdcu|chunk>`  | Search for a good configuration for compression RDCU or chunk data set |
+| `-d <file>`             | File containing the data to be compressed                              |
+| `-m <file>`             | File containing the model of the data to be compressed                 |
+| `--guess_level <level>` | Set guess level to \<level\> (optional)<sup>[4](#fnote4)</sup>         |
 
-| Options                 | Description                                                                     |
-|:------------------------|:--------------------------------------------------------------------------------|
-| `--guess <mode>`        | Search for a good configuration for compression \<mode\><sup>[4](#fnote4)</sup> |
-| `-d <file>`             | File containing the data to be compressed                                       |
-| `-m <file>`             | File containing the model of the data to be compressed                          |
-| `--guess_level <level>` | Set guess level to \<level\> (optional)<sup>[5](#fnote5)</sup>                  |
-
-<a name="fnote4">4</a>) **NOTE:** \<mode\> can be either the compression mode
-number or the keyword: `RDCU`. The RDCU mode automatically selects the correct
-RDCU-compatible compression mode depending on if the Model (-m) option is set.  
-<a name="fnote5">5</a>) **Supported levels:** 
+<a name="fnote4">4</a>) **Supported levels:** 
 
 | guess level | Description                     |
 |:------------|:--------------------------------|
-| `1`         | fast mode (not implemented yet) |
+| `1`         | fast mode                       |
 | `2`         | default mode                    |
-| `3`         | brute force                     |
+| `3`         | slow mode (better results)      |
 
-**Example of Compression Parameter guessing:**
+Lower values increase step size (coarser search), while higher values decrease step size (finer search).
 
-``./cmp_tool --guess RDCU -d test_data/test_data1.dat -o myguess``
+#### Examples of Compression Parameter guessing:
 
-This command creates the file `myguess.cfg` with the guessed compression parameters.
+```bash
+# RDCU data compression guessing
+./cmp_tool --guess rdcu -d test_data/test_data1.dat -o rdcu_guess
+
+# Chunk mode guessing
+./cmp_tool --guess chunk -d chunk_data.dat -o chunk_guess
+
+# Custom guess level with model
+./cmp_tool --guess chunk -d chunk_data.dat -m chunk_model.dat --guess_level 3 -o chunk_guess_3
+```
+
+These commands create `.cfg` files for RDCU compression parameters. For chunk mode, a `.par` file is created containing all parameters for chunk compression.
 
 ### Data Format
 The input data is formatted as hexadecimal numbers.

@@ -45,7 +45,7 @@
 #define TIMELOOP_NANOSEC (1 * 1000000000ULL) /* 1 second */
 #define MB_UNIT 1000000
 
-enum bench_name {MEMCPY_BENCH, CMP_CHUNK_BENCH=32 };
+enum bench_name {MEMCPY_BENCH, CMP_CHUNK_BENCH = 32};
 
 /* TODO: replace with default config? */
 const struct cmp_par DIFF_CMP_PAR = {
@@ -170,8 +170,7 @@ static size_t local_compress_chunk(const void *src, size_t srcSize, const void *
 {
 	struct cmp_par *par = (struct cmp_par *)payload;
 
-	/* FIXME: cast from 'const void *' to 'void *' drops const qualifier */
-	return compress_chunk((void *)src, (uint32_t)srcSize, (void *)model, upmodel,
+	return compress_chunk(src, (uint32_t)srcSize, model, upmodel,
 			      dst, (uint32_t)dstSize, par);
 }
 
@@ -214,6 +213,7 @@ static int bench_mem(unsigned int benchNb, const void *src, size_t srcSize,
 		void *const avoidStrictAliasingPtr = &dstBuff;
 		BMK_benchParams_t bp;
 		BMK_runTime_t bestResult;
+
 		bestResult.sumOfReturn = 0;
 		bestResult.nanoSecPerRun = (double)TIMELOOP_NANOSEC * 2000000000; /* hopefully large enough : must be larger than any potential measurement */
 		CONTROL(tfs != NULL);
@@ -232,7 +232,7 @@ static int bench_mem(unsigned int benchNb, const void *src, size_t srcSize,
 		bp.dstCapacities = &dstBuffSize;
 		bp.blockResults = NULL;
 
-		while(1) {
+		while (1) {
 			BMK_runOutcome_t const bOutcome = BMK_benchTimedFn(tfs, bp);
 			BMK_runTime_t newResult;
 
@@ -261,7 +261,7 @@ static int bench_mem(unsigned int benchNb, const void *src, size_t srcSize,
 
 static int bench_ref_data(void)
 {
-	int i,d, err = -1;
+	int i, d, err = -1;
 	enum {
 		SHORT_CADENCE,
 		NB_DATA_SETS
@@ -295,11 +295,11 @@ static int bench_ref_data(void)
 			data_set_name = "short cadence (1.4MB)";
 
 			/* reference data are stored compressed */
-			decmp_size = decompress_cmp_entiy((void *)ref_short_cadence_1_cmp,
+			decmp_size = decompress_cmp_entiy((const void *)ref_short_cadence_1_cmp,
 							  NULL, NULL, model);
 			CONTROL(decmp_size > 0);
 			size = (size_t)decmp_size;
-			decmp_size = decompress_cmp_entiy((void *)ref_short_cadence_2_cmp,
+			decmp_size = decompress_cmp_entiy((const void *)ref_short_cadence_2_cmp,
 							  model, NULL, data);
 			CONTROL(decmp_size == (int)size);
 

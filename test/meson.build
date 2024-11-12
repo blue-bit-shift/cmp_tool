@@ -48,12 +48,12 @@ test_env.set('ASAN_OPTIONS',
   'use_sigaltstack=1',
   'dedup_token_length=3'
 )
-if cc.has_argument('-fsanitize=leak')
+if cc.has_argument('-fsanitize=leak') and not (host_machine.system() == 'darwin' and host_machine.cpu_family() == 'aarch64' and cc.get_id() == 'clang')
   test_env.append('ASAN_OPTIONS', 'detect_leaks=1')
 endif
 
 test_env.set('UBSAN_OPTIONS',
-  'abort_on_error=1',
+  'halt_on_error=1',
   'print_stacktrace=1',
   'print_summary=1',
   'symbolize=1',
@@ -71,6 +71,7 @@ subdir('tools')
 subdir('cmp_tool')
 
 unity_dep = dependency('unity', fallback : ['unity', 'unity_dep'])
+m_dep = cc.find_library('m', required : false)
 subdir('test_common')
 subdir('fuzz')
 
@@ -81,7 +82,6 @@ subdir('cmp_decmp')
 subdir('cmp_data_types')
 subdir('cmp_entity')
 subdir('cmp_rdcu_cfg')
-subdir('cmp_max_used_bits')
 
 
 test_args = '-Wno-missing-declarations' # The test runner generator does not generate header files
@@ -104,7 +104,7 @@ if ruby.found()
       test_src, test_runner,
       include_directories : incdir,
       link_with : test_libs,
-      dependencies : unity_dep,
+      dependencies : [unity_dep, m_dep],
       c_args : test_args,
       build_by_default : false
     )

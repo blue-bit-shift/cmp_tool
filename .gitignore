@@ -60,6 +60,7 @@ cmp_tool
 
 # C/C++/ObjC language server
 .ccls-cache
+.cache
 
 
 ### Gcov ###

@@ -37,9 +37,9 @@ int init_rmap_pkt_to_file(void);
 
 void set_tc_folder_dir(const char *dir_name);
 
-int gen_write_rdcu_pkts(const struct cmp_cfg *cfg);
+int gen_write_rdcu_pkts(const struct rdcu_cfg *rcfg);
 int gen_read_rdcu_pkts(const struct cmp_info *info);
-int gen_rdcu_parallel_pkts(const struct cmp_cfg *cfg,
+int gen_rdcu_parallel_pkts(const struct rdcu_cfg *rcfg,
 			   const struct cmp_info *last_info);
 
 #endif /* RDCU_PKT_TO_FILE_H */

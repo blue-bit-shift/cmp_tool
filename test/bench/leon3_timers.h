@@ -26,7 +26,7 @@
 #define LEON3_TIMER_LD	0x00000004U      /* load counter    */
 #define LEON3_TIMER_IE	0x00000008U      /* irq enable      */
 #define LEON3_TIMER_IP	0x00000010U      /* irq pending (clear by writing 0 */
-#define LEON3_TIMER_CH	0x00000020U      /* chain with preceeding timer */
+#define LEON3_TIMER_CH	0x00000020U      /* chain with preceding timer */
 
 #define LEON3_CFG_TIMERS_MASK	0x00000007
 #define LEON3_CFG_IRQNUM_MASK	0x000000f8

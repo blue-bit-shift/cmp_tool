@@ -1,5 +1,5 @@
 project('cmp_tool', 'c',
-  version : '0.12',
+  version : '0.13',
   meson_version : '>= 0.63',
   license : 'GPL-2.0',
   default_options : [
@@ -23,7 +23,7 @@ add_global_arguments('-Wno-long-long', language : 'c')
 cc_flags = ['-DDEBUGLEVEL=@0@'.format(debug_level)]
 if use_debug
   debug_flags = [
-    '-Wstrict-aliasing=1',
+    '-Wstrict-aliasing',
     '-Wcast-align',
     '-Wredundant-decls',
     '-Wundef',
@@ -53,6 +53,9 @@ if ['windows', 'cygwin'].contains(host_machine.system()) and cc.get_id() == 'gcc
   add_global_link_arguments('-static', language: 'c')
 endif
 
+if get_option('fuzzer').enabled()
+  add_global_arguments('-DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION', language: ['c', 'cpp'])
+endif
 
 # Subdirs
 subdir('lib')

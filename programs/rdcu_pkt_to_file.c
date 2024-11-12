@@ -37,14 +37,14 @@
 #include <cmp_rdcu_testing.h>
 
 
-/* Name of directory were the RMAP packages are stored */
+/* Name of the directory where the RMAP packages are stored */
 static char tc_folder_dir[MAX_TC_FOLDER_DIR_LEN] = "TC_FILES";
 
 
 /**
- * @brief set the directory name were the RMAP packages are stored
+ * @brief set the directory name where the RMAP packages are stored
  *
- * @param dir_name	Name of directory were the RMAP packages are stored
+ * @param dir_name	name of the directory where the RMAP packages are stored
  */
 
 void set_tc_folder_dir(const char *dir_name)
@@ -62,7 +62,7 @@ void set_tc_folder_dir(const char *dir_name)
  * @brief return a file to write with the name format dir_name/XXX.tc, where XXX
  *	is n_tc in decimal representation
  *
- * @param dir_name	name of directory were the RMAP packages are stored
+ * @param dir_name	name of the directory where the RMAP packages are stored
  * @param n_tc		number of TC commands
  *
  * @return	pointer to the new file stream
@@ -103,8 +103,8 @@ static FILE *open_file_tc(const char *dir_name, int n_tc)
 
 
 /**
- * @brief Implementation of the rmap_rx function for the rdcu_rmap lib. All
- *	generated packages are write to a file.
+ * @brief implementation of the rmap_rx function for the rdcu_rmap lib, all
+ *	generated packages are written to a file.
  */
 
 static int32_t rmap_tx_to_file(const void *hdr, uint32_t hdr_size,
@@ -242,7 +242,8 @@ static int read_rdcu_pkt_mode_cfg(uint8_t *icu_addr, uint8_t *rdcu_addr,
 
 		if (line[0] == ' ' || line[0] == '\t' || line[0] == '#')
 			continue;
-		if (!strncmp(line, "ICU_ADDR", l = strlen("ICU_ADDR"))) {
+		l = strlen("ICU_ADDR");
+		if (!strncmp(line, "ICU_ADDR", l)) {
 			end = NULL;
 			errno = 0;
 			i = strtoul(line + l, &end, 0);
@@ -255,7 +256,8 @@ static int read_rdcu_pkt_mode_cfg(uint8_t *icu_addr, uint8_t *rdcu_addr,
 			*icu_addr = (uint8_t)i;
 			continue;
 		}
-		if (!strncmp(line, "RDCU_ADDR", l = strlen("RDCU_ADDR"))) {
+		l = strlen("RDCU_ADDR");
+		if (!strncmp(line, "RDCU_ADDR", l)) {
 			end = NULL;
 			errno = 0;
 			i = strtoul(line + l, &end, 0);
@@ -268,7 +270,8 @@ static int read_rdcu_pkt_mode_cfg(uint8_t *icu_addr, uint8_t *rdcu_addr,
 			*rdcu_addr = (uint8_t)i;
 			continue;
 		}
-		if (!strncmp(line, "MTU", l = strlen("MTU"))) {
+		l = strlen("MTU");
+		if (!strncmp(line, "MTU", l)) {
 			end = NULL;
 			errno = 0;
 			i = strtoul(line + l, &end, 0);
@@ -317,23 +320,23 @@ int init_rmap_pkt_to_file(void)
 
 
 /**
- * @brief generate the rmap packets to set up an RDCU compression
+ * @brief generates the RMAP packets to set up an RDCU compression
  * @note note that the initialization function init_rmap_pkt_to_file() must be
  *	executed before
  * @note the configuration of the ICU_ADDR, RDCU_ADDR, MTU settings are in the
  *	.rdcu_pkt_mode_cfg file
  *
- * @param cfg	compressor configuration contains all parameters required for
- *		compression
+ * @param rcfg	RDCU compressor configuration contains all parameters required
+ *		for compression
  *
  * @returns 0 on success, error otherwise
  */
 
-int gen_write_rdcu_pkts(const struct cmp_cfg *cfg)
+int gen_write_rdcu_pkts(const struct rdcu_cfg *rcfg)
 {
 	struct stat st = { 0 };
 
-	if (!cfg)
+	if (!rcfg)
 		return -1;
 
 	/* creating TC_DIR directory if that directory does not exist */
@@ -349,7 +352,7 @@ int gen_write_rdcu_pkts(const struct cmp_cfg *cfg)
 	}
 
 	set_tc_folder_dir(TC_DIR "/compress_data");
-	if (rdcu_compress_data(cfg))
+	if (rdcu_compress_data(rcfg))
 		return -1;
 
 	return 0;
@@ -357,7 +360,7 @@ int gen_write_rdcu_pkts(const struct cmp_cfg *cfg)
 
 
 /**
- * @brief generate the rmap packets to read the result of an RDCU compression
+ * @brief generates the RMAP packets to read the result of an RDCU compression
  * @note note that the initialization function init_rmap_pkt_to_file() must be
  *	executed before
  * @note the configuration of the ICU_ADDR, RDCU_ADDR, MTU settings are in the
@@ -428,7 +431,7 @@ int gen_read_rdcu_pkts(const struct cmp_info *info)
 
 
 /**
- * @brief generate the rmap packets to set up an RDCU compression, read the
+ * @brief generate the RMAP packets to set up an RDCU compression, read the
  *	bitstream and the updated model in parallel to write the data to compressed
  *	and the model and start the compression
  * @note the compressed data are read from cfg->rdcu_buffer_adr with the length
@@ -438,20 +441,20 @@ int gen_read_rdcu_pkts(const struct cmp_info *info)
  * @note the configuration of the ICU_ADDR, RDCU_ADDR, MTU settings are in the
  *	.rdcu_pkt_mode_cfg file
  *
- * @param cfg		compressor configuration contains all parameters required for
- *			compression
+ * @param rcfg		RDCU compressor configuration contains all parameters
+ *			required for compression
  * @param last_info	compression information from the last executed
  *			compression
  *
  * @returns 0 on success, error otherwise
  */
 
-int gen_rdcu_parallel_pkts(const struct cmp_cfg *cfg,
+int gen_rdcu_parallel_pkts(const struct rdcu_cfg *rcfg,
 			   const struct cmp_info *last_info)
 {
 	struct stat st = { 0 };
 
-	if (!cfg)
+	if (!rcfg)
 		return -1;
 
 	/* creating TC_DIR directory if that directory does not exist */
@@ -467,7 +470,7 @@ int gen_rdcu_parallel_pkts(const struct cmp_cfg *cfg,
 	}
 
 	set_tc_folder_dir(TC_DIR "/compress_data_parallel");
-	if (rdcu_compress_data_parallel(cfg, last_info))
+	if (rdcu_compress_data_parallel(rcfg, last_info))
 		return -1;
 
 	return 0;

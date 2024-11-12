@@ -52,12 +52,11 @@ int demo_rdcu_compression(void)
 	int cnt = 0;
 
 	/* declare configuration, status and information structure */
-	struct cmp_cfg example_cfg;
+	struct rdcu_cfg example_rcfg;
 	struct cmp_status example_status;
 	struct cmp_info example_info;
 
 	/* declare data buffers with some example data */
-	enum cmp_data_type example_data_type = DATA_TYPE_IMAGETTE_ADAPTIVE;
 	uint16_t data[DATA_SAMPLES] = {42, 23, 1, 13, 20, 1000};
 	uint16_t model[DATA_SAMPLES] = {0, 22, 3, 42, 23, 16};
 
@@ -66,20 +65,19 @@ int demo_rdcu_compression(void)
 	rdcu_rmap_init(MAX_PAYLOAD_SIZE, rmap_tx, rmap_rx);
 
 	/* set up compressor configuration */
-	example_cfg = rdcu_cfg_create(example_data_type, CMP_DEF_IMA_MODEL_CMP_MODE,
-				      CMP_DEF_IMA_MODEL_MODEL_VALUE, CMP_DEF_IMA_MODEL_LOSSY_PAR);
-	if (example_cfg.data_type == DATA_TYPE_UNKNOWN) {
+	if(rdcu_cfg_create(&example_rcfg, CMP_DEF_IMA_MODEL_CMP_MODE,
+			   CMP_DEF_IMA_MODEL_MODEL_VALUE, CMP_DEF_IMA_MODEL_LOSSY_PAR)) {
 		printf("Error occurred during rdcu_cfg_create()\n");
 		return -1;
 	}
 
-	if (rdcu_cfg_buffers(&example_cfg, data, DATA_SAMPLES, model, CMP_DEF_IMA_MODEL_RDCU_DATA_ADR,
+	if (rdcu_cfg_buffers(&example_rcfg, data, DATA_SAMPLES, model, CMP_DEF_IMA_MODEL_RDCU_DATA_ADR,
 			     CMP_DEF_IMA_MODEL_RDCU_MODEL_ADR, CMP_DEF_IMA_MODEL_RDCU_UP_MODEL_ADR,
 			     CMP_DEF_IMA_MODEL_RDCU_BUFFER_ADR, CMP_BUF_LEN_SAMPLES)) {
 		printf("Error occurred during rdcu_cfg_buffers()\n");
 		return -1;
 	}
-	if (rdcu_cfg_imagette(&example_cfg,
+	if (rdcu_cfg_imagette(&example_rcfg,
 			      CMP_DEF_IMA_MODEL_GOLOMB_PAR, CMP_DEF_IMA_MODEL_SPILL_PAR,
 			      CMP_DEF_IMA_MODEL_AP1_GOLOMB_PAR, CMP_DEF_IMA_MODEL_AP1_SPILL_PAR,
 			      CMP_DEF_IMA_MODEL_AP2_GOLOMB_PAR, CMP_DEF_IMA_MODEL_AP2_SPILL_PAR)) {
@@ -88,7 +86,7 @@ int demo_rdcu_compression(void)
 	}
 
 	/* start HW compression */
-	if (rdcu_compress_data(&example_cfg)) {
+	if (rdcu_compress_data(&example_rcfg)) {
 		printf("Error occurred during rdcu_compress_data()\n");
 		return -1;
 	}
@@ -140,16 +138,16 @@ int demo_rdcu_compression(void)
 	}
 
 	/* build a compression entity and put compressed data from the RDCU into it and print */
-	if (1) {
+	{
 		struct cmp_entity *cmp_ent;
 		void *cmp_ent_data;
 		size_t cmp_ent_size;
 		uint32_t i, s;
 
 		/* get the size of the compression entity */
-		cmp_ent_size = cmp_ent_build(NULL, CMP_ASW_VERSION_ID,
-					     START_TIME, END_TIME, MODEL_ID, MODEL_COUNTER,
-					     &example_cfg, (int)example_info.cmp_size);
+		cmp_ent_size = cmp_ent_create(NULL, DATA_TYPE_IMAGETTE_ADAPTIVE,
+					      example_info.cmp_mode_used == CMP_MODE_RAW,
+					      cmp_bit_to_byte(example_info.cmp_size));
 		if (!cmp_ent_size) {
 			printf("Error occurred during cmp_ent_build()\n");
 			return -1;
@@ -163,11 +161,36 @@ int demo_rdcu_compression(void)
 		}
 
 		/* now let us build the compression entity */
-		cmp_ent_size = cmp_ent_build(cmp_ent, CMP_ASW_VERSION_ID,
-					     START_TIME, END_TIME, MODEL_ID, MODEL_COUNTER,
-					     &example_cfg, (int)example_info.cmp_size);
+		cmp_ent_size = cmp_ent_create(cmp_ent, DATA_TYPE_IMAGETTE_ADAPTIVE,
+					      example_info.cmp_mode_used == CMP_MODE_RAW,
+					      cmp_bit_to_byte(example_info.cmp_size));
 		if (!cmp_ent_size) {
 			printf("Error occurred during cmp_ent_build()\n");
+			return -1;
+		}
+
+		if (cmp_ent_set_version_id(cmp_ent, CMP_ASW_VERSION_ID)) {
+			printf("Error occurred during cmp_ent_set_version_id()\n");
+			return -1;
+		}
+		if (cmp_ent_set_start_timestamp(cmp_ent, START_TIME)) {
+			printf("Error occurred during cmp_ent_set_start_timestamp()\n");
+			return -1;
+		}
+		if (cmp_ent_set_end_timestamp(cmp_ent, END_TIME)) {
+			printf("Error occurred during cmp_ent_set_end_timestamp()\n");
+			return -1;
+		}
+		if (cmp_ent_set_model_id(cmp_ent, MODEL_ID)) {
+			printf("Error occurred during cmp_ent_set_model_id()\n");
+			return -1;
+		}
+		if (cmp_ent_set_model_counter(cmp_ent, MODEL_COUNTER)) {
+			printf("Error occurred during cmp_ent_set_model_counter()\n");
+			return -1;
+		}
+		if (cmp_ent_write_rdcu_cmp_pars(cmp_ent, &example_info, &example_rcfg)) {
+			printf("Error occurred during cmp_ent_write_rdcu_cmp_pars()\n");
 			return -1;
 		}
 

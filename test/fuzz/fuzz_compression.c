@@ -1,5 +1,5 @@
 /**
- * @file fuzz_copression.c
+ * @file fuzz_compression.c
  * @date 2024
  *
  * @copyright GPLv2
@@ -34,7 +34,7 @@
 int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
 {
 	struct cmp_par cmp_par;
-	struct cmp_par *cmp_par_ptr = NULL;
+	const struct cmp_par *cmp_par_ptr = NULL;
 	const uint8_t *model = NULL;
 	void *up_model;
 	uint32_t *cmp_data;
@@ -46,6 +46,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
 	/* Give a random portion of src data to the producer, to use for
 	   parameter generation. The rest will be used for data/model */
 	FUZZ_dataProducer_t *producer = (FUZZ_dataProducer_t *)FUZZ_dataProducer_create(src, size);
+
 	size = FUZZ_dataProducer_reserveDataPrefix(producer);
 
 	FUZZ_dataProducer_cmp_par(producer, &cmp_par);
@@ -64,7 +65,6 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
 	cmp_data = (uint32_t *)FUZZ_malloc(cmp_data_capacity);
 
 	FUZZ_dataProducer_cmp_par(producer, &cmp_par);
-	cmp_par.lossy_par = 0; /*TODO: implement lossy  */
 	if (FUZZ_dataProducer_uint32Range(producer, 0, 1))
 		cmp_par_ptr = &cmp_par;
 
@@ -88,19 +88,19 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
 	}
 
 
-	return_value = compress_chunk((void *)src, size, (void *)model, up_model,
+	return_value = compress_chunk(src, (uint32_t)size, model, up_model,
 				      cmp_data, cmp_data_capacity, cmp_par_ptr);
 
 	switch (cmp_get_error_code(return_value)) {
 	case CMP_ERROR_NO_ERROR:
 	case CMP_ERROR_GENERIC:
-	case CMP_ERROR_SMALL_BUF_:
+	case CMP_ERROR_SMALL_BUFFER:
 	/* compression parameter errors */
 	case CMP_ERROR_PAR_GENERIC:
 	case CMP_ERROR_PAR_SPECIFIC:
 	case CMP_ERROR_PAR_BUFFERS:
-	case CMP_ERROR_PAR_MAX_USED_BITS:
 	case CMP_ERROR_PAR_NULL:
+	case CMP_ERROR_PAR_NO_MODEL:
 	/* chunk errors */
 	case CMP_ERROR_CHUNK_NULL:
 	case CMP_ERROR_CHUNK_TOO_LARGE:
@@ -132,6 +132,13 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
 		FUZZ_ASSERT(0);
 	default:
 		FUZZ_ASSERT(0);
+	}
+	if (!cmp_is_error(return_value) && model != up_model) {
+		uint32_t return_value2;
+
+		return_value2 = compress_chunk(src, (uint32_t)size, model, up_model,
+					       NULL, cmp_data_capacity, cmp_par_ptr);
+		FUZZ_ASSERT(return_value == return_value2);
 	}
 
 	free(cmp_data);

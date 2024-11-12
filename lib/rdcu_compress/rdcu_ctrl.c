@@ -2517,7 +2517,6 @@ int rdcu_sync_sram_mirror_parallel(uint32_t rx_addr, uint32_t rx_size,
 }
 
 
-
 /**
  * @brief initialise the rdcu control library
  *

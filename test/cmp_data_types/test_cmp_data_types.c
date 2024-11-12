@@ -46,12 +46,12 @@ void test_cmp_col_get_and_set(void)
 	int err;
 	size_t i;
 	struct collection_hdr *col = malloc(sizeof(struct collection_hdr));
-	uint8_t *u8_p = (uint8_t *)col;
+	const uint8_t *u8_p = (const uint8_t *)col;
 	uint64_t timestamp;
 	uint16_t configuration_id, collection_id, collection_length;
 	uint8_t pkt_type, subservice, ccd_id, sequence_num;
 
-	TEST_ASSERT_TRUE(col);
+	TEST_ASSERT_NOT_NULL(col);
 
 	memset(col, 0, sizeof(struct collection_hdr));
 
@@ -141,9 +141,9 @@ void test_cmp_col_get_and_set(void)
 	err = cmp_col_set_data_length(NULL, 0x0A0B);
 	TEST_ASSERT_TRUE(err);
 
-	for (i = 0; i < sizeof(struct collection_hdr); i++) {
+	for (i = 0; i < sizeof(struct collection_hdr); i++)
 		TEST_ASSERT_EQUAL_HEX8(i, u8_p[i]);
-	}
+
 	free(col);
 }
 
@@ -206,92 +206,6 @@ void test_size_of_a_sample(void)
 }
 
 
-/**
- * @test cmp_cal_size_of_data
- */
-
-void test_cmp_cal_size_of_data(void)
-{
-	uint32_t s;
-
-	s = cmp_cal_size_of_data(1, DATA_TYPE_IMAGETTE);
-	TEST_ASSERT_EQUAL_UINT(sizeof(uint16_t), s);
-
-	s = cmp_cal_size_of_data(32, DATA_TYPE_IMAGETTE);
-	TEST_ASSERT_EQUAL_UINT(32 * sizeof(uint16_t), s);
-
-	s = cmp_cal_size_of_data(1, DATA_TYPE_F_FX);
-	TEST_ASSERT_EQUAL_UINT(sizeof(struct f_fx)+COLLECTION_HDR_SIZE, s);
-
-	s = cmp_cal_size_of_data(4, DATA_TYPE_F_FX);
-	TEST_ASSERT_EQUAL_UINT(4*sizeof(struct f_fx)+COLLECTION_HDR_SIZE, s);
-
-	/* error cases */
-	s = cmp_cal_size_of_data(33, DATA_TYPE_UNKNOWN);
-	TEST_ASSERT_EQUAL_UINT(0, s);
-
-	/* overflow tests */
-	s = cmp_cal_size_of_data(0x1999999A, DATA_TYPE_BACKGROUND);
-	TEST_ASSERT_EQUAL_UINT(0, s);
-	s = cmp_cal_size_of_data(0x19999999, DATA_TYPE_BACKGROUND);
-	TEST_ASSERT_EQUAL_UINT(0, s);
-	s = cmp_cal_size_of_data(UINT_MAX, DATA_TYPE_L_FX_EFX_NCOB_ECOB);
-	TEST_ASSERT_EQUAL_UINT(0, s);
-}
-
-
-/**
- * @test cmp_input_size_to_samples
- */
-
-void test_cmp_input_size_to_samples(void)
-{
-	enum cmp_data_type data_type;
-	uint32_t size, samples;
-	int32_t samples_get;
-
-	data_type = DATA_TYPE_IMAGETTE;
-	samples = 42;
-	size = cmp_cal_size_of_data(samples, data_type);
-	samples_get = cmp_input_size_to_samples(size, data_type);
-	TEST_ASSERT_EQUAL(samples, samples_get);
-
-	data_type = DATA_TYPE_IMAGETTE;
-	samples = 0;
-	size = cmp_cal_size_of_data(samples, data_type);
-	samples_get = cmp_input_size_to_samples(size, data_type);
-	TEST_ASSERT_EQUAL(samples, samples_get);
-
-	data_type = DATA_TYPE_S_FX_NCOB;
-	samples = 42;
-	size = cmp_cal_size_of_data(samples, data_type);
-	samples_get = cmp_input_size_to_samples(size, data_type);
-	TEST_ASSERT_EQUAL(samples, samples_get);
-
-	data_type = DATA_TYPE_S_FX_NCOB;
-	samples = 0;
-	size = cmp_cal_size_of_data(samples, data_type);
-	samples_get = cmp_input_size_to_samples(size, data_type);
-	TEST_ASSERT_EQUAL(samples, samples_get);
-
-	/* error cases */
-	data_type = DATA_TYPE_S_FX_NCOB;
-	size = COLLECTION_HDR_SIZE - 1;
-	samples_get = cmp_input_size_to_samples(size, data_type);
-	TEST_ASSERT_EQUAL(-1, samples_get);
-	data_type = DATA_TYPE_S_FX_NCOB;
-
-	size = COLLECTION_HDR_SIZE + 4*sizeof(struct s_fx_ncob) - 1;
-	samples_get = cmp_input_size_to_samples(size, data_type);
-	TEST_ASSERT_EQUAL(-1, samples_get);
-
-	data_type = DATA_TYPE_UNKNOWN;
-	size = 32;
-	samples_get = cmp_input_size_to_samples(size, data_type);
-	TEST_ASSERT_EQUAL(-1, samples_get);
-}
-
-
 static void check_endianness(void *data, uint16_t size, enum cmp_data_type data_type)
 {
 	int error;
@@ -341,7 +255,7 @@ void test_cmp_input_big_to_cpu_endianness(void)
 			struct offset entry[2];
 		} __attribute__((packed)) data = {0};
 		size_t i;
-		uint8_t *p_8 = (uint8_t *)&data;
+		const uint8_t *p_8 = (const uint8_t *)&data;
 
 		data_type = DATA_TYPE_OFFSET;
 
@@ -370,6 +284,27 @@ void test_be_to_cpu_chunk(void)
 {
 	enum cmp_data_type data_type;
 
+	{
+		struct {
+			uint8_t hdr[COLLECTION_HDR_SIZE];
+			uint16_t entry[2];
+		} __attribute__((packed)) data = {0};
+
+		data_type = DATA_TYPE_IMAGETTE;
+		data.entry[0] = 0x0001;
+		data.entry[1] = 0x0203;
+		check_endianness(&data, sizeof(data), data_type);
+
+		data_type = DATA_TYPE_SAT_IMAGETTE;
+		data.entry[0] = 0x0001;
+		data.entry[1] = 0x0203;
+		check_endianness(&data, sizeof(data), data_type);
+
+		data_type = DATA_TYPE_F_CAM_IMAGETTE;
+		data.entry[0] = 0x0001;
+		data.entry[1] = 0x0203;
+		check_endianness(&data, sizeof(data), data_type);
+	}
 	{
 		struct {
 			uint8_t hdr[COLLECTION_HDR_SIZE];
@@ -764,4 +699,34 @@ void test_cmp_input_big_to_cpu_endianness_error_cases(void)
 	data_type = DATA_TYPE_UNKNOWN;
 	error = cmp_input_big_to_cpu_endianness(data, data_size_byte, data_type);
 	TEST_ASSERT_EQUAL(-1, error);
+
+	{ /* test adaptive data types */
+		size_t i;
+		uint16_t data_ap[2];
+
+		data_type = DATA_TYPE_IMAGETTE_ADAPTIVE;
+		data_ap[0] = 0x0001;
+		data_ap[1] = 0x0203;
+		error = cmp_input_big_to_cpu_endianness(data_ap, sizeof(data_ap), data_type);
+		TEST_ASSERT_EQUAL(00, error);
+		for (i = 0; i < sizeof(data_ap); i++)
+			TEST_ASSERT_EQUAL(i, ((uint8_t *)data_ap)[i]);
+
+		data_type = DATA_TYPE_SAT_IMAGETTE_ADAPTIVE;
+		data_ap[0] = 0x0001;
+		data_ap[1] = 0x0203;
+		error = cmp_input_big_to_cpu_endianness(data_ap, sizeof(data_ap), data_type);
+		TEST_ASSERT_EQUAL(00, error);
+		for (i = 0; i < sizeof(data_ap); i++)
+			TEST_ASSERT_EQUAL(i, ((uint8_t *)data_ap)[i]);
+
+		data_type = DATA_TYPE_F_CAM_IMAGETTE_ADAPTIVE;
+		data_ap[0] = 0x0001;
+		data_ap[1] = 0x0203;
+		error = cmp_input_big_to_cpu_endianness(data_ap, sizeof(data_ap), data_type);
+		TEST_ASSERT_EQUAL(00, error);
+		for (i = 0; i < sizeof(data_ap); i++)
+			TEST_ASSERT_EQUAL(i, ((uint8_t *)data_ap)[i]);
+	}
+
 }
