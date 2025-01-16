@@ -122,14 +122,14 @@ static const struct option long_options[] = {
 static const char *output_prefix = DEFAULT_OUTPUT_PREFIX;
 
 /* if non zero additional RDCU parameters are included in the compression
- * configuration and decompression information files */
+ * configuration and decompression information files
+ */
 static int add_rdcu_pars;
 
 /* if non zero generate RDCU setup packets */
 static int rdcu_pkt_mode;
 
-/* file name of the last compression information file to generate parallel RDCU
- * setup packets */
+/* file name of the last compression information file to generate parallel RDCU setup packets */
 static const char *last_info_file_name;
 
 /* option flags for file IO */
@@ -511,6 +511,11 @@ int main(int argc, char **argv)
 				      model_size, io_flags);
 		if (size < 0)
 			goto fail;
+		if (size != (ssize_t)model_size) {
+			fprintf(stderr, "%s: %s: Error: Model file size does not match original data size.\n", PROGRAM_NAME, model_file_name);
+			goto fail;
+		}
+
 		printf("DONE\n");
 
 		rcfg.model_buf = input_model_buf;
@@ -628,8 +633,8 @@ static int guess_cmp_pars(struct rdcu_cfg *rcfg, struct cmp_par *chunk_par,
 
 		if (cmp_is_error(result))
 			return -1;
-		else
-			cmp_size_bit = 8 * result;
+
+		cmp_size_bit = 8 * result;
 		printf("DONE\n");
 
 		printf("Write the guessed compression chunk parameters to file %s.par ... ", output_prefix);

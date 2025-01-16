@@ -85,6 +85,8 @@ jobs:
         pip install meson ninja pytest
         sudo apt-get update
         sudo apt-get install gcc-mingw-w64 wine64
+    - name: Update PATH for wine
+      run: echo "/usr/lib/wine" >> "$GITHUB_PATH"
     - name: mingw cross-compilation and testing
       run: |
         meson setup \
@@ -100,7 +102,6 @@ jobs:
       with:
         name: MinGW cross compile Testlog
         path: builddir_cross_win/meson-logs/testlog.txt
-
 
   mingw-build-test:
     runs-on: windows-latest
