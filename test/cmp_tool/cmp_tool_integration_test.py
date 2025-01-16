@@ -1311,7 +1311,6 @@ def test_model_fiel_erros():
         returncode, stdout, stderr = call_cmp_tool(
             " -c "+cfg_file_name+" -d "+data_file_name + " -m "+model_file_name+" -o "+output_prefix)
         assert(returncode == EXIT_FAILURE)
-        print(stdout)
         assert(stdout == CMP_START_STR_CMP +
                "Importing configuration file %s ... DONE\n" % (cfg_file_name) +
                "Importing data file %s ... DONE\n" % (data_file_name) +

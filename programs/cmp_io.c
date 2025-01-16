@@ -18,6 +18,7 @@
  * @warning this part of the software is not intended to run on-board on the ICU.
  */
 
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -553,7 +554,8 @@ int cmp_mode_parse(const char *cmp_mode_str, enum cmp_mode *cmp_mode)
 			}
 		}
 		return -1;
-	} else {
+	}
+	{
 		uint32_t read_val;
 
 		if (atoui32(cmp_mode_str, cmp_mode_str, &read_val))
@@ -916,7 +918,8 @@ static int parse_info(FILE *fp, struct cmp_info *info)
 				fprintf(stderr, "%s: Error read in cmp_mode_used.\n",
 					PROGRAM_NAME);
 				return -1;
-			} else {
+			}
+			{
 				uint32_t tmp;
 
 				if (atoui32(token1, token2, &tmp))
