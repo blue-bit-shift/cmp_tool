@@ -19,6 +19,7 @@
  * @see Data Compression User Manual PLATO-UVIE-PL-UM-0001
  */
 
+#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -500,6 +501,19 @@ int main(int argc, char **argv)
 		else
 			model_size = cmp_ent_get_original_size(decomp_entity);
 
+		size = read_file_data(model_file_name, cmp_type, NULL,
+				      model_size, io_flags);
+		if (size < 0)
+			goto fail;
+		if (size < (ssize_t)model_size) {
+			fprintf(stderr, "%s: %s: Error: The files do not contain enough data. Expected: 0x%x, has 0x%zx.\n",
+				PROGRAM_NAME, model_file_name, model_size, size);
+			goto fail;
+		}
+		if (size != (ssize_t)model_size) {
+			fprintf(stderr, "%s: %s: Error: Model file size does not match original data size.\n", PROGRAM_NAME, model_file_name);
+			goto fail;
+		}
 
 		input_model_buf = malloc(model_size);
 		if (!input_model_buf) {
@@ -511,10 +525,7 @@ int main(int argc, char **argv)
 				      model_size, io_flags);
 		if (size < 0)
 			goto fail;
-		if (size != (ssize_t)model_size) {
-			fprintf(stderr, "%s: %s: Error: Model file size does not match original data size.\n", PROGRAM_NAME, model_file_name);
-			goto fail;
-		}
+
 
 		printf("DONE\n");
 

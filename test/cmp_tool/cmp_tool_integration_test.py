@@ -1331,7 +1331,7 @@ def test_model_fiel_erros():
         del_file(output_prefix+"_upmodel.dat")
 
 
-def test_decmp_model_fiel_original_size_miss_match():
+def test_decmp_model_fiel_original_size_miss_match_binary():
     cmp_data = b'8000000d000029000004097ce800cbd5097ce800cbfe00010108d01001000000001001001110078700'
     to_large_model = b'111111111111' # should be 4 byte large in normal case
     output_prefix = 'model_file_to_large'
@@ -1356,6 +1356,37 @@ def test_decmp_model_fiel_original_size_miss_match():
     finally:
         del_file(cmp_data_file_name)
         del_file(model_file_name)
+        del_file(output_prefix+'.dat')
+        del_file(output_prefix+'_upmodel.dat')
+
+
+def test_decmp_model_fiel_original_size_miss_match_binary():
+    cmp_data = '8000000d000029000004097ce800cbd5097ce800cbfe00010108d01001000000001001001110078700'
+    to_large_model = '111111111111' # should be 4 byte large in normal case
+    output_prefix = 'model_file_to_large'
+    cmp_data_file_name = 'cmp_data.cmp'
+    model_file_name = 'to_large_model.dat'
+
+    try:
+        with open(cmp_data_file_name, 'w', encoding='utf-8') as f:
+            f.write(cmp_data)
+
+        with open(model_file_name, 'w', encoding='utf-8') as f:
+            f.write(to_large_model)
+
+        returncode, stdout, stderr = call_cmp_tool(
+            " -d "+cmp_data_file_name + " -m " + model_file_name + " -o "+output_prefix)
+        assert(returncode == EXIT_FAILURE)
+        assert(stdout == CMP_START_STR_DECMP +
+               "Importing compressed data file %s ... DONE\n" % (cmp_data_file_name) +
+               "Importing model file %s ... FAILED\n" % (model_file_name))
+        assert(stderr == "cmp_tool: %s: Error: Model file size does not match original data size.\n" % (model_file_name))
+
+    finally:
+         del_file(cmp_data_file_name)
+         del_file(model_file_name)
+         del_file(output_prefix+'.dat')
+         del_file(output_prefix+'_upmodel.dat')
 
 
 def test_rdcu_pkt():
