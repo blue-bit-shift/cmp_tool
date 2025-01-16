@@ -1446,10 +1446,10 @@ ssize_t read_file_data(const char *file_name, enum cmp_type cmp_type,
 
 	switch (cmp_type) {
 	case CMP_TYPE_RDCU:
-		err = be_to_cpu_data_type(buf, (uint32_t)size, DATA_TYPE_IMAGETTE);
+		err = be_to_cpu_data_type(buf, buf_size, DATA_TYPE_IMAGETTE);
 		break;
 	case CMP_TYPE_CHUNK:
-		err = be_to_cpu_chunk(buf, (uint32_t)size);
+		err = be_to_cpu_chunk(buf, buf_size);
 		break;
 	case CMP_TYPE_ERROR:
 	default:

@@ -511,6 +511,11 @@ int main(int argc, char **argv)
 				      model_size, io_flags);
 		if (size < 0)
 			goto fail;
+		if (size != (ssize_t)model_size) {
+			fprintf(stderr, "%s: %s: Error: Model file size does not match original data size.\n", PROGRAM_NAME, model_file_name);
+			goto fail;
+		}
+
 		printf("DONE\n");
 
 		rcfg.model_buf = input_model_buf;

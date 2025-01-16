@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [0.14] - 16-01-2025
+### Added
+- check for model file size mismatch errors
+
 ## [0.13] - 08-11-2024
 ### Added
 - added chunk-specific compression parameter guessing functionality
