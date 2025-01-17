@@ -3,17 +3,18 @@ if get_option('fuzzer').disabled()
 endif
 
 fuzz_common = files('fuzz_data_producer.c', 'fuzz_helpers.c')
-fuzz_targets = ['fuzz_compression.c', 'fuzz_round_trip.c', 'fuzz_decompression.c']
+fuzz_targets = ['fuzz_compression.c', 'fuzz_round_trip.c', 'fuzz_decompression.c', 'fuzz_cmp_tool.c']
 
 add_languages('cpp', native: false) # libFuzzingEngine needs c++
 
+prodir = include_directories('../../programs')
 foreach target : fuzz_targets
   file_name = target
   target_name = file_name.split('.').get(0)
 
   fuzz_exe = executable(target_name,
-    fuzz_common, chunk_round_trip, file_name,
-    include_directories : incdir,
+    fuzz_common, chunk_round_trip, file_name, cmp_tool_src,
+    include_directories : [incdir, prodir],
     link_with : [cmp_lib],
     link_args : get_option('fuzzer_ldflags'),
     link_language : 'cpp' # libFuzzingEngine needs c++

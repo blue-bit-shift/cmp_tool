@@ -38,6 +38,9 @@
 #include <cmp_data_types.h>
 #include <leon_inttypes.h>
 
+ /* Redefine printf to do nothing */
+ #define printf(...)
+ #define fprintf(...)
 
 /* directory to convert from data_type to string */
 static const struct {
