@@ -650,7 +650,7 @@ static int guess_cmp_pars(struct rdcu_cfg *rcfg, struct cmp_par *chunk_par,
 
 	printf("Search for a good set of compression parameters (level: %d) ... ", guess_level);
 	fflush(stdout);
-	if (!case_insensitive_compare(guess_option, "rdcu")) {
+	if (guess_option && !case_insensitive_compare(guess_option, "rdcu")) {
 		if (add_rdcu_pars)
 			data_type = DATA_TYPE_IMAGETTE_ADAPTIVE;
 		else
@@ -659,7 +659,7 @@ static int guess_cmp_pars(struct rdcu_cfg *rcfg, struct cmp_par *chunk_par,
 			rcfg->cmp_mode = CMP_GUESS_DEF_MODE_MODEL;
 		else
 			rcfg->cmp_mode = CMP_GUESS_DEF_MODE_DIFF;
-	} else if (!case_insensitive_compare(guess_option, "chunk")) {
+	} else if (guess_option && !case_insensitive_compare(guess_option, "chunk")) {
 		data_type = DATA_TYPE_CHUNK;
 	} else {
 		data_type = DATA_TYPE_IMAGETTE;

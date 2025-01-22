@@ -501,6 +501,12 @@ int case_insensitive_compare(const char *s1, const char *s2)
 {
 	size_t i;
 
+	if(s1 == NULL)
+		abort();
+
+	if(s2 == NULL)
+		abort();
+
 	for (i = 0;  ; ++i) {
 		unsigned int x1 = (unsigned char)s1[i];
 		unsigned int x2 = (unsigned char)s2[i];
