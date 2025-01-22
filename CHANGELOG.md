@@ -1,6 +1,12 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [0.15] - 22-01-2025
+### Added
+- add fuzzer for cmp_tool
+### Changed
+- error handling is now consistent with the --binary option when model file size does not match original data size
+
 ## [0.14] - 16-01-2025
 ### Added
 - check for model file size mismatch errors
