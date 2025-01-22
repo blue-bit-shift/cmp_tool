@@ -29,12 +29,20 @@
 #ifndef FUZZ_DATA_PRODUCER_H
 #define FUZZ_DATA_PRODUCER_H
 
+
 #include <stddef.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <stdlib.h>
 
 #include <cmp_chunk.h>
+
+
+#ifdef __APPLE__
+#  define FUZZ_TMP_DIR "/tmp"
+#else
+#  define FUZZ_TMP_DIR "/dev/shm"
+#endif
+
 
 /* Struct used for maintaining the state of the data */
 typedef struct FUZZ_dataProducer_s FUZZ_dataProducer_t;
@@ -47,14 +55,14 @@ void FUZZ_dataProducer_free(FUZZ_dataProducer_t *producer);
 
 /* Returns value between [min, max] */
 uint32_t FUZZ_dataProducer_uint32Range(FUZZ_dataProducer_t *producer, uint32_t min,
-                                  uint32_t max);
+				  uint32_t max);
 
 /* Returns a uint32 value */
 uint32_t FUZZ_dataProducer_uint32(FUZZ_dataProducer_t *producer);
 
 /* Returns a signed value between [min, max] */
 int32_t FUZZ_dataProducer_int32Range(FUZZ_dataProducer_t *producer,
-                                    int32_t min, int32_t max);
+				    int32_t min, int32_t max);
 
 /* Provides compression parameters */
 void FUZZ_dataProducer_cmp_par(FUZZ_dataProducer_t *producer, struct cmp_par *cmp_par);
@@ -69,12 +77,16 @@ void FUZZ_dataProducer_rollBack(FUZZ_dataProducer_t *producer, size_t remainingB
 int FUZZ_dataProducer_empty(FUZZ_dataProducer_t *producer);
 
 /* Restricts the producer to only the last newSize bytes of data.
-If newSize > current data size, nothing happens. Returns the number of bytes
-the producer won't use anymore, after contracting. */
+ * If newSize > current data size, nothing happens. Returns the number of bytes
+ * the producer won't use anymore, after contracting.
+ */
 size_t FUZZ_dataProducer_contract(FUZZ_dataProducer_t *producer, size_t newSize);
 
-/* Restricts the producer to use only the last X bytes of data, where X is
- a random number in the interval [0, data_size]. Returns the size of the
- remaining data the producer won't use anymore (the prefix). */
+/* Restricts the producer to use only the last X bytes of data, where X is a
+ * random number in the interval [0, data_size]. Returns the size of the
+ * remaining data the producer won't use anymore (the prefix).
+ */
 size_t FUZZ_dataProducer_reserveDataPrefix(FUZZ_dataProducer_t *producer);
+
+
 #endif // FUZZ_DATA_PRODUCER_H

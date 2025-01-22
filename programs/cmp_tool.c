@@ -19,6 +19,7 @@
  * @see Data Compression User Manual PLATO-UVIE-PL-UM-0001
  */
 
+#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,8 +28,9 @@
 #include <errno.h>
 #include <getopt.h>
 
+#include <cmp_tool-config.h>
+
 #include "cmp_support.h"
-#include "cmp_tool-config.h"
 #include "cmp_io.h"
 #include "cmp_icu.h"
 #include "cmp_chunk.h"
@@ -145,6 +147,45 @@ static uint32_t model_id = DEFAULT_MODEL_ID;
 static uint32_t model_counter;
 
 
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+#define CMP_MAIN cmp_tool_main
+/* Redefine (f)printf to do nothing */
+__extension__
+#define printf(...) do {} while (0)
+#define fprintf(...) do {} while (0)
+#define fflush(...) do {} while (0)
+
+int CMP_MAIN(int argc, char **argv);
+
+/**
+ * @brief callable main function
+ * Resets the global variables and calls the cmp_tool main function.
+ *
+ * @param argc argument count
+ * @param argv argument vector
+ *
+ * @returns EXIT_SUCCESS on success, EXIT_FAILURE on error.
+ */
+
+int testable_cmp_tool_main(int argc, char **argv)
+{
+	output_prefix = DEFAULT_OUTPUT_PREFIX;
+	add_rdcu_pars = 0;
+	rdcu_pkt_mode = 0;
+	last_info_file_name = NULL;
+	io_flags = 0;
+	include_cmp_header = 1;
+	model_id = DEFAULT_MODEL_ID;
+	model_counter = 0;
+
+	optind = 0;
+	return CMP_MAIN(argc, argv);
+}
+#else
+#define CMP_MAIN main
+#endif
+
+
 /**
  * @brief This is the main function of the compression / decompression tool
  *
@@ -155,7 +196,7 @@ static uint32_t model_counter;
  * @returns EXIT_SUCCESS on success, EXIT_FAILURE on error
  */
 
-int main(int argc, char **argv)
+int CMP_MAIN(int argc, char **argv)
 {
 	int opt;
 	int error;
@@ -188,7 +229,7 @@ int main(int argc, char **argv)
 	/* show help if no arguments are provided */
 	if (argc < 2) {
 		print_help(program_name);
-		exit(EXIT_FAILURE);
+		return EXIT_FAILURE;
 	}
 
 	while ((opt = getopt_long(argc, argv, "abc:d:hi:m:no:vV", long_options,
@@ -209,8 +250,7 @@ int main(int argc, char **argv)
 			break;
 		case 'h': /* --help */
 			print_help(argv[0]);
-			exit(EXIT_SUCCESS);
-			break;
+			return EXIT_SUCCESS;
 		case 'i':
 			info_file_name = optarg;
 			include_cmp_header = 0;
@@ -231,8 +271,7 @@ int main(int argc, char **argv)
 			break;
 		case 'V': /* --version */
 			printf("%s version %s\n", PROGRAM_NAME, CMP_TOOL_VERSION);
-			exit(EXIT_SUCCESS);
-			break;
+			return EXIT_SUCCESS;
 		case DIFF_CFG_OPTION:
 			print_diff_cfg = 1;
 			break;
@@ -256,24 +295,23 @@ int main(int argc, char **argv)
 			break;
 		case MODEL_ID:
 			if (atoui32("model_id", optarg, &model_id))
-				return -1;
+				return EXIT_FAILURE;
 			if (model_counter > UINT16_MAX) {
 				fprintf(stderr, "%s: Error: model id value to large.\n", PROGRAM_NAME);
-				return -1;
+				return EXIT_FAILURE;
 			}
 			break;
 		case MODEL_COUTER:
 			if (atoui32("model_counter", optarg, &model_counter))
-				return -1;
+				return EXIT_FAILURE;
 			if (model_counter > UINT8_MAX) {
 				fprintf(stderr, "%s: Error: model counter value to large.\n", PROGRAM_NAME);
-				return -1;
+				return EXIT_FAILURE;
 			}
 			break;
 		default:
 			print_help(program_name);
-			exit(EXIT_FAILURE);
-			break;
+			return EXIT_FAILURE;
 		}
 	}
 	argc -= optind;
@@ -284,7 +322,7 @@ int main(int argc, char **argv)
 	if (argc > 2) {
 		printf("%s: To many arguments.\n", PROGRAM_NAME);
 		print_help(argv[0]);
-		exit(EXIT_FAILURE);
+		return EXIT_FAILURE;
 	}
 
 	if (argc > 0) {
@@ -293,7 +331,7 @@ int main(int argc, char **argv)
 		else {
 			printf("You can define the data file using either the -d option or the first argument, but not both.\n");
 			print_help(program_name);
-			exit(EXIT_FAILURE);
+			return EXIT_FAILURE;
 		}
 	}
 	if (argc > 1) {
@@ -302,14 +340,14 @@ int main(int argc, char **argv)
 		else {
 			printf("You can define the model file using either the -m option or the second argument, but not both.\n");
 			print_help(program_name);
-			exit(EXIT_FAILURE);
+			return EXIT_FAILURE;
 		}
 	}
 #else
 	if (argc > 0) {
 		printf("%s: To many arguments.\n", PROGRAM_NAME);
 		print_help(argv[0]);
-		exit(EXIT_FAILURE);
+		return EXIT_FAILURE;
 	}
 #endif
 
@@ -317,14 +355,14 @@ int main(int argc, char **argv)
 		if (print_model_cfg && print_diff_cfg) {
 			fprintf(stderr, "%s: Cannot use -n, --model_cfg and -diff_cfg together.\n",
 				PROGRAM_NAME);
-			exit(EXIT_FAILURE);
+			return EXIT_FAILURE;
 		}
 		if (print_model_cfg)
 			cmp_cfg_create_default(&rcfg, MODEL_CFG);
 		else
 			cmp_cfg_create_default(&rcfg, DIFF_CFG);
 		cmp_cfg_print(&rcfg, add_rdcu_pars);
-		exit(EXIT_SUCCESS);
+		return EXIT_SUCCESS;
 	}
 
 	{
@@ -342,15 +380,14 @@ int main(int argc, char **argv)
 	}
 
 	if (!data_file_name) {
-		fprintf(stderr, "%s: No data file (-d option) specified.\n",
-			PROGRAM_NAME);
-			exit(EXIT_FAILURE);
+		fprintf(stderr, "%s: No data file (-d option) specified.\n", PROGRAM_NAME);
+		return EXIT_FAILURE;
 	}
 
 	if (!cfg_file_name && !info_file_name && !guess_operation && !include_cmp_header) {
 		fprintf(stderr, "%s: No configuration file (-c option) or decompression information file (-i option) specified.\n",
 			PROGRAM_NAME);
-		exit(EXIT_FAILURE);
+		return EXIT_FAILURE;
 	}
 
 
@@ -561,7 +598,7 @@ int main(int argc, char **argv)
 	free(decomp_entity);
 	free(input_model_buf);
 
-	exit(EXIT_SUCCESS);
+	return EXIT_SUCCESS;
 
 fail:
 	printf("FAILED\n");
@@ -570,7 +607,7 @@ fail:
 	free(decomp_entity);
 	free(input_model_buf);
 
-	exit(EXIT_FAILURE);
+	return EXIT_FAILURE;
 }
 
 
@@ -584,7 +621,7 @@ static int guess_cmp_pars(struct rdcu_cfg *rcfg, struct cmp_par *chunk_par,
 {
 	int error;
 	uint32_t cmp_size_bit;
-	double cr;
+	double cr MAYBE_UNUSED;
 	enum cmp_data_type data_type;
 	char *endptr;
 	int guess_level;

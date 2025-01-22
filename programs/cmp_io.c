@@ -39,6 +39,14 @@
 #include <leon_inttypes.h>
 
 
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+/* Redefine (f)printf to do nothing */
+__extension__
+#define printf(...) do {} while (0)
+#define fprintf(...) do {} while (0)
+#endif
+
+
 /* directory to convert from data_type to string */
 static const struct {
 	enum cmp_data_type data_type;
@@ -78,7 +86,7 @@ static const struct {
  * @param program_name	name of the program
  */
 
-void print_help(const char *program_name)
+void print_help(const char *program_name MAYBE_UNUSED)
 {
 	printf("usage: %s [options] [<argument>]\n", program_name);
 	printf("General Options:\n");
@@ -284,9 +292,11 @@ int write_data_to_file(const void *buf, uint32_t buf_size, const char *output_pr
 	}
 
 	if (flags & CMP_IO_VERBOSE_EXTRA && !(flags & CMP_IO_BINARY)) {
+#ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
 		printf("\n");
 		fwrite(output_file_data, 1, output_file_size, stdout);
 		printf("\n");
+#endif
 	}
 
 	free(tmp_buf);
@@ -1731,8 +1741,8 @@ int cmp_cfg_fo_file(const struct rdcu_cfg *rcfg, const char *output_prefix,
  * @returns 0 on success, error otherwise
  */
 
-int cmp_info_to_file(const struct cmp_info *info, const char *output_prefix,
-		     int add_ap_pars)
+int cmp_info_to_file(const struct cmp_info *info MAYBE_UNUSED,
+		     const char *output_prefix, int add_ap_pars)
 {
 	FILE *fp = open_file(output_prefix, ".info");
 
