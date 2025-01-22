@@ -537,6 +537,19 @@ int CMP_MAIN(int argc, char **argv)
 		else
 			model_size = cmp_ent_get_original_size(decomp_entity);
 
+		size = read_file_data(model_file_name, cmp_type, NULL,
+				      model_size, io_flags);
+		if (size < 0)
+			goto fail;
+		if (size < (ssize_t)model_size) {
+			fprintf(stderr, "%s: %s: Error: The files do not contain enough data. Expected: 0x%x, has 0x%x.\n",
+				PROGRAM_NAME, model_file_name, model_size, (uint32_t)size);
+			goto fail;
+		}
+		if (size != (ssize_t)model_size) {
+			fprintf(stderr, "%s: %s: Error: Model file size does not match original data size.\n", PROGRAM_NAME, model_file_name);
+			goto fail;
+		}
 
 		input_model_buf = malloc(model_size);
 		if (!input_model_buf) {
@@ -548,10 +561,7 @@ int CMP_MAIN(int argc, char **argv)
 				      model_size, io_flags);
 		if (size < 0)
 			goto fail;
-		if (size != (ssize_t)model_size) {
-			fprintf(stderr, "%s: %s: Error: Model file size does not match original data size.\n", PROGRAM_NAME, model_file_name);
-			goto fail;
-		}
+
 
 		printf("DONE\n");
 

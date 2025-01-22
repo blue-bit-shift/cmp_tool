@@ -1315,7 +1315,7 @@ static __inline ssize_t str2uint8_arr(const char *str, uint8_t *data, uint32_t b
 			nptr++;
 	}
 	if (*nptr != '\0') {
-		fprintf(stderr, "%s: %s: Warning: The file may contain more data than specified by the samples or cmp_size parameter.\n",
+		fprintf(stderr, "%s: %s: Warning: The file may contain more data than read from it.\n",
 			PROGRAM_NAME, file_name);
 	}
 
