@@ -16,7 +16,7 @@ meson setup "$BUILD" \
   -Db_lundef=false
 
 # build fuzzers
-ninja -v -C "$BUILD" test/fuzz/{fuzz_round_trip,fuzz_compression,fuzz_decompression}
+ninja -v -C "$BUILD" test/fuzz/{fuzz_round_trip,fuzz_compression,fuzz_decompression,fuzz_cmp_tool}
 find "$BUILD/test/fuzz" -maxdepth 1 -executable -type f -exec cp "{}" "$OUT" \;
 
 #TODO prepare corps

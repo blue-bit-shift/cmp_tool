@@ -35,6 +35,13 @@
 
 #define CMP_GUESS_MAX_CAL_STEPS 20274
 
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+/* Redefine (f)printf to do nothing */
+__extension__
+#define printf(...) do {} while (0)
+#define fprintf(...) do {} while (0)
+#endif
+
 
 /* how often the model is updated before it is rested */
 static int num_model_updates = CMP_GUESS_N_MODEL_UPDATE_DEF;

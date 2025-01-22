@@ -16,6 +16,7 @@
 #define FUZZ_HELPERS_H
 
 #include <stdio.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -28,14 +29,17 @@ extern "C" {
 /**
  * Asserts for fuzzing that are always enabled.
  */
-#define FUZZ_ASSERT_MSG(cond, msg)                                             \
-  ((cond) ? (void)0                                                            \
-          : (fprintf(stderr, "%s: %u: Assertion: `%s' failed. %s\n", __FILE__, \
-                     __LINE__, FUZZ_QUOTE(cond), (msg)),                       \
-             abort()))
+#define FUZZ_ASSERT_MSG(cond, msg)                                                   \
+	((cond) ? (void)0                                                            \
+		: (fprintf(stderr, "%s: %u: Assertion: `%s' failed. %s\n", __FILE__, \
+			   __LINE__, FUZZ_QUOTE(cond), (msg)),                        \
+		   abort()))
 #define FUZZ_ASSERT(cond) FUZZ_ASSERT_MSG((cond), "");
 
-void* FUZZ_malloc(size_t size);
+void *FUZZ_malloc(size_t size);
+
+char *FUZZ_buf_to_file(const uint8_t *buf, size_t size);
+int FUZZ_delete_file(const char *path_name);
 
 #ifdef __cplusplus
 }
