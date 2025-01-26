@@ -45,6 +45,7 @@
 
 #define DEFAULT_MODEL_ID 53264  /* random default id */
 
+
 /**
  * @brief checks if an optional argument is present
  *
@@ -427,6 +428,11 @@ int CMP_MAIN(int argc, char **argv)
 			if (size <= 0 || size > INT32_MAX) /* empty file is treated as an error */
 				goto fail;
 			input_size = (uint32_t)size;
+		}
+
+		if (input_size > CMP_ENTITY_MAX_ORIGINAL_SIZE) {
+			fprintf(stderr, "%s: Error input data size is to large; maximum original data size: %lu\n", PROGRAM_NAME, CMP_ENTITY_MAX_ORIGINAL_SIZE);
+			goto fail;
 		}
 
 		rcfg.input_buf = malloc(input_size);
@@ -852,7 +858,13 @@ static int compression_for_rdcu(struct rdcu_cfg *rcfg)
 	}
 
 	printf("Compress data ... ");
+
 	out_buf_size = rcfg->buffer_length * sizeof(uint16_t);
+	if (out_buf_size > CMP_ENTITY_MAX_SIZE * BUFFER_LENGTH_DEF_FAKTOR) {
+		fprintf(stderr, "%s: Error buffer_length parameter to large.\n", PROGRAM_NAME);
+		goto error_cleanup;
+	}
+
 	cmp_entity = calloc(1, out_buf_size + sizeof(struct cmp_entity));
 	if (cmp_entity == NULL) {
 		fprintf(stderr, "%s: Error allocating memory for output buffer.\n", PROGRAM_NAME);
