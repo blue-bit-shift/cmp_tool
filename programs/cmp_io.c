@@ -1373,9 +1373,8 @@ ssize_t read_file8(const char *file_name, uint8_t *buf, uint32_t buf_size, int f
 	if (file_size < 0)
 		goto fail;
 	if (file_size == 0) {
-		fprintf(stderr, "%s: %s: Warning: The file is empty.\n", PROGRAM_NAME, file_name);
-		fclose(fp);
-		return 0;
+		fprintf(stderr, "%s: %s: Error: The file is empty.\n", PROGRAM_NAME, file_name);
+		goto fail;
 	}
 	if ((unsigned long)file_size < buf_size) {
 		fprintf(stderr, "%s: %s: Error: The files do not contain enough data.\n", PROGRAM_NAME, file_name);
@@ -1474,6 +1473,7 @@ ssize_t read_file_data(const char *file_name, enum cmp_type cmp_type,
 
 	if (err)
 		return -1;
+
 	return size;
 }
 

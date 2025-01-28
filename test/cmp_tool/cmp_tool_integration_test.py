@@ -923,7 +923,7 @@ def test_empty_file():
         assert(stdout == CMP_START_STR_CMP +
                "Importing configuration file %s ... DONE\n" % (cfg_file_name) +
                "Importing data file %s ... FAILED\n" % (data_file_name))
-        assert(stderr == "cmp_tool: %s: Warning: The file is empty.\n" % (data_file_name))
+        assert(stderr == "cmp_tool: %s: Error: The file is empty.\n" % (data_file_name))
         assert(returncode == EXIT_FAILURE)
 
     finally:
