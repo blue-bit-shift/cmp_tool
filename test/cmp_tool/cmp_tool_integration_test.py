@@ -175,7 +175,9 @@ def read_in_cmp_header(compressed_string):
     # version conversion fuu
     version_id = header['asw_version_id']['value']
     if version_id & 0x80000000:
-        header['asw_version_id']['value'] = "%.2f" % (int(version_id & 0x7FFF0000)//0x8000 + int(version_id&0xFFFF)*0.01)
+        major = (version_id & 0x7FFF0000) >> 16
+        minor = version_id & 0xFFFF
+        header['asw_version_id']['value'] = f"{major}.{minor}"
 
     return header
 

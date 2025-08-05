@@ -1,6 +1,21 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [1.0] - 18-08-2025
+### Fixed
+- smearing: Change `variance_mean` field to `uint32_t` and update tests
+- cmp_tool: improve error handling—empty files now raise Error instead of Warning
+- fuzz: fix file handling assertions
+- docs: Correct doxygen generation issues
+
+### Added
+- cmp_tool: Add samples and buffer length validation
+
+### Changed
+- docs: Compression User Manual updated to Issue 1 Revision 1
+- build: allow fuzz target builds if corpus download fails
+- fuzz: redirect cmp_tool output to /dev/null
+
 ## [0.15] - 22-01-2025
 ### Added
 - add fuzzer for cmp_tool
