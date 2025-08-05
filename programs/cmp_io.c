@@ -258,8 +258,9 @@ int write_data_to_file(const void *buf, uint32_t buf_size, const char *output_pr
 		output_file_size = buf_size;
 		output_file_data = buf;
 	} else {
+		static const uint8_t lut[] = {'0', '1', '2', '3', '4', '5', '6', '7',
+					      '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
 		size_t i, j;
-		const uint8_t lut[0x10] = "0123456789abcdef";
 
 		/* convert data to ASCII */
 		output_file_size = buf_size*3 + 1;
@@ -501,10 +502,10 @@ int case_insensitive_compare(const char *s1, const char *s2)
 {
 	size_t i;
 
-	if(s1 == NULL)
+	if (s1 == NULL)
 		abort();
 
-	if(s2 == NULL)
+	if (s2 == NULL)
 		abort();
 
 	for (i = 0;  ; ++i) {
