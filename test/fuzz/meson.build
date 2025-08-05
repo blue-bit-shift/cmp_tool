@@ -28,7 +28,7 @@ foreach target : fuzz_targets
     link_language : 'cpp' # libFuzzingEngine needs c++
   )
 
-   corpus_path = run_command('./download_corpus.sh', target_name, check: true).stdout().split()
+  corpus_path = run_command('./download_corpus.sh', target_name, check: false).stdout().split()
 
   test(target_name + ' 10 min',
     fuzz_exe,
