@@ -1,8 +1,8 @@
 [wrap-file]
-directory = doxygen-awesome-css-2.2.0
-source_url = https://github.com/jothepro/doxygen-awesome-css/archive/refs/tags/v2.2.0.tar.gz
-source_filename = doxygen-awesome-css-2.5.2.tar.gz
-source_hash = d3d55d91b3609c60e57d34a0fcdc37c67eeba535495511fba2b7d981da531793
+directory = doxygen-awesome-css-2.3.4
+source_url = https://github.com/jothepro/doxygen-awesome-css/archive/refs/tags/v2.3.4.tar.gz
+source_filename = doxygen-awesome-css-2.3.4.tar.gz
+source_hash = 54d515327b559cd18c6f4d3e8a46e0facc635be1967fb69526f977285922960e
 patch_directory = doxygen-awesome-css
 
 [provide]

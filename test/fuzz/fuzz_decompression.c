@@ -1,5 +1,5 @@
 /**
- * @file defuzz_compression.c
+ * @file fuzz_decompression.c
  * @date 2024
  *
  * @copyright GPLv2
@@ -53,8 +53,10 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
 	uint32_t ent_size;
 	void *decompressed_data;
 
-	/* Give a random portion of src data to the producer, to use for
-	   parameter generation. The rest will be used for data/model */
+	/*
+	 * Give a random portion of src data to the producer, to use for
+	 * parameter generation. The rest will be used for data/model
+	 */
 	FUZZ_dataProducer_t *producer = (FUZZ_dataProducer_t *)FUZZ_dataProducer_create(src, size);
 
 	size = FUZZ_dataProducer_reserveDataPrefix(producer);
@@ -99,5 +101,3 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
 
 	return 0;
 }
-
-

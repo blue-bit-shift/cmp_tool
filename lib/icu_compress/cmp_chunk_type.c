@@ -1,5 +1,5 @@
 /**
- * @file   cmp_chunk_type.h
+ * @file   cmp_chunk_type.c
  * @author Dominik Loidolt (dominik.loidolt@univie.ac.at)
  * @date   2024
  *

@@ -2,7 +2,7 @@
  * @author (c) Marco Paland (info@paland.com)
  *             2014-2019, PALANDesign Hannover, Germany
  *
- * @license The MIT License (MIT)
+ * @copyright The MIT License (MIT)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
