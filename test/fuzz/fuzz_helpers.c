@@ -67,7 +67,7 @@ char *FUZZ_buf_to_file(const uint8_t *buf, size_t size)
 	FUZZ_ASSERT(path_name != NULL);
 
 	fd = mkstemp(path_name);
-	FUZZ_ASSERT_MSG(fd != 1, path_name);
+	FUZZ_ASSERT_MSG(fd != -1, path_name);
 
 	while (pos < size) {
 		ssize_t bytes_written = write(fd, &buf[pos], size - pos);
@@ -81,7 +81,7 @@ char *FUZZ_buf_to_file(const uint8_t *buf, size_t size)
 	}
 
 	ret_close = close(fd);
-	FUZZ_ASSERT(ret_close != 1);
+	FUZZ_ASSERT(ret_close != -1);
 
 	return path_name;
 }

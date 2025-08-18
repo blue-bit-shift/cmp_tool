@@ -60,7 +60,7 @@ static int gen_argv(FUZZ_dataProducer_t *producer, char **argv, const char *data
 	/* Add optional arguments no the end so they have higher priority */
 	end = argc-1;
 	/* TODO: How to clean up written stuff by the cmp_tool? */
-	add_argument_with_file(argv, end--, "-o", FUZZ_TMP_DIR "/fuzz-output-cmp_tool");
+	add_argument_with_file(argv, end--, "-o", "/dev/null");
 	if (FUZZ_dataProducer_uint32Range(producer, 0, 1))
 		add_argument_with_file(argv, end--, "-d", data_file);
 	if (FUZZ_dataProducer_uint32Range(producer, 0, 1))
